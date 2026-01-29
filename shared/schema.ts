@@ -15,6 +15,7 @@ export const rooms = pgTable("rooms", {
     detectiveCount: number;
     doctorCount: number;
     civilianCount: number;
+    phaseDuration: number;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
@@ -63,12 +64,20 @@ export type JoinRoomRequest = {
   name: string;
 };
 
+export type GameAction = 
+  | { type: 'vote'; targetId: number }
+  | { type: 'kill'; targetId: number }
+  | { type: 'heal'; targetId: number }
+  | { type: 'check'; targetId: number }
+  | { type: 'skip' }
+  | { type: 'chat'; content: string };
+
 // WebSocket Message Types
 export const WS_EVENTS = {
   CONNECT: 'connect',
   JOIN: 'join',
   START_GAME: 'start_game',
-  ACTION: 'action', // vote, kill, heal, check
+  ACTION: 'action', // vote, kill, heal, check, chat
   STATE_UPDATE: 'state_update',
   ERROR: 'error',
 } as const;
@@ -76,12 +85,6 @@ export const WS_EVENTS = {
 export type GameState = {
   room: Room;
   players: Player[];
+  messages: Message[];
   me?: Player;
 };
-
-export type GameAction = 
-  | { type: 'vote'; targetId: number }
-  | { type: 'kill'; targetId: number }
-  | { type: 'heal'; targetId: number }
-  | { type: 'check'; targetId: number }
-  | { type: 'skip' };

@@ -14,6 +14,9 @@ export interface IStorage {
   getPlayersInRoom(roomId: number): Promise<Player[]>;
   updatePlayer(id: number, updates: Partial<Player>): Promise<Player>;
   
+  createMessage(message: Omit<Message, "id" | "timestamp">): Promise<Message>;
+  getMessagesByRoom(roomId: number): Promise<Message[]>;
+  
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
 }
@@ -62,6 +65,15 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: number, updates: Partial<Player>): Promise<Player> {
     const [player] = await db.update(players).set(updates).where(eq(players.id, id)).returning();
     return player;
+  }
+
+  async createMessage(message: Omit<Message, "id" | "timestamp">): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async getMessagesByRoom(roomId: number): Promise<Message[]> {
+    return await db.select().from(messages).where(eq(messages.roomId, roomId));
   }
 
   async generateRoomCode(): Promise<string> {

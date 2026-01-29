@@ -102,22 +102,23 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: IStor
 
   gameActions.set(roomId, actions);
   
-  // Re-fetch room to check if game ended
-  const updatedPlayers = await storage.getPlayersInRoom(roomId);
-  const aliveMafia = updatedPlayers.filter(p => p.role === 'mafia' && p.isAlive).length;
-  const aliveCivilians = updatedPlayers.filter(p => p.role !== 'mafia' && p.isAlive).length;
+      // Re-fetch room to check if game ended
+      const updatedPlayers = await storage.getPlayersInRoom(roomId);
+      const aliveMafia = updatedPlayers.filter(p => p.role === 'mafia' && p.isAlive).length;
+      const aliveCivilians = updatedPlayers.filter(p => p.role !== 'mafia' && p.isAlive).length;
 
-  if (aliveMafia === 0 || aliveMafia >= aliveCivilians) {
-    await storage.updateRoom(roomId, { status: 'ended' });
-    if (phaseTimers.has(roomId)) {
-      clearTimeout(phaseTimers.get(roomId));
-      phaseTimers.delete(roomId);
-    }
-  } else {
-    // Schedule next phase
-    const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), PHASE_DURATION);
-    phaseTimers.set(roomId, timer);
-  }
+      if (aliveMafia === 0 || aliveMafia >= aliveCivilians) {
+        await storage.updateRoom(roomId, { status: 'ended' });
+        if (phaseTimers.has(roomId)) {
+          clearTimeout(phaseTimers.get(roomId));
+          phaseTimers.delete(roomId);
+        }
+      } else {
+        // Schedule next phase with customizable duration
+        const duration = (room.settings as any).phaseDuration * 1000 || PHASE_DURATION;
+        const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration);
+        phaseTimers.set(roomId, timer);
+      }
 
   // Broadcast
   const sessions = roomClients.get(roomId);
@@ -340,6 +341,17 @@ export async function registerRoutes(
            if (!me || !room || !me.isAlive) return;
 
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+
+           if (action.type === 'chat') {
+             await storage.createMessage({
+               roomId: myRoomId,
+               playerId: me.id,
+               playerName: me.name,
+               content: action.content
+             });
+             broadcastState(myRoomId);
+             return;
+           }
 
            // Handle Phases
            if (room.phase === 'voting' && action.type === 'vote') {
