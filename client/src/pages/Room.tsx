@@ -1,0 +1,168 @@
+import { useEffect, useState } from "react";
+import { useRoute, useLocation } from "wouter";
+import { Share2, Copy, LogOut } from "lucide-react";
+import { useGameSocket } from "@/hooks/use-game";
+import { Button } from "@/components/ui/button";
+import { PhaseIndicator } from "@/components/PhaseIndicator";
+import { PlayerCard } from "@/components/PlayerCard";
+import { RoleBadge } from "@/components/RoleBadge";
+import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { GameAction } from "@shared/schema";
+
+export default function Room() {
+  const [, params] = useRoute("/room/:code");
+  const [, setLocation] = useLocation();
+  const code = params?.code || null;
+  const { toast } = useToast();
+  
+  // Get session from storage
+  const sessionId = localStorage.getItem(`mafia_session_${code}`);
+  
+  // Hook up WebSocket & Game State
+  const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
+
+  // Redirect if missing session
+  useEffect(() => {
+    if (!sessionId) {
+      toast({ title: "Session not found", variant: "destructive" });
+      setLocation("/");
+    }
+  }, [sessionId, setLocation, toast]);
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({ title: "Link copied!", description: "Send it to your friends." });
+  };
+
+  if (!gameState) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground animate-pulse">
+        Connecting to game server...
+      </div>
+    );
+  }
+
+  const { room, players, me } = gameState;
+  const isHost = me?.isHost;
+
+  // Interaction Logic
+  const getInteraction = (targetId: number) => {
+    if (!me || !me.isAlive || me.id === targetId) return null;
+
+    // Day Voting
+    if (room.status === "day" && room.phase === "voting") {
+      return { label: "Vote", action: { type: "vote", targetId } as GameAction };
+    }
+
+    // Night Actions
+    if (room.status === "night") {
+      if (room.phase === "mafia" && me.role === "mafia") {
+        return { label: "Eliminate", action: { type: "kill", targetId } as GameAction };
+      }
+      if (room.phase === "doctor" && me.role === "doctor") {
+        // Doctors can self-heal usually, but logic depends on rules. Assume they can target anyone for now.
+        return { label: "Heal", action: { type: "heal", targetId } as GameAction };
+      }
+      if (room.phase === "detective" && me.role === "detective") {
+        return { label: "Investigate", action: { type: "check", targetId } as GameAction };
+      }
+    }
+    return null;
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="font-serif font-bold text-xl tracking-wider">ROOM {room.code}</h1>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Invite</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {/* Game Phase Header */}
+        <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} />
+
+        {/* Lobby Controls */}
+        {room.status === "lobby" && (
+          <div className="text-center py-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
+              <p className="text-muted-foreground">{players.length} joined so far</p>
+            </div>
+            
+            {isHost ? (
+              <Button 
+                size="lg" 
+                onClick={startGame}
+                disabled={players.length < 3} // Minimal check
+                className="px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
+              >
+                Start Game
+              </Button>
+            ) : (
+              <div className="p-4 rounded-lg bg-secondary/50 inline-block animate-pulse">
+                Waiting for host to start...
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Player Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {players.map((player) => {
+            const interaction = getInteraction(player.id);
+            return (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                isMe={player.id === me?.id}
+                canInteract={!!interaction}
+                interactionLabel={interaction?.label}
+                onInteract={() => interaction && sendAction(interaction.action)}
+                // Only reveal roles if dead or game ended, OR if we are mafia viewing mafia teammates
+                revealedRole={
+                  room.status === "ended" || !player.isAlive 
+                    ? player.role 
+                    : (me?.role === "mafia" && player.role === "mafia" ? "Mafia" : null)
+                }
+              />
+            );
+          })}
+        </div>
+      </main>
+
+      {/* Bottom Floating Bar - My Role */}
+      {me && room.status !== "lobby" && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border/50 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-40">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground hidden sm:block">Your Role</div>
+              <RoleBadge role={me.role} className="text-lg px-4 py-1.5" />
+            </div>
+            
+            {/* Status Message */}
+            <div className="text-sm font-medium text-right">
+              {room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
+              {room.status === "night" && me.isAlive && "Wait for night actions..."}
+              {!me.isAlive && <span className="text-red-500">You are eliminated.</span>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
