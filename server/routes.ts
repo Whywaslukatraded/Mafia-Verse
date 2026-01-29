@@ -24,6 +24,19 @@ function assignRoles(players: any[], settings: any) {
   return players.map((p, i) => ({ ...p, role: roles[i] }));
 }
 
+const DEATH_STORIES = [
+  "{name} was skiing down the mountain and fell into a crevasse never to be seen again.",
+  "As {name} was skydiving, his or her parachute didn't deploy and they were dead.",
+  "{name} went for a swim in shark-infested waters and became a midnight snack.",
+  "{name} tried to pet a stray 'cat' that turned out to be a very hungry mountain lion.",
+  "{name} accidentally joined a high-stakes underground drag race with a golf cart."
+];
+
+function getRandomDeathStory(name: string) {
+  const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
+  return story.replace("{name}", name);
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -264,7 +277,21 @@ export async function registerRoutes(
               } else if (room.status === 'night') {
                  // Resolve night actions
                  if (actions.mafiaKill && actions.mafiaKill !== actions.doctorSave) {
-                   await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
+                   const victim = players.find(p => p.id === actions.mafiaKill);
+                   if (victim) {
+                     const story = getRandomDeathStory(victim.name);
+                     // We can broadcast this story as a system message or just update the player
+                     await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
+                     // Logic to send the story to all clients
+                     wss.clients.forEach(client => {
+                       if (client.readyState === WebSocket.OPEN) {
+                         client.send(JSON.stringify({
+                           type: 'death_story',
+                           payload: { story }
+                         }));
+                       }
+                     });
+                   }
                  }
                  await storage.updateRoom(myRoomId, { status: 'day', phase: 'voting', turn: (room.turn || 0) + 1 });
                  actions.votes.clear();
