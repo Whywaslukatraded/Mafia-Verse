@@ -69,7 +69,18 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: IStor
       });
 
       if (topTargetId !== -1 && maxVotes > players.filter(p => p.isAlive).length / 2) {
-        await storage.updatePlayer(topTargetId, { isAlive: false });
+        const victim = players.find(p => p.id === topTargetId);
+        if (victim) {
+          await storage.updatePlayer(topTargetId, { isAlive: false });
+          // Reveal the role when voted out
+          const sessions = roomClients.get(roomId);
+          sessions?.forEach(sid => {
+            clients.get(sid)?.send(JSON.stringify({ 
+              type: 'role_reveal', 
+              payload: { name: victim.name, role: victim.role } 
+            }));
+          });
+        }
       }
 
       await storage.updateRoom(roomId, { status: 'night', phase: 'mafia' });
@@ -306,7 +317,10 @@ export async function registerRoutes(
           if (room?.status !== 'lobby') return;
 
           const allPlayers = await storage.getPlayersInRoom(myRoomId);
-          if (allPlayers.length < 3) return; // Min players
+          if (allPlayers.length < 6) {
+            ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Minimum 6 players required to start the game." } }));
+            return;
+          }
 
           // Assign roles
           const updatedPlayers = assignRoles(allPlayers, room.settings);
