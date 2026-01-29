@@ -37,6 +37,110 @@ function getRandomDeathStory(name: string) {
   return story.replace("{name}", name);
 }
 
+// Map roomId -> Timer
+const phaseTimers = new Map<number, NodeJS.Timeout>();
+
+const PHASE_DURATION = 15000; // 15 seconds per phase for automation
+
+async function advancePhase(roomId: number, wss: WebSocketServer, storage: IStorage, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const room = await storage.getRoom(roomId);
+  if (!room) return;
+
+  const players = await storage.getPlayersInRoom(roomId);
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+
+  if (room.status === 'day') {
+    if (room.phase === 'discussion') {
+      await storage.updateRoom(roomId, { phase: 'voting' });
+    } else if (room.phase === 'voting') {
+      // Resolve voting
+      const voteCounts = new Map<number, number>();
+      actions.votes.forEach((targetId) => {
+        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
+      });
+
+      let topTargetId = -1;
+      let maxVotes = 0;
+      voteCounts.forEach((count, id) => {
+        if (count > maxVotes) {
+          maxVotes = count;
+          topTargetId = id;
+        }
+      });
+
+      if (topTargetId !== -1 && maxVotes > players.filter(p => p.isAlive).length / 2) {
+        await storage.updatePlayer(topTargetId, { isAlive: false });
+      }
+
+      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia' });
+      actions.mafiaKill = null;
+      actions.doctorSave = null;
+    }
+  } else if (room.status === 'night') {
+    if (room.phase === 'mafia') {
+      await storage.updateRoom(roomId, { phase: 'doctor' });
+    } else if (room.phase === 'doctor') {
+      await storage.updateRoom(roomId, { phase: 'detective' });
+    } else if (room.phase === 'detective') {
+      // Resolve night
+      if (actions.mafiaKill && actions.mafiaKill !== actions.doctorSave) {
+        const victim = players.find(p => p.id === actions.mafiaKill);
+        if (victim) {
+          const story = getRandomDeathStory(victim.name);
+          await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
+          
+          const sessions = roomClients.get(roomId);
+          sessions?.forEach(sid => {
+            clients.get(sid)?.send(JSON.stringify({ type: 'death_story', payload: { story } }));
+          });
+        }
+      }
+      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', turn: (room.turn || 0) + 1 });
+      actions.votes.clear();
+    }
+  }
+
+  gameActions.set(roomId, actions);
+  
+  // Re-fetch room to check if game ended
+  const updatedPlayers = await storage.getPlayersInRoom(roomId);
+  const aliveMafia = updatedPlayers.filter(p => p.role === 'mafia' && p.isAlive).length;
+  const aliveCivilians = updatedPlayers.filter(p => p.role !== 'mafia' && p.isAlive).length;
+
+  if (aliveMafia === 0 || aliveMafia >= aliveCivilians) {
+    await storage.updateRoom(roomId, { status: 'ended' });
+    if (phaseTimers.has(roomId)) {
+      clearTimeout(phaseTimers.get(roomId));
+      phaseTimers.delete(roomId);
+    }
+  } else {
+    // Schedule next phase
+    const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), PHASE_DURATION);
+    phaseTimers.set(roomId, timer);
+  }
+
+  // Broadcast
+  const sessions = roomClients.get(roomId);
+  sessions?.forEach(sessionId => {
+    const ws = clients.get(sessionId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const me = updatedPlayers.find(p => p.sessionId === sessionId);
+      const sanitizedPlayers = updatedPlayers.map(p => {
+        const roomStatus = room.status; // use latest status
+        if (roomStatus === 'ended' || !p.isAlive) return p;
+        if (me?.id === p.id) return p;
+        if (me?.role === 'mafia' && p.role === 'mafia') return p;
+        return { ...p, role: 'unknown' };
+      });
+
+      ws.send(JSON.stringify({
+        type: WS_EVENTS.STATE_UPDATE,
+        payload: { room, players: sanitizedPlayers, me }
+      }));
+    }
+  });
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -219,6 +323,10 @@ export async function registerRoutes(
             detectiveCheck: null
           });
 
+          // Start automation
+          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), PHASE_DURATION);
+          phaseTimers.set(myRoomId, timer);
+
           broadcastState(myRoomId);
         }
 
@@ -243,16 +351,16 @@ export async function registerRoutes(
              // Let's make it phase-based.
            }
            
-           if (room.phase === 'night' && me.role === 'mafia' && action.type === 'kill') {
+           if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
              actions.mafiaKill = action.targetId;
            }
 
-           if (room.phase === 'night' && me.role === 'doctor' && action.type === 'heal') {
+           if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
              actions.doctorSave = action.targetId;
            }
 
            // Check logic usually immediate return
-           if (room.phase === 'night' && me.role === 'detective' && action.type === 'check') {
+           if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
              const target = players.find(p => p.id === action.targetId);
              if (target) {
                 // Send private message to detective
