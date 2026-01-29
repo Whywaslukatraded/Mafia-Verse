@@ -56,6 +56,7 @@ export type CreateRoomRequest = {
     detectiveCount: number;
     doctorCount: number;
     civilianCount: number;
+    phaseDuration: number;
   };
 };
 
