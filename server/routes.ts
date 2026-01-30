@@ -180,7 +180,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const roomStatus = room.status; // use latest status
         if (roomStatus === 'ended' || !p.isAlive) return p;
         if (me?.id === p.id) return p;
-        if (me?.role === 'mafia' && p.role === 'mafia') return p;
+        if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p;
         return { ...p, role: 'unknown' };
       });
 
@@ -316,10 +316,10 @@ export async function registerRoutes(
           
           // Secure filtering
           const sanitizedPlayers = players.map(p => {
-             if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; // Show roles at end or if dead (maybe)
-             if (me?.id === p.id) return p; // Show my role
-             if (me?.role === 'mafia' && p.role === 'mafia') return p; // Mafia see each other
-             return { ...p, role: 'unknown' }; // Hide others
+             if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
+             if (me?.id === p.id) return p; 
+             if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
+             return { ...p, role: 'unknown' }; 
           });
 
           ws.send(JSON.stringify({
