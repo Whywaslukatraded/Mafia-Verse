@@ -66,7 +66,7 @@ const phaseTimers = new Map<number, NodeJS.Timeout>();
 
 const PHASE_DURATION = 15000; // 15 seconds per phase for automation
 
-async function advancePhase(roomId: number, wss: WebSocketServer, storage: IStorage, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const room = await storage.getRoom(roomId);
   if (!room) return;
 
