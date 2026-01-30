@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Skull, Search, Play, Users, Plus, Minus } from "lucide-react";
+import { Skull, Shield, Heart, User, Timer, Plus, Minus } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,10 +149,10 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-3">
                   {[
                     { key: 'mafia', label: 'Mafias', icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
-                    { key: 'detective', label: 'Detectives', icon: Search, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                    { key: 'doctor', label: 'Doctors', icon: Plus, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                    { key: 'civilian', label: 'Civilians', icon: Users, color: 'text-slate-400', bg: 'bg-slate-500/10' },
-                    { key: 'phaseDuration', label: 'Voting Time (sec)', icon: Play, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                    { key: 'detective', label: 'Detectives', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                    { key: 'doctor', label: 'Doctors', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                    { key: 'civilian', label: 'Civilians', icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+                    { key: 'phaseDuration', label: 'Voting Time (sec)', icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
                   ].map((role) => (
                     <div key={role.key} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                       <div className="flex items-center gap-4">
