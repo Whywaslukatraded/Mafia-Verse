@@ -99,10 +99,18 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           // Reveal the role when voted out
           const sessions = roomClients.get(roomId);
           sessions?.forEach(sid => {
-            clients.get(sid)?.send(JSON.stringify({ 
-              type: 'role_reveal', 
-              payload: { name: victim.name, role: victim.role } 
-            }));
+            const client = clients.get(sid);
+            if (client) {
+              client.send(JSON.stringify({ 
+                type: 'role_reveal', 
+                payload: { name: victim.name, role: victim.role } 
+              }));
+              // Simulation of push notification
+              client.send(JSON.stringify({
+                type: 'notification',
+                payload: { title: 'Elimination', body: `${victim.name} has been voted out. They were a ${victim.role}.` }
+              }));
+            }
           });
         }
       }
@@ -126,7 +134,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           
           const sessions = roomClients.get(roomId);
           sessions?.forEach(sid => {
-            clients.get(sid)?.send(JSON.stringify({ type: 'death_story', payload: { story } }));
+            const client = clients.get(sid);
+            if (client) {
+              client.send(JSON.stringify({ type: 'death_story', payload: { story } }));
+              client.send(JSON.stringify({
+                type: 'notification',
+                payload: { title: 'Night Falls', body: story }
+              }));
+            }
           });
         }
       }
@@ -231,13 +246,17 @@ export async function registerRoutes(
       const isHost = players.length === 0;
       const sessionId = randomUUID();
 
+      // If game is in progress, join as spectator
+      const isSpectator = room.status !== "lobby";
+
       const player = await storage.createPlayer({
         roomId: room.id,
         name: input.name,
         role: null,
-        isAlive: true,
+        isAlive: !isSpectator,
         isHost,
-        sessionId
+        sessionId,
+        isSpectator
       });
 
       res.json({
