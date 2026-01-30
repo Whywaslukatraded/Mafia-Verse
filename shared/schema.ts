@@ -45,7 +45,22 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   isHost: true,
 });
 
-// === TYPES ===
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id").notNull(),
+  playerId: integer("player_id").notNull(),
+  playerName: text("player_name").notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type Room = typeof rooms.$inferSelect;
 export type Player = typeof players.$inferSelect;

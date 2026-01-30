@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { rooms, players, type Room, type Player, type CreateRoomRequest } from "@shared/schema";
+import { rooms, players, messages, type Room, type Player, type CreateRoomRequest, type Message } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
