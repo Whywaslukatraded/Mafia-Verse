@@ -29,7 +29,31 @@ const DEATH_STORIES = [
   "As {name} was skydiving, his or her parachute didn't deploy and they were dead.",
   "{name} went for a swim in shark-infested waters and became a midnight snack.",
   "{name} tried to pet a stray 'cat' that turned out to be a very hungry mountain lion.",
-  "{name} accidentally joined a high-stakes underground drag race with a golf cart."
+  "{name} accidentally joined a high-stakes underground drag race with a golf cart.",
+  "{name} mistook a high-voltage transformer for a public phone booth.",
+  "While hunting for ghosts, {name} tripped and fell into a deep, forgotten well.",
+  "{name} decided to challenge a professional wrestler to a 'friendly' match.",
+  "A giant grand piano fell from the third floor, landing exactly on {name}.",
+  "{name} tried to recreate a famous fire-breathing trick with high-proof rum.",
+  "During a safari, {name} forgot that windows should stay rolled up around lions.",
+  "{name} entered a pie-eating contest against a grizzly bear and lost spectacularly.",
+  "A freak bowling accident sent {name} sliding down the lane and into the machinery.",
+  "{name} thought they could outrun a swarm of angry hornets by jumping into a cactus.",
+  "While taking a selfie on a cliff edge, {name} lost their balance and their phone.",
+  "{name} tried to use a lawnmower to trim their hedges, with disastrous results.",
+  "A experimental weather balloon landed directly on {name}'s tent during the night.",
+  "{name} discovered that 'danger' signs on construction sites are not suggestions.",
+  "While exploring an old cave, {name} woke up a colony of very territorial bats.",
+  "{name} attempted to surf a tsunami on a piece of plywood.",
+  "A misplaced banana peel caused {name} to tumble into a vat of industrial glue.",
+  "{name} forgot that oxygen is required for long-distance underwater cave diving.",
+  "During a magic show, the 'sawing a person in half' trick went horribly wrong for {name}.",
+  "{name} tried to jump the Grand Canyon on a pogo stick.",
+  "A rogue golf ball struck {name} with the precision of a heat-seeking missile.",
+  "{name} decided to investigate why the local volcano was making rumbling noises.",
+  "While cleaning their gutters, {name} discovered that gravity is a very harsh mistress.",
+  "{name} tried to use a umbrella as a parachute during a particularly windy storm.",
+  "A experimental jet engine test went awry, and {name} was in the wrong zip code."
 ];
 
 function getRandomDeathStory(name: string) {
@@ -163,12 +187,23 @@ export async function registerRoutes(
     try {
       const input = api.rooms.create.input.parse(req.body);
       const room = await storage.createRoom(input.settings);
-      // We don't create the player here, the client will immediately join
-      // Actually, standard flow is create -> auto-join as host.
-      // But let's keep it simple: Create returns code, then client calls Join.
-      // Wait, to be host, we need to know who created it.
-      // Let's assume the first person to join is the host.
-      res.status(201).json({ code: room.code, playerId: 0, sessionId: "" }); // Placeholder, client should Join next
+      
+      // For hosting, we need a session immediately
+      const sessionId = randomUUID();
+      const player = await storage.createPlayer({
+        roomId: room.id,
+        name: "Host", // Default name for creator
+        role: null,
+        isAlive: true,
+        isHost: true,
+        sessionId
+      });
+
+      res.status(201).json({ 
+        code: room.code, 
+        playerId: player.id, 
+        sessionId 
+      });
     } catch (err) {
       if (err instanceof z.ZodError) {
         res.status(400).json({ message: err.errors[0].message });
