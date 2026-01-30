@@ -111,21 +111,24 @@ export default function Room() {
                   <p className="text-muted-foreground">{players.length} joined so far</p>
                 </div>
                 
-                {isHost ? (
-                  <div className="space-y-4">
+                {isHost && (
+                  <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      <Timer className="w-4 h-4" /> Game Settings
+                    </h3>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Phase Duration</span>
+                      <span className="font-mono bg-black/40 px-2 py-0.5 rounded">{room.settings?.phaseDuration || 30}s</span>
+                    </div>
                     <Button 
                       size="lg" 
                       onClick={startGame}
                       disabled={players.length < 6}
-                      className="w-full px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
+                      className="w-full py-6 text-xl font-bold shadow-lg shadow-primary/20"
                     >
                       Start Game
                     </Button>
-                    <p className="text-xs text-muted-foreground">Minimal 6 players to begin</p>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-lg bg-secondary/50 inline-block animate-pulse">
-                    Waiting for host to start...
+                    <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Host Controls Only</p>
                   </div>
                 )}
               </div>
