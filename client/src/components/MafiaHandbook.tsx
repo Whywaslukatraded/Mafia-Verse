@@ -14,7 +14,7 @@ export function MafiaHandbook() {
       </DialogTrigger>
       <DialogContent className="max-w-md bg-black/90 border-white/10 text-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-serif tracking-widest uppercase">Underworld Handbook</DialogTitle>
+          <DialogTitle className="text-2xl font-serif tracking-widest uppercase">Mafia Handbook</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-6 pt-4">
