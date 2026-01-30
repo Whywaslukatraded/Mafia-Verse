@@ -237,12 +237,11 @@ export async function registerRoutes(
       });
     } catch (err: any) {
       console.error("CRITICAL CREATE ROOM ERROR:", err);
-      const errorMessage = err.message || "Unknown error";
-      const stack = err.stack || "";
-      res.status(500).json({ 
-        message: `Failed to create room: ${errorMessage}`,
-        details: process.env.NODE_ENV === 'development' ? stack : undefined
-      });
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Internal server error" });
+      }
     }
   });
 
