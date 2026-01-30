@@ -28,6 +28,7 @@ export const players = pgTable("players", {
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
   sessionId: text("session_id").notNull(), // To reconnect
+  isSpectator: boolean("is_spectator").default(false),
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 

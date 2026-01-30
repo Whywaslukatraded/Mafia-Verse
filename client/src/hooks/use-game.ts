@@ -54,6 +54,19 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
         const msg = JSON.parse(event.data);
         
         switch (msg.type) {
+          case "notification": {
+            const { title, body } = msg.payload;
+            if (Notification.permission === "granted") {
+              new Notification(title, { body });
+            } else if (Notification.permission !== "denied") {
+              Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                  new Notification(title, { body });
+                }
+              });
+            }
+            break;
+          }
           case "state_update":
             setGameState(msg.payload);
             break;

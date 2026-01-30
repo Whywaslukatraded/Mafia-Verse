@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Skull, Shield, Heart, User, Timer, Plus, Minus } from "lucide-react";
+import { Fingerprint, Shield, Heart, User, Timer, Plus, Minus, BookOpen } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,10 +95,10 @@ export default function Home() {
       >
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-4 bg-background border border-border rounded-full shadow-2xl mb-6 ring-4 ring-red-500/20">
-            <Skull className="w-10 h-10 text-primary" />
+            <Fingerprint className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/50 mb-2 drop-shadow-sm font-serif">MAFIA</h1>
-          <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs">Deception • Deduction • Survival</p>
+          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/50 mb-2 drop-shadow-sm font-serif uppercase tracking-tighter">Underworld</h1>
+          <p className="text-muted-foreground font-medium uppercase tracking-[0.3em] text-[10px] opacity-80">Trust No One • Find The Truth • Survive The Night</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -148,7 +148,7 @@ export default function Home() {
               <CardContent className="pt-6 space-y-6">
                 <div className="grid grid-cols-1 gap-3">
                   {[
-                    { key: 'mafia', label: 'Mafias', icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
+                    { key: 'mafia', label: 'Mafias', icon: Fingerprint, color: 'text-red-500', bg: 'bg-red-500/10' },
                     { key: 'detective', label: 'Detectives', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                     { key: 'doctor', label: 'Doctors', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                     { key: 'civilian', label: 'Civilians', icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },

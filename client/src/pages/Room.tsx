@@ -7,6 +7,7 @@ import { PhaseIndicator } from "@/components/PhaseIndicator";
 import { PlayerCard } from "@/components/PlayerCard";
 import { RoleBadge } from "@/components/RoleBadge";
 import { ChatWindow } from "@/components/ChatWindow";
+import { MafiaHandbook } from "@/components/MafiaHandbook";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { GameAction } from "@shared/schema";
@@ -25,11 +26,11 @@ export default function Room() {
 
   // Redirect if missing session
   useEffect(() => {
-    if (!sessionId) {
+    if (!sessionId && room.status === 'lobby') {
       toast({ title: "Session not found", variant: "destructive" });
       setLocation("/");
     }
-  }, [sessionId, setLocation, toast]);
+  }, [sessionId, setLocation, toast, room.status]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -46,10 +47,11 @@ export default function Room() {
 
   const { room, players, me } = gameState;
   const isHost = me?.isHost;
+  const isSpectator = me?.isSpectator;
 
   // Interaction Logic
   const getInteraction = (targetId: number) => {
-    if (!me || !me.isAlive || me.id === targetId) return null;
+    if (!me || !me.isAlive || me.id === targetId || isSpectator) return null;
 
     // Day Voting
     if (room.status === "day" && room.phase === "voting") {
@@ -82,6 +84,7 @@ export default function Room() {
             <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
           </div>
           <div className="flex gap-2">
+            <MafiaHandbook />
             <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
               <Share2 className="w-4 h-4" />
               <span className="hidden sm:inline">Invite</span>
@@ -109,14 +112,17 @@ export default function Room() {
                 </div>
                 
                 {isHost ? (
-                  <Button 
-                    size="lg" 
-                    onClick={startGame}
-                    disabled={players.length < 6}
-                    className="px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
-                  >
-                    Start Game
-                  </Button>
+                  <div className="space-y-4">
+                    <Button 
+                      size="lg" 
+                      onClick={startGame}
+                      disabled={players.length < 6}
+                      className="w-full px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
+                    >
+                      Start Game
+                    </Button>
+                    <p className="text-xs text-muted-foreground">Minimal 6 players to begin</p>
+                  </div>
                 ) : (
                   <div className="p-4 rounded-lg bg-secondary/50 inline-block animate-pulse">
                     Waiting for host to start...
@@ -170,9 +176,10 @@ export default function Room() {
             
             {/* Status Message */}
             <div className="text-sm font-medium text-right">
-              {room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
-              {room.status === "night" && me.isAlive && "Wait for night actions..."}
-              {!me.isAlive && <span className="text-red-500">You are eliminated.</span>}
+              {isSpectator && <span className="text-blue-400">Spectating...</span>}
+              {!isSpectator && room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
+              {!isSpectator && room.status === "night" && me.isAlive && "Wait for night actions..."}
+              {!isSpectator && !me.isAlive && <span className="text-red-500">You are eliminated.</span>}
             </div>
           </div>
         </div>
