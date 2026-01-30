@@ -201,7 +201,10 @@ export async function registerRoutes(
   app.post(api.rooms.create.path, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
-      const room = await storage.createRoom(input.settings);
+      const room = await storage.createRoom({
+        ...input.settings,
+        phaseDuration: input.settings.phaseDuration ?? 30
+      });
       
       // For hosting, we need a session immediately
       const sessionId = randomUUID();
@@ -211,7 +214,8 @@ export async function registerRoutes(
         role: null,
         isAlive: true,
         isHost: true,
-        sessionId
+        sessionId,
+        isSpectator: false
       });
 
       res.status(201).json({ 
