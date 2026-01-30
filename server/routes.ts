@@ -200,17 +200,23 @@ export async function registerRoutes(
   // REST API for Room Management
   app.post(api.rooms.create.path, async (req, res) => {
     try {
+      console.log("Creating room with settings:", JSON.stringify(req.body));
       const input = api.rooms.create.input.parse(req.body);
       const room = await storage.createRoom({
         ...input.settings,
         phaseDuration: input.settings.phaseDuration ?? 30
       });
       
-      // For hosting, we need a session immediately
+      if (!room) {
+        throw new Error("Failed to create room in storage (storage returned null)");
+      }
+      
+      console.log("Room created successfully:", room.id, room.code);
+      
       const sessionId = randomUUID();
       const player = await storage.createPlayer({
         roomId: room.id,
-        name: "Host", // Default name for creator
+        name: "Host",
         role: null,
         isAlive: true,
         isHost: true,
@@ -218,17 +224,25 @@ export async function registerRoutes(
         isSpectator: false
       });
 
+      if (!player) {
+        throw new Error("Failed to create host player in storage (storage returned null)");
+      }
+
+      console.log("Host player created successfully:", player.id);
+
       res.status(201).json({ 
         code: room.code, 
         playerId: player.id, 
         sessionId 
       });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        res.status(400).json({ message: err.errors[0].message });
-      } else {
-        res.status(500).json({ message: "Internal server error" });
-      }
+    } catch (err: any) {
+      console.error("CRITICAL CREATE ROOM ERROR:", err);
+      const errorMessage = err.message || "Unknown error";
+      const stack = err.stack || "";
+      res.status(500).json({ 
+        message: `Failed to create room: ${errorMessage}`,
+        details: process.env.NODE_ENV === 'development' ? stack : undefined
+      });
     }
   });
 
