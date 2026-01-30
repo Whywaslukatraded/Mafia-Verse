@@ -77,8 +77,8 @@ export default function Room() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="font-serif font-bold text-xl tracking-wider">ROOM {room.code}</h1>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+            <h1 className="font-serif font-bold text-2xl tracking-wider text-primary">ROOM: {room.code}</h1>
+            <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
