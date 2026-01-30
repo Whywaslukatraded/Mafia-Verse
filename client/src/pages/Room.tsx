@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, Copy, LogOut } from "lucide-react";
+import { Share2, Copy, LogOut, Timer } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -21,16 +21,7 @@ export default function Room() {
   // Get session from storage
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   
-  // Hook up WebSocket & Game State
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
-
-  // Redirect if missing session
-  useEffect(() => {
-    if (!sessionId && room.status === 'lobby') {
-      toast({ title: "Session not found", variant: "destructive" });
-      setLocation("/");
-    }
-  }, [sessionId, setLocation, toast, room.status]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -48,6 +39,14 @@ export default function Room() {
   const { room, players, me } = gameState;
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
+
+  // Redirect if missing session
+  useEffect(() => {
+    if (!sessionId && room.status === 'lobby') {
+      toast({ title: "Session not found", variant: "destructive" });
+      setLocation("/");
+    }
+  }, [sessionId, setLocation, toast, room.status]);
 
   // Interaction Logic
   const getInteraction = (targetId: number) => {
