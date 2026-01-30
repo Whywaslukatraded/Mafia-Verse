@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
 import { PlayerCard } from "@/components/PlayerCard";
 import { RoleBadge } from "@/components/RoleBadge";
+import { ChatWindow } from "@/components/ChatWindow";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { GameAction } from "@shared/schema";
@@ -96,52 +97,65 @@ export default function Room() {
         {/* Game Phase Header */}
         <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} />
 
-        {/* Lobby Controls */}
-        {room.status === "lobby" && (
-          <div className="text-center py-8">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
-              <p className="text-muted-foreground">{players.length} joined so far</p>
-            </div>
-            
-            {isHost ? (
-              <Button 
-                size="lg" 
-                onClick={startGame}
-                disabled={players.length < 3} // Minimal check
-                className="px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
-              >
-                Start Game
-              </Button>
-            ) : (
-              <div className="p-4 rounded-lg bg-secondary/50 inline-block animate-pulse">
-                Waiting for host to start...
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+          {/* Main Game Area */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Lobby Controls */}
+            {room.status === "lobby" && (
+              <div className="text-center py-8">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
+                  <p className="text-muted-foreground">{players.length} joined so far</p>
+                </div>
+                
+                {isHost ? (
+                  <Button 
+                    size="lg" 
+                    onClick={startGame}
+                    disabled={players.length < 6}
+                    className="px-8 py-6 text-xl font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in duration-300"
+                  >
+                    Start Game
+                  </Button>
+                ) : (
+                  <div className="p-4 rounded-lg bg-secondary/50 inline-block animate-pulse">
+                    Waiting for host to start...
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Player Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {players.map((player) => {
-            const interaction = getInteraction(player.id);
-            return (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                isMe={player.id === me?.id}
-                canInteract={!!interaction}
-                interactionLabel={interaction?.label}
-                onInteract={() => interaction && sendAction(interaction.action)}
-                // Only reveal roles if dead or game ended, OR if we are mafia viewing mafia teammates
-                revealedRole={
-                  room.status === "ended" || !player.isAlive 
-                    ? player.role 
-                    : (me?.role === "mafia" && player.role === "mafia" ? "Mafia" : null)
-                }
-              />
-            );
-          })}
+            {/* Player Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {players.map((player) => {
+                const interaction = getInteraction(player.id);
+                return (
+                  <PlayerCard
+                    key={player.id}
+                    player={player}
+                    isMe={player.id === me?.id}
+                    canInteract={!!interaction}
+                    interactionLabel={interaction?.label}
+                    onInteract={() => interaction && sendAction(interaction.action)}
+                    revealedRole={
+                      room.status === "ended" || !player.isAlive 
+                        ? player.role 
+                        : (me?.role === "mafia" && player.role === "mafia" ? "Mafia" : null)
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Chat Sidebar */}
+          <div className="lg:col-span-1">
+            <ChatWindow 
+              messages={gameState.messages || []} 
+              onSendMessage={(content) => sendAction({ type: 'chat', content })}
+              currentPlayerId={me?.id}
+            />
+          </div>
         </div>
       </main>
 
