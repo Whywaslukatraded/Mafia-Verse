@@ -28,6 +28,14 @@ export default function Room() {
     toast({ title: "Link copied!", description: "Send it to your friends." });
   };
 
+  // Redirect if missing session
+  useEffect(() => {
+    if (gameState && !sessionId && gameState.room.status === 'lobby') {
+      toast({ title: "Session not found", variant: "destructive" });
+      setLocation("/");
+    }
+  }, [sessionId, setLocation, toast, gameState]);
+
   if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground animate-pulse">
@@ -39,14 +47,6 @@ export default function Room() {
   const { room, players, me } = gameState;
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
-
-  // Redirect if missing session
-  useEffect(() => {
-    if (!sessionId && room.status === 'lobby') {
-      toast({ title: "Session not found", variant: "destructive" });
-      setLocation("/");
-    }
-  }, [sessionId, setLocation, toast, room.status]);
 
   // Interaction Logic
   const getInteraction = (targetId: number) => {
