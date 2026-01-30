@@ -28,6 +28,7 @@ export default function Home() {
     detective: 1,
     doctor: 1,
     civilian: 4,
+    phaseDuration: 30,
   });
 
   const handleJoin = async (e: React.FormEvent) => {
@@ -56,6 +57,7 @@ export default function Home() {
         detectiveCount: counts.detective,
         doctorCount: counts.doctor,
         civilianCount: counts.civilian,
+        phaseDuration: counts.phaseDuration,
       }});
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
@@ -150,6 +152,7 @@ export default function Home() {
                     { key: 'detective', label: 'Detectives', icon: Search, color: 'text-blue-400' },
                     { key: 'doctor', label: 'Doctors', icon: Plus, color: 'text-green-400' },
                     { key: 'civilian', label: 'Civilians', icon: Users, color: 'text-slate-400' },
+                    { key: 'phaseDuration', label: 'Phase (sec)', icon: Play, color: 'text-yellow-400' },
                   ].map((role) => (
                     <div key={role.key} className="flex items-center justify-between p-3 rounded-lg bg-black/20 border border-white/5">
                       <div className="flex items-center gap-3">
