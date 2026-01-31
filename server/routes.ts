@@ -315,7 +315,7 @@ export async function registerRoutes(
     storage.getRoom(roomId).then(async (room) => {
       if (!room) return;
       const players = await storage.getPlayersInRoom(roomId);
-      const messages = await storage.getMessages(roomId);
+      const messages = await storage.getMessagesByRoom(roomId);
       
       const gameStateBase = {
         room,
