@@ -16,6 +16,9 @@ export const rooms = pgTable("rooms", {
     doctorCount: number;
     civilianCount: number;
     phaseDuration: number;
+    mafiaDuration: number;
+    doctorDuration: number;
+    detectiveDuration: number;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });

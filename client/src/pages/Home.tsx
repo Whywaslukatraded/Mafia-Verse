@@ -29,6 +29,9 @@ export default function Home() {
     doctor: 1,
     civilian: 4,
     phaseDuration: 30,
+    mafiaDuration: 15,
+    doctorDuration: 15,
+    detectiveDuration: 15,
   });
 
   const handleJoin = async (e: React.FormEvent) => {
@@ -58,6 +61,9 @@ export default function Home() {
         doctorCount: counts.doctor,
         civilianCount: counts.civilian,
         phaseDuration: counts.phaseDuration,
+        mafiaDuration: counts.mafiaDuration,
+        doctorDuration: counts.doctorDuration,
+        detectiveDuration: counts.detectiveDuration,
       }});
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
@@ -157,6 +163,9 @@ export default function Home() {
                     { key: 'doctor', label: 'Doctors', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                     { key: 'civilian', label: 'Civilians', icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
                     { key: 'phaseDuration', label: 'Voting Time (sec)', icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                    { key: 'mafiaDuration', label: 'Mafia Night Time (sec)', icon: Skull, color: 'text-red-400', bg: 'bg-red-400/10' },
+                    { key: 'doctorDuration', label: 'Doctor Night Time (sec)', icon: Heart, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                    { key: 'detectiveDuration', label: 'Detective Night Time (sec)', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-400/10' },
                   ].map((role) => (
                     <div key={role.key} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                       <div className="flex items-center gap-4">
