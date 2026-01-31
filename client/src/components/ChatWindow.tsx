@@ -39,20 +39,22 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId }: ChatWin
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex flex-col ${
+              className={`flex flex-col group ${
                 msg.playerId === currentPlayerId ? "items-end" : "items-start"
               }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">
+              <div className={`flex items-center gap-2 mb-1 ${
+                msg.playerId === currentPlayerId ? "flex-row-reverse" : "flex-row"
+              }`}>
+                <span className="text-[10px] font-black uppercase text-primary/80 tracking-tighter bg-white/5 px-1.5 py-0.5 rounded border border-white/5 group-hover:bg-white/10 transition-colors">
                   {msg.playerName}
                 </span>
               </div>
               <div
-                className={`px-3 py-2 rounded-2xl max-w-[80%] text-sm ${
+                className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm shadow-sm transition-transform group-hover:scale-[1.02] ${
                   msg.playerId === currentPlayerId
                     ? "bg-primary text-primary-foreground rounded-tr-none"
-                    : "bg-muted text-muted-foreground rounded-tl-none"
+                    : "bg-muted text-muted-foreground rounded-tl-none border border-white/5"
                 }`}
               >
                 {msg.content}
