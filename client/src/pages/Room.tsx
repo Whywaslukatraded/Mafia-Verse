@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, Copy, LogOut, Timer } from "lucide-react";
+import { Share2, Copy, LogOut, Timer, Volume2, VolumeX } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -22,6 +22,7 @@ export default function Room() {
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -83,6 +84,18 @@ export default function Room() {
             <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="hover-elevate"
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 text-blue-400" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+              )}
+            </Button>
             <MafiaHandbook />
             <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
               <Share2 className="w-4 h-4" />
