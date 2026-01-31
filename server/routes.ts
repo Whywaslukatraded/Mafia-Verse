@@ -166,7 +166,14 @@ const PHASE_DURATION = 15000; // 15 seconds per phase for automation
         }
       } else {
         // Schedule next phase with customizable duration
-        const duration = (room.settings as any).phaseDuration * 1000 || PHASE_DURATION;
+        let duration = (room.settings as any).phaseDuration * 1000 || PHASE_DURATION;
+        
+        if (room.status === 'night') {
+          if (room.phase === 'mafia') duration = (room.settings as any).mafiaDuration * 1000 || 15000;
+          if (room.phase === 'doctor') duration = (room.settings as any).doctorDuration * 1000 || 15000;
+          if (room.phase === 'detective') duration = (room.settings as any).detectiveDuration * 1000 || 15000;
+        }
+
         const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration);
         phaseTimers.set(roomId, timer);
       }
