@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Share2, Copy, LogOut, Timer, Volume2, VolumeX } from "lucide-react";
-import { requestNotificationPermission } from "@/lib/notifications";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -24,10 +23,6 @@ export default function Room() {
   
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
   const [soundEnabled, setSoundEnabled] = useState(true);
-
-  useEffect(() => {
-    requestNotificationPermission();
-  }, []);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);

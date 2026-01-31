@@ -67,25 +67,9 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
             }
             break;
           }
-          case "state_update": {
-            const newState = msg.payload as GameState;
-            // Notify of phase changes or turns
-            if (gameState && newState.room.phase !== gameState.room.phase) {
-              const isMyTurn = 
-                (newState.room.phase === "mafia" && newState.me?.role === "mafia") ||
-                (newState.room.phase === "doctor" && newState.me?.role === "doctor") ||
-                (newState.room.phase === "detective" && newState.me?.role === "detective") ||
-                (newState.room.phase === "voting" && newState.me?.isAlive);
-
-              if (isMyTurn && Notification.permission === "granted") {
-                new Notification("Your Turn!", {
-                  body: `The game is now in the ${newState.room.phase} phase.`,
-                });
-              }
-            }
-            setGameState(newState);
+          case "state_update":
+            setGameState(msg.payload);
             break;
-          }
           case "error":
             toast({
               title: "Error",
