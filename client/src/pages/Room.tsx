@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, Copy, LogOut, Timer, Volume2, VolumeX } from "lucide-react";
+import { Share2, Copy, LogOut, Timer, Volume2, VolumeX, Settings2 } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -131,6 +131,15 @@ export default function Room() {
                     <div className="flex items-center justify-between text-sm">
                       <span>Phase Duration</span>
                       <span className="font-mono bg-black/40 px-2 py-0.5 rounded">{room.settings?.phaseDuration || 30}s</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Settings2 className="w-4 h-4 text-primary" />
+                        <span className="font-bold">Custom Host Bar</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => sendAction({ type: 'skip' })}>Advance Phase</Button>
+                      </div>
                     </div>
                     <Button 
                       size="lg" 
