@@ -423,7 +423,10 @@ export async function registerRoutes(
            const me = players.find(p => p.sessionId === mySessionId);
            const room = await storage.getRoom(myRoomId);
            
-           if (!me || !room || !me.isAlive) return;
+           if (!me || !room) return;
+           if (!me.isAlive && room.status !== 'ended' && room.status !== 'lobby') {
+             if (action.type !== 'chat') return;
+           }
 
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
