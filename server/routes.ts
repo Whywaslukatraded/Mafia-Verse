@@ -66,12 +66,13 @@ const phaseTimers = new Map<number, NodeJS.Timeout>();
 
 const PHASE_DURATION = 15000; // 15 seconds per phase for automation
 
-async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
-  const room = await storage.getRoom(roomId);
-  if (!room) return;
+  async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+    const room = await storage.getRoom(roomId);
+    if (!room) return;
 
-  const players = await storage.getPlayersInRoom(roomId);
-  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+    const players = await storage.getPlayersInRoom(roomId);
+    const messages = await storage.getMessages(roomId);
+    const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
   if (room.status === 'day') {
     if (room.phase === 'discussion') {
@@ -186,7 +187,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
-        payload: { room, players: sanitizedPlayers, me }
+        payload: { room, players: sanitizedPlayers, me, messages }
       }));
     }
   });
@@ -314,16 +315,15 @@ export async function registerRoutes(
     storage.getRoom(roomId).then(async (room) => {
       if (!room) return;
       const players = await storage.getPlayersInRoom(roomId);
+      const messages = await storage.getMessages(roomId);
       
       const gameStateBase = {
         room,
         players: players.map(p => ({
           ...p,
-          role: room.status === 'lobby' ? null : (p.isAlive ? p.role : p.role) // Logic for hiding roles?
-          // Actually, we should sanitize roles for clients.
-          // For simplicity, we send full state but frontend hides it. 
-          // SECURITY NOTE: In a real app, filtering should happen server-side per client.
+          role: room.status === 'lobby' ? null : (p.isAlive ? p.role : p.role)
         })),
+        messages
       };
 
       sessions.forEach(sessionId => {
