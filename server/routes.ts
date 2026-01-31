@@ -336,6 +336,7 @@ export async function registerRoutes(
              if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
              if (me?.id === p.id) return p; 
              if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
+             if (!me?.isAlive && me?.role !== 'mafia') return p; // Dead non-mafia can see everyone's role (spectator mode)
              return { ...p, role: 'unknown' }; 
           });
 
