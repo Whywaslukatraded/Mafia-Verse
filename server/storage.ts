@@ -73,7 +73,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessagesByRoom(roomId: number): Promise<Message[]> {
-    return await db.select().from(messages).where(eq(messages.roomId, roomId));
+    return await db.select().from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.timestamp);
   }
 
   async generateRoomCode(): Promise<string> {
