@@ -533,6 +533,12 @@ export async function registerRoutes(
              return;
            }
 
+           if (action.type === 'add_bots' && me.isHost) {
+             await fillWithBots(myRoomId, storage);
+             broadcastState(myRoomId);
+             return;
+           }
+
            // Handle Phases
            if (room.phase === 'voting' && action.type === 'vote') {
              actions.votes.set(me.id, action.targetId);

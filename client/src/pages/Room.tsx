@@ -139,6 +139,9 @@ export default function Room() {
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => sendAction({ type: 'skip' })}>Advance Phase</Button>
+                        <Button variant="secondary" size="sm" onClick={() => sendAction({ type: 'add_bots' })} className="gap-2">
+                          <Plus className="w-4 h-4" /> Add Bots
+                        </Button>
                       </div>
                     </div>
                     <Button 
