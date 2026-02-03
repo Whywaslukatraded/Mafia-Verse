@@ -63,10 +63,11 @@ export function PlayerCard({
       {/* Name */}
       <div className="text-center w-full">
         <h3 className={cn(
-          "font-bold truncate px-2 text-lg",
+          "font-bold truncate px-2 text-lg flex items-center justify-center gap-1",
           !player.isAlive && "line-through text-muted-foreground"
         )}>
           {player.name}
+          {player.isBot && <span className="text-[10px] bg-white/10 px-1 rounded text-muted-foreground font-normal">BOT</span>}
           {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">(You)</span>}
         </h3>
         
