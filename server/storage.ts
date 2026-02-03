@@ -59,7 +59,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlayersInRoom(roomId: number): Promise<Player[]> {
-    return await db.select().from(players).where(eq(players.roomId, roomId));
+    return db.select().from(players).where(eq(players.roomId, roomId));
+  }
+
+  async deletePlayer(id: number): Promise<void> {
+    await db.delete(players).where(eq(players.id, id));
   }
 
   async updatePlayer(id: number, updates: Partial<Player>): Promise<Player> {

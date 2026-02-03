@@ -303,8 +303,14 @@ export async function registerRoutes(
         sessionId 
       });
 
-      // Fill with bots if needed
-      setTimeout(() => fillWithBots(room.id, storage).then(() => broadcastState(room.id)), 1000);
+      // Fill with bots if needed - Only up to 6 players total
+      setTimeout(async () => {
+        const playersInRoom = await storage.getPlayersInRoom(room.id);
+        if (playersInRoom.length < 6) {
+          await fillWithBots(room.id, storage);
+          broadcastState(room.id);
+        }
+      }, 1000);
     } catch (err: any) {
       console.error("CRITICAL CREATE ROOM ERROR:", err);
       if (err instanceof z.ZodError) {
@@ -354,15 +360,16 @@ export async function registerRoutes(
 
       // After a real player joins, check if we need to remove or add bots
       setTimeout(async () => {
-        const players = await storage.getPlayersInRoom(room.id);
-        const realPlayers = players.filter(p => !p.isBot);
-        const bots = players.filter(p => p.isBot);
+        const playersInRoom = await storage.getPlayersInRoom(room.id);
+        const bots = playersInRoom.filter(p => p.isBot);
         
-        if (players.length > 6 && bots.length > 0) {
-          // Remove extra bots to make room for real players
-          const botToRemove = bots[0];
-          // We need a way to delete a player or just ignore them. 
-          // For now, let's just keep the logic simple: fill to 6.
+        // If more than 6 players and we have bots, remove one to make space
+        if (playersInRoom.length > 6 && bots.length > 0) {
+          await storage.deletePlayer(bots[0].id);
+        } 
+        // If less than 6 players, fill with bots
+        else if (playersInRoom.length < 6) {
+          await fillWithBots(room.id, storage);
         }
         broadcastState(room.id);
       }, 1000);
