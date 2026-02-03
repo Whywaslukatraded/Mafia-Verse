@@ -66,7 +66,66 @@ const phaseTimers = new Map<number, NodeJS.Timeout>();
 
 const PHASE_DURATION = 15000; // 15 seconds per phase for automation
 
+const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsilon", "Bot_Zeta", "Bot_Eta", "Bot_Theta"];
+
+async function fillWithBots(roomId: number, storage: any) {
+  const players = await storage.getPlayersInRoom(roomId);
+  if (players.length >= 6) return;
+
+  const botsNeeded = 6 - players.length;
+  for (let i = 0; i < botsNeeded; i++) {
+    await storage.createPlayer({
+      roomId,
+      name: BOT_NAMES[i % BOT_NAMES.length] + "_" + Math.floor(Math.random() * 1000),
+      role: null,
+      isAlive: true,
+      isHost: false,
+      sessionId: "bot-" + randomUUID(),
+      isSpectator: false,
+      isBot: true
+    });
+  }
+}
+
+async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const room = await storage.getRoom(roomId);
+  if (!room || room.status === 'lobby' || room.status === 'ended') return;
+
+  const players = await storage.getPlayersInRoom(roomId);
+  const bots = players.filter(p => p.isBot && p.isAlive);
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+
+  for (const bot of bots) {
+    const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
+    if (alivePlayers.length === 0) continue;
+    const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+
+    if (room.phase === 'voting') {
+      actions.votes.set(bot.id, target.id);
+    } else if (room.phase === 'mafia' && bot.role === 'mafia') {
+      actions.mafiaKill = target.id;
+    } else if (room.phase === 'doctor' && bot.role === 'doctor') {
+      actions.doctorSave = target.id;
+    } else if (room.phase === 'detective' && bot.role === 'detective') {
+      // Bot detective check - usually internal or we could simulate a chat message
+    }
+
+    // Occasional bot chat
+    if (Math.random() > 0.8) {
+      const messages = ["I think it's one of you...", "I'm innocent!", "Trust me.", "Who is the mafia?", "Found anything?"];
+      await storage.createMessage({
+        roomId,
+        playerId: bot.id,
+        playerName: bot.name,
+        content: messages[Math.floor(Math.random() * messages.length)]
+      });
+    }
+  }
+  gameActions.set(roomId, actions);
+}
+
   async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+    await handleBotActions(roomId, wss, storage, roomClients, clients, gameActions);
     const room = await storage.getRoom(roomId);
     if (!room) return;
 
@@ -243,6 +302,9 @@ export async function registerRoutes(
         playerId: player.id, 
         sessionId 
       });
+
+      // Fill with bots if needed
+      setTimeout(() => fillWithBots(room.id, storage).then(() => broadcastState(room.id)), 1000);
     } catch (err: any) {
       console.error("CRITICAL CREATE ROOM ERROR:", err);
       if (err instanceof z.ZodError) {
@@ -289,6 +351,21 @@ export async function registerRoutes(
         playerId: player.id,
         sessionId
       });
+
+      // After a real player joins, check if we need to remove or add bots
+      setTimeout(async () => {
+        const players = await storage.getPlayersInRoom(room.id);
+        const realPlayers = players.filter(p => !p.isBot);
+        const bots = players.filter(p => p.isBot);
+        
+        if (players.length > 6 && bots.length > 0) {
+          // Remove extra bots to make room for real players
+          const botToRemove = bots[0];
+          // We need a way to delete a player or just ignore them. 
+          // For now, let's just keep the logic simple: fill to 6.
+        }
+        broadcastState(room.id);
+      }, 1000);
     } catch (err) {
       if (err instanceof z.ZodError) {
         res.status(400).json({ message: err.errors[0].message });
