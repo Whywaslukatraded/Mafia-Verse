@@ -130,7 +130,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     if (!room) return;
 
     const players = await storage.getPlayersInRoom(roomId);
-    const messages = await storage.getMessages(roomId);
+    const messages = await storage.getMessagesByRoom(roomId);
     const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
   if (room.status === 'day') {
