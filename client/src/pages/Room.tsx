@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, Copy, LogOut, Timer, Volume2, VolumeX, Settings2 } from "lucide-react";
+import { Share2, Copy, LogOut, Timer, Volume2, VolumeX, Settings2, Plus } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
