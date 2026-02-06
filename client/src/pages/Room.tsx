@@ -207,7 +207,7 @@ export default function Room() {
               {isSpectator && <span className="text-blue-400">Spectating...</span>}
               {!isSpectator && room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
               {!isSpectator && room.status === "night" && me.isAlive && "Wait for night actions..."}
-              {!isSpectator && !me.isAlive && <span className="text-red-500">You are eliminated.</span>}
+              {!isSpectator && !me.isAlive && <span className="text-red-500">You have been eliminated.</span>}
             </div>
           </div>
         </div>
