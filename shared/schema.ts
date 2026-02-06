@@ -92,6 +92,7 @@ export type GameAction =
   | { type: 'check'; targetId: number }
   | { type: 'skip' }
   | { type: 'add_bots' }
+  | { type: 'remove_bot'; playerId: number }
   | { type: 'chat'; content: string };
 
 // WebSocket Message Types
