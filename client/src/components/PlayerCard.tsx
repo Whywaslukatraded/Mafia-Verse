@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { User, Skull, Crown, Ghost } from "lucide-react";
+import { User, Skull, Crown, Ghost, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Player } from "@shared/schema";
+import { Button } from "@/components/ui/button";
 
 interface PlayerCardProps {
   player: Player;
@@ -9,6 +10,7 @@ interface PlayerCardProps {
   canInteract: boolean;
   interactionLabel?: string;
   onInteract?: () => void;
+  onRemove?: () => void;
   revealedRole?: string | null; // For detective check or game end
 }
 
@@ -18,27 +20,38 @@ export function PlayerCard({
   canInteract, 
   interactionLabel, 
   onInteract,
+  onRemove,
   revealedRole 
 }: PlayerCardProps) {
   
   return (
-    <motion.button
+    <motion.div
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
-      whileTap={canInteract && player.isAlive ? { scale: 0.98 } : {}}
-      disabled={!canInteract || !player.isAlive}
-      onClick={onInteract}
       className={cn(
-        "relative w-full aspect-[3/4] rounded-xl overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-4",
+        "relative w-full aspect-[3/4] rounded-xl overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-4 group",
         // Dead state
-        !player.isAlive && "bg-slate-900/50 border-slate-800 grayscale opacity-70 cursor-not-allowed",
+        !player.isAlive && "bg-slate-900/50 border-slate-800 grayscale opacity-70",
         // Alive state
         player.isAlive && "bg-card/50 backdrop-blur-sm border-white/10 shadow-lg",
-        // Interactive state
-        canInteract && player.isAlive && "hover:border-primary/50 hover:shadow-primary/20 cursor-pointer ring-offset-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-primary",
         // Me state
         isMe && "border-primary/50 ring-1 ring-primary/20"
       )}
     >
+      {/* Remove Bot Button */}
+      {player.isBot && onRemove && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute top-2 left-2 h-6 w-6 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      )}
+
       {/* Status Icons */}
       <div className="absolute top-2 right-2 flex flex-col gap-1">
         {player.isHost && (
@@ -79,10 +92,13 @@ export function PlayerCard({
 
       {/* Action Overlay */}
       {canInteract && player.isAlive && (
-        <div className="absolute inset-x-0 bottom-0 py-2 bg-primary/90 text-primary-foreground text-xs font-bold uppercase tracking-widest opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+        <button
+          onClick={onInteract}
+          className="absolute inset-x-0 bottom-0 py-3 bg-primary/90 text-primary-foreground text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center focus:outline-none"
+        >
           {interactionLabel}
-        </div>
+        </button>
       )}
-    </motion.button>
+    </motion.div>
   );
 }

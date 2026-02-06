@@ -156,21 +156,12 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         const victim = players.find(p => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          // Reveal the role when voted out
-          const sessions = roomClients.get(roomId);
-          sessions?.forEach(sid => {
-            const client = clients.get(sid);
-            if (client) {
-              client.send(JSON.stringify({ 
-                type: 'role_reveal', 
-                payload: { name: victim.name, role: victim.role } 
-              }));
-              // Simulation of push notification
-              client.send(JSON.stringify({
-                type: 'notification',
-                payload: { title: 'Elimination', body: `${victim.name} has been voted out. They were a ${victim.role}.` }
-              }));
-            }
+          
+          await storage.createMessage({
+            roomId,
+            playerId: 0,
+            playerName: "System",
+            content: `${victim.name} was eliminated. They were the ${victim.role}.`
           });
         }
       }
@@ -186,25 +177,29 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       await storage.updateRoom(roomId, { phase: 'detective' });
     } else if (room.phase === 'detective') {
       // Resolve night
-      if (actions.mafiaKill && actions.mafiaKill !== actions.doctorSave) {
+      let nightSummary = "The night has ended. ";
+      if (actions.mafiaKill) {
         const victim = players.find(p => p.id === actions.mafiaKill);
         if (victim) {
-          const story = getRandomDeathStory(victim.name);
-          await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
-          
-          const sessions = roomClients.get(roomId);
-          sessions?.forEach(sid => {
-            const client = clients.get(sid);
-            if (client) {
-              client.send(JSON.stringify({ type: 'death_story', payload: { story } }));
-              client.send(JSON.stringify({
-                type: 'notification',
-                payload: { title: 'Night Falls', body: story }
-              }));
-            }
-          });
+          if (actions.mafiaKill === actions.doctorSave) {
+            nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
+          } else {
+            const story = getRandomDeathStory(victim.name);
+            await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
+            nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${story}`;
+          }
         }
+      } else {
+        nightSummary += "Nothing happened during the night.";
       }
+
+      await storage.createMessage({
+        roomId,
+        playerId: 0,
+        playerName: "System",
+        content: nightSummary
+      });
+
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', turn: (room.turn || 0) + 1 });
       actions.votes.clear();
     }
@@ -539,6 +534,15 @@ export async function registerRoutes(
              return;
            }
 
+           if (action.type === 'remove_bot' && me.isHost) {
+             const bot = players.find(p => p.id === action.playerId && p.isBot);
+             if (bot) {
+               await storage.deletePlayer(bot.id);
+               broadcastState(myRoomId);
+             }
+             return;
+           }
+
            // Handle Phases
            if (room.phase === 'voting' && action.type === 'vote') {
              actions.votes.set(me.id, action.targetId);
@@ -561,11 +565,29 @@ export async function registerRoutes(
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
              const target = players.find(p => p.id === action.targetId);
              if (target) {
+                const isMafia = target.role === 'mafia';
                 // Send private message to detective
                 ws.send(JSON.stringify({
                   type: 'check_result',
-                  payload: { isMafia: target.role === 'mafia', targetId: target.id }
+                  payload: { isMafia, targetId: target.id }
                 }));
+
+                // If detective finds the LAST mafia, end the game early
+                const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
+                if (isMafia && aliveMafia.length === 1) {
+                  await storage.createMessage({
+                    roomId: myRoomId,
+                    playerId: 0,
+                    playerName: "System",
+                    content: `The detective ${me.name} caught the last mafia ${target.name}!`
+                  });
+                  await storage.updateRoom(myRoomId, { status: 'ended' });
+                  if (phaseTimers.has(myRoomId)) {
+                    clearTimeout(phaseTimers.get(myRoomId));
+                    phaseTimers.delete(myRoomId);
+                  }
+                  broadcastState(myRoomId);
+                }
              }
            }
            

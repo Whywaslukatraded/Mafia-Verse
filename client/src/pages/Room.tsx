@@ -170,6 +170,7 @@ export default function Room() {
                     canInteract={!!interaction}
                     interactionLabel={interaction?.label}
                     onInteract={() => interaction && sendAction(interaction.action)}
+                    onRemove={() => sendAction({ type: 'remove_bot', playerId: player.id })}
                     revealedRole={
                       room.status === "ended" || !player.isAlive 
                         ? player.role 
