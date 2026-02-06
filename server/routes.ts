@@ -152,7 +152,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         }
       });
 
-      if (topTargetId !== -1 && maxVotes > players.filter(p => p.isAlive).length / 2) {
+      if (topTargetId !== -1) {
         const victim = players.find(p => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
@@ -161,7 +161,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
             roomId,
             playerId: 0,
             playerName: "System",
-            content: `${victim.name} was eliminated. They were the ${victim.role}.`
+            content: `${victim.name} was voted out. They were the ${victim.role}.`
           });
         }
       }
@@ -424,6 +424,8 @@ export async function registerRoutes(
              if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
              if (me?.id === p.id) return p; 
              if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
+             if (me?.role === 'detective' && p.role === 'detective' && !me.isHost) return p;
+             if (me?.role === 'doctor' && p.role === 'doctor' && !me.isHost) return p;
              if (!me?.isAlive && me?.role !== 'mafia') return p; // Dead non-mafia can see everyone's role (spectator mode)
              return { ...p, role: 'unknown' }; 
           });
