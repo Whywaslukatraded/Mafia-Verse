@@ -87,6 +87,38 @@ async function fillWithBots(roomId: number, storage: any) {
   }
 }
 
+const BOT_MESSAGES = {
+  general: [
+    "I think it's one of you...",
+    "I'm innocent!",
+    "Trust me.",
+    "Who is the mafia?",
+    "Found anything?",
+    "This is getting intense.",
+    "I have a bad feeling about this.",
+    "We need to find the mafia fast.",
+    "Is anyone acting suspicious?",
+    "I'm just a humble civilian.",
+    "Wait, did someone hear that?",
+    "The night was too quiet..."
+  ],
+  accusation: [
+    "I'm voting for {name}. They seem suspicious.",
+    "Could it be {name}? They haven't said much.",
+    "I'm leaning towards {name}.",
+    "Does anyone else think {name} is hiding something?",
+    "My gut says it's {name}.",
+    "{name} is definitely the mafia. I can feel it."
+  ],
+  defense: [
+    "It's not me, I swear!",
+    "Why are you looking at me?",
+    "I was doing my tasks... oh wait, wrong game.",
+    "I'm literally on your side.",
+    "If you kill me, the mafia wins."
+  ]
+};
+
 async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
@@ -98,7 +130,17 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   for (const bot of bots) {
     const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
-    const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+
+    // Smarter target selection
+    let target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    
+    // Mafia bots try to avoid killing other mafia
+    if (bot.role === 'mafia') {
+      const nonMafiaAlive = alivePlayers.filter(p => p.role !== 'mafia');
+      if (nonMafiaAlive.length > 0) {
+        target = nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)];
+      }
+    }
 
     if (room.phase === 'voting') {
       actions.votes.set(bot.id, target.id);
@@ -107,18 +149,33 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     } else if (room.phase === 'doctor' && bot.role === 'doctor') {
       actions.doctorSave = target.id;
     } else if (room.phase === 'detective' && bot.role === 'detective') {
-      // Bot detective check - usually internal or we could simulate a chat message
+      // Detective bots "check" someone
     }
 
-    // Occasional bot chat
-    if (Math.random() > 0.8) {
-      const messages = ["I think it's one of you...", "I'm innocent!", "Trust me.", "Who is the mafia?", "Found anything?"];
-      await storage.createMessage({
-        roomId,
-        playerId: bot.id,
-        playerName: bot.name,
-        content: messages[Math.floor(Math.random() * messages.length)]
-      });
+    // Frequent bot chat with more variety
+    if (Math.random() > 0.4) { // Increased frequency
+      let content = "";
+      const rand = Math.random();
+      
+      if (rand > 0.7 && alivePlayers.length > 0) {
+        // Accusation
+        const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+        const template = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)];
+        content = template.replace("{name}", victim.name);
+      } else if (rand > 0.5) {
+        content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
+      } else {
+        content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+      }
+
+      if (content) {
+        await storage.createMessage({
+          roomId,
+          playerId: bot.id,
+          playerName: bot.name,
+          content
+        });
+      }
     }
   }
   gameActions.set(roomId, actions);
