@@ -9,7 +9,7 @@ import { randomUUID } from "crypto";
 
 // Game Logic Helpers
 function assignRoles(players: any[], settings: any) {
-  const roles = [];
+  const roles: string[] = [];
   for (let i = 0; i < settings.mafiaCount; i++) roles.push("mafia");
   for (let i = 0; i < settings.detectiveCount; i++) roles.push("detective");
   for (let i = 0; i < settings.doctorCount; i++) roles.push("doctor");
@@ -283,7 +283,8 @@ export async function registerRoutes(
         isAlive: true,
         isHost: true,
         sessionId,
-        isSpectator: false
+        isSpectator: false,
+        isBot: false
       });
 
       if (!player) {
@@ -344,7 +345,8 @@ export async function registerRoutes(
         isAlive: !isSpectator,
         isHost,
         sessionId,
-        isSpectator
+        isSpectator,
+        isBot: false
       });
 
       res.json({
