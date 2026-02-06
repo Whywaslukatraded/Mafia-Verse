@@ -223,7 +223,8 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         }
       }
 
-      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia' });
+      // After voting, go to next night and increment turn
+      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
       actions.mafiaKill = null;
       actions.doctorSave = null;
     }
@@ -257,7 +258,8 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         content: nightSummary
       });
 
-      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', turn: (room.turn || 0) + 1 });
+      // After night, go to day discussion
+      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion' });
       actions.votes.clear();
     }
   }
@@ -480,10 +482,10 @@ export async function registerRoutes(
           const sanitizedPlayers = players.map(p => {
              if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
              if (me?.id === p.id) return p; 
+             if (!me?.isAlive) return p; // Dead players can see everyone's role
              if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
              if (me?.role === 'detective' && p.role === 'detective' && !me.isHost) return p;
              if (me?.role === 'doctor' && p.role === 'doctor' && !me.isHost) return p;
-             if (!me?.isAlive && me?.role !== 'mafia') return p; // Dead non-mafia can see everyone's role (spectator mode)
              return { ...p, role: 'unknown' }; 
           });
 
@@ -547,7 +549,7 @@ export async function registerRoutes(
             await storage.updatePlayer(p.id, { role: p.role });
           }
 
-          await storage.updateRoom(myRoomId, { status: 'day', phase: 'discussion', turn: 1 });
+          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1 });
           
           // Init actions
           gameActions.set(myRoomId, {
@@ -557,8 +559,9 @@ export async function registerRoutes(
             detectiveCheck: null
           });
 
-          // Start automation
-          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), PHASE_DURATION);
+          // Start automation with Mafia duration
+          const duration = (room.settings as any).mafiaDuration * 1000 || 15000;
+          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration);
           phaseTimers.set(myRoomId, timer);
 
           broadcastState(myRoomId);
