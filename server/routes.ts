@@ -221,6 +221,13 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
             content: `${victim.name} was voted out. They were the ${victim.role}.`
           });
         }
+      } else {
+        await storage.createMessage({
+          roomId,
+          playerId: 0,
+          playerName: "System",
+          content: `No one was voted out today.`
+        });
       }
 
       // After voting, go to next night and increment turn
@@ -607,22 +614,44 @@ export async function registerRoutes(
              return;
            }
 
+           if (action.type === 'replay' && me.isHost) {
+             const players = await storage.getPlayersInRoom(myRoomId);
+             for (const p of players) {
+               await storage.updatePlayer(p.id, { 
+                 role: null, 
+                 isAlive: true, 
+                 isSpectator: false 
+               });
+             }
+             await storage.updateRoom(myRoomId, { 
+               status: 'lobby', 
+               phase: 'lobby', 
+               turn: 1 
+             });
+             broadcastState(myRoomId);
+             return;
+           }
+
            // Handle Phases
            if (room.phase === 'voting' && action.type === 'vote') {
-             actions.votes.set(me.id, action.targetId);
-             
-             // Check if majority reached? Or wait for timer?
-             // Let's implement manual "End Phase" or simple majority for now.
-             // Simpler: Just store votes. Host can "Proceed" or timer.
-             // Let's make it phase-based.
+             const target = players.find(p => p.id === action.targetId);
+             if (target && target.isAlive) {
+               actions.votes.set(me.id, action.targetId);
+             }
            }
            
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
-             actions.mafiaKill = action.targetId;
+             const target = players.find(p => p.id === action.targetId);
+             if (target && target.isAlive && target.role !== 'mafia') {
+               actions.mafiaKill = action.targetId;
+             }
            }
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
-             actions.doctorSave = action.targetId;
+             const target = players.find(p => p.id === action.targetId);
+             if (target && target.isAlive) {
+               actions.doctorSave = action.targetId;
+             }
            }
 
            // Check logic usually immediate return
