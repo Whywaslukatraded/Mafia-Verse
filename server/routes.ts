@@ -489,7 +489,7 @@ export async function registerRoutes(
           const sanitizedPlayers = players.map(p => {
              if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
              if (me?.id === p.id) return p; 
-             if (!me?.isAlive) return p; // Dead players can see everyone's role
+             if (me && !me.isAlive) return p; // Dead players can see everyone's role
              if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
              if (me?.role === 'detective' && p.role === 'detective' && !me.isHost) return p;
              if (me?.role === 'doctor' && p.role === 'doctor' && !me.isHost) return p;
