@@ -123,7 +123,19 @@ export default function Room() {
                   <p className="text-muted-foreground">{players.length} joined so far</p>
                 </div>
                 
-                {isHost && (
+                {room.status === "ended" && isHost && (
+                  <div className="mt-8">
+                    <Button 
+                      size="lg" 
+                      onClick={() => sendAction({ type: 'replay' })}
+                      className="w-full py-6 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
+                    >
+                      Play Again
+                    </Button>
+                  </div>
+                )}
+
+                {isHost && room.status === "lobby" && (
                   <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Timer className="w-4 h-4" /> Game Settings
