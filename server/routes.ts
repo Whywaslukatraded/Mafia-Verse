@@ -247,16 +247,32 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
       if (topTargetId !== -1) {
         const victim = players.find(p => p.id === topTargetId);
-        if (victim) {
-          await storage.updatePlayer(topTargetId, { isAlive: false });
-          
-          await storage.createMessage({
-            roomId,
-            playerId: 0,
-            playerName: "System",
-            content: `${victim.name} was voted out. They were the ${victim.role}.`
-          });
-        }
+          if (victim) {
+            await storage.updatePlayer(topTargetId, { isAlive: false });
+            
+            await storage.createMessage({
+              roomId,
+              playerId: 0,
+              playerName: "System",
+              content: `${victim.name} was voted out. They were the ${victim.role}.`
+            });
+
+            // Check if game should end immediately
+            const remainingPlayers = await storage.getPlayersInRoom(roomId);
+            const remainingMafia = remainingPlayers.filter(p => p.role === 'mafia' && p.isAlive);
+            
+            if (remainingMafia.length === 0) {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({
+                roomId: roomId,
+                playerId: 0,
+                playerName: "System",
+                content: "The Mafia has been eliminated! Civilians win!"
+              });
+              broadcastState(roomId);
+              return;
+            }
+          }
       } else {
         await storage.createMessage({
           roomId,
