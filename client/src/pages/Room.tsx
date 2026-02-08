@@ -64,7 +64,6 @@ export default function Room() {
         return { label: "Eliminate", action: { type: "kill", targetId } as GameAction };
       }
       if (room.phase === "doctor" && me.role === "doctor") {
-        // Doctors can self-heal usually, but logic depends on rules. Assume they can target anyone for now.
         return { label: "Heal", action: { type: "heal", targetId } as GameAction };
       }
       if (room.phase === "detective" && me.role === "detective") {

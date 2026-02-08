@@ -92,12 +92,15 @@ export function PlayerCard({
 
       {/* Action Overlay */}
       {canInteract && player.isAlive && (
-        <button
-          onClick={onInteract}
-          className="absolute inset-x-0 bottom-0 py-3 bg-primary/90 text-primary-foreground text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center focus:outline-none"
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onInteract) onInteract();
+          }}
+          className="absolute inset-x-0 bottom-0 py-3 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
         >
           {interactionLabel}
-        </button>
+        </Button>
       )}
     </motion.div>
   );
