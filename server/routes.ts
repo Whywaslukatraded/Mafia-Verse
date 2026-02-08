@@ -728,20 +728,21 @@ export async function registerRoutes(
 
                 // If detective finds the LAST mafia, end the game early
                 const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
-                if (isMafia && aliveMafia.length === 1) {
-                  await storage.createMessage({
-                    roomId: myRoomId,
-                    playerId: 0,
-                    playerName: "System",
-                    content: `The detective ${me.name} caught the last mafia ${target.name}!`
-                  });
-                  await storage.updateRoom(myRoomId, { status: 'ended' });
-                  if (phaseTimers.has(myRoomId)) {
-                    clearTimeout(phaseTimers.get(myRoomId));
-                    phaseTimers.delete(myRoomId);
-                  }
-                  broadcastState(myRoomId);
-                }
+               if (isMafia) {
+                 await storage.updateRoom(myRoomId, { status: 'ended' });
+                 await storage.createMessage({
+                   roomId: myRoomId,
+                   playerId: 0,
+                   playerName: "System",
+                   content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`
+                 });
+                 if (phaseTimers.has(myRoomId)) {
+                   clearTimeout(phaseTimers.get(myRoomId));
+                   phaseTimers.delete(myRoomId);
+                 }
+               } else {
+                 await resolvePhase(myRoomId);
+               }
              }
            }
            
