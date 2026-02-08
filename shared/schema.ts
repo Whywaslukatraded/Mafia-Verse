@@ -94,6 +94,7 @@ export type GameAction =
   | { type: 'add_bots' }
   | { type: 'remove_bot'; playerId: number }
   | { type: 'replay' }
+  | { type: 'update_profile'; name?: string; avatar?: string }
   | { type: 'chat'; content: string };
 
 // WebSocket Message Types

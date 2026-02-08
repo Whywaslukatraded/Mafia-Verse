@@ -131,14 +131,29 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
 
-    // Smarter target selection
-    let target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    // Smarter target selection: Bots are less likely to target real players early on
+    let target;
+    const realPlayersAlive = alivePlayers.filter(p => !p.isBot);
+    const botsAlive = alivePlayers.filter(p => p.isBot);
     
-    // Mafia bots try to avoid killing other mafia
+    if (Math.random() > 0.6 && botsAlive.length > 0) {
+      // 40% chance to target another bot if any are alive, to balance the game
+      target = botsAlive[Math.floor(Math.random() * botsAlive.length)];
+    } else {
+      target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    }
+    
+    // Mafia bots definitely try to avoid killing other mafia
     if (bot.role === 'mafia') {
       const nonMafiaAlive = alivePlayers.filter(p => p.role !== 'mafia');
       if (nonMafiaAlive.length > 0) {
-        target = nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)];
+        // Even for mafia, have a bias towards other bots if possible
+        const nonMafiaBots = nonMafiaAlive.filter(p => p.isBot);
+        if (Math.random() > 0.5 && nonMafiaBots.length > 0) {
+          target = nonMafiaBots[Math.floor(Math.random() * nonMafiaBots.length)];
+        } else {
+          target = nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)];
+        }
       }
     }
 
@@ -196,9 +211,30 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     } else if (room.phase === 'voting') {
       // Resolve voting
       const voteCounts = new Map<number, number>();
-      actions.votes.forEach((targetId) => {
+      const voteResults: { voterName: string, targetName: string }[] = [];
+      
+      actions.votes.forEach((targetId, voterId) => {
         voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
+        const voter = players.find(p => p.id === voterId);
+        const target = players.find(p => p.id === targetId);
+        if (voter && target) {
+          voteResults.push({ voterName: voter.name, targetName: target.name });
+        }
       });
+
+      // Announce all votes
+      if (voteResults.length > 0) {
+        let voteSummary = "Voting Results: ";
+        voteResults.forEach(res => {
+          voteSummary += `${res.voterName} voted for ${res.targetName}. `;
+        });
+        await storage.createMessage({
+          roomId,
+          playerId: 0,
+          playerName: "System",
+          content: voteSummary
+        });
+      }
 
       let topTargetId = -1;
       let maxVotes = 0;
@@ -627,6 +663,15 @@ export async function registerRoutes(
                status: 'lobby', 
                phase: 'lobby', 
                turn: 1 
+             });
+             broadcastState(myRoomId);
+             return;
+           }
+
+           if (action.type === 'update_profile' && room.status === 'lobby') {
+             await storage.updatePlayer(me.id, {
+               name: action.name ?? me.name,
+               // Assuming we add avatar to schema or just use name for now
              });
              broadcastState(myRoomId);
              return;
