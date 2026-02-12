@@ -326,11 +326,11 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   gameActions.set(roomId, actions);
   
       // Re-fetch room to check if game ended
-      const updatedPlayers = await storage.getPlayersInRoom(roomId);
-      const aliveMafia = updatedPlayers.filter(p => p.role === 'mafia' && p.isAlive).length;
-      const aliveCivilians = updatedPlayers.filter(p => p.role !== 'mafia' && p.isAlive).length;
+      const updatedPlayersRef = await storage.getPlayersInRoom(roomId);
+      const aliveMafiaCount = updatedPlayersRef.filter(p => p.role === 'mafia' && p.isAlive).length;
+      const aliveCiviliansCount = updatedPlayersRef.filter(p => p.role !== 'mafia' && p.isAlive).length;
 
-      if (aliveMafia === 0 || aliveMafia >= aliveCivilians) {
+      if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
         await storage.updateRoom(roomId, { status: 'ended' });
         if (phaseTimers.has(roomId)) {
           clearTimeout(phaseTimers.get(roomId));
@@ -355,8 +355,8 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   sessions?.forEach(sessionId => {
     const ws = clients.get(sessionId);
     if (ws && ws.readyState === WebSocket.OPEN) {
-      const me = updatedPlayers.find(p => p.sessionId === sessionId);
-      const sanitizedPlayers = updatedPlayers.map(p => {
+      const me = updatedPlayersRef.find(p => p.sessionId === sessionId);
+      const sanitizedPlayers = updatedPlayersRef.map(p => {
         const roomStatus = room.status; // use latest status
         if (roomStatus === 'ended' || !p.isAlive) return p;
         if (me?.id === p.id) return p;
@@ -372,7 +372,53 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   });
 }
 
-export async function registerRoutes(
+function broadcastState(roomId: number) {
+  const sessions = roomClients.get(roomId);
+  if (!sessions) return;
+
+  storage.getRoom(roomId).then(async (room) => {
+    if (!room) return;
+    const players = await storage.getPlayersInRoom(roomId);
+    const messages = await storage.getMessagesByRoom(roomId);
+    
+    const gameStateBase = {
+      room,
+      players: players.map(p => ({
+        ...p,
+        role: room.status === 'lobby' ? null : (p.isAlive ? p.role : p.role)
+      })),
+      messages
+    };
+
+    sessions.forEach(sessionId => {
+      const ws = clients.get(sessionId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const me = players.find(p => p.sessionId === sessionId);
+        
+        // Secure filtering
+        const sanitizedPlayers = players.map(p => {
+           if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
+           if (me?.id === p.id) return p; 
+           if (me && !me.isAlive) return p; // Dead players can see everyone's role
+           if (me?.role === 'mafia' && p.role === 'mafia' && !me.isHost) return p; 
+           if (me?.role === 'detective' && p.role === 'detective' && !me.isHost) return p;
+           if (me?.role === 'doctor' && p.role === 'doctor' && !me.isHost) return p;
+           return { ...p, role: 'unknown' }; 
+        });
+
+        ws.send(JSON.stringify({
+          type: WS_EVENTS.STATE_UPDATE,
+          payload: { ...gameStateBase, players: sanitizedPlayers, me }
+        }));
+      }
+    });
+  });
+}
+
+async function resolvePhase(roomId: number) {
+  // Logic to advance the game manually or automatically
+  // This can call advancePhase if needed
+}
   httpServer: Server,
   app: Express
 ): Promise<Server> {
@@ -698,6 +744,7 @@ export async function registerRoutes(
              const target = players.find(p => p.id === action.targetId);
              if (target && target.isAlive) {
                actions.votes.set(me.id, action.targetId);
+               broadcastState(myRoomId); // Added to ensure visual feedback
              }
            }
            
