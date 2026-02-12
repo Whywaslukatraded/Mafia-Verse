@@ -122,13 +122,15 @@ export default function Room() {
           {/* Main Game Area */}
           <div className="lg:col-span-2 space-y-8">
             {/* Lobby Controls */}
-            {room.status === "lobby" && (
-              <div className="text-center py-8">
-                <div className="mb-8">
-                  <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
-                  <p className="text-muted-foreground">{players.length} joined so far</p>
-                </div>
-                
+                {room.status === "lobby" && (
+                  <div className="text-center py-8">
+                    <div className="mb-8">
+                      <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
+                      <p className="text-muted-foreground">{players.length} joined so far</p>
+                    </div>
+                  </div>
+                )}
+
                 {room.status === "ended" && isHost && (
                   <div className="mt-8 px-4">
                     <Button 
