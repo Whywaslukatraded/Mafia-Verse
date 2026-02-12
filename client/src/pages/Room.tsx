@@ -100,8 +100,15 @@ export default function Room() {
               <Share2 className="w-4 h-4" />
               <span className="hidden sm:inline">Invite</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={() => setLocation("/")} 
+              className="gap-2"
+              data-testid="button-leave-room"
+            >
               <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Leave</span>
             </Button>
           </div>
         </div>
@@ -123,11 +130,12 @@ export default function Room() {
                 </div>
                 
                 {room.status === "ended" && isHost && (
-                  <div className="mt-8">
+                  <div className="mt-8 px-4">
                     <Button 
                       size="lg" 
                       onClick={() => sendAction({ type: 'replay' })}
-                      className="w-full py-6 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
+                      className="w-full py-6 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 animate-in fade-in zoom-in duration-300"
+                      data-testid="button-replay"
                     >
                       Play Again
                     </Button>
