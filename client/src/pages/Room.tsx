@@ -9,7 +9,6 @@ import { RoleBadge } from "@/components/RoleBadge";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MafiaHandbook } from "@/components/MafiaHandbook";
 import { useToast } from "@/hooks/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { GameAction } from "@shared/schema";
 
 export default function Room() {
@@ -18,9 +17,7 @@ export default function Room() {
   const code = params?.code || null;
   const { toast } = useToast();
   
-  // Get session from storage
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
-  
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -29,7 +26,6 @@ export default function Room() {
     toast({ title: "Link copied!", description: "Send it to your friends." });
   };
 
-  // Redirect if missing session
   useEffect(() => {
     if (gameState && !sessionId && gameState.room.status === 'lobby') {
       toast({ title: "Session not found", variant: "destructive" });
@@ -49,16 +45,13 @@ export default function Room() {
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
 
-  // Interaction Logic
   const getInteraction = (targetId: number) => {
     if (!me || !me.isAlive || me.id === targetId || isSpectator) return null;
 
-    // Day Voting
     if (room.status === "day" && room.phase === "voting") {
       return { label: "Vote", action: { type: "vote", targetId } as GameAction };
     }
 
-    // Night Actions
     if (room.status === "night") {
       if (room.phase === "mafia" && me.role === "mafia") {
         return { label: "Eliminate", action: { type: "kill", targetId } as GameAction };
@@ -75,7 +68,6 @@ export default function Room() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Top Bar */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -83,30 +75,15 @@ export default function Room() {
             <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className="hover-elevate"
-            >
-              {soundEnabled ? (
-                <Volume2 className="w-4 h-4 text-blue-400" />
-              ) : (
-                <VolumeX className="w-4 h-4 text-muted-foreground" />
-              )}
+            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} className="hover-elevate">
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
             <MafiaHandbook />
             <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
               <Share2 className="w-4 h-4" />
               <span className="hidden sm:inline">Invite</span>
             </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => setLocation("/")} 
-              className="gap-2"
-              data-testid="button-leave-room"
-            >
+            <Button variant="destructive" size="sm" onClick={() => setLocation("/")} className="gap-2" data-testid="button-leave-room">
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Leave</span>
             </Button>
@@ -115,36 +92,18 @@ export default function Room() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Game Phase Header */}
         <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-          {/* Main Game Area */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Lobby Controls */}
-                {room.status === "lobby" && (
-                  <div className="text-center py-8">
-                    <div className="mb-8">
-                      <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
-                      <p className="text-muted-foreground">{players.length} joined so far</p>
-                    </div>
-                  </div>
-                )}
-
-                {room.status === "ended" && isHost && (
-                  <div className="mt-8 px-4">
-                    <Button 
-                      size="lg" 
-                      onClick={() => sendAction({ type: 'replay' })}
-                      className="w-full py-6 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 animate-in fade-in zoom-in duration-300"
-                      data-testid="button-replay"
-                    >
-                      Play Again
-                    </Button>
-                  </div>
-                )}
-
-                {isHost && room.status === "lobby" && (
+            {room.status === "lobby" && (
+              <div className="text-center py-8">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold mb-2">Waiting for players...</h2>
+                  <p className="text-muted-foreground">{players.length} joined so far</p>
+                </div>
+                
+                {isHost && (
                   <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Timer className="w-4 h-4" /> Game Settings
@@ -165,12 +124,7 @@ export default function Room() {
                         </Button>
                       </div>
                     </div>
-                    <Button 
-                      size="lg" 
-                      onClick={startGame}
-                      disabled={players.length < 6}
-                      className="w-full py-6 text-xl font-bold shadow-lg shadow-primary/20"
-                    >
+                    <Button size="lg" onClick={startGame} disabled={players.length < 6} className="w-full py-6 text-xl font-bold shadow-lg shadow-primary/20">
                       Start Game
                     </Button>
                     <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Host Controls Only</p>
@@ -179,7 +133,14 @@ export default function Room() {
               </div>
             )}
 
-            {/* Player Grid */}
+            {room.status === "ended" && isHost && (
+              <div className="mt-8 px-4">
+                <Button size="lg" onClick={() => sendAction({ type: 'replay' })} className="w-full py-6 text-xl font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 animate-in fade-in zoom-in duration-300" data-testid="button-replay">
+                  Play Again
+                </Button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {players.map((player) => {
                 const interaction = getInteraction(player.id);
@@ -203,18 +164,12 @@ export default function Room() {
             </div>
           </div>
 
-          {/* Chat Sidebar */}
           <div className="lg:col-span-1">
-            <ChatWindow 
-              messages={gameState.messages || []} 
-              onSendMessage={(content) => sendAction({ type: 'chat', content })}
-              currentPlayerId={me?.id}
-            />
+            <ChatWindow messages={gameState.messages || []} onSendMessage={(content) => sendAction({ type: 'chat', content })} currentPlayerId={me?.id} />
           </div>
         </div>
       </main>
 
-      {/* Bottom Floating Bar - My Role */}
       {me && room.status !== "lobby" && (
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border/50 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-40">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -222,8 +177,6 @@ export default function Room() {
               <div className="text-sm text-muted-foreground hidden sm:block">Your Role</div>
               <RoleBadge role={me.role} className="text-lg px-4 py-1.5" />
             </div>
-            
-            {/* Status Message */}
             <div className="text-sm font-medium text-right">
               {isSpectator && <span className="text-blue-400">Spectating...</span>}
               {!isSpectator && room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
