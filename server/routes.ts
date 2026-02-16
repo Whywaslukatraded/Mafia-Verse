@@ -476,14 +476,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
              }
            }
-           
+
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
              const target = players.find(p => p.id === action.targetId);
-             if (target?.isAlive && target.role !== 'mafia') actions.mafiaKill = action.targetId;
+             if (target?.isAlive && target.role !== 'mafia') {
+               actions.mafiaKill = action.targetId;
+             }
            }
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
-             if (players.find(p => p.id === action.targetId)?.isAlive) actions.doctorSave = action.targetId;
+             if (players.find(p => p.id === action.targetId)?.isAlive) {
+               actions.doctorSave = action.targetId;
+             }
            }
 
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
@@ -496,7 +500,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!` });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
                 }
-                broadcastState(myRoomId);
              }
            }
            
