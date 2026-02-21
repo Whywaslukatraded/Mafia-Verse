@@ -475,19 +475,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.votes.set(me.id, action.targetId);
                broadcastState(myRoomId);
              }
+             return;
            }
 
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
              const target = players.find(p => p.id === action.targetId);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKill = action.targetId;
+               broadcastState(myRoomId);
              }
+             return;
            }
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
              if (players.find(p => p.id === action.targetId)?.isAlive) {
                actions.doctorSave = action.targetId;
+               broadcastState(myRoomId);
              }
+             return;
            }
 
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
@@ -500,7 +505,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!` });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
                 }
+                broadcastState(myRoomId);
              }
+             return;
            }
            
            if (action.type === 'skip' && me.isHost) {
