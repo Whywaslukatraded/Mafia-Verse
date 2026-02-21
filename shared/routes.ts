@@ -11,6 +11,10 @@ export const api = {
           detectiveCount: z.number().min(0),
           doctorCount: z.number().min(0),
           civilianCount: z.number().min(0),
+          phaseDuration: z.number().min(5),
+          mafiaDuration: z.number().min(5),
+          doctorDuration: z.number().min(5),
+          detectiveDuration: z.number().min(5),
         }),
       }),
       responses: {

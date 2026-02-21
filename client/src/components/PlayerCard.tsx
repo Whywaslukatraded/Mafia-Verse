@@ -9,6 +9,7 @@ interface PlayerCardProps {
   isMe: boolean;
   canInteract: boolean;
   interactionLabel?: string;
+  interactionVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   onInteract?: () => void;
   onRemove?: () => void;
   revealedRole?: string | null; // For detective check or game end
@@ -18,7 +19,8 @@ export function PlayerCard({
   player, 
   isMe, 
   canInteract, 
-  interactionLabel, 
+  interactionLabel,
+  interactionVariant = "default",
   onInteract,
   onRemove,
   revealedRole 
@@ -93,11 +95,12 @@ export function PlayerCard({
       {/* Action Overlay */}
       {canInteract && player.isAlive && (
         <Button
+          variant={interactionVariant}
           onClick={(e) => {
             e.stopPropagation();
             if (onInteract) onInteract();
           }}
-          className="absolute inset-x-0 bottom-0 py-3 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
+          className="absolute inset-x-0 bottom-0 py-3 text-xs font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
         >
           {interactionLabel}
         </Button>
