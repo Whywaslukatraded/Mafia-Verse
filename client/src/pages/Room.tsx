@@ -49,18 +49,37 @@ export default function Room() {
     if (!me || !me.isAlive || me.id === targetId || isSpectator) return null;
 
     if (room.status === "day" && room.phase === "voting") {
-      return { label: "Vote", action: { type: "vote", targetId } as GameAction };
+      const isVoted = (me as any).currentAction?.vote === targetId;
+      return { 
+        label: isVoted ? "Voted" : "Vote", 
+        variant: isVoted ? "secondary" : "default",
+        action: { type: "vote", targetId } as GameAction 
+      };
     }
 
     if (room.status === "night") {
       if (room.phase === "mafia" && me.role === "mafia") {
-        return { label: "Eliminate", action: { type: "kill", targetId } as GameAction };
+        const isTargeted = (me as any).currentAction?.kill === targetId;
+        return { 
+          label: isTargeted ? "Targeted" : "Eliminate", 
+          variant: isTargeted ? "secondary" : "destructive",
+          action: { type: "kill", targetId } as GameAction 
+        };
       }
       if (room.phase === "doctor" && me.role === "doctor") {
-        return { label: "Heal", action: { type: "heal", targetId } as GameAction };
+        const isProtected = (me as any).currentAction?.heal === targetId;
+        return { 
+          label: isProtected ? "Protected" : "Heal", 
+          variant: isProtected ? "secondary" : "default",
+          action: { type: "heal", targetId } as GameAction 
+        };
       }
       if (room.phase === "detective" && me.role === "detective") {
-        return { label: "Investigate", action: { type: "check", targetId } as GameAction };
+        return { 
+          label: "Investigate", 
+          variant: "default",
+          action: { type: "check", targetId } as GameAction 
+        };
       }
     }
     return null;
@@ -145,20 +164,22 @@ export default function Room() {
               {players.map((player) => {
                 const interaction = getInteraction(player.id);
                 return (
-                  <PlayerCard
-                    key={player.id}
-                    player={player}
-                    isMe={player.id === me?.id}
-                    canInteract={!!interaction}
-                    interactionLabel={interaction?.label}
-                    onInteract={() => interaction && sendAction(interaction.action)}
-                    onRemove={() => sendAction({ type: 'remove_bot', playerId: player.id })}
-                    revealedRole={
-                      room.status === "ended" || !player.isAlive 
-                        ? player.role 
-                        : (me?.role === "mafia" && player.role === "mafia" ? "Mafia" : null)
-                    }
-                  />
+                    <PlayerCard
+                      key={player.id}
+                      player={player}
+                      isMe={player.id === me?.id}
+                      canInteract={!!interaction}
+                      interactionLabel={interaction?.label}
+                      interactionVariant={interaction?.variant as any}
+                      onInteract={() => interaction && sendAction(interaction.action)}
+                      onRemove={() => sendAction({ type: 'remove_bot', playerId: player.id })}
+                      revealedRole={
+                        room.status === "ended" || !player.isAlive 
+                          ? player.role 
+                          : (me?.role === "mafia" && player.role === "mafia" ? "Mafia" : 
+                             (me?.role === "detective" && (me as any).currentAction?.check === player.id ? (player.role === "mafia" ? "Mafia" : "Innocent") : null))
+                      }
+                    />
                 );
               })}
             </div>

@@ -94,16 +94,16 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
   const players = await storage.getPlayersInRoom(roomId);
-  const bots = players.filter(p => p.isBot && p.isAlive);
+  const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
   for (const bot of bots) {
-    const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
+    const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
 
     let target;
-    const realPlayersAlive = alivePlayers.filter(p => !p.isBot);
-    const botsAlive = alivePlayers.filter(p => p.isBot);
+    const realPlayersAlive = alivePlayers.filter((p: Player) => !p.isBot);
+    const botsAlive = alivePlayers.filter((p: Player) => p.isBot);
     
     if (Math.random() > 0.6 && botsAlive.length > 0) {
       target = botsAlive[Math.floor(Math.random() * botsAlive.length)];
@@ -112,9 +112,9 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     }
     
     if (bot.role === 'mafia') {
-      const nonMafiaAlive = alivePlayers.filter(p => p.role !== 'mafia');
+      const nonMafiaAlive = alivePlayers.filter((p: Player) => p.role !== 'mafia');
       if (nonMafiaAlive.length > 0) {
-        const nonMafiaBots = nonMafiaAlive.filter(p => p.isBot);
+        const nonMafiaBots = nonMafiaAlive.filter((p: Player) => p.isBot);
         if (Math.random() > 0.5 && nonMafiaBots.length > 0) {
           target = nonMafiaBots[Math.floor(Math.random() * nonMafiaBots.length)];
         } else {
@@ -167,8 +167,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       
       actions.votes.forEach((targetId: number, voterId: number) => {
         voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
-        const voter = players.find(p => p.id === voterId);
-        const target = players.find(p => p.id === targetId);
+        const voter = players.find((p: Player) => p.id === voterId);
+        const target = players.find((p: Player) => p.id === targetId);
         if (voter && target) {
           voteResults.push({ voterName: voter.name, targetName: target.name });
         }
@@ -187,13 +187,13 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
 
       if (topTargetId !== -1) {
-        const victim = players.find(p => p.id === topTargetId);
+        const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
-          const remainingMafia = remainingPlayers.filter(p => p.role === 'mafia' && p.isAlive);
+          const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
@@ -215,7 +215,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     } else if (room.phase === 'detective') {
       let nightSummary = "The night has ended. ";
       if (actions.mafiaKill) {
-        const victim = players.find(p => p.id === actions.mafiaKill);
+        const victim = players.find((p: Player) => p.id === actions.mafiaKill);
         if (victim) {
           if (actions.mafiaKill === actions.doctorSave) {
             nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
@@ -237,8 +237,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   gameActions.set(roomId, actions);
   
   const updatedPlayersRef = await storage.getPlayersInRoom(roomId);
-  const aliveMafiaCount = updatedPlayersRef.filter(p => p.role === 'mafia' && p.isAlive).length;
-  const aliveCiviliansCount = updatedPlayersRef.filter(p => p.role !== 'mafia' && p.isAlive).length;
+  const aliveMafiaCount = updatedPlayersRef.filter((p: Player) => p.role === 'mafia' && p.isAlive).length;
+  const aliveCiviliansCount = updatedPlayersRef.filter((p: Player) => p.role !== 'mafia' && p.isAlive).length;
 
   const currentRoom = await storage.getRoom(roomId);
   if (currentRoom) {
@@ -275,7 +275,15 @@ async function broadcastState(roomId: number) {
     const ws = clients.get(sessionId);
     if (ws && ws.readyState === WebSocket.OPEN) {
       const me = players.find(p => p.sessionId === sessionId);
-      const sanitizedPlayers = players.map(p => {
+      const actions = gameActions.get(roomId);
+      const myAction = me ? {
+        vote: actions?.votes.get(me.id),
+        kill: me.role === 'mafia' ? actions?.mafiaKill : null,
+        heal: me.role === 'doctor' ? actions?.doctorSave : null,
+        check: me.role === 'detective' ? actions?.detectiveCheck : null
+      } : null;
+
+      const sanitizedPlayers = players.map((p: Player) => {
          if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
          if (me?.id === p.id) return p; 
          if (me && !me.isAlive) return p; 
@@ -287,7 +295,7 @@ async function broadcastState(roomId: number) {
 
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
-        payload: { room, players: sanitizedPlayers, me, messages }
+        payload: { room, players: sanitizedPlayers, me: me ? { ...me, currentAction: myAction } : me, messages }
       }));
     }
   });
@@ -502,6 +510,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
              const target = players.find(p => p.id === action.targetId);
              if (target) {
+                actions.detectiveCheck = target.id;
                 const isMafia = target.role === 'mafia';
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
@@ -509,9 +518,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!` });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
                 }
-                broadcastState(myRoomId);
              }
-             return;
            }
            
            if (action.type === 'skip' && me.isHost) {
