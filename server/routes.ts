@@ -261,6 +261,12 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
 const clients = new Map<string, WebSocket>();
 const roomClients = new Map<number, Set<string>>();
+const gameActions = new Map<number, {
+  votes: Map<number, number>,
+  mafiaKill: number | null,
+  doctorSave: number | null,
+  detectiveCheck: number | null
+}>();
 
 async function broadcastState(roomId: number) {
   const sessions = roomClients.get(roomId);
@@ -377,12 +383,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  const gameActions = new Map<number, {
-    votes: Map<number, number>,
-    mafiaKill: number | null,
-    doctorSave: number | null,
-    detectiveCheck: number | null
-  }>();
 
   wss.on('connection', (ws) => {
     let mySessionId: string | null = null;
