@@ -8,6 +8,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { RoleBadge } from "@/components/RoleBadge";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MafiaHandbook } from "@/components/MafiaHandbook";
+import { GameAudio } from "@/components/GameAudio";
 import { useToast } from "@/hooks/use-toast";
 import type { GameAction } from "@shared/schema";
 
@@ -87,6 +88,7 @@ export default function Room() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} />}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
