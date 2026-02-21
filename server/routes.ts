@@ -474,6 +474,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (players.find(p => p.id === action.targetId)?.isAlive) {
                actions.votes.set(me.id, action.targetId);
                broadcastState(myRoomId);
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
              }
              return;
            }
@@ -483,14 +484,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKill = action.targetId;
                broadcastState(myRoomId);
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
              }
              return;
            }
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
-             if (players.find(p => p.id === action.targetId)?.isAlive) {
+             const target = players.find(p => p.id === action.targetId);
+             if (target?.isAlive) {
                actions.doctorSave = action.targetId;
                broadcastState(myRoomId);
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
              }
              return;
            }

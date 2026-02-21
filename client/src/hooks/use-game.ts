@@ -70,6 +70,14 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
           case "state_update":
             setGameState(msg.payload);
             break;
+          case "check_result":
+            toast({
+              title: msg.payload.isMafia ? "Mafia Found!" : "Innocent",
+              description: msg.payload.isMafia 
+                ? "The target is a member of the Mafia!" 
+                : "The target is a regular civilian.",
+            });
+            break;
           case "error":
             toast({
               title: "Error",
