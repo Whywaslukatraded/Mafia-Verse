@@ -64,6 +64,8 @@ const phaseTimers = new Map<number, NodeJS.Timeout>();
 const PHASE_DURATION = 15000;
 const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsilon", "Bot_Zeta", "Bot_Eta", "Bot_Theta"];
 
+const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
+
 async function fillWithBots(roomId: number, storage: any) {
   const players = await storage.getPlayersInRoom(roomId);
   if (players.length >= 6) return;
@@ -73,6 +75,7 @@ async function fillWithBots(roomId: number, storage: any) {
     await storage.createPlayer({
       roomId,
       name: BOT_NAMES[i % BOT_NAMES.length] + "_" + Math.floor(Math.random() * 1000),
+      avatar: BOT_AVATARS[Math.floor(Math.random() * BOT_AVATARS.length)],
       role: null,
       isAlive: true,
       isHost: false,
@@ -319,7 +322,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = randomUUID();
       const player = await storage.createPlayer({
         roomId: room.id,
-        name: "Host",
+        name: input.name,
+        avatar: input.avatar,
         role: null,
         isAlive: true,
         isHost: true,
@@ -356,6 +360,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const player = await storage.createPlayer({
         roomId: room.id,
         name: input.name,
+        avatar: input.avatar,
         role: null,
         isAlive: !isSpectator,
         isHost: players.length === 0,

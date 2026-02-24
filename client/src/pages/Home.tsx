@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, BookOpen, Skull } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, BookOpen, Skull, Smile } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+const AVATARS = ["👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️"];
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -18,8 +21,16 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState("join");
   
+  // Persistent Profile
+  const [name, setName] = useState(() => localStorage.getItem("mafia_profile_name") || "");
+  const [avatar, setAvatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
+
+  useEffect(() => {
+    localStorage.setItem("mafia_profile_name", name);
+    localStorage.setItem("mafia_profile_avatar", avatar);
+  }, [name, avatar]);
+
   // Join State
-  const [joinName, setJoinName] = useState("");
   const [joinCode, setJoinCode] = useState("");
 
   // Create State
@@ -36,10 +47,10 @@ export default function Home() {
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!joinName || !joinCode) return;
+    if (!name || !joinCode) return;
     
     try {
-      const res = await joinRoom.mutateAsync({ name: joinName, code: joinCode });
+      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode });
       // Store session info
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
@@ -54,17 +65,25 @@ export default function Home() {
   };
 
   const handleCreate = async () => {
+    if (!name) {
+      toast({ title: "Name required", description: "Please enter your name before creating a room.", variant: "destructive" });
+      return;
+    }
     try {
-      const res = await createRoom.mutateAsync({ settings: {
-        mafiaCount: counts.mafia,
-        detectiveCount: counts.detective,
-        doctorCount: counts.doctor,
-        civilianCount: counts.civilian,
-        phaseDuration: counts.phaseDuration,
-        mafiaDuration: counts.mafiaDuration,
-        doctorDuration: counts.doctorDuration,
-        detectiveDuration: counts.detectiveDuration,
-      }});
+      const res = await createRoom.mutateAsync({ 
+        name, 
+        avatar,
+        settings: {
+          mafiaCount: counts.mafia,
+          detectiveCount: counts.detective,
+          doctorCount: counts.doctor,
+          civilianCount: counts.civilian,
+          phaseDuration: counts.phaseDuration,
+          mafiaDuration: counts.mafiaDuration,
+          doctorDuration: counts.doctorDuration,
+          detectiveDuration: counts.detectiveDuration,
+        }
+      });
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
@@ -111,6 +130,52 @@ export default function Home() {
           <p className="text-muted-foreground font-medium uppercase tracking-[0.3em] text-[10px] opacity-80">Trust No One • Find The Truth • Survive The Night</p>
         </div>
 
+        <div className="space-y-6 mb-8">
+          <Card className="glass-card border-none bg-black/40 backdrop-blur-xl ring-1 ring-white/10 p-6">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-5xl shadow-2xl shadow-primary/10">
+                  {avatar}
+                </div>
+                <div className="absolute -bottom-2 -right-2 bg-slate-900 border border-white/10 p-1.5 rounded-full shadow-lg">
+                  <Smile className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+              
+              <div className="w-full space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Your Mafia Handle</Label>
+                  <Input 
+                    placeholder="CHOOSE A NAME..." 
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="bg-white/5 border-white/10 h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg"
+                    maxLength={12}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Pick Your Persona</Label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {AVATARS.map(a => (
+                      <button
+                        key={a}
+                        onClick={() => setAvatar(a)}
+                        className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border border-transparent",
+                          avatar === a ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110" : "bg-white/5 hover:bg-white/10"
+                        )}
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-black/40 backdrop-blur border border-white/5 p-1 h-14 rounded-full">
             <TabsTrigger value="join" className="rounded-full h-full data-[state=active]:bg-primary font-bold tracking-wide">JOIN GAME</TabsTrigger>
@@ -131,20 +196,10 @@ export default function Home() {
                       maxLength={4}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Your Name</Label>
-                    <Input 
-                      placeholder="ENTER NICKNAME" 
-                      value={joinName}
-                      onChange={e => setJoinName(e.target.value)}
-                      className="bg-white/5 border-white/10 h-12 focus:ring-primary/50"
-                      maxLength={12}
-                    />
-                  </div>
                   <Button 
                     type="submit" 
                     className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                    disabled={joinRoom.isPending || !joinCode || !joinName}
+                    disabled={joinRoom.isPending || !joinCode || !name}
                   >
                     {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
                   </Button>

@@ -65,13 +65,13 @@ export function PlayerCard({
 
       {/* Avatar */}
       <div className={cn(
-        "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-3xl font-bold border-2 transition-colors",
-        !player.isAlive ? "bg-slate-800 border-slate-700 text-slate-500" : "bg-primary/10 border-primary/20 text-primary"
+        "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-4xl font-bold border-2 transition-colors bg-white/5",
+        !player.isAlive ? "border-slate-700 opacity-50" : "border-primary/20 shadow-lg shadow-primary/5"
       )}>
         {player.isAlive ? (
-          player.name.charAt(0).toUpperCase()
+          player.avatar || player.name.charAt(0).toUpperCase()
         ) : (
-          <Ghost className="w-10 h-10" />
+          <Ghost className="w-10 h-10 text-slate-500" />
         )}
       </div>
 

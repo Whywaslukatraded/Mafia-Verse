@@ -6,6 +6,8 @@ export const api = {
       method: 'POST' as const,
       path: '/api/rooms',
       input: z.object({
+        name: z.string().min(1),
+        avatar: z.string().min(1),
         settings: z.object({
           mafiaCount: z.number().min(1),
           detectiveCount: z.number().min(0),
@@ -32,6 +34,7 @@ export const api = {
       input: z.object({
         code: z.string().min(4),
         name: z.string().min(1),
+        avatar: z.string().min(1),
       }),
       responses: {
         200: z.object({
