@@ -163,7 +163,7 @@ export default function Home() {
                         onClick={() => setAvatar(a)}
                         className={cn(
                           "w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border border-transparent",
-                          avatar === a ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110" : "bg-white/5 hover:bg-white/10"
+                          avatar === a ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110 text-white" : "bg-white/5 hover:bg-white/10"
                         )}
                       >
                         {a}
