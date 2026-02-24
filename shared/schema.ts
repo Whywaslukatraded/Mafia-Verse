@@ -27,6 +27,7 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   roomId: integer("room_id").notNull(), // Foreign key handled in app logic for simplicity or can be strict
   name: text("name").notNull(),
+  avatar: text("avatar"),
   role: text("role"), // mafia, detective, doctor, civilian (null in lobby)
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
@@ -45,6 +46,7 @@ export const insertRoomSchema = createInsertSchema(rooms).pick({
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
+  avatar: true,
   roomId: true,
   sessionId: true,
   isHost: true,
@@ -86,6 +88,7 @@ export type CreateRoomRequest = {
 export type JoinRoomRequest = {
   code: string;
   name: string;
+  avatar: string;
 };
 
 export type GameAction = 
