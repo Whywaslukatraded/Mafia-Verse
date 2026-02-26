@@ -34,6 +34,18 @@ export default function Room() {
     }
   }, [sessionId, setLocation, toast, gameState]);
 
+  useEffect(() => {
+    if (gameState?.room.status === 'ended' && me) {
+      const stats = {
+        wins: me.wins || 0,
+        gamesPlayed: me.gamesPlayed || 0
+      };
+      localStorage.setItem("mafia_stats", JSON.stringify(stats));
+      // Dispatch storage event for other tabs
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, [gameState?.room.status, me]);
+
   if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground animate-pulse">
@@ -188,7 +200,12 @@ export default function Room() {
           </div>
 
           <div className="lg:col-span-1">
-            <ChatWindow messages={gameState.messages || []} onSendMessage={(content) => sendAction({ type: 'chat', content })} currentPlayerId={me?.id} />
+            <ChatWindow 
+              messages={gameState.messages || []} 
+              onSendMessage={(content) => sendAction({ type: 'chat', content })} 
+              currentPlayerId={me?.id} 
+              isSpectator={isSpectator || (me && !me.isAlive)}
+            />
           </div>
         </div>
       </main>

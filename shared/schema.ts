@@ -34,6 +34,8 @@ export const players = pgTable("players", {
   sessionId: text("session_id").notNull(), // To reconnect
   isSpectator: boolean("is_spectator").default(false),
   isBot: boolean("is_bot").default(false),
+  wins: integer("wins").default(0),
+  gamesPlayed: integer("games_played").default(0),
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 
@@ -58,12 +60,15 @@ export const messages = pgTable("messages", {
   playerId: integer("player_id").notNull(),
   playerName: text("player_name").notNull(),
   content: text("content").notNull(),
+  isSpectator: boolean("is_spectator").default(false),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   timestamp: true,
+}).extend({
+  isSpectator: z.boolean().optional(),
 });
 
 export type Message = typeof messages.$inferSelect;
