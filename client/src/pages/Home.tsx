@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, BookOpen, Skull, Smile } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, BookOpen, Skull, Smile, Trophy, Target } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +24,25 @@ export default function Home() {
   // Persistent Profile
   const [name, setName] = useState(() => localStorage.getItem("mafia_profile_name") || "");
   const [avatar, setAvatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
+  const [stats, setStats] = useState(() => {
+    const saved = localStorage.getItem("mafia_stats");
+    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0 };
+  });
 
   useEffect(() => {
     localStorage.setItem("mafia_profile_name", name);
     localStorage.setItem("mafia_profile_avatar", avatar);
   }, [name, avatar]);
+
+  // Listen for storage updates (from room page after game ends)
+  useEffect(() => {
+    const checkStats = () => {
+      const saved = localStorage.getItem("mafia_stats");
+      if (saved) setStats(JSON.parse(saved));
+    };
+    window.addEventListener('storage', checkStats);
+    return () => window.removeEventListener('storage', checkStats);
+  }, []);
 
   // Join State
   const [joinCode, setJoinCode] = useState("");
@@ -169,6 +183,19 @@ export default function Home() {
                         {a}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/5 flex gap-4 w-full">
+                  <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1">
+                    <Trophy className="w-4 h-4 text-yellow-500" />
+                    <span className="text-2xl font-black font-mono">{stats.wins}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
+                  </div>
+                  <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1">
+                    <Target className="w-4 h-4 text-blue-500" />
+                    <span className="text-2xl font-black font-mono">{stats.gamesPlayed}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Games</span>
                   </div>
                 </div>
               </div>

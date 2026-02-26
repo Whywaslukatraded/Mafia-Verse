@@ -457,7 +457,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
            if (action.type === 'chat') {
-             await storage.createMessage({ roomId: myRoomId, playerId: me.id, playerName: me.name, content: action.content });
+             await storage.createMessage({ 
+               roomId: myRoomId, 
+               playerId: me.id, 
+               playerName: me.name, 
+               content: action.content,
+               isSpectator: me.isSpectator || !me.isAlive 
+             });
              broadcastState(myRoomId);
              return;
            }
@@ -475,8 +481,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (action.type === 'replay' && me.isHost) {
+             // Track wins for the winning team before resetting
+             const survivors = players.filter(p => p.isAlive);
+             const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
+             const innocentsCount = survivors.length - mafiaCount;
+             
+             let winners: string[] = [];
+             if (mafiaCount > 0 && innocentsCount === 0) winners = ['mafia'];
+             else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
+
              for (const p of players) {
-               await storage.updatePlayer(p.id, { role: null, isAlive: true, isSpectator: false });
+               const updates: any = { role: null, isAlive: true, isSpectator: false, gamesPlayed: (p.gamesPlayed || 0) + 1 };
+               if (p.role && winners.includes(p.role)) {
+                 updates.wins = (p.wins || 0) + 1;
+               }
+               await storage.updatePlayer(p.id, updates);
              }
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
              broadcastState(myRoomId);
