@@ -23,6 +23,8 @@ function assignRoles(players: Player[], settings: any) {
   return players.map((p, i) => ({ ...p, role: roles[i] }));
 }
 
+const gameHistory = new Map<number, any[]>();
+
 const DEATH_STORIES = [
   "{name} was skiing down the mountain and fell into a crevasse never to be seen again.",
   "As {name} was skydiving, his or her parachute didn't deploy and they were dead.",
@@ -181,6 +183,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         let voteSummary = "Voting Results: ";
         voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
+        
+        const history = gameHistory.get(roomId) || [];
+        history.push({ type: 'vote', turn: room.turn, results: voteResults });
+        gameHistory.set(roomId, history);
       }
 
       let topTargetId = -1;
@@ -216,20 +222,35 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     } else if (room.phase === 'doctor') {
       await storage.updateRoom(roomId, { phase: 'detective' });
     } else if (room.phase === 'detective') {
+      const history = gameHistory.get(roomId) || [];
+      const nightData: any = { type: 'night', turn: room.turn, events: [] };
+
       let nightSummary = "The night has ended. ";
       if (actions.mafiaKill) {
         const victim = players.find((p: Player) => p.id === actions.mafiaKill);
         if (victim) {
           if (actions.mafiaKill === actions.doctorSave) {
             nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
+            nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
           } else {
             await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
             nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
+            nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
           }
         }
       } else {
         nightSummary += "Nothing happened during the night.";
       }
+      
+      if (actions.detectiveCheck) {
+        const target = players.find((p: Player) => p.id === actions.detectiveCheck);
+        if (target) {
+          nightData.events.push({ type: 'detective_check', target: target.name, isMafia: target.role === 'mafia' });
+        }
+      }
+
+      history.push(nightData);
+      gameHistory.set(roomId, history);
 
       await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion' });
@@ -246,6 +267,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   const currentRoom = await storage.getRoom(roomId);
   if (currentRoom) {
     if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
+      const history = gameHistory.get(roomId) || [];
+      const playersInRoom = await storage.getPlayersInRoom(roomId);
+      for (const p of playersInRoom) {
+        await storage.updatePlayer(p.id, { gameHistory: history });
+      }
       await storage.updateRoom(roomId, { status: 'ended' });
       if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
     } else {
@@ -439,6 +465,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             doctorSave: null,
             detectiveCheck: null
           });
+          gameHistory.set(myRoomId, []);
 
           const duration = (room.settings as any).mafiaDuration * 1000 || 15000;
           const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration);

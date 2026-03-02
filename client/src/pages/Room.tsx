@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, Copy, LogOut, Timer, Volume2, VolumeX, Settings2, Plus } from "lucide-react";
+import { Share2, Copy, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -11,6 +11,9 @@ import { MafiaHandbook } from "@/components/MafiaHandbook";
 import { GameAudio } from "@/components/GameAudio";
 import { useToast } from "@/hooks/use-toast";
 import type { GameAction } from "@shared/schema";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Room() {
   const [, params] = useRoute("/room/:code");
@@ -58,6 +61,17 @@ export default function Room() {
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
 
+  const [showRoleReveal, setShowRoleReveal] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(false);
+
+  useEffect(() => {
+    if (room.status === 'night' && room.turn === 1 && !hasRevealed && me?.role) {
+      setShowRoleReveal(true);
+      setHasRevealed(true);
+      setTimeout(() => setShowRoleReveal(false), 4000);
+    }
+  }, [room.status, room.turn, me?.role]);
+
   const getInteraction = (targetId: number) => {
     if (!me || !me.isAlive || me.id === targetId || isSpectator) return null;
 
@@ -100,6 +114,44 @@ export default function Room() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <AnimatePresence>
+        {showRoleReveal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="text-center"
+            >
+              <div className="mb-4 text-sm font-bold uppercase tracking-[0.4em] text-muted-foreground/60">Your Secret Identity</div>
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotateY: [0, 360],
+                }}
+                transition={{ duration: 1.5, repeat: 0 }}
+              >
+                <RoleBadge role={me?.role} className="text-4xl px-12 py-6 border-2 shadow-[0_0_50px_rgba(var(--primary),0.5)]" />
+              </motion.div>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="mt-8 text-xl font-serif text-white/80 max-w-xs mx-auto italic"
+              >
+                {me?.role === 'mafia' ? "Operate in the shadows. Eliminate everyone else." : 
+                 me?.role === 'detective' ? "Seek the truth. Find the imposters." :
+                 me?.role === 'doctor' ? "Protect the innocent. Save a life tonight." :
+                 "Stay vigilant. Survive the night."}
+              </motion.p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} />}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -164,6 +216,55 @@ export default function Room() {
                   </div>
                 )}
               </div>
+            )}
+
+            {room.status === "ended" && (
+              <Card className="bg-slate-900/50 border-slate-800 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl font-serif">
+                    <History className="w-5 h-5 text-primary" />
+                    Game Chronicle
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px] pr-4">
+                    <div className="space-y-6">
+                      {(me as any)?.gameHistory?.map((entry: any, i: number) => (
+                        <div key={i} className="space-y-3 p-4 bg-black/40 rounded-xl border border-white/5">
+                          <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
+                            {entry.type === 'night' ? `Night ${entry.turn}` : `Day ${entry.turn}`}
+                          </h4>
+                          <div className="space-y-2">
+                            {entry.type === 'vote' ? (
+                              entry.results.map((res: any, j: number) => (
+                                <div key={j} className="text-sm flex items-center gap-2">
+                                  <User className="w-3 h-3 text-blue-400" />
+                                  <span className="font-bold text-white/90">{res.voterName}</span>
+                                  <span className="text-muted-foreground italic">voted for</span>
+                                  <span className="font-bold text-red-400">{res.targetName}</span>
+                                </div>
+                              ))
+                            ) : (
+                              entry.events.map((ev: any, j: number) => (
+                                <div key={j} className="text-sm flex items-center gap-2">
+                                  {ev.type === 'mafia_kill' ? <Skull className="w-3 h-3 text-red-500" /> : 
+                                   ev.type === 'mafia_attempt' && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
+                                   <History className="w-3 h-3 text-blue-400" />}
+                                  <span>
+                                    {ev.type === 'mafia_kill' ? `${ev.target} was eliminated.` :
+                                     ev.type === 'mafia_attempt' && ev.saved ? `An attempt was made on ${ev.target}, but they were protected.` :
+                                     ev.type === 'detective_check' ? `The detective investigated ${ev.target}.` : ''}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
             )}
 
             {room.status === "ended" && isHost && (
