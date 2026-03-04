@@ -65,11 +65,19 @@ export function PlayerCard({
 
       {/* Avatar */}
       <div className={cn(
-        "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-4xl font-bold border-2 transition-colors bg-white/5",
-        !player.isAlive ? "border-slate-700 opacity-50" : "border-primary/20 shadow-lg shadow-primary/5"
+        "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-4xl font-bold border-2 transition-colors relative overflow-hidden",
+        !player.isAlive ? "bg-slate-800 border-slate-700 opacity-50" : (player.avatarConfig as any)?.bg || "bg-white/5 border-primary/20 shadow-lg shadow-primary/5"
       )}>
         {player.isAlive ? (
-          player.avatar || player.name.charAt(0).toUpperCase()
+          <>
+            <span className="relative z-10">{player.avatar || player.name.charAt(0).toUpperCase()}</span>
+            {(player.avatarConfig as any)?.clothing && (player.avatarConfig as any).clothing !== "None" && (
+              <span className="absolute bottom-0 text-xl z-20 opacity-80">{(player.avatarConfig as any).clothing}</span>
+            )}
+            {(player.avatarConfig as any)?.accessory && (player.avatarConfig as any).accessory !== "None" && (
+              <span className="absolute top-2 text-xl z-20">{(player.avatarConfig as any).accessory}</span>
+            )}
+          </>
         ) : (
           <Ghost className="w-10 h-10 text-slate-500" />
         )}

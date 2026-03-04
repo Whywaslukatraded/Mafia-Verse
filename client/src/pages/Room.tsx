@@ -24,6 +24,14 @@ export default function Room() {
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showRoleReveal, setShowRoleReveal] = useState(false);
+  const [hasRevealed, setHasRevealed] = useState(false);
+
+  const me = gameState?.me;
+  const room = gameState?.room;
+  const players = gameState?.players || [];
+  const isHost = me?.isHost;
+  const isSpectator = me?.isSpectator;
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -57,23 +65,16 @@ export default function Room() {
     );
   }
 
-  const { room, players, me } = gameState;
-  const isHost = me?.isHost;
-  const isSpectator = me?.isSpectator;
-
-  const [showRoleReveal, setShowRoleReveal] = useState(false);
-  const [hasRevealed, setHasRevealed] = useState(false);
-
   useEffect(() => {
-    if (room.status === 'night' && room.turn === 1 && !hasRevealed && me?.role) {
+    if (room && room.status === 'night' && room.turn === 1 && !hasRevealed && me?.role) {
       setShowRoleReveal(true);
       setHasRevealed(true);
       setTimeout(() => setShowRoleReveal(false), 4000);
     }
-  }, [room.status, room.turn, me?.role]);
+  }, [room?.status, room?.turn, me?.role, hasRevealed]);
 
   const getInteraction = (targetId: number) => {
-    if (!me || !me.isAlive || me.id === targetId || isSpectator) return null;
+    if (!me || !room || !me.isAlive || me.id === targetId || isSpectator) return null;
 
     if (room.status === "day" && room.phase === "voting") {
       const isVoted = (me as any).currentAction?.vote === targetId;

@@ -350,12 +350,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         roomId: room.id,
         name: input.name,
         avatar: input.avatar,
+        avatarConfig: (input as any).avatarConfig || {},
         role: null,
         isAlive: true,
         isHost: true,
         sessionId,
         isSpectator: false,
-        isBot: false
+        isBot: false,
+        wins: 0,
+        gamesPlayed: 0,
+        gameHistory: []
       });
 
       res.status(201).json({ code: room.code, playerId: player.id, sessionId });
@@ -387,12 +391,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         roomId: room.id,
         name: input.name,
         avatar: input.avatar,
+        avatarConfig: (input as any).avatarConfig || {},
         role: null,
         isAlive: !isSpectator,
         isHost: players.length === 0,
         sessionId,
         isSpectator,
-        isBot: false
+        isBot: false,
+        wins: 0,
+        gamesPlayed: 0,
+        gameHistory: []
       });
 
       res.json({ code: room.code, playerId: player.id, sessionId });
