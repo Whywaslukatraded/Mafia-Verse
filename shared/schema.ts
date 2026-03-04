@@ -28,6 +28,11 @@ export const players = pgTable("players", {
   roomId: integer("room_id").notNull(), // Foreign key handled in app logic for simplicity or can be strict
   name: text("name").notNull(),
   avatar: text("avatar"),
+  avatarConfig: jsonb("avatar_config").$type<{
+    accessory?: string;
+    clothing?: string;
+    bg?: string;
+  }>(),
   role: text("role"), // mafia, detective, doctor, civilian (null in lobby)
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
@@ -95,6 +100,11 @@ export type JoinRoomRequest = {
   code: string;
   name: string;
   avatar: string;
+  avatarConfig?: {
+    accessory?: string;
+    clothing?: string;
+    bg?: string;
+  };
 };
 
 export type GameAction = 
@@ -106,7 +116,7 @@ export type GameAction =
   | { type: 'add_bots' }
   | { type: 'remove_bot'; playerId: number }
   | { type: 'replay' }
-  | { type: 'update_profile'; name?: string; avatar?: string }
+  | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any }
   | { type: 'chat'; content: string };
 
 // WebSocket Message Types

@@ -17,6 +17,10 @@ const AVATARS = [
   "🦾", "🧠", "🧬", "🕸️", "♟️", "🎲", "🥨", "🍺", "🍷", "🥃", "🍕", "🍔"
 ];
 
+const ACCESSORIES = ["None", "🕶️", "👑", "🎓", "🎀", "🎩", "🎧", "🎭"];
+const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🧥", "🧣"];
+const BGS = ["bg-primary/10", "bg-red-500/10", "bg-blue-500/10", "bg-emerald-500/10", "bg-amber-500/10", "bg-purple-500/10"];
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -24,10 +28,15 @@ export default function Home() {
   const joinRoom = useJoinRoom();
 
   const [activeTab, setActiveTab] = useState("join");
+  const [joinCode, setJoinCode] = useState("");
   
   // Persistent Profile
   const [name, setName] = useState(() => localStorage.getItem("mafia_profile_name") || "");
   const [avatar, setAvatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
+  const [config, setConfig] = useState(() => {
+    const saved = localStorage.getItem("mafia_profile_config");
+    return saved ? JSON.parse(saved) : { accessory: "None", clothing: "None", bg: BGS[0] };
+  });
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem("mafia_stats");
     return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0 };
@@ -36,20 +45,8 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("mafia_profile_name", name);
     localStorage.setItem("mafia_profile_avatar", avatar);
-  }, [name, avatar]);
-
-  // Listen for storage updates (from room page after game ends)
-  useEffect(() => {
-    const checkStats = () => {
-      const saved = localStorage.getItem("mafia_stats");
-      if (saved) setStats(JSON.parse(saved));
-    };
-    window.addEventListener('storage', checkStats);
-    return () => window.removeEventListener('storage', checkStats);
-  }, []);
-
-  // Join State
-  const [joinCode, setJoinCode] = useState("");
+    localStorage.setItem("mafia_profile_config", JSON.stringify(config));
+  }, [name, avatar, config]);
 
   // Create State
   const [counts, setCounts] = useState({
@@ -63,12 +60,21 @@ export default function Home() {
     detectiveDuration: 15,
   });
 
+  const adjustCount = (role: keyof typeof counts, delta: number) => {
+    setCounts(prev => ({
+      ...prev,
+      [role]: Math.max(0, prev[role] + delta)
+    }));
+  };
+
+  const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian;
+
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !joinCode) return;
     
     try {
-      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode });
+      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config } as any);
       // Store session info
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
@@ -91,6 +97,7 @@ export default function Home() {
       const res = await createRoom.mutateAsync({ 
         name, 
         avatar,
+        avatarConfig: config,
         settings: {
           mafiaCount: counts.mafia,
           detectiveCount: counts.detective,
@@ -101,7 +108,7 @@ export default function Home() {
           doctorDuration: counts.doctorDuration,
           detectiveDuration: counts.detectiveDuration,
         }
-      });
+      } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
@@ -113,15 +120,6 @@ export default function Home() {
       });
     }
   };
-
-  const adjustCount = (role: keyof typeof counts, delta: number) => {
-    setCounts(prev => ({
-      ...prev,
-      [role]: Math.max(0, prev[role] + delta)
-    }));
-  };
-
-  const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -151,12 +149,76 @@ export default function Home() {
         <div className="space-y-6 mb-8">
           <Card className="glass-card border-none bg-black/40 backdrop-blur-xl ring-1 ring-white/10 p-6">
             <div className="flex flex-col items-center gap-6">
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center text-5xl shadow-2xl shadow-primary/10">
-                  {avatar}
+              <div className="flex items-start gap-8 w-full">
+                <div className="relative group flex-shrink-0">
+                  <div className={cn(
+                    "w-32 h-32 rounded-full border-2 border-primary/20 flex items-center justify-center text-6xl shadow-2xl shadow-primary/10 relative overflow-hidden",
+                    config.bg
+                  )}>
+                    <span className="relative z-10">{avatar}</span>
+                    {config.clothing !== "None" && (
+                      <span className="absolute bottom-0 text-3xl z-20 opacity-80">{config.clothing}</span>
+                    )}
+                    {config.accessory !== "None" && (
+                      <span className="absolute top-4 text-3xl z-20">{config.accessory}</span>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-slate-900 border border-white/10 p-1.5 rounded-full shadow-lg">
+                    <Smile className="w-4 h-4 text-primary" />
+                  </div>
                 </div>
-                <div className="absolute -bottom-2 -right-2 bg-slate-900 border border-white/10 p-1.5 rounded-full shadow-lg">
-                  <Smile className="w-4 h-4 text-primary" />
+
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Accessory</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {ACCESSORIES.map(a => (
+                        <button
+                          key={a}
+                          onClick={() => setConfig({ ...config, accessory: a })}
+                          className={cn(
+                            "w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
+                            config.accessory === a ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 hover:bg-white/10"
+                          )}
+                        >
+                          {a === "None" ? "Ø" : a}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Clothing</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {CLOTHING.map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setConfig({ ...config, clothing: c })}
+                          className={cn(
+                            "w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
+                            config.clothing === c ? "bg-primary border-primary text-white" : "bg-white/5 border-white/10 hover:bg-white/10"
+                          )}
+                        >
+                          {c === "None" ? "Ø" : c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Background</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {BGS.map(bg => (
+                        <button
+                          key={bg}
+                          onClick={() => setConfig({ ...config, bg })}
+                          className={cn(
+                            "w-8 h-8 rounded-full border transition-all",
+                            bg,
+                            config.bg === bg ? "ring-2 ring-primary ring-offset-2 ring-offset-black" : "border-white/10"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
               
