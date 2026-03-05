@@ -71,11 +71,11 @@ export function PlayerCard({
         {player.isAlive ? (
           <>
             <span className="relative z-10">{player.avatar || player.name.charAt(0).toUpperCase()}</span>
-            {(player.avatarConfig as any)?.clothing && (player.avatarConfig as any).clothing !== "None" && (
-              <span className="absolute bottom-0 text-xl z-20 opacity-80">{(player.avatarConfig as any).clothing}</span>
-            )}
             {(player.avatarConfig as any)?.accessory && (player.avatarConfig as any).accessory !== "None" && (
-              <span className="absolute top-2 text-xl z-20">{(player.avatarConfig as any).accessory}</span>
+              <span className="absolute top-2 text-xl z-30">{(player.avatarConfig as any).accessory}</span>
+            )}
+            {(player.avatarConfig as any)?.clothing && (player.avatarConfig as any).clothing !== "None" && (
+              <span className="absolute bottom-2 text-xl z-20 opacity-90">{(player.avatarConfig as any).clothing}</span>
             )}
           </>
         ) : (

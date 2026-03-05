@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
   "🤡", "🤫", "☠️", "🪦", "🔍", "💊", "🌙", "☀️", "🧥", "🎩", "💼", "🧨",
-  "🦾", "🧠", "🧬", "🕸️", "♟️", "🎲", "🥨", "🍺", "🍷", "🥃", "🍕", "🍔"
+  "🦾", "🧠", "🧬", "🕸️", "♟️", "🎲", "🥨", "🍺", "🍷", "🥃", "🍕", "🍔",
+  "🥷", "🧙", "🧛", "🧞", "🧜", "🧚"
 ];
 
 const ACCESSORIES = ["None", "🕶️", "👑", "🎓", "🎀", "🎩", "🎧", "🎭"];
@@ -28,7 +29,9 @@ const ACHIEVEMENTS = [
   { id: 'truth_seeker', name: 'Eagle Eye', description: 'Find 3 Mafia as Detective', icon: '🔍' },
   { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
   { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
-  { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' }
+  { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
+  { id: 'fashionista', name: 'Fashionista', description: 'Change your outfit 10 times', icon: '💅' },
+  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
 ];
 
 export default function Home() {
@@ -56,6 +59,19 @@ export default function Home() {
     localStorage.setItem("mafia_profile_name", name);
     localStorage.setItem("mafia_profile_avatar", avatar);
     localStorage.setItem("mafia_profile_config", JSON.stringify(config));
+    
+    // Track fashionista achievement
+    const fashionCount = parseInt(localStorage.getItem("mafia_fashion_count") || "0");
+    localStorage.setItem("mafia_fashion_count", (fashionCount + 1).toString());
+    if (fashionCount + 1 >= 10) {
+      const currentStats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+      const achievements = new Set(currentStats.achievements || []);
+      if (!achievements.has('fashionista')) {
+        achievements.add('fashionista');
+        localStorage.setItem("mafia_stats", JSON.stringify({ ...currentStats, achievements: Array.from(achievements) }));
+        window.dispatchEvent(new Event('storage'));
+      }
+    }
   }, [name, avatar, config]);
 
   // Create State
@@ -166,11 +182,11 @@ export default function Home() {
                     config.bg
                   )}>
                     <span className="relative z-10">{avatar}</span>
-                    {config.clothing !== "None" && (
-                      <span className="absolute bottom-0 text-3xl z-20 opacity-80">{config.clothing}</span>
-                    )}
                     {config.accessory !== "None" && (
-                      <span className="absolute top-4 text-3xl z-20">{config.accessory}</span>
+                      <span className="absolute top-4 text-3xl z-30">{config.accessory}</span>
+                    )}
+                    {config.clothing !== "None" && (
+                      <span className="absolute bottom-4 text-3xl z-20 opacity-90">{config.clothing}</span>
                     )}
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-slate-900 border border-white/10 p-1.5 rounded-full shadow-lg">
