@@ -49,7 +49,8 @@ export default function Room() {
     if (gameState?.room.status === 'ended' && me) {
       const stats = {
         wins: me.wins || 0,
-        gamesPlayed: me.gamesPlayed || 0
+        gamesPlayed: me.gamesPlayed || 0,
+        achievements: (me as any).achievements || []
       };
       localStorage.setItem("mafia_stats", JSON.stringify(stats));
       // Dispatch storage event for other tabs
