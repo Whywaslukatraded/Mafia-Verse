@@ -41,6 +41,7 @@ export const players = pgTable("players", {
   isBot: boolean("is_bot").default(false),
   wins: integer("wins").default(0),
   gamesPlayed: integer("games_played").default(0),
+  achievements: jsonb("achievements").default([]),
   gameHistory: jsonb("game_history").default([]),
   joinedAt: timestamp("joined_at").defaultNow(),
 });

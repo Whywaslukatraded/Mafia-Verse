@@ -21,6 +21,16 @@ const ACCESSORIES = ["None", "🕶️", "👑", "🎓", "🎀", "🎩", "🎧", 
 const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🧥", "🧣"];
 const BGS = ["bg-primary/10", "bg-red-500/10", "bg-blue-500/10", "bg-emerald-500/10", "bg-amber-500/10", "bg-purple-500/10"];
 
+const ACHIEVEMENTS = [
+  { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: '🩸' },
+  { id: 'mafia_master', name: 'Don of the City', description: 'Win 5 games as Mafia', icon: '🍷' },
+  { id: 'savior', name: 'Life Saver', description: 'Save 3 players as Doctor', icon: '💉' },
+  { id: 'truth_seeker', name: 'Eagle Eye', description: 'Find 3 Mafia as Detective', icon: '🔍' },
+  { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
+  { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
+  { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' }
+];
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -39,7 +49,7 @@ export default function Home() {
   });
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem("mafia_stats");
-    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0 };
+    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [] };
   });
 
   useEffect(() => {
@@ -264,6 +274,29 @@ export default function Home() {
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Games</span>
                   </div>
                 </div>
+
+                {stats.achievements?.length > 0 && (
+                  <div className="w-full space-y-2">
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Achievements</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {stats.achievements.map((id: string) => {
+                        const ach = ACHIEVEMENTS.find(a => a.id === id);
+                        if (!ach) return null;
+                        return (
+                          <div key={id} className="group relative">
+                            <div className="w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-xl cursor-help hover:scale-110 transition-transform">
+                              {ach.icon}
+                            </div>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-black/90 border border-white/10 rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                              <p className="font-bold text-yellow-500 uppercase">{ach.name}</p>
+                              <p className="text-white/60">{ach.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </Card>

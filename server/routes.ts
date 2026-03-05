@@ -526,11 +526,41 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
 
              for (const p of players) {
-               const updates: any = { role: null, isAlive: true, isSpectator: false, gamesPlayed: (p.gamesPlayed || 0) + 1 };
-               if (p.role && winners.includes(p.role)) {
-                 updates.wins = (p.wins || 0) + 1;
+               const isWinner = p.role && winners.includes(p.role);
+               const newWins = (p.wins || 0) + (isWinner ? 1 : 0);
+               const newGamesPlayed = (p.gamesPlayed || 0) + 1;
+               
+               // Check achievements
+               const currentAchievements = (p.achievements as string[]) || [];
+               const earnedAchievements = new Set(currentAchievements);
+               
+               if (isWinner && !earnedAchievements.has('first_win')) {
+                 earnedAchievements.add('first_win');
                }
-               await storage.updatePlayer(p.id, updates);
+               
+               if (isWinner && p.role === 'mafia' && newWins >= 5) {
+                 earnedAchievements.add('mafia_master');
+               }
+               
+               // Final Stand: Winner and last civilian alive (or only winner alive)
+               const alivePlayers = players.filter(pl => pl.isAlive);
+               if (isWinner && p.role !== 'mafia' && alivePlayers.length === 1 && alivePlayers[0].id === p.id) {
+                 earnedAchievements.add('survivor');
+               }
+
+               // Quick Thinker: Win with short durations
+               if (isWinner && ((room.settings as any).phaseDuration <= 15)) {
+                 earnedAchievements.add('quick_thinker');
+               }
+
+               await storage.updatePlayer(p.id, { 
+                 role: null, 
+                 isAlive: true, 
+                 isSpectator: false, 
+                 gamesPlayed: newGamesPlayed,
+                 wins: newWins,
+                 achievements: Array.from(earnedAchievements)
+               });
              }
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
              broadcastState(myRoomId);

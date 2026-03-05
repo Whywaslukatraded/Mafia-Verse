@@ -14,6 +14,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator }: ChatWindowProps) {
     const [input, setInput] = useState("");
+    const [messageCount, setMessageCount] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const filteredMessages = messages.filter(msg => {
@@ -34,6 +35,20 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         if (input.trim()) {
             onSendMessage(input);
             setInput("");
+            
+            if (isSpectator) {
+                const newCount = messageCount + 1;
+                setMessageCount(newCount);
+                if (newCount === 50) {
+                    const stats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+                    const achievements = new Set(stats.achievements || []);
+                    if (!achievements.has('ghost_whisperer')) {
+                        achievements.add('ghost_whisperer');
+                        localStorage.setItem("mafia_stats", JSON.stringify({ ...stats, achievements: Array.from(achievements) }));
+                        window.dispatchEvent(new Event('storage'));
+                    }
+                }
+            }
         }
     };
 
