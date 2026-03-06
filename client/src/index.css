@@ -36,6 +36,13 @@
 
   --radius: 0.75rem;
 
+  /* Phase Backgrounds */
+  --bg-day: 210 100% 98%;
+  --bg-night: 240 10% 4%;
+  --bg-mafia: 0 50% 10%;
+  --bg-doctor: 142 50% 10%;
+  --bg-detective: 200 50% 10%;
+
   /* Custom Role Colors */
   --mafia: 0 84% 60%;
   --detective: 200 90% 60%;

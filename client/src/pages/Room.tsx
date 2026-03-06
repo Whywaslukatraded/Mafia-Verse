@@ -33,6 +33,22 @@ export default function Room() {
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
 
+  // Background style based on phase
+  const getBackgroundStyle = () => {
+    if (!room) return "";
+    if (room.status === "lobby") return "bg-slate-950";
+    if (room.status === "ended") return "bg-slate-950";
+    
+    if (room.status === "night") {
+      if (room.phase === "mafia") return "bg-[hsl(var(--bg-mafia))] transition-colors duration-1000";
+      if (room.phase === "doctor") return "bg-[hsl(var(--bg-doctor))] transition-colors duration-1000";
+      if (room.phase === "detective") return "bg-[hsl(var(--bg-detective))] transition-colors duration-1000";
+      return "bg-[hsl(var(--bg-night))] transition-colors duration-1000";
+    }
+    
+    return "bg-slate-900 transition-colors duration-1000";
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     toast({ title: "Link copied!", description: "Send it to your friends." });
@@ -115,7 +131,32 @@ export default function Room() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className={cn("min-h-screen pb-20 relative overflow-hidden transition-colors duration-1000", getBackgroundStyle())}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div 
+          animate={{ 
+            opacity: room?.status === 'night' ? 0.3 : 0.1,
+            scale: room?.status === 'night' ? 1.2 : 1 
+          }}
+          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/20 rounded-full blur-[120px]" 
+        />
+        <motion.div 
+          animate={{ 
+            opacity: room?.status === 'night' ? 0.3 : 0.1,
+            scale: room?.status === 'night' ? 1.2 : 1 
+          }}
+          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/20 rounded-full blur-[120px]" 
+        />
+        {room?.status === 'night' && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.05 }}
+            className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"
+          />
+        )}
+      </div>
+
       <AnimatePresence>
         {showRoleReveal && (
           <motion.div
