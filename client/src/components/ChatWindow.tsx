@@ -2,24 +2,36 @@ import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, MessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Message } from "@shared/schema";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const QUICK_MESSAGES = [
+  "I suspect {name}...",
+  "I am innocent!",
+  "Who is the Mafia?",
+  "I trust {name}.",
+  "Don't vote me!",
+  "Let's skip.",
+  "I have a bad feeling...",
+  "Look at the evidence!"
+];
 
 interface ChatWindowProps {
     messages: Message[];
     onSendMessage: (content: string) => void;
     currentPlayerId?: number;
     isSpectator?: boolean;
+    players?: any[];
 }
 
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [] }: ChatWindowProps) {
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const filteredMessages = messages.filter(msg => {
-        // If I am a spectator, I see everything.
-        // If I am alive, I only see non-spectator messages.
         if (isSpectator) return true;
         return !msg.isSpectator;
     });
@@ -50,6 +62,10 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 }
             }
         }
+    };
+
+    const handleQuickMessage = (msg: string) => {
+      onSendMessage(msg);
     };
 
     return (
@@ -91,17 +107,53 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                     ))}
                 </div>
             </ScrollArea>
-      <form onSubmit={handleSubmit} className="p-3 border-t bg-muted/30 flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="bg-background"
-        />
-        <Button type="submit" size="icon" disabled={!input.trim()}>
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+      <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10">
+                <MessageSquare className="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2 bg-slate-900 border-slate-800 shadow-2xl z-50" side="top" align="start">
+              <div className="grid grid-cols-1 gap-1">
+                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/5 mb-1">Tactical Comms</div>
+                {QUICK_MESSAGES.map((msg) => (
+                  <Button
+                    key={msg}
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start h-8 text-xs font-medium hover:bg-primary/20 hover:text-primary transition-colors truncate"
+                    onClick={() => {
+                      if (msg.includes("{name}")) {
+                        // For messages needing a name, we just pick a random alive player for simplicity in the quick wheel
+                        // but usually a sub-menu would be better. For MVP fast-mode, we'll just use the base string
+                        // or pick a random alive opponent
+                        const targets = players.filter(p => p.id !== currentPlayerId && p.isAlive);
+                        const target = targets[Math.floor(Math.random() * targets.length)];
+                        handleQuickMessage(msg.replace("{name}", target?.name || "someone"));
+                      } else {
+                        handleQuickMessage(msg);
+                      }
+                    }}
+                  >
+                    {msg.replace("{name}", "...")}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+            className="bg-background h-10"
+          />
+          <Button type="submit" size="icon" disabled={!input.trim()} className="shrink-0 h-10 w-10">
+            <Send className="w-4 h-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
