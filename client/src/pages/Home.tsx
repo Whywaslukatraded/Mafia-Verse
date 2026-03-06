@@ -291,6 +291,12 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div className="pt-2 flex justify-center">
+                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
+                    System Core: 2,900+ Source Lines
+                  </span>
+                </div>
+
                 {stats.achievements?.length > 0 && (
                   <div className="w-full space-y-2">
                     <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Achievements</Label>
