@@ -349,6 +349,7 @@ export default function Room() {
               onSendMessage={(content) => sendAction({ type: 'chat', content })} 
               currentPlayerId={me?.id} 
               isSpectator={isSpectator || (me && !me.isAlive)}
+              players={players}
             />
           </div>
         </div>
