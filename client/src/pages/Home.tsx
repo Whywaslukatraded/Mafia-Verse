@@ -74,6 +74,8 @@ export default function Home() {
     }
   }, [name, avatar, config]);
 
+  const [roomName, setRoomName] = useState("");
+
   // Create State
   const [counts, setCounts] = useState({
     mafia: 2,
@@ -133,6 +135,7 @@ export default function Home() {
           mafiaDuration: counts.mafiaDuration,
           doctorDuration: counts.doctorDuration,
           detectiveDuration: counts.detectiveDuration,
+          roomName: roomName.trim() || undefined,
         }
       } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
@@ -365,6 +368,16 @@ export default function Home() {
           <TabsContent value="create">
             <Card className="glass-card border-none bg-black/40 backdrop-blur-xl ring-1 ring-white/10">
               <CardContent className="pt-6 space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Room Name (optional)</Label>
+                  <Input
+                    placeholder="e.g. The Godfather's Table"
+                    value={roomName}
+                    onChange={e => setRoomName(e.target.value)}
+                    className="bg-white/5 border-white/10 h-11 focus:ring-primary/50"
+                    maxLength={32}
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-3">
                   {[
                     { key: 'mafia', label: 'Mafias', icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
