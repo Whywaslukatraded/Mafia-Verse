@@ -19,6 +19,7 @@ export const rooms = pgTable("rooms", {
     mafiaDuration: number;
     doctorDuration: number;
     detectiveDuration: number;
+    roomName?: string;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });

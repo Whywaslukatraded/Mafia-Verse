@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Skull, TrendingUp } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ export default function Profile() {
   });
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem("mafia_stats");
-    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [] };
+    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0 };
   });
 
   useEffect(() => {
@@ -108,6 +108,34 @@ export default function Profile() {
               </div>
             ))}
           </div>
+
+          {/* Feature 8: Streaks */}
+          {((stats.currentStreak || 0) > 0 || (stats.bestStreak || 0) > 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className={cn(
+                "bg-black/40 ring-1 rounded-xl p-4 flex items-center gap-3",
+                (stats.currentStreak || 0) >= 3 ? "ring-orange-500/40 bg-orange-950/20" : "ring-white/10"
+              )}>
+                <motion.div
+                  animate={stats.currentStreak >= 3 ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                  <Flame className={cn("w-6 h-6", (stats.currentStreak || 0) >= 3 ? "text-orange-400" : "text-muted-foreground")} />
+                </motion.div>
+                <div>
+                  <p className="text-2xl font-black font-mono">{stats.currentStreak || 0}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Current Streak</p>
+                </div>
+              </div>
+              <div className="bg-black/40 ring-1 ring-white/10 rounded-xl p-4 flex items-center gap-3">
+                <Flame className="w-6 h-6 text-yellow-500" />
+                <div>
+                  <p className="text-2xl font-black font-mono">{stats.bestStreak || 0}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Best Streak</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Achievements */}
           <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 space-y-4">
