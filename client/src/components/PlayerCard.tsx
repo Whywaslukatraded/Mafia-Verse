@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Skull, Crown, Ghost, X } from "lucide-react";
+import { Heart, Skull, Crown, Ghost, X, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Player } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,43 @@ interface PlayerCardProps {
   interactionVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   onInteract?: () => void;
   onRemove?: () => void;
-  revealedRole?: string | null; // For detective check or game end
+  revealedRole?: string | null;
 }
+
+const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string; icon: any; iconColor: string; label: string }> = {
+  mafia: {
+    border: "border-red-500/60",
+    glow: "shadow-[0_0_20px_rgba(239,68,68,0.25)]",
+    bg: "bg-red-950/30",
+    icon: Skull,
+    iconColor: "text-red-400",
+    label: "MAFIA"
+  },
+  detective: {
+    border: "border-blue-500/60",
+    glow: "shadow-[0_0_20px_rgba(59,130,246,0.25)]",
+    bg: "bg-blue-950/30",
+    icon: Shield,
+    iconColor: "text-blue-400",
+    label: "DETECTIVE"
+  },
+  doctor: {
+    border: "border-emerald-500/60",
+    glow: "shadow-[0_0_20px_rgba(16,185,129,0.25)]",
+    bg: "bg-emerald-950/30",
+    icon: Heart,
+    iconColor: "text-emerald-400",
+    label: "DOCTOR"
+  },
+  civilian: {
+    border: "border-white/20",
+    glow: "",
+    bg: "bg-card/50",
+    icon: null,
+    iconColor: "text-white/40",
+    label: "CIVILIAN"
+  },
+};
 
 export function PlayerCard({ 
   player, 
@@ -25,18 +60,20 @@ export function PlayerCard({
   onRemove,
   revealedRole 
 }: PlayerCardProps) {
-  
+  // Determine which role cosmetic to apply
+  const knownRole = revealedRole?.toLowerCase() || (isMe ? player.role?.toLowerCase() : null);
+  const cosmetic = knownRole && ROLE_COSMETICS[knownRole] ? ROLE_COSMETICS[knownRole] : null;
+  const RoleIcon = cosmetic?.icon;
+
   return (
     <motion.div
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
       className={cn(
         "relative w-full aspect-[3/4] rounded-xl overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-4 group",
-        // Dead state
         !player.isAlive && "bg-slate-900/50 border-slate-800 grayscale opacity-70",
-        // Alive state
-        player.isAlive && "bg-card/50 backdrop-blur-sm border-white/10 shadow-lg",
-        // Me state
-        isMe && "border-primary/50 ring-1 ring-primary/20"
+        player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-white/10 shadow-lg",
+        player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,
+        isMe && !cosmetic && "border-primary/50 ring-1 ring-primary/20"
       )}
     >
       {/* Remove Bot Button */}
@@ -59,6 +96,11 @@ export function PlayerCard({
         {player.isHost && (
           <div className="p-1 bg-yellow-500/20 rounded-full text-yellow-500" title="Host">
             <Crown className="w-4 h-4" />
+          </div>
+        )}
+        {RoleIcon && player.isAlive && (
+          <div className={cn("p-1 rounded-full bg-black/40", cosmetic?.iconColor)} title={cosmetic?.label}>
+            <RoleIcon className="w-4 h-4" />
           </div>
         )}
       </div>

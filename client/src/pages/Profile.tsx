@@ -1,0 +1,152 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { ArrowLeft, Trophy, Target, Skull, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const ACHIEVEMENTS = [
+  { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: '🩸' },
+  { id: 'mafia_master', name: 'Don of the City', description: 'Win 5 games as Mafia', icon: '🍷' },
+  { id: 'savior', name: 'Life Saver', description: 'Save 3 players as Doctor', icon: '💉' },
+  { id: 'truth_seeker', name: 'Eagle Eye', description: 'Find 3 Mafia as Detective', icon: '🔍' },
+  { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
+  { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
+  { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
+  { id: 'fashionista', name: 'Fashionista', description: 'Change your outfit 10 times', icon: '💅' },
+  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
+];
+
+export default function Profile() {
+  const [, setLocation] = useLocation();
+
+  const [name] = useState(() => localStorage.getItem("mafia_profile_name") || "Unknown Agent");
+  const [avatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || "👤");
+  const [config] = useState(() => {
+    const saved = localStorage.getItem("mafia_profile_config");
+    return saved ? JSON.parse(saved) : { accessory: "None", clothing: "None", bg: "bg-primary/10" };
+  });
+  const [stats, setStats] = useState(() => {
+    const saved = localStorage.getItem("mafia_stats");
+    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [] };
+  });
+
+  useEffect(() => {
+    const onStorage = () => {
+      const saved = localStorage.getItem("mafia_stats");
+      if (saved) setStats(JSON.parse(saved));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const losses = Math.max(0, (stats.gamesPlayed || 0) - (stats.wins || 0));
+  const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
+  const earnedAchievements = new Set(stats.achievements || []);
+
+  return (
+    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 max-w-lg mx-auto px-4 py-8">
+        <div className="flex items-center gap-3 mb-8">
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Agent Profile</h1>
+        </div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {/* Avatar Card */}
+          <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 flex items-center gap-6">
+            <div className={cn(
+              "w-28 h-28 rounded-full border-2 border-primary/20 flex items-center justify-center text-5xl shadow-2xl shadow-primary/10 relative overflow-hidden flex-shrink-0",
+              config.bg
+            )}>
+              <span className="relative z-10">{avatar}</span>
+              {config.accessory !== "None" && (
+                <span className="absolute top-3 text-2xl z-30">{config.accessory}</span>
+              )}
+              {config.clothing !== "None" && (
+                <span className="absolute bottom-3 text-2xl z-20 opacity-90">{config.clothing}</span>
+              )}
+            </div>
+            <div>
+              <h2 className="text-3xl font-black tracking-tight text-white">{name}</h2>
+              <p className="text-muted-foreground text-sm font-mono uppercase tracking-widest mt-1">
+                {earnedAchievements.size}/{ACHIEVEMENTS.length} Badges
+              </p>
+              <div className="flex gap-2 mt-3">
+                {winRate >= 60 && (
+                  <span className="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Elite</span>
+                )}
+                {stats.gamesPlayed >= 5 && (
+                  <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Veteran</span>
+                )}
+                {earnedAchievements.size >= 5 && (
+                  <span className="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Collector</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { icon: Trophy, label: "Wins", value: stats.wins || 0, color: "text-yellow-500" },
+              { icon: Skull, label: "Losses", value: losses, color: "text-red-500" },
+              { icon: Target, label: "Games", value: stats.gamesPlayed || 0, color: "text-blue-500" },
+              { icon: TrendingUp, label: "Win %", value: `${winRate}%`, color: "text-emerald-500" },
+            ].map(stat => (
+              <div key={stat.label} className="bg-black/40 ring-1 ring-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5">
+                <stat.icon className={cn("w-4 h-4", stat.color)} />
+                <span className="text-2xl font-black font-mono">{stat.value}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Achievements */}
+          <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Achievement Hall</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {ACHIEVEMENTS.map(ach => {
+                const earned = earnedAchievements.has(ach.id);
+                return (
+                  <motion.div
+                    key={ach.id}
+                    whileHover={{ scale: 1.05 }}
+                    className={cn(
+                      "relative rounded-xl p-3 flex flex-col items-center gap-2 border transition-all cursor-default group",
+                      earned
+                        ? "bg-yellow-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/5"
+                        : "bg-white/3 border-white/5 opacity-40 grayscale"
+                    )}
+                  >
+                    <span className="text-3xl">{ach.icon}</span>
+                    <div className="text-center">
+                      <p className={cn("text-[10px] font-black uppercase tracking-tight leading-tight", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 bg-black/95 border border-white/10 rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                      <p className={cn("font-bold uppercase mb-0.5", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
+                      <p className="text-white/60 leading-tight">{ach.description}</p>
+                      {!earned && <p className="text-white/30 mt-1 italic">Not yet unlocked</p>}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
+            Back to Home
+          </Button>
+        </motion.div>
+      </div>
+    </div>
+  );
+}

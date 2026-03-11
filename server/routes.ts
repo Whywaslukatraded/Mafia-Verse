@@ -630,5 +630,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
+  // Leaderboard endpoint
+  app.get("/api/leaderboard", async (_req, res) => {
+    try {
+      const entries = await storage.getLeaderboard();
+      res.json(entries);
+    } catch (e) {
+      console.error("Leaderboard error", e);
+      res.status(500).json({ error: "Failed to load leaderboard" });
+    }
+  });
+
   return httpServer;
 }

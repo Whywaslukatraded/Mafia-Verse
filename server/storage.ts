@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { rooms, players, messages, type Room, type Player, type CreateRoomRequest, type Message } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
 export interface IStorage {
@@ -16,6 +16,8 @@ export interface IStorage {
   
   createMessage(message: Omit<Message, "id" | "timestamp">): Promise<Message>;
   getMessagesByRoom(roomId: number): Promise<Message[]>;
+  
+  getLeaderboard(): Promise<{ name: string; avatar: string | null; avatarConfig: any; wins: number; gamesPlayed: number; winRate: number }[]>;
   
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
@@ -78,6 +80,31 @@ export class DatabaseStorage implements IStorage {
 
   async getMessagesByRoom(roomId: number): Promise<Message[]> {
     return await db.select().from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.timestamp);
+  }
+
+  async getLeaderboard() {
+    const result = await db
+      .select({
+        name: players.name,
+        avatar: players.avatar,
+        avatarConfig: players.avatarConfig,
+        wins: sql<number>`sum(${players.wins})`.as("total_wins"),
+        gamesPlayed: sql<number>`sum(${players.gamesPlayed})`.as("total_games"),
+      })
+      .from(players)
+      .where(sql`${players.isBot} = false`)
+      .groupBy(players.name, players.avatar, players.avatarConfig)
+      .orderBy(desc(sql`sum(${players.wins})`))
+      .limit(20);
+
+    return result.map(r => ({
+      name: r.name,
+      avatar: r.avatar,
+      avatarConfig: r.avatarConfig,
+      wins: Number(r.wins) || 0,
+      gamesPlayed: Number(r.gamesPlayed) || 0,
+      winRate: Number(r.gamesPlayed) > 0 ? Math.round((Number(r.wins) / Number(r.gamesPlayed)) * 100) : 0,
+    }));
   }
 
   async generateRoomCode(): Promise<string> {
