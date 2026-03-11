@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, BookOpen, Skull, Smile, Trophy, Target } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2 } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,11 @@ const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
   "🤡", "🤫", "☠️", "🪦", "🔍", "💊", "🌙", "☀️", "🧥", "🎩", "💼", "🧨",
   "🦾", "🧠", "🧬", "🕸️", "♟️", "🎲", "🥨", "🍺", "🍷", "🥃", "🍕", "🍔",
-  "🥷", "🧙", "🧛", "🧞", "🧜", "🧚"
+  "🥷", "🧙", "🧞", "🧜", "🧚", "🦇"
 ];
 
 const ACCESSORIES = ["None", "🕶️", "👑", "🎓", "🎀", "🎩", "🎧", "🎭"];
-const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🧥", "🧣"];
+const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🦺", "🧣"];
 const BGS = ["bg-primary/10", "bg-red-500/10", "bg-blue-500/10", "bg-emerald-500/10", "bg-amber-500/10", "bg-purple-500/10"];
 
 const ACHIEVEMENTS = [
@@ -279,16 +279,22 @@ export default function Home() {
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex gap-4 w-full">
-                  <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1">
+                  <button
+                    onClick={() => setLocation("/profile")}
+                    className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
                     <Trophy className="w-4 h-4 text-yellow-500" />
                     <span className="text-2xl font-black font-mono">{stats.wins}</span>
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
-                  </div>
-                  <div className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1">
-                    <Target className="w-4 h-4 text-blue-500" />
+                  </button>
+                  <button
+                    onClick={() => setLocation("/leaderboard")}
+                    className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    <BarChart2 className="w-4 h-4 text-blue-500" />
                     <span className="text-2xl font-black font-mono">{stats.gamesPlayed}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Games</span>
-                  </div>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Leaderboard</span>
+                  </button>
                 </div>
 
                 <div className="pt-2 flex justify-center">
