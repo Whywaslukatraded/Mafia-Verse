@@ -20,6 +20,8 @@ export const rooms = pgTable("rooms", {
     doctorDuration: number;
     detectiveDuration: number;
     roomName?: string;
+    showVoteResults?: boolean;
+    showRoleReveal?: boolean;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
