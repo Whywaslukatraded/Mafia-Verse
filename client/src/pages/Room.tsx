@@ -128,14 +128,14 @@ export default function Room() {
     }
   }, [gameState?.room.status, me]);
 
-  // Role reveal on first night
+  // Role reveal on first night (if enabled)
   useEffect(() => {
-    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role) {
+    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
       setShowRoleReveal(true);
       setHasRevealed(true);
       setTimeout(() => setShowRoleReveal(false), 4000);
     }
-  }, [room?.status, room?.turn, me?.role, hasRevealed]);
+  }, [room?.status, room?.turn, me?.role, hasRevealed, room?.settings]);
 
   // Reset night action state when phase changes
   useEffect(() => {
@@ -439,10 +439,15 @@ export default function Room() {
             {room.status === "ended" && (
               <Card className="bg-slate-900/50 border-slate-800 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl font-serif">
-                    <History className="w-5 h-5 text-primary" />
-                    Game Chronicle
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-xl font-serif">
+                      <History className="w-5 h-5 text-primary" />
+                      Game Chronicle
+                    </CardTitle>
+                    {(room.settings as any).showVoteResults !== false && (
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Vote Results visible</div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[300px] pr-4">
@@ -454,14 +459,18 @@ export default function Room() {
                           </h4>
                           <div className="space-y-2">
                             {entry.type === "vote" ? (
-                              entry.results.map((res: any, j: number) => (
-                                <div key={j} className="text-sm flex items-center gap-2">
-                                  <User className="w-3 h-3 text-blue-400" />
-                                  <span className="font-bold text-white/90">{res.voterName}</span>
-                                  <span className="text-muted-foreground italic">voted for</span>
-                                  <span className="font-bold text-red-400">{res.targetName}</span>
-                                </div>
-                              ))
+                              (room.settings as any).showVoteResults !== false ? (
+                                entry.results.map((res: any, j: number) => (
+                                  <div key={j} className="text-sm flex items-center gap-2">
+                                    <User className="w-3 h-3 text-blue-400" />
+                                    <span className="font-bold text-white/90">{res.voterName}</span>
+                                    <span className="text-muted-foreground italic">voted for</span>
+                                    <span className="font-bold text-red-400">{res.targetName}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-sm text-muted-foreground italic">Vote results hidden</div>
+                              )
                             ) : (
                               entry.events.map((ev: any, j: number) => (
                                 <div key={j} className="text-sm flex items-center gap-2">

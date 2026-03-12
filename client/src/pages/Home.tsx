@@ -75,6 +75,8 @@ export default function Home() {
   }, [name, avatar, config]);
 
   const [roomName, setRoomName] = useState("");
+  const [showVoteResults, setShowVoteResults] = useState(true);
+  const [showRoleReveal, setShowRoleReveal] = useState(true);
 
   // Create State
   const [counts, setCounts] = useState({
@@ -136,6 +138,8 @@ export default function Home() {
           doctorDuration: counts.doctorDuration,
           detectiveDuration: counts.detectiveDuration,
           roomName: roomName.trim() || undefined,
+          showVoteResults,
+          showRoleReveal,
         }
       } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
@@ -419,12 +423,35 @@ export default function Home() {
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-white/5 flex justify-between items-center px-2">
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">Total Players</span>
-                    <span className="text-xs text-muted-foreground/60 italic">Min 6 players required</span>
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                  <div className="flex justify-between items-center px-2">
+                    <div className="flex flex-col">
+                      <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">Total Players</span>
+                      <span className="text-xs text-muted-foreground/60 italic">Min 6 players required</span>
+                    </div>
+                    <span className="text-3xl font-black font-mono tracking-tighter">{totalPlayers}</span>
                   </div>
-                  <span className="text-3xl font-black font-mono tracking-tighter">{totalPlayers}</span>
+
+                  <div className="grid grid-cols-2 gap-2 px-2">
+                    <button
+                      onClick={() => setShowVoteResults(!showVoteResults)}
+                      className={cn(
+                        "text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                        showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                      )}
+                    >
+                      {showVoteResults ? "✓ Vote Results" : "Vote Results"}
+                    </button>
+                    <button
+                      onClick={() => setShowRoleReveal(!showRoleReveal)}
+                      className={cn(
+                        "text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                        showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                      )}
+                    >
+                      {showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
+                    </button>
+                  </div>
                 </div>
 
                 <Button 

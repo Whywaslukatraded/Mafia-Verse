@@ -179,11 +179,13 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         }
       });
 
-      if (voteResults.length > 0) {
+      if (voteResults.length > 0 && (room.settings as any).showVoteResults !== false) {
         let voteSummary = "Voting Results: ";
         voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
-        
+      }
+      
+      if (voteResults.length > 0) {
         const history = gameHistory.get(roomId) || [];
         history.push({ type: 'vote', turn: room.turn, results: voteResults });
         gameHistory.set(roomId, history);
@@ -516,6 +518,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (action.type === 'replay' && me.isHost) {
+             const currentRoom = await storage.getRoom(myRoomId);
+             if (currentRoom?.status !== 'ended') return; // Only allow replay from ended state
+             
              // Track wins for the winning team before resetting
              const survivors = players.filter(p => p.isAlive);
              const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
@@ -526,6 +531,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
 
              for (const p of players) {
+               if (p.isBot) continue; // Don't track bot stats
                const isWinner = p.role && winners.includes(p.role);
                const newWins = (p.wins || 0) + (isWinner ? 1 : 0);
                const newGamesPlayed = (p.gamesPlayed || 0) + 1;
@@ -559,16 +565,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  isSpectator: false, 
                  gamesPlayed: newGamesPlayed,
                  wins: newWins,
-                 achievements: Array.from(earnedAchievements)
+                 achievements: Array.from(earnedAchievements),
+                 gameHistory: []
                });
              }
+             gameActions.delete(myRoomId);
+             gameHistory.delete(myRoomId);
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
              broadcastState(myRoomId);
              return;
            }
 
            if (room.phase === 'voting' && action.type === 'vote') {
-             if (players.find(p => p.id === action.targetId)?.isAlive) {
+             if (me.isAlive && players.find(p => p.id === action.targetId)?.isAlive) {
                actions.votes.set(me.id, action.targetId);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
