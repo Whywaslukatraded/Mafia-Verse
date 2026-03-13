@@ -58,6 +58,8 @@ export default function Room() {
   const [lockedIn, setLockedIn] = useState(false);
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
+  const [phaseStartTime, setPhaseStartTime] = useState<number>(Date.now());
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
   const prevWinsRef = useRef<number | null>(null);
@@ -141,7 +143,33 @@ export default function Room() {
   useEffect(() => {
     setPendingNightAction(null);
     setLockedIn(false);
+    setPhaseStartTime(Date.now());
   }, [room?.phase, room?.status]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (!room || room.status === "lobby" || room.status === "ended") return;
+
+    const getDuration = () => {
+      const settings = room.settings as any;
+      if (room.status === "night") {
+        if (room.phase === "mafia") return settings.mafiaDuration || 30;
+        if (room.phase === "doctor") return settings.doctorDuration || 15;
+        if (room.phase === "detective") return settings.detectiveDuration || 20;
+        return settings.phaseDuration || 30;
+      }
+      return settings.phaseDuration || 30;
+    };
+
+    const duration = getDuration();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - phaseStartTime) / 1000);
+      const remaining = Math.max(0, duration - elapsed);
+      setTimeRemaining(remaining);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [room?.status, room?.phase, room?.settings, phaseStartTime]);
 
   // Feature 7: Detect eliminations
   useEffect(() => {
@@ -388,7 +416,7 @@ export default function Room() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} />
+        <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} timeRemaining={timeRemaining} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           <div className="lg:col-span-2 space-y-8">

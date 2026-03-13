@@ -68,3 +68,24 @@ The `shared/` directory contains code used by both frontend and backend:
 - `@tanstack/react-query`: Async state management
 - `framer-motion`: Animation library
 - `wouter`: Client-side routing
+
+## Recent Features Added
+
+### Phase Timer (v1)
+- **Location**: `PhaseIndicator.tsx` + `Room.tsx`
+- **Functionality**: 
+  - Real-time countdown shows seconds remaining in current phase
+  - Timer respects role-specific durations (Mafia vs Detective vs Doctor)
+  - Pulses and turns red when <= 5 seconds remaining
+  - Hides during lobby and game end screens
+  - Syncs with room phase/status changes
+- **UI**: Displays as animated badge next to phase label in phase header
+
+### Vote Results & Role Reveal Toggles (v1)
+- **Location**: `Home.tsx` create room form + `Room.tsx` game chronicle
+- **Functionality**:
+  - Room creator can toggle "Vote Results" visibility (on/off at game start)
+  - Room creator can toggle "Role Reveal" animation (on/off at game start)
+  - Vote results show detailed breakdown ("A voted for B") in game chronicle if enabled
+  - Role reveal animation plays on first night if enabled
+  - Settings persist in room.settings and are respected throughout game
