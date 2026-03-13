@@ -1,13 +1,15 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface PhaseIndicatorProps {
   status: string; // lobby, day, night, ended
   phase: string;  // discussion, voting, mafia, doctor, detective
   turn: number;
+  timeRemaining?: number; // seconds left
 }
 
-export function PhaseIndicator({ status, phase, turn }: PhaseIndicatorProps) {
+export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndicatorProps) {
   const isNight = status === "night";
   const isDay = status === "day";
   const isLobby = status === "lobby";
@@ -77,10 +79,35 @@ export function PhaseIndicator({ status, phase, turn }: PhaseIndicatorProps) {
           </p>
         </div>
         
-        {/* Phase Badge */}
+        {/* Phase Badge and Timer */}
         {!isLobby && !isEnded && (
-          <div className="ml-auto px-3 py-1 rounded-full bg-background/50 backdrop-blur border text-xs font-semibold uppercase tracking-wider">
-            {phase.replace('_', ' ')}
+          <div className="ml-auto flex items-center gap-3">
+            <div className="px-3 py-1 rounded-full bg-background/50 backdrop-blur border text-xs font-semibold uppercase tracking-wider">
+              {phase.replace('_', ' ')}
+            </div>
+            {timeRemaining !== undefined && timeRemaining > 0 && (
+              <motion.div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 backdrop-blur"
+                animate={{
+                  scale: timeRemaining <= 5 ? [1, 1.05, 1] : 1,
+                }}
+                transition={{
+                  duration: 0.6,
+                  repeat: timeRemaining <= 5 ? Infinity : 0,
+                }}
+              >
+                <Clock className={cn(
+                  "w-4 h-4 font-semibold",
+                  timeRemaining <= 5 ? "text-red-400" : "text-primary"
+                )} />
+                <span className={cn(
+                  "text-sm font-bold font-mono",
+                  timeRemaining <= 5 ? "text-red-400" : "text-primary"
+                )}>
+                  {timeRemaining}s
+                </span>
+              </motion.div>
+            )}
           </div>
         )}
       </div>
