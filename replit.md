@@ -89,3 +89,13 @@ The `shared/` directory contains code used by both frontend and backend:
   - Vote results show detailed breakdown ("A voted for B") in game chronicle if enabled
   - Role reveal animation plays on first night if enabled
   - Settings persist in room.settings and are respected throughout game
+
+### Emoji Reactions (v1)
+- **Location**: `ChatWindow.tsx`
+- **Functionality**:
+  - Hover over any chat message to reveal emoji picker
+  - 8 quick reactions: 😂 🤔 👀 😱 👍 ❤️ 🎉 🔥
+  - Click emoji to add/remove your reaction
+  - Reactions display below messages with counter (e.g., "😂 3")
+  - Click reaction pill to toggle own reaction
+  - Session-based (persist during active game)
