@@ -361,6 +361,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isBot: false,
         wins: 0,
         gamesPlayed: 0,
+        achievements: [],
         gameHistory: []
       });
 
@@ -402,6 +403,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isBot: false,
         wins: 0,
         gamesPlayed: 0,
+        achievements: [],
         gameHistory: []
       });
 
@@ -613,7 +615,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
-                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!` });
+                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`, isSpectator: false });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
                 }
              }
