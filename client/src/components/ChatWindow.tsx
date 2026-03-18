@@ -35,6 +35,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const [messageCount, setMessageCount] = useState(0);
     const [reactions, setReactions] = useState<Reactions>({});
     const scrollRef = useRef<HTMLDivElement>(null);
+    const lastSentRef = useRef<HTMLDivElement>(null);
 
     const filteredMessages = messages.filter(msg => {
         if (isSpectator) return true;
@@ -46,6 +47,23 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [filteredMessages]);
+
+    // Smooth scroll to last sent message
+    useEffect(() => {
+        if (lastSentRef.current) {
+            lastSentRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [filteredMessages.length]);
+
+    const getPlayerColor = (playerId: number) => {
+        const player = players.find(p => p.id === playerId);
+        if (!player) return "text-primary/80";
+        if (!player.isAlive) return "text-gray-500";
+        if (player.role === "mafia") return "text-red-400";
+        if (player.role === "detective") return "text-blue-400";
+        if (player.role === "doctor") return "text-green-400";
+        return "text-primary/80";
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -116,9 +134,10 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 <div className="space-y-4">
-                    {filteredMessages.map((msg) => (
+                    {filteredMessages.map((msg, idx) => (
                         <div
                             key={msg.id}
+                            ref={idx === filteredMessages.length - 1 && msg.playerId === currentPlayerId ? lastSentRef : null}
                             className={`flex flex-col group ${
                                 msg.playerId === currentPlayerId ? "items-end" : "items-start"
                             }`}
@@ -128,9 +147,22 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                             }`}>
                                 <span className={cn(
                                     "text-[10px] font-black uppercase tracking-tighter bg-white/5 px-1.5 py-0.5 rounded border border-white/5 group-hover:bg-white/10 transition-colors",
-                                    msg.isSpectator ? "text-blue-400 border-blue-400/20" : "text-primary/80"
+                                    msg.isSpectator ? "text-blue-400 border-blue-400/20" : getPlayerColor(msg.playerId)
                                 )}>
                                     {msg.playerName} {msg.isSpectator && "👻"}
+                                    {!msg.isSpectator && (
+                                        <span className="ml-1 text-[9px] opacity-60">
+                                            {(() => {
+                                                const p = players.find(pl => pl.id === msg.playerId);
+                                                if (!p) return "";
+                                                if (!p.isAlive) return "🪦";
+                                                if (p.role === "mafia") return "🍷";
+                                                if (p.role === "detective") return "🔍";
+                                                if (p.role === "doctor") return "💉";
+                                                return "🛡️";
+                                            })()}
+                                        </span>
+                                    )}
                                 </span>
                             </div>
                             <div className={`flex items-end gap-2 ${msg.playerId === currentPlayerId ? "flex-row-reverse" : "flex-row"}`}>
