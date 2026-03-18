@@ -117,6 +117,10 @@ export default function Room() {
         achievements: (me as any).achievements || [],
         currentStreak,
         bestStreak,
+        mafia_wins: (stats.mafia_wins || 0) + (won && me.role === "mafia" ? 1 : 0),
+        detective_wins: (stats.detective_wins || 0) + (won && me.role === "detective" ? 1 : 0),
+        doctor_wins: (stats.doctor_wins || 0) + (won && me.role === "doctor" ? 1 : 0),
+        civilian_wins: (stats.civilian_wins || 0) + (won && me.role === "civilian" ? 1 : 0),
       };
       localStorage.setItem("mafia_stats", JSON.stringify(newStats));
       window.dispatchEvent(new Event("storage"));

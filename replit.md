@@ -99,3 +99,21 @@ The `shared/` directory contains code used by both frontend and backend:
   - Reactions display below messages with counter (e.g., "😂 3")
   - Click reaction pill to toggle own reaction
   - Session-based (persist during active game)
+
+### Settings Page (v1)
+- **Location**: `/settings` route, accessible from Home and Profile pages
+- **Features**:
+  - Dark/Light mode toggle (persists in localStorage)
+  - Sound effects toggle (persists in localStorage)
+  - Volume slider (0-100%, persists in localStorage)
+  - Chat notifications toggle (persists in localStorage)
+  - Accessible via Settings button on Home page or gear icon on Profile page
+
+### Game Statistics Dashboard (v1)
+- **Location**: Profile page, new "Role Performance" section
+- **Features**:
+  - Tracks wins by role (Mafia, Detective, Doctor, Civilian)
+  - Shows emoji + role name + win count for each role
+  - Auto-tracks role-specific wins when game ends
+  - Only displays if player has played at least 1 game
+  - Data persists in localStorage

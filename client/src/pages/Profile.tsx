@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +52,16 @@ export default function Profile() {
       </div>
 
       <div className="relative z-10 max-w-lg mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Agent Profile</h1>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setLocation("/settings")} className="rounded-full">
+            <Settings className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Agent Profile</h1>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -108,6 +113,32 @@ export default function Profile() {
               </div>
             ))}
           </div>
+
+          {/* Role Statistics */}
+          {stats.gamesPlayed > 0 && (
+            <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Role Performance</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { role: "Mafia", emoji: "🍷", stat: "mafia_wins", color: "text-red-400" },
+                  { role: "Detective", emoji: "🔍", stat: "detective_wins", color: "text-blue-400" },
+                  { role: "Doctor", emoji: "💉", stat: "doctor_wins", color: "text-green-400" },
+                  { role: "Civilian", emoji: "🛡️", stat: "civilian_wins", color: "text-yellow-400" },
+                ].map(role => {
+                  const roleWins = (stats as any)[role.stat] || 0;
+                  return (
+                    <div key={role.role} className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-2">
+                      <span className="text-2xl">{role.emoji}</span>
+                      <div className="flex-1">
+                        <p className={cn("text-sm font-bold", role.color)}>{role.role}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{roleWins} wins</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Feature 8: Streaks */}
           {((stats.currentStreak || 0) > 0 || (stats.bestStreak || 0) > 0) && (
