@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -309,6 +309,14 @@ export default function Home() {
                     <Settings className="w-4 h-4 text-gray-400" />
                     <span className="text-lg font-black font-mono">⚙️</span>
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
+                  </button>
+                  <button
+                    onClick={() => setLocation("/cosmetics")}
+                    className="flex-1 p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col items-center gap-1 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <span className="text-lg font-black font-mono">✨</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Cosmetics</span>
                   </button>
                 </div>
 
