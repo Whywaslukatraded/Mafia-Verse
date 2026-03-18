@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -221,30 +221,30 @@ export default function Room() {
           deathStory,
         });
       }
-      prevPlayersRef.current[p.id] = p.isAlive;
+      prevPlayersRef.current[p.id] = p.isAlive ?? true;
     });
   }, [players, room?.status, toast]);
 
-  if (!gameState) {
+  if (!gameState || !room || !me) {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center">Connecting...</div>;
   }
 
   const getNightActionLabel = () => {
-    if (room.phase === "mafia") return { verb: "Kill", action: "killing" };
-    if (room.phase === "doctor") return { verb: "Protect", action: "protecting" };
-    if (room.phase === "detective") return { verb: "Investigate", action: "investigating" };
+    if (room?.phase === "mafia") return { verb: "Kill", action: "killing" };
+    if (room?.phase === "doctor") return { verb: "Protect", action: "protecting" };
+    if (room?.phase === "detective") return { verb: "Investigate", action: "investigating" };
     return { verb: "Act", action: "acting" };
   };
 
-  const isMyNightTurn = room.status === "night" && me.isAlive && (
-    (room.phase === "mafia" && me.role === "mafia") ||
-    (room.phase === "doctor" && me.role === "doctor") ||
-    (room.phase === "detective" && me.role === "detective")
-  );
+  const isMyNightTurn = (room?.status === "night" && me.isAlive && (
+    (room?.phase === "mafia" && me.role === "mafia") ||
+    (room?.phase === "doctor" && me.role === "doctor") ||
+    (room?.phase === "detective" && me.role === "detective")
+  )) || false;
 
   const getPlayerButtonState = (targetId: number): { label: string; variant: any; action: GameAction; isNight: boolean } | null => {
-    if (room.status === "day") {
-      const hasVoted = (gameState as any)?.gameActions?.some((a: GameAction) => a.type === "vote" && a.playerId === me.id && a.targetId === targetId);
+    if (room?.status === "day") {
+      const hasVoted = (gameState as any)?.gameActions?.some((a: GameAction) => a.type === "vote" && (a as any).targetId === targetId);
       const isVoted = hasVoted;
       return {
         label: isVoted ? "Voted" : "Vote",
@@ -254,8 +254,8 @@ export default function Room() {
       };
     }
 
-    if (room.status === "night") {
-      if (room.phase === "mafia" && me.role === "mafia") {
+    if (room?.status === "night") {
+      if (room?.phase === "mafia" && me?.role === "mafia") {
         const isTargeted = pendingNightAction?.targetId === targetId;
         return {
           label: isTargeted ? "Selected" : "Select",
@@ -420,7 +420,7 @@ export default function Room() {
               <Share2 className="w-3 h-3" />
               Share
             </Button>
-            {isHost && room.status === "lobby" && (
+            {isHost && room?.status === "lobby" && (
               <Button
                 onClick={() => startGame()}
                 disabled={players.length < 6}
@@ -465,7 +465,7 @@ export default function Room() {
               </Card>
             )}
 
-            {room.status !== "lobby" && room.status !== "ended" && (
+            {room?.status !== "lobby" && room?.status !== "ended" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-auto gap-3">
                   {players.map((p) => {
@@ -474,22 +474,22 @@ export default function Room() {
                       <PlayerCard
                         key={p.id}
                         player={p}
-                        isMe={p.id === me.id}
-                        canVote={room.status === "day" && room.phase === "voting" && me.isAlive && !isSpectator}
-                        canActAtNight={isMyNightTurn && !lockedIn}
-                        onAction={() => {
+                        isMe={p.id === me?.id}
+                        canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
+                        interactionLabel={buttonState?.label}
+                        interactionVariant={buttonState?.variant}
+                        onInteract={() => {
                           if (buttonState?.isNight) {
                             setPendingNightAction({
                               targetId: p.id,
                               targetName: p.name,
-                              actionType: room.phase || "",
+                              actionType: room?.phase || "",
                             });
                           } else if (buttonState?.action) {
                             sendAction(buttonState.action);
                           }
                         }}
-                        buttonLabel={buttonState?.label}
-                        buttonVariant={buttonState?.variant}
+                        revealedRole={room?.status === "ended" ? p.role : undefined}
                       />
                     );
                   })}
@@ -498,7 +498,7 @@ export default function Room() {
             )}
 
             {/* Night Action Lock-In Section */}
-            {room.status !== "ended" && room.status !== "lobby" && (
+            {room?.status !== "ended" && room?.status !== "lobby" && (
               <div className="sticky bottom-0 z-40 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-6 pb-4 -mx-4 px-4">
                 <AnimatePresence mode="wait">
                   {isMyNightTurn && !lockedIn ? (
@@ -630,8 +630,8 @@ export default function Room() {
             <ChatWindow
               messages={gameState?.messages || []}
               onSendMessage={(content) => sendAction({ type: "message", content } as any)}
-              currentPlayerId={me.id}
-              isSpectator={isSpectator}
+              currentPlayerId={me?.id || 0}
+              isSpectator={isSpectator ?? false}
               players={players}
             />
           </div>
@@ -640,5 +640,3 @@ export default function Room() {
     </div>
   );
 }
-
-import { Users } from "lucide-react";

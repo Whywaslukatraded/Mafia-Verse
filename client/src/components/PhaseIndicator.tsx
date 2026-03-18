@@ -1,4 +1,4 @@
-import { Moon, Sun, Clock } from "lucide-react";
+import { Moon, Sun, Clock, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -17,7 +17,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
 
   let title = "";
   let description = "";
-  let Icon = isNight ? Moon : Sun;
+  let Icon: any = isNight ? Moon : Sun;
 
   if (isLobby) {
     title = "Waiting Lobby";
