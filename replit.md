@@ -117,3 +117,49 @@ The `shared/` directory contains code used by both frontend and backend:
   - Auto-tracks role-specific wins when game ends
   - Only displays if player has played at least 1 game
   - Data persists in localStorage
+
+### Death Messages (v1)
+- **Location**: Elimination overlay in Room.tsx
+- **Features**:
+  - 20+ creative, humorous death stories ("fell into a crevasse", "skydiving parachute failed", etc.)
+  - Random story selected when player is eliminated
+  - Story displays in elimination overlay below role reveal
+  - Generates both in toast notification and overlay
+  - Examples: "{name} was skiing down the mountain and fell into a crevasse never to be seen again"
+
+### Cosmetics Shop (v1)
+- **Location**: `/cosmetics` route, accessible from Home page (✨ Cosmetics button)
+- **Features**:
+  - 9 cosmetic items across 3 categories:
+    - Chat Borders: Gold, Red, Blue (3-5 wins each)
+    - Name Colors: Gold, Red, Cyan (3-5 wins each)
+    - Avatar Frames: Diamond, Fire, Crown (7-10 wins each)
+  - Win-based currency system (costs 3-10 wins per item)
+  - Buy items with accumulated wins
+  - Equip/unequip cosmetics by category
+  - Equipped items show check mark with pulsing animation
+  - Data persists in localStorage
+  - Purchase history tracked and win balance updated
+
+### PWA Installation (v1)
+- **Location**: manifest.json, service-worker.js, index.html metadata
+- **Features**:
+  - Web app manifest with app name, icons, theme colors, display mode
+  - Service worker caching strategy (network-first with fallback)
+  - "Add to Home Screen" support on iOS and Android
+  - Offline fallback to home page
+  - Standalone display mode (no browser UI)
+  - Service worker auto-registers on app load
+  - Supports dark theme detection
+
+### Discord Integration (v1)
+- **Location**: Room.tsx (Discord share functions)
+- **Features**:
+  - `shareToDiscord()` function to format and copy game results
+  - `initDiscordAuth()` function for OAuth flow setup
+  - `disconnectDiscord()` function to revoke access
+  - Shares: game outcome, role, player count, duration
+  - Results copied to clipboard for easy Discord paste
+  - Discord credentials stored in localStorage
+  - Ready for webhook/API integration
+  - Can be extended to post directly to Discord channels
