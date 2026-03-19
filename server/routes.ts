@@ -287,9 +287,21 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     }
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
-      await storage.updateRoom(roomId, { phase: 'doctor' });
+      // Check if any mafia are alive, if not skip to doctor
+      const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
+      if (aliveMafia.length === 0) {
+        await storage.updateRoom(roomId, { phase: 'detective' });
+      } else {
+        await storage.updateRoom(roomId, { phase: 'doctor' });
+      }
     } else if (room.phase === 'doctor') {
-      await storage.updateRoom(roomId, { phase: 'detective' });
+      // Check if doctor is alive, if not skip to detective
+      const aliveDoctor = players.find(p => p.role === 'doctor' && p.isAlive);
+      if (!aliveDoctor) {
+        await storage.updateRoom(roomId, { phase: 'detective' });
+      } else {
+        await storage.updateRoom(roomId, { phase: 'detective' });
+      }
     } else if (room.phase === 'detective') {
       const history = gameHistory.get(roomId) || [];
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
@@ -566,14 +578,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
            if (action.type === 'chat') {
-             await storage.createMessage({ 
-               roomId: myRoomId, 
-               playerId: me.id, 
-               playerName: me.name, 
-               content: action.content,
-               isSpectator: me.isSpectator || !me.isAlive 
-             });
-             broadcastState(myRoomId);
+             if (action.content && action.content.trim()) {
+               await storage.createMessage({ 
+                 roomId: myRoomId, 
+                 playerId: me.id, 
+                 playerName: me.name, 
+                 content: action.content,
+                 isSpectator: (me.isSpectator || !me.isAlive) === true ? true : false
+               });
+               broadcastState(myRoomId);
+             }
              return;
            }
 
@@ -651,11 +665,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            if (room.phase === 'voting' && action.type === 'vote') {
              if (me.isAlive && players.find(p => p.id === action.targetId)?.isAlive) {
                actions.votes.set(me.id, action.targetId);
+               gameActions.set(myRoomId, actions);
+               
+               // Have bots vote immediately
+               const bots = players.filter(p => p.isBot && p.isAlive);
+               for (const bot of bots) {
+                 const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
+                 if (alivePlayers.length > 0) {
+                   const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+                   actions.votes.set(bot.id, target.id);
+                 }
+               }
+               gameActions.set(myRoomId, actions);
+               
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
                
                // Check if all alive players have voted
-               const alivePlayers = players.filter(p => p.isAlive && !p.isBot);
+               const alivePlayers = players.filter(p => p.isAlive);
                if (actions.votes.size === alivePlayers.length) {
                  // All players voted - advance phase immediately
                  if (phaseTimers.has(myRoomId)) { 
