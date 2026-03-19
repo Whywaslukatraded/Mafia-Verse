@@ -588,6 +588,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.votes.set(me.id, action.targetId);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
+               
+               // Check if all alive players have voted
+               const alivePlayers = players.filter(p => p.isAlive && !p.isBot);
+               if (actions.votes.size === alivePlayers.length) {
+                 // All players voted - advance phase immediately
+                 if (phaseTimers.has(myRoomId)) { 
+                   clearTimeout(phaseTimers.get(myRoomId)); 
+                   phaseTimers.delete(myRoomId); 
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               }
              }
              return;
            }
@@ -598,6 +609,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.mafiaKill = action.targetId;
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
+               
+               // Check if all mafia members have acted
+               const mafiaPlayers = players.filter(p => p.role === 'mafia' && p.isAlive && !p.isBot);
+               const mafiaVoted = mafiaPlayers.filter(p => actions.mafiaKill !== null).length;
+               if (mafiaVoted === mafiaPlayers.length && mafiaPlayers.length > 0) {
+                 if (phaseTimers.has(myRoomId)) { 
+                   clearTimeout(phaseTimers.get(myRoomId)); 
+                   phaseTimers.delete(myRoomId); 
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               }
              }
              return;
            }
@@ -608,6 +630,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.doctorSave = action.targetId;
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
+               
+               // Check if all doctors have acted (only 1 doctor, so advance immediately)
+               const doctorPlayers = players.filter(p => p.role === 'doctor' && p.isAlive && !p.isBot);
+               if (doctorPlayers.length > 0 && actions.doctorSave !== null) {
+                 if (phaseTimers.has(myRoomId)) { 
+                   clearTimeout(phaseTimers.get(myRoomId)); 
+                   phaseTimers.delete(myRoomId); 
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               }
              }
              return;
            }
@@ -622,8 +654,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   await storage.updateRoom(myRoomId, { status: 'ended' });
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`, isSpectator: false });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
+                } else {
+                  // Detective checked but it's not mafia - advance to next phase
+                  if (phaseTimers.has(myRoomId)) { 
+                    clearTimeout(phaseTimers.get(myRoomId)); 
+                    phaseTimers.delete(myRoomId); 
+                  }
+                  await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                 }
              }
+             return;
            }
            
            if (action.type === 'skip' && me.isHost) {
