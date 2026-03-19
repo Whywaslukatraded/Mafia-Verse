@@ -636,7 +636,7 @@ export default function Room() {
           <div className="space-y-6">
             <ChatWindow
               messages={gameState?.messages || []}
-              onSendMessage={(content) => sendAction({ type: "message", content } as any)}
+              onSendMessage={(content) => sendAction({ type: "chat", content } as any)}
               currentPlayerId={me?.id || 0}
               isSpectator={isSpectator ?? false}
               players={players}
