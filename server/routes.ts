@@ -672,19 +672,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find(p => p.id === action.targetId);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKill = action.targetId;
+               gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
                
-               // Check if all mafia members have acted
-               const mafiaPlayers = players.filter(p => p.role === 'mafia' && p.isAlive && !p.isBot);
-               const mafiaVoted = mafiaPlayers.filter(p => actions.mafiaKill !== null).length;
-               if (mafiaVoted === mafiaPlayers.length && mafiaPlayers.length > 0) {
-                 if (phaseTimers.has(myRoomId)) { 
-                   clearTimeout(phaseTimers.get(myRoomId)); 
-                   phaseTimers.delete(myRoomId); 
-                 }
-                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               // Advance immediately when Mafia acts
+               if (phaseTimers.has(myRoomId)) { 
+                 clearTimeout(phaseTimers.get(myRoomId)); 
+                 phaseTimers.delete(myRoomId); 
                }
+               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
@@ -711,14 +708,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find(p => p.id === action.targetId);
              if (target) {
                 actions.detectiveCheck = target.id;
+                gameActions.set(myRoomId, actions);
                 const isMafia = target.role === 'mafia';
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`, isSpectator: false });
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
+                  broadcastState(myRoomId);
                 } else {
-                  // Detective checked but it's not mafia - advance to next phase
+                  // Detective checked but it's not mafia - advance to next phase immediately
                   if (phaseTimers.has(myRoomId)) { 
                     clearTimeout(phaseTimers.get(myRoomId)); 
                     phaseTimers.delete(myRoomId); 

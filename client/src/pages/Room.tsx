@@ -575,18 +575,27 @@ export default function Room() {
             )}
 
             {room.status === "ended" && (
-              <Card className="bg-slate-900/50 border-slate-800 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-xl font-serif">
-                      <History className="w-5 h-5 text-primary" />
-                      Game Chronicle
-                    </CardTitle>
-                    {(room.settings as any).showVoteResults !== false && (
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Vote Results visible</div>
-                    )}
+              <>
+                {isHost && (
+                  <div className="flex gap-3 mb-6 justify-center">
+                    <Button onClick={() => sendAction({ type: "replay" } as any)} className="gap-2 px-6">
+                      <Sparkles className="w-4 h-4" />
+                      Play Again
+                    </Button>
                   </div>
-                </CardHeader>
+                )}
+                <Card className="bg-slate-900/50 border-slate-800 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-xl font-serif">
+                        <History className="w-5 h-5 text-primary" />
+                        Game Chronicle
+                      </CardTitle>
+                      {(room.settings as any).showVoteResults !== false && (
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Vote Results visible</div>
+                      )}
+                    </div>
+                  </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[300px] pr-4">
                     <div className="space-y-6">
@@ -629,7 +638,8 @@ export default function Room() {
                     </div>
                   </ScrollArea>
                 </CardContent>
-              </Card>
+                </Card>
+              </>
             )}
           </div>
 
