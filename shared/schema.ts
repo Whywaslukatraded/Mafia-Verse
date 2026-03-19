@@ -120,8 +120,8 @@ export type GameAction =
   | { type: 'add_bots' }
   | { type: 'remove_bot'; playerId: number }
   | { type: 'replay' }
-  | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any }
-  | { type: 'chat'; content: string };
+  | { type: 'chat'; content: string }
+  | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any };
 
 // WebSocket Message Types
 export const WS_EVENTS = {
