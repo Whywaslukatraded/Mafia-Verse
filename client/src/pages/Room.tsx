@@ -220,6 +220,13 @@ export default function Room() {
           avatar: p.avatar || "👤",
           deathStory,
         });
+
+        // Auto-dismiss elimination overlay after 4 seconds
+        const timeout = setTimeout(() => {
+          setEliminationOverlay(null);
+        }, 4000);
+
+        return () => clearTimeout(timeout);
       }
       prevPlayersRef.current[p.id] = p.isAlive ?? true;
     });
