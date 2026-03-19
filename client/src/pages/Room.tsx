@@ -376,7 +376,7 @@ export default function Room() {
                 className="mt-8 text-xl font-serif text-white/80 max-w-xs mx-auto italic"
               >
                 {me?.role === "mafia" ? "Operate in the shadows. Eliminate everyone else." :
-                 me?.role === "detective" ? "Seek the truth. Find the imposters." :
+                 me?.role === "detective" ? "Seek the truth. Find the Mafia." :
                  me?.role === "doctor" ? "Protect the innocent. Save a life tonight." :
                  "Stay vigilant. Survive the night."}
               </motion.p>
