@@ -217,6 +217,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
       actions.mafiaKill = null;
       actions.doctorSave = null;
+      actions.detectiveCheck = null;
+      actions.votes.clear();
     }
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
@@ -257,6 +259,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion' });
       actions.votes.clear();
+      actions.mafiaKill = null;
+      actions.doctorSave = null;
+      actions.detectiveCheck = null;
     }
   }
 

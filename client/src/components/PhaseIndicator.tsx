@@ -29,7 +29,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
     Icon = Crown;
   } else if (isDay) {
     title = `Day ${turn}`;
-    if (phase === "discussion") description = "Discuss who the imposters are.";
+    if (phase === "discussion") description = "Discuss who the Mafia are.";
     if (phase === "voting") description = "Vote to eliminate a suspect.";
   } else {
     title = `Night ${turn}`;
