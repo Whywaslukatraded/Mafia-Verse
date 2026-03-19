@@ -102,6 +102,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
+  // Bot voting/action logic - bots act immediately, no delays
   for (const bot of bots) {
     const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
@@ -130,6 +131,12 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
     if (room.phase === 'voting') {
       actions.votes.set(bot.id, target.id);
+      // Check if all alive players have voted after bot votes
+      const allAlivePlayers = players.filter(p => p.isAlive);
+      if (actions.votes.size === allAlivePlayers.length) {
+        // All players voted - signal to advance
+        return true; // Signal to advance phase immediately
+      }
     } else if (room.phase === 'mafia' && bot.role === 'mafia') {
       actions.mafiaKill = target.id;
     } else if (room.phase === 'doctor' && bot.role === 'doctor') {
@@ -153,10 +160,68 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     }
   }
   gameActions.set(roomId, actions);
+  return false; // No advance needed
 }
 
 async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
-  await handleBotActions(roomId, wss, storage, roomClients, clients, gameActions);
+  const shouldAdvanceImmediately = await handleBotActions(roomId, wss, storage, roomClients, clients, gameActions);
+  if (shouldAdvanceImmediately) {
+    // Bots voted and completed voting phase - recursive call to process votes and move to next phase
+    const room = await storage.getRoom(roomId);
+    if (room?.phase === 'voting') {
+      // Process the votes immediately since all are in
+      const actions = gameActions.get(roomId) || { votes: new Map() };
+      const players = await storage.getPlayersInRoom(roomId);
+      const voteCounts = new Map<number, number>();
+      const voteResults: { voterName: string, targetName: string }[] = [];
+      
+      actions.votes.forEach((targetId: number, voterId: number) => {
+        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
+        const voter = players.find((p: Player) => p.id === voterId);
+        const target = players.find((p: Player) => p.id === targetId);
+        if (voter && target) {
+          voteResults.push({ voterName: voter.name, targetName: target.name });
+        }
+      });
+      
+      if (voteResults.length > 0 && (room.settings as any).showVoteResults !== false) {
+        let voteSummary = "Voting Results: ";
+        voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
+      }
+      
+      if (voteResults.length > 0) {
+        const history = gameHistory.get(roomId) || [];
+        history.push({ type: 'vote', turn: room.turn, results: voteResults });
+        gameHistory.set(roomId, history);
+      }
+      
+      let topTargetId = -1;
+      let maxVotes = 0;
+      voteCounts.forEach((count, id) => {
+        if (count > maxVotes) { maxVotes = count; topTargetId = id; }
+      });
+      
+      if (topTargetId !== -1) {
+        const victim = players.find((p: Player) => p.id === topTargetId);
+        if (victim) {
+          await storage.updatePlayer(topTargetId, { isAlive: false });
+          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+        }
+      } else {
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
+      }
+      
+      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
+      actions.votes.clear();
+      actions.mafiaKill = null;
+      actions.doctorSave = null;
+      actions.detectiveCheck = null;
+      gameActions.set(roomId, actions);
+      broadcastState(roomId);
+      return;
+    }
+  }
   const room = await storage.getRoom(roomId);
   if (!room) return;
 
@@ -628,18 +693,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find(p => p.id === action.targetId);
              if (target?.isAlive) {
                actions.doctorSave = action.targetId;
+               gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
                
-               // Check if all doctors have acted (only 1 doctor, so advance immediately)
-               const doctorPlayers = players.filter(p => p.role === 'doctor' && p.isAlive && !p.isBot);
-               if (doctorPlayers.length > 0 && actions.doctorSave !== null) {
-                 if (phaseTimers.has(myRoomId)) { 
-                   clearTimeout(phaseTimers.get(myRoomId)); 
-                   phaseTimers.delete(myRoomId); 
-                 }
-                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               // Advance immediately when doctor acts
+               if (phaseTimers.has(myRoomId)) { 
+                 clearTimeout(phaseTimers.get(myRoomId)); 
+                 phaseTimers.delete(myRoomId); 
                }
+               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
