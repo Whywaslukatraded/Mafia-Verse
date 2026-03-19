@@ -662,18 +662,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
-           if (room.phase === 'voting' && action.type === 'vote') {
-             if (me.isAlive && players.find(p => p.id === action.targetId)?.isAlive) {
+           if (action.type === 'vote' && room.status === 'day' && room.phase === 'voting') {
+             const target = players.find(p => p.id === action.targetId);
+             if (me.isAlive && target?.isAlive) {
+               // Register this player's vote
                actions.votes.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                
-               // Have bots vote immediately
-               const bots = players.filter(p => p.isBot && p.isAlive);
+               // Have bots vote immediately if they haven't already
+               const bots = players.filter(p => p.isBot && p.isAlive && !actions.votes.has(p.id));
                for (const bot of bots) {
-                 const alivePlayers = players.filter(p => p.isAlive && p.id !== bot.id);
-                 if (alivePlayers.length > 0) {
-                   const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-                   actions.votes.set(bot.id, target.id);
+                 const eligibleTargets = players.filter(p => p.isAlive && p.id !== bot.id);
+                 if (eligibleTargets.length > 0) {
+                   const botTarget = eligibleTargets[Math.floor(Math.random() * eligibleTargets.length)];
+                   actions.votes.set(bot.id, botTarget.id);
                  }
                }
                gameActions.set(myRoomId, actions);
@@ -681,9 +683,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
                
-               // Check if all alive players have voted
-               const alivePlayers = players.filter(p => p.isAlive);
-               if (actions.votes.size === alivePlayers.length) {
+               // Check if ALL alive players (human and bot) have voted
+               const allAlivePlayers = players.filter(p => p.isAlive);
+               const votedPlayers = Array.from(actions.votes.keys());
+               if (votedPlayers.length === allAlivePlayers.length) {
                  // All players voted - advance phase immediately
                  if (phaseTimers.has(myRoomId)) { 
                    clearTimeout(phaseTimers.get(myRoomId)); 
