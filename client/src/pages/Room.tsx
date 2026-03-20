@@ -250,7 +250,7 @@ export default function Room() {
   )) || false;
 
   const getPlayerButtonState = (targetId: number): { label: string; variant: any; action: GameAction; isNight: boolean } | null => {
-    if (room?.status === "day") {
+    if (room?.status === "day" && room?.phase === "voting") {
       const hasVoted = (gameState as any)?.gameActions?.some((a: GameAction) => a.type === "vote" && (a as any).targetId === targetId);
       const isVoted = hasVoted;
       return {
