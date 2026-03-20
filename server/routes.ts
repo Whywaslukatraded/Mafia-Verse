@@ -358,6 +358,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
       await storage.updateRoom(roomId, { status: 'ended' });
       if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+      broadcastState(roomId); // Broadcast the ended state immediately
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
