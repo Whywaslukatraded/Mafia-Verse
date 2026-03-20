@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -589,8 +589,11 @@ export default function Room() {
               <>
                 {isHost && (
                   <div className="flex gap-3 mb-6 justify-center">
-                    <Button onClick={() => sendAction({ type: "replay" } as any)} className="gap-2 px-6">
-                      <Sparkles className="w-4 h-4" />
+                    <Button 
+                      onClick={() => sendAction({ type: "replay" } as any)} 
+                      className="gap-3 px-8 py-6 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg hover:shadow-purple-500/50 animate-pulse"
+                    >
+                      <RotateCcw className="w-6 h-6" />
                       Play Again
                     </Button>
                   </div>
