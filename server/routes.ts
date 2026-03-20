@@ -390,12 +390,18 @@ const gameActions = new Map<number, {
 
 async function broadcastState(roomId: number) {
   const sessions = roomClients.get(roomId);
-  if (!sessions) return;
+  if (!sessions || sessions.size === 0) return;
 
   const room = await storage.getRoom(roomId);
   if (!room) return;
   const players = await storage.getPlayersInRoom(roomId);
-  const messages = await storage.getMessagesByRoom(roomId);
+  
+  let messages = [];
+  try {
+    messages = await storage.getMessagesByRoom(roomId);
+  } catch (err) {
+    console.error("Error fetching messages for room", roomId, err);
+  }
 
   sessions.forEach(sessionId => {
     const ws = clients.get(sessionId);
@@ -609,15 +615,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
            if (action.type === 'chat') {
-             if (action.content && action.content.trim()) {
-               await storage.createMessage({ 
-                 roomId: myRoomId, 
-                 playerId: me.id, 
-                 playerName: me.name, 
-                 content: action.content,
-                 isSpectator: (me.isSpectator || !me.isAlive) === true ? true : false
-               });
-               broadcastState(myRoomId);
+             if (action.content && action.content.trim() && myRoomId && me) {
+               try {
+                 await storage.createMessage({ 
+                   roomId: myRoomId, 
+                   playerId: me.id, 
+                   playerName: me.name, 
+                   content: action.content.trim(),
+                   isSpectator: (me.isSpectator || !me.isAlive) === true ? true : false
+                 });
+                 broadcastState(myRoomId);
+               } catch (err) {
+                 console.error("Error creating message", err);
+                 ws.send(JSON.stringify({ type: 'notification', payload: { title: "Error", body: "Failed to send message" } }));
+               }
              }
              return;
            }

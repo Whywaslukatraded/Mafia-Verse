@@ -213,7 +213,7 @@ export default function Room() {
   useEffect(() => {
     if (!room || room.status === "lobby" || room.status === "ended") return;
 
-    players.forEach((p) => {
+    for (const p of players) {
       const wasAlive = prevPlayersRef.current[p.id];
       if (wasAlive && !p.isAlive) {
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
@@ -231,17 +231,19 @@ export default function Room() {
           avatar: p.avatar || "👤",
           deathStory,
         });
-
-        // Auto-dismiss elimination overlay after 2 seconds (or sooner if voting starts)
-        const timeout = setTimeout(() => {
-          setEliminationOverlay(null);
-        }, 2000);
-
-        return () => clearTimeout(timeout);
       }
       prevPlayersRef.current[p.id] = p.isAlive ?? true;
-    });
+    }
   }, [players, room?.status, toast]);
+
+  // Auto-dismiss elimination overlay after 3 seconds
+  useEffect(() => {
+    if (!eliminationOverlay) return;
+    const timeout = setTimeout(() => {
+      setEliminationOverlay(null);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, [eliminationOverlay]);
 
   if (!gameState || !room || !me) {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center">Connecting...</div>;
