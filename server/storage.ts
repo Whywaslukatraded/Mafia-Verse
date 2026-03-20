@@ -16,6 +16,7 @@ export interface IStorage {
   
   createMessage(message: Omit<Message, "id" | "timestamp">): Promise<Message>;
   getMessagesByRoom(roomId: number): Promise<Message[]>;
+  deleteMessagesByRoom(roomId: number): Promise<void>;
   
   getLeaderboard(): Promise<{ name: string; avatar: string | null; avatarConfig: any; wins: number; gamesPlayed: number; winRate: number }[]>;
   
@@ -80,6 +81,10 @@ export class DatabaseStorage implements IStorage {
 
   async getMessagesByRoom(roomId: number): Promise<Message[]> {
     return await db.select().from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.timestamp);
+  }
+
+  async deleteMessagesByRoom(roomId: number): Promise<void> {
+    await db.delete(messages).where(eq(messages.roomId, roomId));
   }
 
   async getLeaderboard() {
