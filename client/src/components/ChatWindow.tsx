@@ -42,6 +42,26 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         return !msg.isSpectator;
     });
 
+    // Persist reactions in localStorage to survive state updates
+    useEffect(() => {
+        if (Object.keys(reactions).length > 0) {
+            localStorage.setItem("mafia_reactions", JSON.stringify(reactions));
+        }
+    }, [reactions]);
+
+    // Restore reactions from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem("mafia_reactions");
+        if (saved) {
+            try {
+                const restored = JSON.parse(saved);
+                setReactions(restored);
+            } catch (e) {
+                console.error("Failed to restore reactions", e);
+            }
+        }
+    }, []);
+
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
