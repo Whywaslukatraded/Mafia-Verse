@@ -507,6 +507,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Get room state by code
+  app.get(api.rooms.get.path, async (req, res) => {
+    try {
+      const code = (req.params as any).code as string;
+      if (!code) return res.status(400).json({ message: "Room code required" });
+
+      const room = await storage.getRoomByCode(code);
+      if (!room) return res.status(404).json({ message: "Room not found" });
+
+      const players = await storage.getPlayersInRoom(room.id);
+      const messages = await storage.getMessagesByRoom(room.id);
+
+      res.json({
+        room,
+        players,
+        messages,
+        me: null
+      });
+    } catch (err) {
+      console.error("GET room error", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
   wss.on('connection', (ws) => {
