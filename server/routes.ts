@@ -553,6 +553,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     ws.on('message', async (data) => {
       try {
         const msg = JSON.parse(data.toString());
+        console.log("WS MESSAGE:", msg.type, msg.payload?.type || msg.payload?.content?.substring(0, 50) || "");
 
         if (msg.type === WS_EVENTS.JOIN) {
           const { code, sessionId } = msg.payload;
