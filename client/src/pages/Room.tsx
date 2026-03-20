@@ -157,6 +157,13 @@ export default function Room() {
     }
   }, [gameState?.room.status, me]);
 
+  // Clear reactions when returning to lobby (game ended/replayed)
+  useEffect(() => {
+    if (gameState?.room.status === "lobby") {
+      localStorage.removeItem("mafia_reactions");
+    }
+  }, [gameState?.room.status]);
+
   // Role reveal on first night (if enabled)
   useEffect(() => {
     if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
@@ -171,6 +178,10 @@ export default function Room() {
     setPendingNightAction(null);
     setLockedIn(false);
     setPhaseStartTime(Date.now());
+    // Dismiss elimination overlay when voting starts so players can vote
+    if (room?.phase === "voting") {
+      setEliminationOverlay(null);
+    }
   }, [room?.phase, room?.status]);
 
   // Timer countdown
@@ -221,10 +232,10 @@ export default function Room() {
           deathStory,
         });
 
-        // Auto-dismiss elimination overlay after 4 seconds
+        // Auto-dismiss elimination overlay after 2 seconds (or sooner if voting starts)
         const timeout = setTimeout(() => {
           setEliminationOverlay(null);
-        }, 4000);
+        }, 2000);
 
         return () => clearTimeout(timeout);
       }
@@ -329,7 +340,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl pointer-events-auto"
           >
             <motion.div
               initial={{ scale: 0.5, y: 40 }}
