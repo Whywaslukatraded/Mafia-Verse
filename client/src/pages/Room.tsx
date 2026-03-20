@@ -337,12 +337,76 @@ export default function Room() {
 
       {/* Elimination Overlay */}
       <AnimatePresence>
+        {room?.status === "ended" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl pointer-events-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              className="text-center max-w-2xl px-6 py-8"
+            >
+              {(() => {
+                const aliveMafia = players.filter(p => p.isAlive && p.role === "mafia").length;
+                const aliveCivilians = players.filter(p => p.isAlive && p.role !== "mafia").length;
+                const mafiaWon = aliveMafia > 0;
+                
+                return (
+                  <>
+                    <div className={`text-7xl font-black mb-4 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
+                      {mafiaWon ? "🔴 MAFIA" : "✨ CIVILIANS"} WIN!
+                    </div>
+                    <div className="mb-6 text-white/70 text-lg">
+                      {mafiaWon 
+                        ? `The Mafia took over with ${aliveMafia} member${aliveMafia !== 1 ? 's' : ''} remaining` 
+                        : `The town eliminated all mafia!`}
+                    </div>
+                    
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
+                      <h3 className="text-white font-black mb-4 uppercase tracking-wider text-sm">Final Roles Revealed</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {players.map((p) => (
+                          <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                            <span className="text-2xl">{p.avatar || "👤"}</span>
+                            <div className="text-left flex-1">
+                              <div className="text-white font-bold text-sm">{p.name}</div>
+                              <div className={`text-xs font-bold uppercase tracking-wider ${p.role === "mafia" ? "text-red-400" : p.role === "detective" ? "text-blue-400" : p.role === "doctor" ? "text-yellow-400" : "text-gray-400"}`}>
+                                {p.role || "civilian"}
+                              </div>
+                            </div>
+                            {!p.isAlive && <span className="text-red-500 font-black">✕</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {isHost && (
+                      <Button 
+                        onClick={() => sendAction({ type: "replay" } as any)} 
+                        className="gap-2 px-8 py-3 text-base font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg animate-pulse"
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                        Play Again
+                      </Button>
+                    )}
+                  </>
+                );
+              })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {eliminationOverlay && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/90 backdrop-blur-xl pointer-events-auto"
           >
             <motion.div
               initial={{ scale: 0.5, y: 40 }}
