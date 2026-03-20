@@ -655,8 +655,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  gameHistory: []
                });
              }
+             
+             // Clear game state and messages for new game
              gameActions.delete(myRoomId);
              gameHistory.delete(myRoomId);
+             await storage.deleteMessagesByRoom(myRoomId);
+             
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
              broadcastState(myRoomId);
              return;
