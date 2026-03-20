@@ -615,8 +615,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
            if (action.type === 'chat') {
+             console.log("CHAT ACTION received:", { content: action.content, myRoomId, meId: me?.id, meExists: !!me });
              if (action.content && action.content.trim() && myRoomId && me) {
                try {
+                 console.log("CREATING MESSAGE:", { roomId: myRoomId, playerId: me.id, content: action.content });
                  await storage.createMessage({ 
                    roomId: myRoomId, 
                    playerId: me.id, 
@@ -624,11 +626,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    content: action.content.trim(),
                    isSpectator: (me.isSpectator || !me.isAlive) === true ? true : false
                  });
+                 console.log("MESSAGE CREATED SUCCESSFULLY");
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: "Error", body: "Failed to send message" } }));
                }
+             } else {
+               console.log("CHAT CONDITION FAILED:", { hasContent: !!action.content, trimmed: !!action.content?.trim(), myRoomId, me: !!me });
              }
              return;
            }
