@@ -262,6 +262,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (count > maxVotes) { maxVotes = count; topTargetId = id; }
       });
 
+      let gameEnded = false;
       if (topTargetId !== -1) {
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
@@ -273,13 +274,17 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            gameEnded = true;
           }
         }
       } else {
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
       }
 
-      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
+      // Only transition to night if game hasn't ended
+      if (!gameEnded) {
+        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
+      }
       actions.mafiaKill = null;
       actions.doctorSave = null;
       actions.detectiveCheck = null;
@@ -358,6 +363,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
       await storage.updateRoom(roomId, { status: 'ended' });
       if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+      gameActions.delete(roomId);
       broadcastState(roomId); // Broadcast the ended state immediately
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
