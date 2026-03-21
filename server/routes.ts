@@ -773,6 +773,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
+             console.log(`[Room ${myRoomId}] MAFIA KILL: ${me.name} targeting ${action.targetId}, status=${room.status}, phase=${room.phase}`);
              const target = players.find(p => p.id === action.targetId);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKill = action.targetId;
@@ -780,12 +781,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
                
+               console.log(`[Room ${myRoomId}] Mafia kill registered, advancing phase...`);
                // Advance immediately when Mafia acts
                if (phaseTimers.has(myRoomId)) { 
                  clearTimeout(phaseTimers.get(myRoomId)); 
                  phaseTimers.delete(myRoomId); 
                }
                await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+             } else {
+               console.log(`[Room ${myRoomId}] MAFIA KILL REJECTED: target alive=${target?.isAlive}, not mafia=${target?.role !== 'mafia'}`);
              }
              return;
            }
