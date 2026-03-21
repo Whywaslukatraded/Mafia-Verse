@@ -242,10 +242,10 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 </div>
             </ScrollArea>
       <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2" title={isSpectator || !currentPlayerId ? "The dead cannot speak" : ""}>
           <Popover>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10">
+              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={isSpectator || !currentPlayerId}>
                 <MessageSquare className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
@@ -280,10 +280,11 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={isSpectator || !currentPlayerId ? "Dead players cannot speak..." : "Type a message..."}
             className="bg-background h-10"
+            disabled={isSpectator || !currentPlayerId}
           />
-          <Button type="submit" size="icon" disabled={!input.trim()} className="shrink-0 h-10 w-10">
+          <Button type="submit" size="icon" disabled={!input.trim() || isSpectator || !currentPlayerId} className="shrink-0 h-10 w-10">
             <Send className="w-4 h-4" />
           </Button>
         </form>
