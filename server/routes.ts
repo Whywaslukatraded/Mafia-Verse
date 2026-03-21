@@ -729,7 +729,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
-           if (action.type === 'vote' && room.status === 'day' && room.phase === 'voting') {
+           if (action.type === 'vote') {
+             console.log("VOTE RECEIVED:", { status: room.status, phase: room.phase, targetId: action.targetId, meId: me.id, meAlive: me.isAlive });
+             if (room.status !== 'day' || room.phase !== 'voting') {
+               console.log("VOTE REJECTED - Wrong phase. Expected: day/voting, Got:", room.status, room.phase);
+               return;
+             }
              const target = players.find(p => p.id === action.targetId);
              if (me.isAlive && target?.isAlive) {
                // Register this player's vote
@@ -753,7 +758,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                // Check if ALL alive players (human and bot) have voted
                const allAlivePlayers = players.filter(p => p.isAlive);
                const votedPlayers = Array.from(actions.votes.keys());
+               console.log("VOTE TALLY:", { votedPlayers: votedPlayers.length, totalAlive: allAlivePlayers.length });
                if (votedPlayers.length === allAlivePlayers.length) {
+                 console.log("ALL PLAYERS VOTED - Advancing immediately");
                  // All players voted - advance phase immediately
                  if (phaseTimers.has(myRoomId)) { 
                    clearTimeout(phaseTimers.get(myRoomId)); 
