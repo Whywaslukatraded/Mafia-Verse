@@ -363,10 +363,11 @@ export default function Room() {
                 
                 return (
                   <>
-                    <div className={`text-7xl font-black mb-4 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
-                      {mafiaWon ? "🔴 MAFIA" : "✨ CIVILIANS"} WIN!
+                    <div className={`text-8xl font-black mb-2 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
+                      {mafiaWon ? "🔴 MAFIA" : "✨ CIVILIANS"}
                     </div>
-                    <div className="mb-6 text-white/70 text-lg">
+                    <div className="text-5xl font-black mb-6 text-white">WINS!</div>
+                    <div className="mb-8 text-white/70 text-lg font-semibold">
                       {mafiaWon 
                         ? `The Mafia took over with ${aliveMafia} member${aliveMafia !== 1 ? 's' : ''} remaining` 
                         : `The town eliminated all mafia!`}
@@ -390,15 +391,13 @@ export default function Room() {
                       </div>
                     </div>
 
-                    {isHost && (
-                      <Button 
-                        onClick={() => sendAction({ type: "replay" } as any)} 
-                        className="gap-2 px-8 py-3 text-base font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg animate-pulse"
-                      >
-                        <RotateCcw className="w-5 h-5" />
-                        Play Again
-                      </Button>
-                    )}
+                    <Button 
+                      onClick={() => sendAction({ type: "replay" } as any)} 
+                      className="gap-2 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
+                    >
+                      <RotateCcw className="w-6 h-6" />
+                      Play Again
+                    </Button>
                   </>
                 );
               })()}
