@@ -606,12 +606,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
 
         if (msg.type === WS_EVENTS.ACTION) {
-           if (!myRoomId || !mySessionId) return;
+           console.log("ACTION HANDLER ENTERED, payload:", msg.payload);
+           if (!myRoomId || !mySessionId) {
+             console.log("BLOCKED: myRoomId or mySessionId missing", { myRoomId, mySessionId });
+             return;
+           }
            const action = msg.payload as GameAction;
            const players = await storage.getPlayersInRoom(myRoomId);
            const me = players.find(p => p.sessionId === mySessionId);
            const room = await storage.getRoom(myRoomId);
-           if (!me || !room) return;
+           console.log("ACTION LOOKUP:", { actionType: action.type, meExists: !!me, roomExists: !!room });
+           if (!me || !room) {
+             console.log("BLOCKED: me or room missing");
+             return;
+           }
 
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
