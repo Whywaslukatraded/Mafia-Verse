@@ -236,7 +236,7 @@ export default function Room() {
     }
   }, [players, room?.status, toast]);
 
-  // Auto-dismiss elimination overlay after 3 seconds
+  // Auto-dismiss elimination overlay after 3 seconds or when voting starts
   useEffect(() => {
     if (!eliminationOverlay) return;
     const timeout = setTimeout(() => {
@@ -244,6 +244,13 @@ export default function Room() {
     }, 3000);
     return () => clearTimeout(timeout);
   }, [eliminationOverlay]);
+
+  // Dismiss overlay immediately when voting phase starts
+  useEffect(() => {
+    if (room?.status === "day" && room?.phase === "voting") {
+      setEliminationOverlay(null);
+    }
+  }, [room?.phase, room?.status]);
 
   if (!gameState || !room || !me) {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center">Connecting...</div>;
