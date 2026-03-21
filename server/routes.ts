@@ -292,6 +292,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     }
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
+      console.log(`[Room ${roomId}] Night Phase: Mafia -> Doctor`);
       // Check if any mafia are alive, if not skip to doctor
       const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
@@ -299,7 +300,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       } else {
         await storage.updateRoom(roomId, { phase: 'doctor' });
       }
+      broadcastState(roomId); // Broadcast after phase change
     } else if (room.phase === 'doctor') {
+      console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
       // Check if doctor is alive, if not skip to detective
       const aliveDoctor = players.find(p => p.role === 'doctor' && p.isAlive);
       if (!aliveDoctor) {
@@ -307,7 +310,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       } else {
         await storage.updateRoom(roomId, { phase: 'detective' });
       }
+      broadcastState(roomId); // Broadcast after phase change
     } else if (room.phase === 'detective') {
+      console.log(`[Room ${roomId}] Night Phase: Detective -> Day Discussion`);
       const history = gameHistory.get(roomId) || [];
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
 
@@ -344,6 +349,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.mafiaKill = null;
       actions.doctorSave = null;
       actions.detectiveCheck = null;
+      broadcastState(roomId); // Broadcast after phase change to day
     }
   }
 
@@ -624,8 +630,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
 
            if (action.type === 'chat' || action.type === 'message') {
-             console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me });
-             if ((action as any).content && (action as any).content.trim() && myRoomId && me) {
+             console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
+             // Only alive players can chat (dead players can't snitch!)
+             if ((action as any).content && (action as any).content.trim() && myRoomId && me && me.isAlive) {
                try {
                  console.log("CREATING MESSAGE:", { roomId: myRoomId, playerId: me.id, content: (action as any).content });
                  await storage.createMessage({ 
@@ -633,7 +640,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    playerId: me.id, 
                    playerName: me.name, 
                    content: (action as any).content.trim(),
-                   isSpectator: (me.isSpectator || !me.isAlive) === true ? true : false
+                   isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
                  broadcastState(myRoomId);
@@ -641,8 +648,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  console.error("Error creating message", err);
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: "Error", body: "Failed to send message" } }));
                }
-             } else {
-               console.log("CHAT CONDITION FAILED:", { hasContent: !!(action as any).content, trimmed: !!(action as any).content?.trim(), myRoomId, me: !!me });
+             } else if (!me?.isAlive) {
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: "🪦 Silence from Beyond", body: "The dead cannot speak and risk snitching..." } }));
              }
              return;
            }
