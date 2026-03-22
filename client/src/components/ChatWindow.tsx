@@ -8,14 +8,21 @@ import type { Message } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const QUICK_MESSAGES = [
-  "I suspect {name}...",
+  "I think {name} is mafia",
   "I am innocent!",
-  "Who is the Mafia?",
-  "I trust {name}.",
-  "Don't vote me!",
-  "Let's skip.",
-  "I have a bad feeling...",
-  "Look at the evidence!"
+  "Who killed last night?",
+  "I trust {name}",
+  "Don't vote me out!",
+  "{name} seems suspicious",
+  "I have a bad feeling about {name}",
+  "{name} is acting weird",
+  "Let me explain myself",
+  "I'm the doctor protecting {name}",
+  "That doesn't make sense",
+  "Wait, {name} said what?",
+  "I believe {name}",
+  "Something's off about {name}",
+  "Who are you voting?"
 ];
 
 const REACTION_EMOTES = ["😂", "🤔", "👀", "😱", "👍", "❤️", "🎉", "🔥"];

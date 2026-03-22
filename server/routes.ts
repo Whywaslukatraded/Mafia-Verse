@@ -780,21 +780,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
-             console.log(`[Room ${myRoomId}] MAFIA KILL: ${me.name} targeting ${action.targetId}, status=${room.status}, phase=${room.phase}`);
+             console.log(`[Room ${myRoomId}] MAFIA KILL #1: ${me.name} targeting ${action.targetId}, turn=${room.turn}, status=${room.status}, phase=${room.phase}`);
              const target = players.find(p => p.id === action.targetId);
+             console.log(`[Room ${myRoomId}] MAFIA KILL #2: target found=${!!target}, alive=${target?.isAlive}, isMafia=${target?.role === 'mafia'}`);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKill = action.targetId;
                gameActions.set(myRoomId, actions);
+               console.log(`[Room ${myRoomId}] MAFIA KILL #3: Registered kill, broadcasting state...`);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
                
-               console.log(`[Room ${myRoomId}] Mafia kill registered, advancing phase...`);
+               console.log(`[Room ${myRoomId}] MAFIA KILL #4: Kill registered, clearing timer and advancing...`);
                // Advance immediately when Mafia acts
                if (phaseTimers.has(myRoomId)) { 
+                 console.log(`[Room ${myRoomId}] MAFIA KILL #5: Timer exists, clearing...`);
                  clearTimeout(phaseTimers.get(myRoomId)); 
                  phaseTimers.delete(myRoomId); 
                }
+               console.log(`[Room ${myRoomId}] MAFIA KILL #6: Calling advancePhase...`);
                await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+               console.log(`[Room ${myRoomId}] MAFIA KILL #7: advancePhase returned!`);
              } else {
                console.log(`[Room ${myRoomId}] MAFIA KILL REJECTED: target alive=${target?.isAlive}, not mafia=${target?.role !== 'mafia'}`);
              }
