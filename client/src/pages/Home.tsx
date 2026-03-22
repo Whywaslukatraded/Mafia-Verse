@@ -80,10 +80,10 @@ export default function Home() {
 
   // Create State
   const [counts, setCounts] = useState({
-    mafia: 2,
+    mafia: 1,
     detective: 1,
     doctor: 1,
-    civilian: 4,
+    civilian: 3,
     phaseDuration: 30,
     mafiaDuration: 15,
     doctorDuration: 15,
