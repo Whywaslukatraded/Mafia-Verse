@@ -230,7 +230,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
   if (room.status === 'day') {
     if (room.phase === 'discussion') {
+      console.log(`[Room ${roomId}] Day Phase: Discussion -> Voting`);
       await storage.updateRoom(roomId, { phase: 'voting' });
+      broadcastState(roomId); // Broadcast so clients know voting has started
     } else if (room.phase === 'voting') {
       const voteCounts = new Map<number, number>();
       const voteResults: { voterName: string, targetName: string }[] = [];
@@ -293,10 +295,15 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
       console.log(`[Room ${roomId}] Night Phase: Mafia -> Doctor`);
-      // Check if any mafia are alive, if not skip to doctor
+      // Check if all mafia are dead - end game immediately
       const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
-        await storage.updateRoom(roomId, { phase: 'detective' });
+        console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
+        await storage.updateRoom(roomId, { status: 'ended' });
+        if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+        gameActions.delete(roomId);
+        broadcastState(roomId);
+        return;
       } else {
         await storage.updateRoom(roomId, { phase: 'doctor' });
       }
