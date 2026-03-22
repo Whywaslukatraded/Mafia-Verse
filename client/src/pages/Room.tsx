@@ -245,9 +245,9 @@ export default function Room() {
     return () => clearTimeout(timeout);
   }, [eliminationOverlay]);
 
-  // Dismiss overlay immediately when voting phase starts
+  // Dismiss overlay immediately when voting phase starts or game ends
   useEffect(() => {
-    if (room?.status === "day" && room?.phase === "voting") {
+    if ((room?.status === "day" && room?.phase === "voting") || room?.status === "ended") {
       setEliminationOverlay(null);
     }
   }, [room?.phase, room?.status]);
@@ -687,38 +687,60 @@ export default function Room() {
                     <div className="space-y-6">
                       {(me as any)?.gameHistory?.map((entry: any, i: number) => (
                         <div key={i} className="space-y-3 p-4 bg-black/40 rounded-xl border border-white/5">
-                          <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
-                            {entry.type === "night" ? `Night ${entry.turn}` : `Day ${entry.turn}`}
-                          </h4>
-                          <div className="space-y-2">
-                            {entry.type === "vote" ? (
-                              (room.settings as any).showVoteResults !== false ? (
-                                entry.results.map((res: any, j: number) => (
-                                  <div key={j} className="text-sm flex items-center gap-2">
-                                    <User className="w-3 h-3 text-blue-400" />
-                                    <span className="font-bold text-white/90">{res.voterName}</span>
-                                    <span className="text-muted-foreground italic">voted for</span>
-                                    <span className="font-bold text-red-400">{res.targetName}</span>
+                          {entry.type === "game_end" ? (
+                            <>
+                              <h4 className="text-sm font-black uppercase tracking-widest text-yellow-400">
+                                🎮 Game Ended - {entry.winner === 'mafia' ? '🔴 MAFIA WINS!' : '✨ CIVILIANS WIN!'}
+                              </h4>
+                              <div className="space-y-2 text-sm">
+                                <div className="text-muted-foreground italic">Final Roles:</div>
+                                {entry.roles?.map((role: any, j: number) => (
+                                  <div key={j} className="flex items-center gap-2">
+                                    <span className="font-bold text-white/90">{role.name}</span>
+                                    <span className="text-muted-foreground">was</span>
+                                    <span className={role.role === 'mafia' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
+                                      {role.role}
+                                    </span>
                                   </div>
-                                ))
-                              ) : (
-                                <div className="text-sm text-muted-foreground italic">Vote results hidden</div>
-                              )
-                            ) : (
-                              entry.events.map((ev: any, j: number) => (
-                                <div key={j} className="text-sm flex items-center gap-2">
-                                  {ev.type === "mafia_kill" ? <Skull className="w-3 h-3 text-red-500" /> :
-                                   ev.type === "mafia_attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
-                                   <History className="w-3 h-3 text-blue-400" />}
-                                  <span>
-                                    {ev.type === "mafia_kill" ? `${ev.target} was eliminated.` :
-                                     ev.type === "mafia_attempt" && ev.saved ? `${ev.target} was protected.` :
-                                     ev.type === "detective_check" ? `The detective investigated ${ev.target}.` : ""}
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
+                                {entry.type === "night" ? `Night ${entry.turn}` : `Day ${entry.turn}`}
+                              </h4>
+                              <div className="space-y-2">
+                                {entry.type === "vote" ? (
+                                  (room.settings as any).showVoteResults !== false ? (
+                                    entry.results.map((res: any, j: number) => (
+                                      <div key={j} className="text-sm flex items-center gap-2">
+                                        <User className="w-3 h-3 text-blue-400" />
+                                        <span className="font-bold text-white/90">{res.voterName}</span>
+                                        <span className="text-muted-foreground italic">voted for</span>
+                                        <span className="font-bold text-red-400">{res.targetName}</span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-sm text-muted-foreground italic">Vote results hidden</div>
+                                  )
+                                ) : (
+                                  entry.events.map((ev: any, j: number) => (
+                                    <div key={j} className="text-sm flex items-center gap-2">
+                                      {ev.type === "mafia_kill" ? <Skull className="w-3 h-3 text-red-500" /> :
+                                       ev.type === "mafia_attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
+                                       <History className="w-3 h-3 text-blue-400" />}
+                                      <span>
+                                        {ev.type === "mafia_kill" ? `${ev.target} was eliminated.` :
+                                         ev.type === "mafia_attempt" && ev.saved ? `${ev.target} was protected.` :
+                                         ev.type === "detective_check" ? `The detective investigated ${ev.target}.` : ""}
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
