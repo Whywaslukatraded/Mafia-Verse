@@ -371,6 +371,15 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
       const history = gameHistory.get(roomId) || [];
       const playersInRoom = await storage.getPlayersInRoom(roomId);
+      
+      // Add game end entry with winner
+      const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
+      history.push({
+        type: 'game_end',
+        winner,
+        roles: playersInRoom.map(p => ({ name: p.name, role: p.role }))
+      });
+      
       for (const p of playersInRoom) {
         await storage.updatePlayer(p.id, { gameHistory: history });
       }
