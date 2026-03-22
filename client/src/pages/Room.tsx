@@ -214,7 +214,7 @@ export default function Room() {
     if (!room || room.status === "lobby" || room.status === "ended") return;
 
     for (const p of players) {
-      const wasAlive = prevPlayersRef.current[p.id];
+      const wasAlive = prevPlayersRef.current[p.id] !== false;
       if (wasAlive && !p.isAlive) {
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
         const deathStory = story.replace("{name}", p.name);
@@ -232,7 +232,7 @@ export default function Room() {
           deathStory,
         });
       }
-      prevPlayersRef.current[p.id] = p.isAlive ?? true;
+      prevPlayersRef.current[p.id] = p.isAlive;
     }
   }, [players, room?.status, toast]);
 
