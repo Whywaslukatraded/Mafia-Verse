@@ -86,6 +86,7 @@ export default function Room() {
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
   const prevWinsRef = useRef<number | null>(null);
+  const shownEliminationsRef = useRef<Set<number>>(new Set());
 
   const me = gameState?.me;
   const room = gameState?.room;
@@ -161,6 +162,8 @@ export default function Room() {
   useEffect(() => {
     if (gameState?.room.status === "lobby") {
       localStorage.removeItem("mafia_reactions");
+      shownEliminationsRef.current.clear();
+      setPendingNightAction(null);
     }
   }, [gameState?.room.status]);
 
@@ -175,9 +178,12 @@ export default function Room() {
 
   // Reset night action state when phase changes
   useEffect(() => {
-    setPendingNightAction(null);
     setLockedIn(false);
     setPhaseStartTime(Date.now());
+    // Only clear pending action when moving away from night phases, not when entering them
+    if (room?.status !== "night") {
+      setPendingNightAction(null);
+    }
     // Dismiss elimination overlay when voting starts so players can vote
     if (room?.phase === "voting") {
       setEliminationOverlay(null);
@@ -209,13 +215,14 @@ export default function Room() {
     return () => clearInterval(interval);
   }, [room?.status, room?.phase, room?.settings, phaseStartTime]);
 
-  // Feature 7: Detect eliminations
+  // Feature 7: Detect eliminations (only show once per player)
   useEffect(() => {
     if (!room || room.status === "lobby" || room.status === "ended") return;
 
     for (const p of players) {
       const wasAlive = prevPlayersRef.current[p.id] !== false;
-      if (wasAlive && !p.isAlive) {
+      if (wasAlive && !p.isAlive && !shownEliminationsRef.current.has(p.id)) {
+        shownEliminationsRef.current.add(p.id);
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
         const deathStory = story.replace("{name}", p.name);
         
