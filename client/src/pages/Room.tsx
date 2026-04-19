@@ -91,6 +91,8 @@ export default function Room() {
   const me = gameState?.me;
   const room = gameState?.room;
   const players = gameState?.players || [];
+  // Stable hash: only changes when alive states actually change (not on every broadcast)
+  const aliveHash = players.map(p => `${p.id}:${p.isAlive ? 1 : 0}`).join(',');
   const isHost = me?.isHost;
   const isSpectator = me?.isSpectator;
 
@@ -163,6 +165,7 @@ export default function Room() {
     if (gameState?.room.status === "lobby") {
       localStorage.removeItem("mafia_reactions");
       shownEliminationsRef.current.clear();
+      prevPlayersRef.current = {}; // Reset alive tracking for fresh game
       setPendingNightAction(null);
     }
   }, [gameState?.room.status]);
@@ -215,12 +218,18 @@ export default function Room() {
     return () => clearInterval(interval);
   }, [room?.status, room?.phase, room?.settings, phaseStartTime]);
 
-  // Feature 7: Detect eliminations (only show once per player)
+  // Feature 7: Detect eliminations (only show once per player per game)
+  // Uses aliveHash so this only fires when alive states actually change, not on every broadcast
   useEffect(() => {
     if (!room || room.status === "lobby" || room.status === "ended") return;
 
     for (const p of players) {
-      const wasAlive = prevPlayersRef.current[p.id] !== false;
+      // First time we see this player — initialize without triggering overlay
+      if (!(p.id in prevPlayersRef.current)) {
+        prevPlayersRef.current[p.id] = p.isAlive;
+        continue;
+      }
+      const wasAlive = prevPlayersRef.current[p.id];
       if (wasAlive && !p.isAlive && !shownEliminationsRef.current.has(p.id)) {
         shownEliminationsRef.current.add(p.id);
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
@@ -241,7 +250,8 @@ export default function Room() {
       }
       prevPlayersRef.current[p.id] = p.isAlive;
     }
-  }, [players, room?.status, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aliveHash]);
 
   // Auto-dismiss elimination overlay after 3 seconds or when voting starts
   useEffect(() => {
@@ -290,6 +300,9 @@ export default function Room() {
 
     if (room?.status === "night") {
       if (room?.phase === "mafia" && me?.role === "mafia") {
+        // Cannot kill fellow mafia members
+        const target = players.find(p => p.id === targetId);
+        if (target?.role === "mafia") return null;
         const isTargeted = pendingNightAction?.targetId === targetId;
         return {
           label: isTargeted ? "Selected" : "Select",
