@@ -89,9 +89,34 @@ async function fillWithBots(roomId: number, storage: any) {
 }
 
 const BOT_MESSAGES = {
-  general: ["I think it's one of you...", "I'm innocent!", "Trust me.", "Who is the mafia?", "Found anything?", "This is getting intense."],
-  accusation: ["I'm voting for {name}. They seem suspicious.", "Could it be {name}? They haven't said much.", "I'm leaning towards {name}."],
-  defense: ["It's not me, I swear!", "Why are you looking at me?", "I'm literally on your side."]
+  general: [
+    "I think it's one of you...", "I'm innocent!", "Trust me.", "Who is the mafia?",
+    "Found anything?", "This is getting intense.", "Something feels off today.",
+    "I have a gut feeling about this.", "We need to work together.", "Don't trust anyone.",
+    "I stayed up all night thinking about this.", "My vote stands.",
+  ],
+  accusation: [
+    "I'm voting for {name}. They seem suspicious.", "Could it be {name}? They haven't said much.",
+    "I'm leaning towards {name}.", "{name} was acting really weird last night.",
+    "Something about {name} doesn't add up.", "Has anyone else noticed {name} avoiding eye contact?",
+    "I don't trust {name} at all.", "{name} was the last one I expected... or was they?",
+    "Think about it — {name} has been too quiet.", "Call me crazy but... {name}.",
+  ],
+  defense: [
+    "It's not me, I swear!", "Why are you looking at me?", "I'm literally on your side.",
+    "You've got the wrong person.", "I was sleeping! I didn't do anything.",
+    "Check your facts before accusing me.", "I would never.", "Come on, I'm obviously a civilian.",
+    "This is a witch hunt.", "Fine, don't believe me. You'll regret it.",
+  ],
+  agreement: [
+    "Yeah, I agree.", "That's a good point.", "Same thing I was thinking.",
+    "Exactly.", "Couldn't have said it better.", "100%.",
+  ],
+  suspicion: [
+    "Wait... has anyone checked on everyone?", "Something happened last night.",
+    "I have information but I don't know who to trust.", "Be careful who you believe.",
+    "The mafia is good at hiding.", "One of us is lying right now.",
+  ],
 };
 
 async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
@@ -143,14 +168,18 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       actions.doctorSave = target.id;
     }
 
-    if (Math.random() > 0.4) {
+    if (Math.random() > 0.35) {
       let content = "";
       const rand = Math.random();
-      if (rand > 0.7 && alivePlayers.length > 0) {
+      if (rand > 0.72 && alivePlayers.length > 0) {
         const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
         content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-      } else if (rand > 0.5) {
+      } else if (rand > 0.55) {
         content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
+      } else if (rand > 0.38) {
+        content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+      } else if (rand > 0.2) {
+        content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
       } else {
         content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
       }
@@ -219,6 +248,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.detectiveCheck = null;
       gameActions.set(roomId, actions);
       broadcastState(roomId);
+      // CRITICAL: set a timer for the new mafia night phase so it doesn't hang
+      const mafiaSettings = room.settings as any;
+      const mafiaTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), mafiaSettings.mafiaDuration * 1000 || 15000);
+      phaseTimers.set(roomId, mafiaTimer);
       return;
     }
   }
@@ -696,7 +729,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
 
              for (const p of players) {
-               if (p.isBot) continue; // Don't track bot stats
+               // Always reset bots fully — they must be alive for the new game
+               if (p.isBot) {
+                 await storage.updatePlayer(p.id, { role: null, isAlive: true, isSpectator: false, gameHistory: [] });
+                 continue;
+               }
                const isWinner = p.role && winners.includes(p.role);
                const newWins = (p.wins || 0) + (isWinner ? 1 : 0);
                const newGamesPlayed = (p.gamesPlayed || 0) + 1;
@@ -708,18 +745,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                if (isWinner && !earnedAchievements.has('first_win')) {
                  earnedAchievements.add('first_win');
                }
-               
                if (isWinner && p.role === 'mafia' && newWins >= 5) {
                  earnedAchievements.add('mafia_master');
                }
-               
-               // Final Stand: Winner and last civilian alive (or only winner alive)
                const alivePlayers = players.filter(pl => pl.isAlive);
                if (isWinner && p.role !== 'mafia' && alivePlayers.length === 1 && alivePlayers[0].id === p.id) {
                  earnedAchievements.add('survivor');
                }
-
-               // Quick Thinker: Win with short durations
                if (isWinner && ((room.settings as any).phaseDuration <= 15)) {
                  earnedAchievements.add('quick_thinker');
                }
@@ -735,11 +767,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                });
              }
              
-             // Clear game state and messages for new game
+             // Clear all game state for the new game
              gameActions.delete(myRoomId);
              gameHistory.delete(myRoomId);
+             if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
              await storage.deleteMessagesByRoom(myRoomId);
-             
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
              broadcastState(myRoomId);
              return;
