@@ -117,6 +117,12 @@ const BOT_MESSAGES = {
     "I have information but I don't know who to trust.", "Be careful who you believe.",
     "The mafia is good at hiding.", "One of us is lying right now.",
   ],
+  response: [
+    "That makes sense.", "I can see why you'd say that.", "Hmm, maybe you're right.",
+    "I don't know about that.", "Can you explain more?", "Interesting point.",
+    "That's suspicious.", "Actually, I agree.", "No, that's not what I meant.",
+    "I'm not convinced yet."
+  ],
 };
 
 async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
@@ -171,13 +177,15 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     if (Math.random() > 0.35) {
       let content = "";
       const rand = Math.random();
-      if (rand > 0.72 && alivePlayers.length > 0) {
+      if (rand > 0.8 && alivePlayers.length > 0) {
         const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
         content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-      } else if (rand > 0.55) {
+      } else if (rand > 0.6) {
         content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
-      } else if (rand > 0.38) {
+      } else if (rand > 0.4) {
         content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+      } else if (rand > 0.25) {
+        content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
       } else if (rand > 0.2) {
         content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
       } else {
@@ -309,6 +317,12 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            gameEnded = true;
+          }
+          const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
+          if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
+            await storage.updateRoom(roomId, { status: 'ended' });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has taken over! Mafia wins!" });
             gameEnded = true;
           }
         }
