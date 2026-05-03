@@ -74,7 +74,20 @@ export default function Room() {
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
 
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem("mafia_sound_enabled");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  useEffect(() => {
+    const syncSound = () => {
+      const saved = localStorage.getItem("mafia_sound_enabled");
+      setSoundEnabled(saved !== null ? JSON.parse(saved) : true);
+    };
+    syncSound();
+    window.addEventListener("storage", syncSound);
+    return () => window.removeEventListener("storage", syncSound);
+  }, []);
+
   const [showRoleReveal, setShowRoleReveal] = useState(false);
   const [hasRevealed, setHasRevealed] = useState(false);
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);

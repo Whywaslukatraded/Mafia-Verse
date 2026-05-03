@@ -25,24 +25,24 @@ export default function Settings() {
     const saved = localStorage.getItem("mafia_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
+  const applyTheme = (enabled: boolean) => {
+    document.documentElement.classList.toggle("dark", enabled);
+    localStorage.setItem("mafia_theme_dark", JSON.stringify(enabled));
+  };
+  const applySound = (enabled: boolean, volume: number) => {
+    localStorage.setItem("mafia_sound_enabled", JSON.stringify(enabled));
+    localStorage.setItem("mafia_sound_volume", volume.toString());
+    window.dispatchEvent(new Event("storage"));
+  };
   // Theme toggle
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("mafia_theme_dark", JSON.stringify(darkMode));
+    applyTheme(darkMode);
   }, [darkMode]);
 
   // Sound settings
   useEffect(() => {
-    localStorage.setItem("mafia_sound_enabled", JSON.stringify(soundEnabled));
-  }, [soundEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem("mafia_sound_volume", soundVolume.toString());
-  }, [soundVolume]);
+    applySound(soundEnabled, soundVolume);
+  }, [soundEnabled, soundVolume]);
 
   // Notifications
   useEffect(() => {
@@ -78,7 +78,11 @@ export default function Settings() {
                 </div>
               </div>
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={() => {
+                  const next = !darkMode;
+                  setDarkMode(next);
+                  applyTheme(next);
+                }}
                 className={cn(
                   "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
                   darkMode ? "bg-indigo-600" : "bg-gray-300"
@@ -107,7 +111,11 @@ export default function Settings() {
                 </div>
               </div>
               <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  applySound(next, soundVolume);
+                }}
                 className={cn(
                   "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
                   soundEnabled ? "bg-green-600" : "bg-gray-300"
@@ -133,7 +141,11 @@ export default function Settings() {
                   min="0"
                   max="100"
                   value={soundVolume}
-                  onChange={(e) => setSoundVolume(parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const next = parseInt(e.target.value);
+                    setSoundVolume(next);
+                    applySound(soundEnabled, next);
+                  }}
                   className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
               </div>

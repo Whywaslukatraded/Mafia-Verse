@@ -158,8 +158,6 @@ export function useCreateRoom() {
         throw new Error(text || "Failed to create room");
       }
       return api.rooms.create.responses[201].parse(await res.json());
-    } catch (error: any) {
-      throw new Error(error?.message || "Failed to create room");
     },
   });
 }
@@ -177,8 +175,6 @@ export function useJoinRoom() {
         throw new Error(text || "Failed to join room");
       }
       return api.rooms.join.responses[200].parse(await res.json());
-    } catch (error: any) {
-      throw new Error(error?.message || "Failed to join room");
     },
   });
 }
