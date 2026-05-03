@@ -46,6 +46,11 @@ export const api = {
       input: z.object({
         name: z.string().min(1),
         avatar: z.string().min(1),
+        avatarConfig: z.object({
+          accessory: z.string().optional(),
+          clothing: z.string().optional(),
+          bg: z.string().optional(),
+        }).optional(),
         settings: z.object({
           mafiaCount: z.number().min(1),
           detectiveCount: z.number().min(0),

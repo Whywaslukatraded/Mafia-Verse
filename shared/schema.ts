@@ -106,6 +106,13 @@ export type Room = typeof rooms.$inferSelect;
 export type Player = typeof players.$inferSelect;
 
 export type CreateRoomRequest = {
+  name: string;
+  avatar: string;
+  avatarConfig?: {
+    accessory?: string;
+    clothing?: string;
+    bg?: string;
+  };
   settings: {
     mafiaCount: number;
     detectiveCount: number;
