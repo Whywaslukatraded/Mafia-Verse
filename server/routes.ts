@@ -176,20 +176,46 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
     if (Math.random() > 0.35) {
       let content = "";
-      const rand = Math.random();
-      if (rand > 0.8 && alivePlayers.length > 0) {
-        const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-        content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-      } else if (rand > 0.6) {
-        content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
-      } else if (rand > 0.4) {
-        content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
-      } else if (rand > 0.25) {
-        content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-      } else if (rand > 0.2) {
-        content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+      
+      // Check recent messages to see if bot should respond to a human
+      const recentMessages = await storage.getMessagesByRoom(roomId);
+      const lastHumanMsg = recentMessages?.filter((m: any) => m.playerId !== 0 && !players.find((p: Player) => p.id === m.playerId && p.isBot))?.pop();
+      
+      // Bot responds to recent human message 40% of the time
+      if (lastHumanMsg && Math.random() > 0.6) {
+        const msgText = lastHumanMsg.content.toLowerCase();
+        // Check if message mentions a specific player name (accusation)
+        const mentionedPlayer = players.find(p => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
+        if (mentionedPlayer) {
+          if (msgText.includes("mafia") || msgText.includes("sus") || msgText.includes("vote")) {
+            content = `I agree! ${mentionedPlayer.name} does seem suspicious.`;
+          } else if (msgText.includes("not") || msgText.includes("innocent")) {
+            content = `Hmm, maybe ${mentionedPlayer.name} is telling the truth.`;
+          } else {
+            content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+          }
+        } else if (msgText.includes("?")) {
+          // Respond to questions
+          content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+        } else {
+          content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+        }
       } else {
-        content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+        const rand = Math.random();
+        if (rand > 0.8 && alivePlayers.length > 0) {
+          const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+          content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
+        } else if (rand > 0.6) {
+          content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
+        } else if (rand > 0.4) {
+          content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+        } else if (rand > 0.25) {
+          content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+        } else if (rand > 0.2) {
+          content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+        } else {
+          content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+        }
       }
       if (content) {
         await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
@@ -239,14 +265,35 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (count > maxVotes) { maxVotes = count; topTargetId = id; }
       });
       
+      let gameEnded = false;
       if (topTargetId !== -1) {
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+          
+          // Check if voting out this player ends the game
+          const remainingPlayers = await storage.getPlayersInRoom(roomId);
+          const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
+          if (remainingMafia.length === 0) {
+            await storage.updateRoom(roomId, { status: 'ended' });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            gameEnded = true;
+          }
+          const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
+          if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
+            await storage.updateRoom(roomId, { status: 'ended' });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has taken over! Mafia wins!" });
+            gameEnded = true;
+          }
         }
       } else {
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
+      }
+      
+      if (gameEnded) {
+        broadcastState(roomId);
+        return;
       }
       
       await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
