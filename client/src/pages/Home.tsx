@@ -174,6 +174,31 @@ export default function Home() {
         className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-10">
+          <div className="flex justify-end mb-4">
+            {userId ? (
+              <Button
+                onClick={() => {
+                  localStorage.removeItem("mafia_userId");
+                  localStorage.removeItem("mafia_username");
+                  localStorage.removeItem("mafia_name");
+                  localStorage.removeItem("mafia_avatar");
+                  window.location.reload();
+                }}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Logout
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setLocation("/login")}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Login / Sign Up
+              </Button>
+            )}
+          </div>
           <div className="inline-flex items-center justify-center p-4 bg-slate-900 border-2 border-slate-800 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.4)] mb-6 ring-4 ring-blue-500/10 relative group overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-transparent opacity-50" />
             <Search className="w-10 h-10 text-blue-400 relative z-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]" strokeWidth={2.5} />
@@ -325,33 +350,8 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="pt-2 space-y-2">
-                  {userId ? (
-                    <Button
-                      onClick={() => {
-                        localStorage.removeItem("mafia_userId");
-                        localStorage.removeItem("mafia_username");
-                        localStorage.removeItem("mafia_name");
-                        localStorage.removeItem("mafia_avatar");
-                        window.location.reload();
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      Logout
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => setLocation("/login")}
-                      variant="default"
-                      className="w-full"
-                      size="sm"
-                    >
-                      Login / Sign Up
-                    </Button>
-                  )}
-                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono block text-center">
+                <div className="pt-2 flex justify-center">
+                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
                     System Core: 2,900+ Source Lines
                   </span>
                 </div>
