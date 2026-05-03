@@ -703,16 +703,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       res.status(201).json({ code: room.code, playerId: player.id, sessionId });
 
-      setTimeout(async () => {
-        try {
-          const playersInRoom = await storage.getPlayersInRoom(room.id);
-          if (playersInRoom.length < 6) {
-            await fillWithBots(room.id, storage);
-            broadcastState(room.id);
+      void setTimeout(() => {
+        (async () => {
+          try {
+            const playersInRoom = await storage.getPlayersInRoom(room.id);
+            if (playersInRoom.length < 6) {
+              await fillWithBots(room.id, storage);
+              await broadcastState(room.id);
+            }
+          } catch (err) {
+            console.error("Error filling bots or broadcasting:", err);
           }
-        } catch (err) {
-          console.error("Error filling bots or broadcasting:", err);
-        }
+        })();
       }, 1000);
     } catch (err: any) {
       console.error("POST /api/rooms failed:", err);
