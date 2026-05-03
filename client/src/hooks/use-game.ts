@@ -146,8 +146,8 @@ export function useCreateRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create room");
+        const text = await res.text();
+        throw new Error(text || "Failed to create room");
       }
       return api.rooms.create.responses[201].parse(await res.json());
     },
@@ -163,8 +163,8 @@ export function useJoinRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to join room");
+        const text = await res.text();
+        throw new Error(text || "Failed to join room");
       }
       return api.rooms.join.responses[200].parse(await res.json());
     },
