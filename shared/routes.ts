@@ -1,6 +1,48 @@
 import { z } from 'zod';
 
 export const api = {
+  auth: {
+    signup: {
+      method: 'POST' as const,
+      path: '/api/auth/signup',
+      input: z.object({
+        username: z.string().min(3).max(20),
+        password: z.string().min(6),
+        name: z.string().min(1),
+        avatar: z.string().min(1),
+      }),
+      responses: {
+        201: z.object({
+          userId: z.number(),
+          username: z.string(),
+          name: z.string(),
+          avatar: z.string(),
+          wins: z.number(),
+          gamesPlayed: z.number(),
+        }),
+        400: z.object({ message: z.string() }),
+      },
+    },
+    login: {
+      method: 'POST' as const,
+      path: '/api/auth/login',
+      input: z.object({
+        username: z.string(),
+        password: z.string(),
+      }),
+      responses: {
+        200: z.object({
+          userId: z.number(),
+          username: z.string(),
+          name: z.string(),
+          avatar: z.string(),
+          wins: z.number(),
+          gamesPlayed: z.number(),
+        }),
+        401: z.object({ message: z.string() }),
+      },
+    },
+  },
   rooms: {
     create: {
       method: 'POST' as const,
