@@ -5,7 +5,20 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { WS_EVENTS, type GameState, type GameAction, type Player } from "@shared/schema";
 import { z } from "zod";
-import { randomUUID } from "crypto";
+import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
+
+// Password hashing helpers
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, hash: string): boolean {
+  const [salt, storedHash] = hash.split(':');
+  const testHash = pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return testHash === storedHash;
+}
 
 // Game Logic Helpers
 function assignRoles(players: Player[], settings: any) {
@@ -596,6 +609,57 @@ async function broadcastState(roomId: number) {
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  app.post(api.auth.signup.path, async (req, res) => {
+    try {
+      const input = api.auth.signup.input.parse(req.body);
+      const existing = await storage.getUserByUsername(input.username);
+      if (existing) return res.status(400).json({ message: "Username already taken" });
+
+      const user = await storage.createUser({
+        username: input.username,
+        passwordHash: hashPassword(input.password),
+        name: input.name,
+        avatar: input.avatar,
+        avatarConfig: {},
+        wins: 0,
+        gamesPlayed: 0,
+        achievements: [],
+      });
+
+      res.status(201).json({
+        userId: user.id,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        wins: user.wins,
+        gamesPlayed: user.gamesPlayed,
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Signup failed" });
+    }
+  });
+
+  app.post(api.auth.login.path, async (req, res) => {
+    try {
+      const input = api.auth.login.input.parse(req.body);
+      const user = await storage.getUserByUsername(input.username);
+      if (!user || !verifyPassword(input.password, user.passwordHash)) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      res.json({
+        userId: user.id,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        wins: user.wins,
+        gamesPlayed: user.gamesPlayed,
+      });
+    } catch (error) {
+      res.status(401).json({ message: "Login failed" });
+    }
+  });
+
   app.post(api.rooms.create.path, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);

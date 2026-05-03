@@ -43,9 +43,14 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");
   
+  // Check if user is logged in
+  const userId = localStorage.getItem("mafia_userId");
+  const loggedInName = localStorage.getItem("mafia_name");
+  const loggedInAvatar = localStorage.getItem("mafia_avatar");
+  
   // Persistent Profile
-  const [name, setName] = useState(() => localStorage.getItem("mafia_profile_name") || "");
-  const [avatar, setAvatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
+  const [name, setName] = useState(() => loggedInName || localStorage.getItem("mafia_profile_name") || "");
+  const [avatar, setAvatar] = useState(() => loggedInAvatar || localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
   const [config, setConfig] = useState(() => {
     const saved = localStorage.getItem("mafia_profile_config");
     return saved ? JSON.parse(saved) : { accessory: "None", clothing: "None", bg: BGS[0] };
@@ -320,8 +325,33 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="pt-2 flex justify-center">
-                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
+                <div className="pt-2 space-y-2">
+                  {userId ? (
+                    <Button
+                      onClick={() => {
+                        localStorage.removeItem("mafia_userId");
+                        localStorage.removeItem("mafia_username");
+                        localStorage.removeItem("mafia_name");
+                        localStorage.removeItem("mafia_avatar");
+                        window.location.reload();
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      Logout
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setLocation("/login")}
+                      variant="default"
+                      className="w-full"
+                      size="sm"
+                    >
+                      Login / Sign Up
+                    </Button>
+                  )}
+                  <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono block text-center">
                     System Core: 2,900+ Source Lines
                   </span>
                 </div>
