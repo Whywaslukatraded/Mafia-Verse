@@ -146,8 +146,8 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
 
-  // Pick 1 random bot to respond (60% chance)
-  if (Math.random() > 0.6) return;
+  // Pick 1 random bot to respond (80% chance to respond)
+  if (Math.random() > 0.8) return;
 
   const bot = bots[Math.floor(Math.random() * bots.length)];
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
@@ -444,6 +444,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.doctorSave = null;
       actions.detectiveCheck = null;
       actions.votes.clear();
+      gameActions.set(roomId, actions);
     }
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
@@ -465,11 +466,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
       // Check if doctor is alive, if not skip to detective
       const aliveDoctor = players.find(p => p.role === 'doctor' && p.isAlive);
-      if (!aliveDoctor) {
-        await storage.updateRoom(roomId, { phase: 'detective' });
-      } else {
-        await storage.updateRoom(roomId, { phase: 'detective' });
-      }
+      // If doctor is dead, skip their phase
+      await storage.updateRoom(roomId, { phase: 'detective' });
       broadcastState(roomId); // Broadcast after phase change
     } else if (room.phase === 'detective') {
       console.log(`[Room ${roomId}] Night Phase: Detective -> Day Discussion`);
@@ -484,9 +482,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
             nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
             nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
           } else {
+            const killedPlayer = players.find((p: Player) => p.id === actions.mafiaKill);
             await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
             nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
             nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
+            // If doctor or detective killed, skip their turn
+            if (killedPlayer && (killedPlayer.role === 'doctor' || killedPlayer.role === 'detective')) {
+              // They will be skipped automatically since they're dead
+            }
           }
         }
       } else {
