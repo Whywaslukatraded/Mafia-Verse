@@ -715,8 +715,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
       }, 1000);
     } catch (err: any) {
+      console.error("POST /api/rooms failed:", err);
       if (err instanceof z.ZodError) res.status(400).json({ message: err.errors[0].message });
-      else res.status(500).json({ message: "Internal server error" });
+      else res.status(500).json({ message: err?.message || "Internal server error" });
     }
   });
 
