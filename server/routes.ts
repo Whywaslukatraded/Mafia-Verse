@@ -190,7 +190,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
-  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
   // Bot voting/action logic - bots act immediately, no delays
   for (const bot of bots) {
@@ -228,9 +228,9 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         return true; // Signal to advance phase immediately
       }
     } else if (room.phase === 'mafia' && bot.role === 'mafia') {
-      actions.mafiaKill = target.id;
+      actions.mafiaKills.set(bot.id, target.id);
     } else if (room.phase === 'doctor' && bot.role === 'doctor') {
-      actions.doctorSave = target.id;
+      actions.doctorSaves.set(bot.id, target.id);
     }
 
     if (Math.random() > 0.35) {
@@ -373,7 +373,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   if (!room) return;
 
   const players = await storage.getPlayersInRoom(roomId);
-  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
   if (room.status === 'day') {
     if (room.phase === 'discussion') {
@@ -440,9 +440,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (!gameEnded) {
         await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
       }
-      actions.mafiaKill = null;
-      actions.doctorSave = null;
-      actions.detectiveCheck = null;
+      actions.mafiaKills.clear();
+      actions.doctorSaves.clear();
+      actions.detectiveChecks.clear();
       actions.votes.clear();
       gameActions.set(roomId, actions);
     }
@@ -475,20 +475,29 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
 
       let nightSummary = "The night has ended. ";
-      if (actions.mafiaKill) {
-        const victim = players.find((p: Player) => p.id === actions.mafiaKill);
-        if (victim) {
-          if (actions.mafiaKill === actions.doctorSave) {
-            nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
-            nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
-          } else {
-            const killedPlayer = players.find((p: Player) => p.id === actions.mafiaKill);
-            await storage.updatePlayer(actions.mafiaKill, { isAlive: false });
-            nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
-            nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
-            // If doctor or detective killed, skip their turn
-            if (killedPlayer && (killedPlayer.role === 'doctor' || killedPlayer.role === 'detective')) {
-              // They will be skipped automatically since they're dead
+      
+      // Process all mafia kills (majority vote)
+      if (actions.mafiaKills.size > 0) {
+        const killVotes = new Map<number, number>();
+        actions.mafiaKills.forEach((targetId) => {
+          killVotes.set(targetId, (killVotes.get(targetId) || 0) + 1);
+        });
+        let topTarget = -1, maxVotes = 0;
+        killVotes.forEach((count, id) => {
+          if (count > maxVotes) { maxVotes = count; topTarget = id; }
+        });
+        
+        if (topTarget !== -1) {
+          const victim = players.find((p: Player) => p.id === topTarget);
+          if (victim) {
+            const isSaved = actions.doctorSaves.size > 0 && Array.from(actions.doctorSaves.values()).includes(topTarget);
+            if (isSaved) {
+              nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
+              nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
+            } else {
+              await storage.updatePlayer(topTarget, { isAlive: false });
+              nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
+              nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
             }
           }
         }
@@ -496,12 +505,13 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         nightSummary += "Nothing happened during the night.";
       }
       
-      if (actions.detectiveCheck) {
-        const target = players.find((p: Player) => p.id === actions.detectiveCheck);
+      // Process all detective checks
+      actions.detectiveChecks.forEach((targetId, detectiveId) => {
+        const target = players.find((p: Player) => p.id === targetId);
         if (target) {
-          nightData.events.push({ type: 'detective_check', target: target.name, isMafia: target.role === 'mafia' });
+          nightData.events.push({ type: 'detective_check', target: target.name, isMafia: target.role === 'mafia', detectiveId });
         }
-      }
+      });
 
       history.push(nightData);
       gameHistory.set(roomId, history);
@@ -509,9 +519,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion' });
       actions.votes.clear();
-      actions.mafiaKill = null;
-      actions.doctorSave = null;
-      actions.detectiveCheck = null;
+      actions.mafiaKills.clear();
+      actions.doctorSaves.clear();
+      actions.detectiveChecks.clear();
       broadcastState(roomId); // Broadcast after phase change to day
     }
   }
@@ -561,9 +571,9 @@ const clients = new Map<string, WebSocket>();
 const roomClients = new Map<number, Set<string>>();
 const gameActions = new Map<number, {
   votes: Map<number, number>,
-  mafiaKill: number | null,
-  doctorSave: number | null,
-  detectiveCheck: number | null
+  mafiaKills: Map<number, number>,
+  doctorSaves: Map<number, number>,
+  detectiveChecks: Map<number, number>
 }>();
 
 async function broadcastState(roomId: number) {
@@ -588,9 +598,9 @@ async function broadcastState(roomId: number) {
       const actions = gameActions.get(roomId);
       const myAction = me ? {
         vote: actions?.votes.get(me.id),
-        kill: me.role === 'mafia' ? actions?.mafiaKill : null,
-        heal: me.role === 'doctor' ? actions?.doctorSave : null,
-        check: me.role === 'detective' ? actions?.detectiveCheck : null
+        kill: me.role === 'mafia' ? actions?.mafiaKills.get(me.id) || null : null,
+        heal: me.role === 'doctor' ? actions?.doctorSaves.get(me.id) || null : null,
+        check: me.role === 'detective' ? actions?.detectiveChecks.get(me.id) || null : null
       } : null;
 
       const sanitizedPlayers = players.map((p: Player) => {
@@ -819,9 +829,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1 });
           gameActions.set(myRoomId, {
             votes: new Map(),
-            mafiaKill: null,
-            doctorSave: null,
-            detectiveCheck: null
+            mafiaKills: new Map(),
+            doctorSaves: new Map(),
+            detectiveChecks: new Map()
           });
           gameHistory.set(myRoomId, []);
 
@@ -847,7 +857,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
-           const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKill: null, doctorSave: null, detectiveCheck: null };
+           const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
            if (action.type === 'chat' || action.type === 'message') {
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
@@ -998,7 +1008,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find(p => p.id === action.targetId);
              console.log(`[Room ${myRoomId}] MAFIA KILL #2: target found=${!!target}, alive=${target?.isAlive}, isMafia=${target?.role === 'mafia'}`);
              if (target?.isAlive && target.role !== 'mafia') {
-               actions.mafiaKill = action.targetId;
+               actions.mafiaKills.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                console.log(`[Room ${myRoomId}] MAFIA KILL #3: Registered kill, broadcasting state...`);
                broadcastState(myRoomId);
@@ -1023,7 +1033,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
              const target = players.find(p => p.id === action.targetId);
              if (target?.isAlive) {
-               actions.doctorSave = action.targetId;
+               actions.doctorSaves.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
@@ -1041,7 +1051,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
              const target = players.find(p => p.id === action.targetId);
              if (target) {
-                actions.detectiveCheck = target.id;
+                actions.detectiveChecks.set(me.id, target.id);
                 gameActions.set(myRoomId, actions);
                 const isMafia = target.role === 'mafia';
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
