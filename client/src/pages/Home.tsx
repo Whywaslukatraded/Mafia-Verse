@@ -146,9 +146,10 @@ export default function Home() {
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
+      console.error("Create room failed:", err);
       toast({
         title: "Failed to create",
-        description: err.message,
+        description: err?.message || "Unknown error",
         variant: "destructive",
       });
     }

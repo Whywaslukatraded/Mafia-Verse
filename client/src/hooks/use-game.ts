@@ -6,6 +6,14 @@ import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest 
 
 const RECONNECT_DELAY = 1000;
 
+async function safeTextResponse(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
 export function useGameSocket(code: string | null, sessionId: string | null) {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -146,7 +154,7 @@ export function useCreateRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const text = await res.text();
+        const text = await safeTextResponse(res);
         throw new Error(text || "Failed to create room");
       }
       return api.rooms.create.responses[201].parse(await res.json());
@@ -163,7 +171,7 @@ export function useJoinRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const text = await res.text();
+        const text = await safeTextResponse(res);
         throw new Error(text || "Failed to join room");
       }
       return api.rooms.join.responses[200].parse(await res.json());
