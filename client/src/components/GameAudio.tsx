@@ -23,8 +23,8 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       setSoundVolume(Number(localStorage.getItem("mafia_sound_volume") || "70") / 100);
     };
     sync();
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
+    const id = window.setInterval(sync, 500);
+    return () => window.clearInterval(id);
   }, []);
 
   // Handle Background Music
@@ -46,7 +46,7 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       targetSrc = dayTheme;
     }
 
-    if (targetSrc && music.src !== window.location.origin + targetSrc) {
+    if (targetSrc && music.src !== new URL(targetSrc, window.location.origin).href) {
       music.pause();
       music.src = targetSrc;
       if (soundEnabled) {
