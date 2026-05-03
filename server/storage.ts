@@ -37,7 +37,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoomByCode(code: string): Promise<Room | undefined> {
-    const [room] = await db.select().from(rooms).where(eq(rooms.code, code));
+    const [room] = await db.select().from(rooms).where(eq(rooms.code, code.toUpperCase()));
     return room;
   }
 
