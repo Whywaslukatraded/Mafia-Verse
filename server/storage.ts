@@ -1,9 +1,12 @@
 import { db } from "./db";
-import { rooms, players, messages, type Room, type Player, type CreateRoomRequest, type Message } from "@shared/schema";
+import { users, rooms, players, messages, type User, type Room, type Player, type CreateRoomRequest, type Message } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
 export interface IStorage {
+  createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  
   createRoom(settings: CreateRoomRequest["settings"]): Promise<Room>;
   getRoomByCode(code: string): Promise<Room | undefined>;
   getRoom(id: number): Promise<Room | undefined>;
@@ -25,6 +28,16 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async createUser(user: Omit<User, "id" | "createdAt">): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
   async createRoom(settings: CreateRoomRequest["settings"]): Promise<Room> {
     const code = await this.generateRoomCode();
     const [room] = await db.insert(rooms).values({
