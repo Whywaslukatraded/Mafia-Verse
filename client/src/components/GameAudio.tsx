@@ -23,8 +23,8 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       setSoundVolume(Number(localStorage.getItem("mafia_sound_volume") || "70") / 100);
     };
     sync();
-    const id = window.setInterval(sync, 500);
-    return () => window.clearInterval(id);
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
   }, []);
 
   // Handle Background Music
@@ -59,7 +59,7 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     return () => {
       music.pause();
     };
-  }, [status]);
+  }, [status, soundEnabled, soundVolume]);
 
   // Handle Sound Effects on Phase/Status changes
   useEffect(() => {
@@ -78,7 +78,7 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       sfx.src = killSound;
       sfx.play().catch(() => {});
     }
-  }, [phase, status]);
+  }, [phase, status, soundEnabled, soundVolume]);
 
   return null; // This component handles side effects only
 }

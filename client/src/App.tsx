@@ -30,9 +30,14 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    const saved = localStorage.getItem("mafia_theme_dark");
-    const darkMode = saved !== null ? JSON.parse(saved) : true;
-    document.documentElement.classList.toggle("dark", darkMode);
+    const syncTheme = () => {
+      const saved = localStorage.getItem("mafia_theme_dark");
+      const darkMode = saved !== null ? JSON.parse(saved) : true;
+      document.documentElement.classList.toggle("dark", darkMode);
+    };
+    syncTheme();
+    window.addEventListener("storage", syncTheme);
+    return () => window.removeEventListener("storage", syncTheme);
   }, []);
 
   return (
