@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface GameAudioProps {
   phase: string;
@@ -14,12 +14,18 @@ import killSound from '../assets/sounds/kill-sound.mp3';
 export function GameAudio({ phase, status }: GameAudioProps) {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
   const sfxRef = useRef<HTMLAudioElement | null>(null);
-  const soundEnabled = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem("mafia_sound_enabled") || "true")
-    : true;
-  const soundVolume = typeof window !== 'undefined'
-    ? Number(localStorage.getItem("mafia_sound_volume") || "70") / 100
-    : 0.7;
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundVolume, setSoundVolume] = useState(0.7);
+
+  useEffect(() => {
+    const sync = () => {
+      setSoundEnabled(JSON.parse(localStorage.getItem("mafia_sound_enabled") || "true"));
+      setSoundVolume(Number(localStorage.getItem("mafia_sound_volume") || "70") / 100);
+    };
+    sync();
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
 
   // Handle Background Music
   useEffect(() => {

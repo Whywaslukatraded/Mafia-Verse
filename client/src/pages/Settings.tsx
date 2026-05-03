@@ -25,6 +25,7 @@ export default function Settings() {
     const saved = localStorage.getItem("mafia_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
+  const [syncKey, setSyncKey] = useState(0);
 
   // Theme toggle
   useEffect(() => {
@@ -34,21 +35,31 @@ export default function Settings() {
       document.documentElement.classList.remove("dark");
     }
     localStorage.setItem("mafia_theme_dark", JSON.stringify(darkMode));
+    window.dispatchEvent(new Event("storage"));
   }, [darkMode]);
 
   // Sound settings
   useEffect(() => {
     localStorage.setItem("mafia_sound_enabled", JSON.stringify(soundEnabled));
+    window.dispatchEvent(new Event("storage"));
   }, [soundEnabled]);
 
   useEffect(() => {
     localStorage.setItem("mafia_sound_volume", soundVolume.toString());
+    window.dispatchEvent(new Event("storage"));
   }, [soundVolume]);
 
   // Notifications
   useEffect(() => {
     localStorage.setItem("mafia_notifications_enabled", JSON.stringify(notificationsEnabled));
+    window.dispatchEvent(new Event("storage"));
   }, [notificationsEnabled]);
+
+  useEffect(() => {
+    const onStorage = () => setSyncKey((v) => v + 1);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 relative overflow-hidden">
