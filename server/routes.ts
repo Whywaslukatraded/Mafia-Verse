@@ -91,12 +91,17 @@ async function fillWithBots(roomId: number, storage: any) {
       roomId,
       name: BOT_NAMES[i % BOT_NAMES.length] + "_" + Math.floor(Math.random() * 1000),
       avatar: BOT_AVATARS[Math.floor(Math.random() * BOT_AVATARS.length)],
+      avatarConfig: {},
       role: null,
       isAlive: true,
       isHost: false,
       sessionId: "bot-" + randomUUID(),
       isSpectator: false,
-      isBot: true
+      isBot: true,
+      wins: 0,
+      gamesPlayed: 0,
+      achievements: [],
+      gameHistory: []
     });
   }
 }
