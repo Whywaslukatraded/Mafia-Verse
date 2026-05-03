@@ -125,6 +125,52 @@ const BOT_MESSAGES = {
   ],
 };
 
+async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
+  const room = await storage.getRoom(roomId);
+  if (!room || room.status === 'lobby' || room.status === 'ended') return;
+
+  const players = await storage.getPlayersInRoom(roomId);
+  const bots = players.filter((p: Player) => p.isBot && p.isAlive);
+  if (bots.length === 0) return;
+
+  // Pick 1 random bot to respond (60% chance)
+  if (Math.random() > 0.6) return;
+
+  const bot = bots[Math.floor(Math.random() * bots.length)];
+  const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+  const msgLower = humanMessage.toLowerCase();
+
+  let content = "";
+
+  // Check if human mentioned a specific player
+  const mentionedPlayer = players.find(p => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
+  
+  if (mentionedPlayer) {
+    if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
+      content = `I agree! ${mentionedPlayer.name} does seem suspicious.`;
+    } else if (msgLower.includes("innocent") || msgLower.includes("not") || msgLower.includes("trust")) {
+      content = `Maybe ${mentionedPlayer.name} is innocent. Hard to tell.`;
+    } else {
+      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+    }
+  } else if (msgLower.includes("?")) {
+    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+  } else if (msgLower.includes("mafia") || msgLower.includes("kill")) {
+    if (alivePlayers.length > 0 && Math.random() > 0.5) {
+      const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      content = `Could ${victim?.name} be the mafia?`;
+    } else {
+      content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+    }
+  } else {
+    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+  }
+
+  if (content) {
+    await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
+  }
+}
+
 async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
@@ -753,6 +799,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
+                 // Bots respond to human chat
+                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
