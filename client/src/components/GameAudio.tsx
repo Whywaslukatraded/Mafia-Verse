@@ -14,16 +14,22 @@ import killSound from '../assets/sounds/kill-sound.mp3';
 export function GameAudio({ phase, status }: GameAudioProps) {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
   const sfxRef = useRef<HTMLAudioElement | null>(null);
+  const soundEnabled = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem("mafia_sound_enabled") || "true")
+    : true;
+  const soundVolume = typeof window !== 'undefined'
+    ? Number(localStorage.getItem("mafia_sound_volume") || "70") / 100
+    : 0.7;
 
   // Handle Background Music
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio();
       bgMusicRef.current.loop = true;
-      bgMusicRef.current.volume = 0.3;
     }
 
     const music = bgMusicRef.current;
+    music.volume = soundVolume * 0.5;
     let targetSrc = '';
 
     if (status === 'lobby' || status === 'ended') {
@@ -37,7 +43,11 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     if (targetSrc && music.src !== window.location.origin + targetSrc) {
       music.pause();
       music.src = targetSrc;
-      music.play().catch(err => console.log("Audio play blocked by browser", err));
+      if (soundEnabled) {
+        music.play().catch(err => console.log("Audio play blocked by browser", err));
+      }
+    } else if (!soundEnabled) {
+      music.pause();
     }
 
     return () => {
@@ -49,10 +59,11 @@ export function GameAudio({ phase, status }: GameAudioProps) {
   useEffect(() => {
     if (!sfxRef.current) {
       sfxRef.current = new Audio();
-      sfxRef.current.volume = 0.6;
     }
 
     const sfx = sfxRef.current;
+    sfx.volume = soundVolume;
+    if (!soundEnabled) return;
     
     if (phase === 'voting') {
       sfx.src = voteSound;

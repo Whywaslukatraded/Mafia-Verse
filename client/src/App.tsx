@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -28,6 +29,12 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    const saved = localStorage.getItem("mafia_theme_dark");
+    const darkMode = saved !== null ? JSON.parse(saved) : true;
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
