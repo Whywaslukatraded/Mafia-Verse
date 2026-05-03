@@ -4,23 +4,6 @@ import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  name: text("name").notNull(),
-  avatar: text("avatar").notNull(),
-  avatarConfig: jsonb("avatar_config").$type<{
-    accessory?: string;
-    clothing?: string;
-    bg?: string;
-  }>(),
-  wins: integer("wins").default(0),
-  gamesPlayed: integer("games_played").default(0),
-  achievements: jsonb("achievements").default([]),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),
@@ -98,10 +81,6 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   isSpectator: z.boolean().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
