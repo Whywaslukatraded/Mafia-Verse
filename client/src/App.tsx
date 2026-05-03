@@ -33,6 +33,13 @@ function App() {
     const saved = localStorage.getItem("mafia_theme_dark");
     const darkMode = saved !== null ? JSON.parse(saved) : true;
     document.documentElement.classList.toggle("dark", darkMode);
+    const syncTheme = () => {
+      const nextSaved = localStorage.getItem("mafia_theme_dark");
+      const nextDarkMode = nextSaved !== null ? JSON.parse(nextSaved) : true;
+      document.documentElement.classList.toggle("dark", nextDarkMode);
+    };
+    window.addEventListener("storage", syncTheme);
+    return () => window.removeEventListener("storage", syncTheme);
   }, []);
 
   return (
