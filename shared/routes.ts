@@ -60,6 +60,9 @@ export const api = {
           mafiaDuration: z.number().min(5),
           doctorDuration: z.number().min(5),
           detectiveDuration: z.number().min(5),
+          roomName: z.string().optional(),
+          showVoteResults: z.boolean().optional(),
+          showRoleReveal: z.boolean().optional(),
         }),
       }),
       responses: {

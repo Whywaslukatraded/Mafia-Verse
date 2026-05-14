@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface GameAudioProps {
   phase: string;
@@ -16,16 +16,46 @@ export function GameAudio({ phase, status }: GameAudioProps) {
   const sfxRef = useRef<HTMLAudioElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundVolume, setSoundVolume] = useState(0.7);
+  // AudioContext must be unlocked via user interaction per browser autoplay policy
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
+  // Sync settings from localStorage
   useEffect(() => {
     const sync = () => {
-      setSoundEnabled(JSON.parse(localStorage.getItem("mafia_sound_enabled") || "true"));
-      setSoundVolume(Number(localStorage.getItem("mafia_sound_volume") || "70") / 100);
+      const savedEnabled = localStorage.getItem("mafia_sound_enabled");
+      const savedVolume = localStorage.getItem("mafia_sound_volume");
+      setSoundEnabled(savedEnabled !== null ? JSON.parse(savedEnabled) : true);
+      setSoundVolume(savedVolume ? Number(savedVolume) / 100 : 0.7);
     };
     sync();
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, []);
+
+  // Unlock audio on first user click anywhere
+  const unlockAudio = useCallback(() => {
+    if (audioUnlocked) return;
+    setAudioUnlocked(true);
+    // Pre-load audio elements by playing them muted briefly
+    if (bgMusicRef.current) {
+      bgMusicRef.current.muted = true;
+      bgMusicRef.current.play().catch(() => {});
+      setTimeout(() => {
+        if (bgMusicRef.current) bgMusicRef.current.muted = false;
+      }, 100);
+    }
+    window.removeEventListener("click", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+  }, [audioUnlocked]);
+
+  useEffect(() => {
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, [unlockAudio]);
 
   // Handle Background Music
   useEffect(() => {
@@ -39,7 +69,7 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     let targetSrc = '';
 
     if (status === 'lobby' || status === 'ended') {
-      targetSrc = dayTheme; // Use day theme for lobby/end for now
+      targetSrc = dayTheme;
     } else if (status === 'night') {
       targetSrc = nightTheme;
     } else if (status === 'day') {
@@ -49,17 +79,17 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     if (targetSrc && music.src !== new URL(targetSrc, window.location.origin).href) {
       music.pause();
       music.src = targetSrc;
-      if (soundEnabled) {
-        music.play().catch(err => console.log("Audio play blocked by browser", err));
+      if (soundEnabled && audioUnlocked) {
+        music.play().catch(() => {});
       }
-    } else if (!soundEnabled) {
+    } else if (!soundEnabled || !audioUnlocked) {
       music.pause();
     }
 
     return () => {
       music.pause();
     };
-  }, [status, soundEnabled, soundVolume]);
+  }, [status, soundEnabled, soundVolume, audioUnlocked]);
 
   // Handle Sound Effects on Phase/Status changes
   useEffect(() => {
@@ -69,8 +99,8 @@ export function GameAudio({ phase, status }: GameAudioProps) {
 
     const sfx = sfxRef.current;
     sfx.volume = soundVolume;
-    if (!soundEnabled) return;
-    
+    if (!soundEnabled || !audioUnlocked) return;
+
     if (phase === 'voting') {
       sfx.src = voteSound;
       sfx.play().catch(() => {});
@@ -78,7 +108,7 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       sfx.src = killSound;
       sfx.play().catch(() => {});
     }
-  }, [phase, status, soundEnabled, soundVolume]);
+  }, [phase, status, soundEnabled, soundVolume, audioUnlocked]);
 
   return null; // This component handles side effects only
 }
