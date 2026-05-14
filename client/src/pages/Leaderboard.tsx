@@ -37,7 +37,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-yellow-900/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-amber-900/10 rounded-full blur-[120px]" />
@@ -49,7 +49,7 @@ export default function Leaderboard() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Hall of Infamy</h1>
+            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">Hall of Infamy</h1>
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Global Leaderboard</p>
           </div>
         </div>
@@ -59,35 +59,35 @@ export default function Leaderboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-end justify-center gap-3 mb-8">
             {/* 2nd */}
             <div className="flex flex-col items-center gap-2">
-              <div className={cn("w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-slate-400/30 relative overflow-hidden", entries[1]?.avatarConfig?.bg || "bg-white/5")}>
+              <div className={cn("w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-muted-foreground/30 relative overflow-hidden", entries[1]?.avatarConfig?.bg || "bg-muted/50")}>
                 <span>{entries[1]?.avatar || "👤"}</span>
               </div>
-              <div className="bg-slate-700/50 ring-1 ring-slate-400/30 rounded-xl px-3 py-2 text-center w-24 h-20 flex flex-col items-center justify-center">
-                <span className="text-slate-300 font-black text-lg">2nd</span>
-                <span className="text-xs font-bold text-white/80 truncate w-full text-center">{entries[1]?.name}</span>
+              <div className="bg-muted ring-1 ring-muted-foreground/30 rounded-xl px-3 py-2 text-center w-24 h-20 flex flex-col items-center justify-center">
+                <span className="text-muted-foreground font-black text-lg">2nd</span>
+                <span className="text-xs font-bold text-foreground/80 truncate w-full text-center">{entries[1]?.name}</span>
                 <span className="text-[10px] text-muted-foreground">{entries[1]?.wins}W</span>
               </div>
             </div>
             {/* 1st */}
             <div className="flex flex-col items-center gap-2">
               <Crown className="w-5 h-5 text-yellow-400" />
-              <div className={cn("w-20 h-20 rounded-full flex items-center justify-center text-4xl border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/20 relative overflow-hidden", entries[0]?.avatarConfig?.bg || "bg-white/5")}>
+              <div className={cn("w-20 h-20 rounded-full flex items-center justify-center text-4xl border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/20 relative overflow-hidden", entries[0]?.avatarConfig?.bg || "bg-muted/50")}>
                 <span>{entries[0]?.avatar || "👤"}</span>
               </div>
               <div className="bg-yellow-500/10 ring-1 ring-yellow-500/40 rounded-xl px-3 py-2 text-center w-28 h-24 flex flex-col items-center justify-center">
                 <span className="text-yellow-400 font-black text-xl">1st</span>
-                <span className="text-sm font-bold text-white truncate w-full text-center">{entries[0]?.name}</span>
+                <span className="text-sm font-bold text-foreground truncate w-full text-center">{entries[0]?.name}</span>
                 <span className="text-[10px] text-yellow-400/70">{entries[0]?.wins}W · {entries[0]?.winRate}%</span>
               </div>
             </div>
             {/* 3rd */}
             <div className="flex flex-col items-center gap-2">
-              <div className={cn("w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-amber-600/30 relative overflow-hidden", entries[2]?.avatarConfig?.bg || "bg-white/5")}>
+              <div className={cn("w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-amber-600/30 relative overflow-hidden", entries[2]?.avatarConfig?.bg || "bg-muted/50")}>
                 <span>{entries[2]?.avatar || "👤"}</span>
               </div>
               <div className="bg-amber-600/10 ring-1 ring-amber-600/30 rounded-xl px-3 py-2 text-center w-24 h-20 flex flex-col items-center justify-center">
                 <span className="text-amber-600 font-black text-lg">3rd</span>
-                <span className="text-xs font-bold text-white/80 truncate w-full text-center">{entries[2]?.name}</span>
+                <span className="text-xs font-bold text-foreground/80 truncate w-full text-center">{entries[2]?.name}</span>
                 <span className="text-[10px] text-muted-foreground">{entries[2]?.wins}W</span>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function Leaderboard() {
                 </span>
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 relative overflow-hidden",
-                  entry.avatarConfig?.bg || "bg-white/5"
+                  entry.avatarConfig?.bg || "bg-muted/50"
                 )}>
                   <span>{entry.avatar || "👤"}</span>
                 </div>

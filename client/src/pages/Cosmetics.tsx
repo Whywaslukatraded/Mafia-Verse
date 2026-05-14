@@ -70,7 +70,7 @@ export default function Cosmetics() {
   const userWins = stats.wins || 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]" />
@@ -81,10 +81,10 @@ export default function Cosmetics() {
           <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Cosmetics Shop</h1>
+          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">Cosmetics Shop</h1>
         </div>
 
-        <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 mb-8">
+        <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Available Wins</p>
@@ -105,14 +105,14 @@ export default function Cosmetics() {
                 key={cosmetic.id}
                 whileHover={{ scale: 1.02 }}
                 className={cn(
-                  "bg-black/40 backdrop-blur ring-1 rounded-xl p-4 transition-all",
-                  isOwned ? "ring-primary/40 bg-primary/5" : "ring-white/10",
+                  "bg-card/80 backdrop-blur ring-1 rounded-xl p-4 transition-all",
+                  isOwned ? "ring-primary/40 bg-primary/5" : "ring-border",
                   isEquipped && "ring-2 ring-yellow-500/60"
                 )}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-white">{cosmetic.name}</h3>
+                    <h3 className="font-bold text-foreground">{cosmetic.name}</h3>
                     <p className="text-[10px] text-muted-foreground mt-1">{cosmetic.description}</p>
                   </div>
                   {isEquipped && (
@@ -125,9 +125,9 @@ export default function Cosmetics() {
                   )}
                 </div>
 
-                <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
                   {cosmetic.type === "chat_border" && (
-                    <div className={cn("p-2 rounded text-sm text-white border", cosmetic.preview)}>
+                    <div className={cn("p-2 rounded text-sm text-foreground border", cosmetic.preview)}>
                       Sample message
                     </div>
                   )}

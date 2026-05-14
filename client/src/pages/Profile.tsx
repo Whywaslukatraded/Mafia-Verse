@@ -45,7 +45,7 @@ export default function Profile() {
   const earnedAchievements = new Set(stats.achievements || []);
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]" />
@@ -57,7 +57,7 @@ export default function Profile() {
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-white">Agent Profile</h1>
+            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">Agent Profile</h1>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setLocation("/settings")} className="rounded-full">
             <Settings className="w-5 h-5" />
@@ -66,7 +66,7 @@ export default function Profile() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           {/* Avatar Card */}
-          <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 flex items-center gap-6">
+          <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 flex items-center gap-6">
             <div className={cn(
               "w-28 h-28 rounded-full border-2 border-primary/20 flex items-center justify-center text-5xl shadow-2xl shadow-primary/10 relative overflow-hidden flex-shrink-0",
               config.bg
@@ -80,7 +80,7 @@ export default function Profile() {
               )}
             </div>
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-white">{name}</h2>
+              <h2 className="text-3xl font-black tracking-tight text-foreground">{name}</h2>
               <p className="text-muted-foreground text-sm font-mono uppercase tracking-widest mt-1">
                 {earnedAchievements.size}/{ACHIEVEMENTS.length} Badges
               </p>
@@ -106,7 +106,7 @@ export default function Profile() {
               { icon: Target, label: "Games", value: stats.gamesPlayed || 0, color: "text-blue-500" },
               { icon: TrendingUp, label: "Win %", value: `${winRate}%`, color: "text-emerald-500" },
             ].map(stat => (
-              <div key={stat.label} className="bg-black/40 ring-1 ring-white/10 rounded-xl p-3 flex flex-col items-center gap-1.5">
+              <div key={stat.label} className="bg-card/80 ring-1 ring-border rounded-xl p-3 flex flex-col items-center gap-1.5">
                 <stat.icon className={cn("w-4 h-4", stat.color)} />
                 <span className="text-2xl font-black font-mono">{stat.value}</span>
                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">{stat.label}</span>
@@ -116,7 +116,7 @@ export default function Profile() {
 
           {/* Role Statistics */}
           {stats.gamesPlayed > 0 && (
-            <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 space-y-4">
+            <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Role Performance</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -127,7 +127,7 @@ export default function Profile() {
                 ].map(role => {
                   const roleWins = (stats as any)[role.stat] || 0;
                   return (
-                    <div key={role.role} className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-2">
+                    <div key={role.role} className="bg-muted/50 border border-border rounded-xl p-3 flex items-center gap-2">
                       <span className="text-2xl">{role.emoji}</span>
                       <div className="flex-1">
                         <p className={cn("text-sm font-bold", role.color)}>{role.role}</p>
@@ -144,8 +144,8 @@ export default function Profile() {
           {((stats.currentStreak || 0) > 0 || (stats.bestStreak || 0) > 0) && (
             <div className="grid grid-cols-2 gap-3">
               <div className={cn(
-                "bg-black/40 ring-1 rounded-xl p-4 flex items-center gap-3",
-                (stats.currentStreak || 0) >= 3 ? "ring-orange-500/40 bg-orange-950/20" : "ring-white/10"
+                "bg-card/80 ring-1 rounded-xl p-4 flex items-center gap-3",
+                (stats.currentStreak || 0) >= 3 ? "ring-orange-500/40 bg-orange-950/20" : "ring-border"
               )}>
                 <motion.div
                   animate={stats.currentStreak >= 3 ? { scale: [1, 1.2, 1] } : {}}
@@ -158,7 +158,7 @@ export default function Profile() {
                   <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Current Streak</p>
                 </div>
               </div>
-              <div className="bg-black/40 ring-1 ring-white/10 rounded-xl p-4 flex items-center gap-3">
+              <div className="bg-card/80 ring-1 ring-border rounded-xl p-4 flex items-center gap-3">
                 <Flame className="w-6 h-6 text-yellow-500" />
                 <div>
                   <p className="text-2xl font-black font-mono">{stats.bestStreak || 0}</p>
@@ -169,7 +169,7 @@ export default function Profile() {
           )}
 
           {/* Achievements */}
-          <div className="bg-black/40 backdrop-blur-xl ring-1 ring-white/10 rounded-2xl p-6 space-y-4">
+          <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Achievement Hall</h3>
             <div className="grid grid-cols-3 gap-3">
               {ACHIEVEMENTS.map(ach => {
@@ -182,7 +182,7 @@ export default function Profile() {
                       "relative rounded-xl p-3 flex flex-col items-center gap-2 border transition-all cursor-default group",
                       earned
                         ? "bg-yellow-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/5"
-                        : "bg-white/3 border-white/5 opacity-40 grayscale"
+                        : "bg-muted/30 border-border opacity-40 grayscale"
                     )}
                   >
                     <span className="text-3xl">{ach.icon}</span>
@@ -190,10 +190,10 @@ export default function Profile() {
                       <p className={cn("text-[10px] font-black uppercase tracking-tight leading-tight", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
                     </div>
                     {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 bg-black/95 border border-white/10 rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 bg-popover border border-border rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <p className={cn("font-bold uppercase mb-0.5", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
-                      <p className="text-white/60 leading-tight">{ach.description}</p>
-                      {!earned && <p className="text-white/30 mt-1 italic">Not yet unlocked</p>}
+                      <p className="text-muted-foreground leading-tight">{ach.description}</p>
+                      {!earned && <p className="text-muted-foreground/50 mt-1 italic">Not yet unlocked</p>}
                     </div>
                   </motion.div>
                 );
