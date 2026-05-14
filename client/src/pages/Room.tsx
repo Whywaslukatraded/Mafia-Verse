@@ -382,7 +382,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto"
           >
             <motion.div
               initial={{ scale: 0.8, y: 40 }}
@@ -399,22 +399,22 @@ export default function Room() {
                     <div className={`text-8xl font-black mb-2 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
                       {mafiaWon ? "🔴 MAFIA" : "✨ CIVILIANS"}
                     </div>
-                    <div className="text-5xl font-black mb-6 text-white">WINS!</div>
-                    <div className="mb-8 text-white/70 text-lg font-semibold">
+                    <div className="text-5xl font-black mb-6 text-foreground">WINS!</div>
+                    <div className="mb-8 text-muted-foreground text-lg font-semibold">
                       {mafiaWon 
                         ? `The Mafia took over with ${aliveMafia} member${aliveMafia !== 1 ? 's' : ''} remaining` 
                         : `The town eliminated all mafia!`}
                     </div>
                     
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
-                      <h3 className="text-white font-black mb-4 uppercase tracking-wider text-sm">Final Roles Revealed</h3>
+                    <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
+                      <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">Final Roles Revealed</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {players.map((p) => (
                           <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
                             <span className="text-2xl">{p.avatar || "👤"}</span>
                             <div className="text-left flex-1">
-                              <div className="text-white font-bold text-sm">{p.name}</div>
-                              <div className={`text-xs font-bold uppercase tracking-wider ${p.role === "mafia" ? "text-red-400" : p.role === "detective" ? "text-blue-400" : p.role === "doctor" ? "text-yellow-400" : "text-gray-400"}`}>
+                              <div className="text-foreground font-bold text-sm">{p.name}</div>
+                              <div className={`text-xs font-bold uppercase tracking-wider ${p.role === "mafia" ? "text-red-400" : p.role === "detective" ? "text-blue-400" : p.role === "doctor" ? "text-yellow-400" : "text-muted-foreground"}`}>
                                 {p.role || "civilian"}
                               </div>
                             </div>
@@ -445,7 +445,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-center justify-center bg-black/90 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 z-40 flex items-center justify-center bg-background/90 backdrop-blur-xl pointer-events-auto"
             onClick={() => setEliminationOverlay(null)}
           >
             <motion.div
@@ -455,9 +455,9 @@ export default function Room() {
             >
               <div className="text-8xl mb-4">{eliminationOverlay.avatar}</div>
               <div className="text-sm font-black uppercase tracking-[0.4em] text-red-400 mb-2">Eliminated</div>
-              <h2 className="text-4xl font-black text-white mb-2">{eliminationOverlay.name}</h2>
+              <h2 className="text-4xl font-black text-foreground mb-2">{eliminationOverlay.name}</h2>
               {eliminationOverlay.role && (
-                <div className="inline-block bg-white/10 border border-white/20 px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-white/80 capitalize mb-4">
+                <div className="inline-block bg-muted/50 border border-border px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-muted-foreground capitalize mb-4">
                   was {eliminationOverlay.role}
                 </div>
               )}
@@ -466,7 +466,7 @@ export default function Room() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="text-sm italic text-white/70 mt-4 leading-relaxed"
+                  className="text-sm italic text-muted-foreground mt-4 leading-relaxed"
                 >
                   {eliminationOverlay.deathStory}
                 </motion.p>
@@ -483,7 +483,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-xl"
           >
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-center">
               <div className="mb-4 text-sm font-bold uppercase tracking-[0.4em] text-muted-foreground/60">Your Secret Identity</div>
@@ -497,7 +497,7 @@ export default function Room() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="mt-8 text-xl font-serif text-white/80 max-w-xs mx-auto italic"
+                className="mt-8 text-xl font-serif text-muted-foreground max-w-xs mx-auto italic"
               >
                 {me?.role === "mafia" ? "Operate in the shadows. Eliminate everyone else." :
                  me?.role === "detective" ? "Seek the truth. Find the Mafia." :
@@ -578,7 +578,7 @@ export default function Room() {
                   <p className="text-sm text-muted-foreground mb-4">{players.length} / 6+ players</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {players.map((p) => (
-                      <div key={p.id} className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                      <div key={p.id} className="flex items-center gap-2 p-2 bg-muted/80 rounded-lg">
                         <span className="text-lg">{p.avatar}</span>
                         <span className="text-xs font-bold truncate">{p.name}</span>
                         {p.isHost && <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">HOST</span>}
@@ -720,7 +720,7 @@ export default function Room() {
                   <ScrollArea className="h-[300px] pr-4">
                     <div className="space-y-6">
                       {(me as any)?.gameHistory?.map((entry: any, i: number) => (
-                        <div key={i} className="space-y-3 p-4 bg-black/40 rounded-xl border border-white/5">
+                        <div key={i} className="space-y-3 p-4 bg-card/80 rounded-xl border border-border">
                           {entry.type === "game_end" ? (
                             <>
                               <h4 className="text-sm font-black uppercase tracking-widest text-yellow-400">
@@ -730,7 +730,7 @@ export default function Room() {
                                 <div className="text-muted-foreground italic">Final Roles:</div>
                                 {entry.roles?.map((role: any, j: number) => (
                                   <div key={j} className="flex items-center gap-2">
-                                    <span className="font-bold text-white/90">{role.name}</span>
+                                    <span className="font-bold text-foreground">{role.name}</span>
                                     <span className="text-muted-foreground">was</span>
                                     <span className={role.role === 'mafia' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
                                       {role.role}
@@ -750,7 +750,7 @@ export default function Room() {
                                     entry.results.map((res: any, j: number) => (
                                       <div key={j} className="text-sm flex items-center gap-2">
                                         <User className="w-3 h-3 text-blue-400" />
-                                        <span className="font-bold text-white/90">{res.voterName}</span>
+                                        <span className="font-bold text-foreground">{res.voterName}</span>
                                         <span className="text-muted-foreground italic">voted for</span>
                                         <span className="font-bold text-red-400">{res.targetName}</span>
                                       </div>

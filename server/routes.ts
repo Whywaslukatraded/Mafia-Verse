@@ -651,8 +651,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         name: user.name,
         avatar: user.avatar,
       });
-    } catch (error) {
-      res.status(400).json({ message: "Signup failed" });
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      res.status(400).json({ message: err?.message || "Signup failed" });
     }
   });
 
