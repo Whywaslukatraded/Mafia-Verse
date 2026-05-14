@@ -6,11 +6,16 @@ import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest 
 
 const RECONNECT_DELAY = 1000;
 
-async function safeTextResponse(res: Response) {
+async function safeErrorMessage(res: Response): Promise<string> {
   try {
-    return await res.text();
+    const text = await res.text();
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.message === "string") return parsed.message;
+    } catch { /* not JSON */ }
+    return text || `Error ${res.status}`;
   } catch {
-    return "";
+    return "Something went wrong";
   }
 }
 
@@ -154,8 +159,8 @@ export function useCreateRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const text = await safeTextResponse(res);
-        throw new Error(text || "Failed to create room");
+        const msg = await safeErrorMessage(res);
+        throw new Error(msg);
       }
       return api.rooms.create.responses[201].parse(await res.json());
     },
@@ -171,8 +176,8 @@ export function useJoinRoom() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const text = await safeTextResponse(res);
-        throw new Error(text || "Failed to join room");
+        const msg = await safeErrorMessage(res);
+        throw new Error(msg);
       }
       return api.rooms.join.responses[200].parse(await res.json());
     },

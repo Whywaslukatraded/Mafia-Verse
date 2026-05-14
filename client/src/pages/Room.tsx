@@ -115,15 +115,15 @@ export default function Room() {
   // Background style based on phase
   const getBackgroundStyle = () => {
     if (!room) return "";
-    if (room.status === "lobby") return "bg-slate-950";
-    if (room.status === "ended") return "bg-slate-950";
+    if (room.status === "lobby") return "bg-background";
+    if (room.status === "ended") return "bg-background";
     if (room.status === "night") {
       if (room.phase === "mafia") return "bg-[hsl(var(--bg-mafia))] transition-colors duration-1000";
       if (room.phase === "doctor") return "bg-[hsl(var(--bg-doctor))] transition-colors duration-1000";
       if (room.phase === "detective") return "bg-[hsl(var(--bg-detective))] transition-colors duration-1000";
       return "bg-[hsl(var(--bg-night))] transition-colors duration-1000";
     }
-    return "bg-slate-900 transition-colors duration-1000";
+    return "bg-background transition-colors duration-1000";
   };
 
   const copyLink = () => {
@@ -266,12 +266,12 @@ export default function Room() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aliveHash]);
 
-  // Auto-dismiss elimination overlay after 3 seconds or when voting starts
+  // Auto-dismiss elimination overlay after 5 seconds or when voting starts
   useEffect(() => {
     if (!eliminationOverlay) return;
     const timeout = setTimeout(() => {
       setEliminationOverlay(null);
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timeout);
   }, [eliminationOverlay]);
 
@@ -283,7 +283,7 @@ export default function Room() {
   }, [room?.phase, room?.status]);
 
   if (!gameState || !room || !me) {
-    return <div className="min-h-screen bg-slate-950 flex items-center justify-center">Connecting...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Connecting...</div>;
   }
 
   const getNightActionLabel = () => {
@@ -446,6 +446,7 @@ export default function Room() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-40 flex items-center justify-center bg-black/90 backdrop-blur-xl pointer-events-auto"
+            onClick={() => setEliminationOverlay(null)}
           >
             <motion.div
               initial={{ scale: 0.5, y: 40 }}
