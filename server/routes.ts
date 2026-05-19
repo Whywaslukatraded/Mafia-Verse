@@ -1116,5 +1116,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Feedback endpoint
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const feedbackSchema = z.object({
+        topic: z.enum(["BUG_REPORT", "FEATURE_REQUEST", "DESIGN", "OTHER"]),
+        message: z.string().min(1).max(2000),
+        page: z.string().optional(),
+      });
+      const body = feedbackSchema.parse(req.body);
+      console.log(`[FEEDBACK] [${body.topic}] ${body.page || "unknown"}: ${body.message.substring(0, 100)}${body.message.length > 100 ? "..." : ""}`);
+      res.json({ success: true });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid feedback data", details: e.errors });
+      } else {
+        res.status(500).json({ error: "Failed to submit feedback" });
+      }
+    }
+  });
+
   return httpServer;
 }
