@@ -7,6 +7,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email"),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   avatar: text("avatar").notNull(),
@@ -18,6 +19,12 @@ export const users = pgTable("users", {
   wins: integer("wins").default(0),
   gamesPlayed: integer("games_played").default(0),
   achievements: jsonb("achievements").default([]),
+  // Password reset
+  resetToken: text("reset_token"),
+  resetTokenExpires: timestamp("reset_token_expires"),
+  // Two-factor auth
+  totpSecret: text("totp_secret"),
+  is2FAEnabled: boolean("is_2fa_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -123,6 +130,30 @@ export type CreateRoomRequest = {
     doctorDuration: number;
     detectiveDuration: number;
   };
+};
+
+export type ForgotPasswordRequest = {
+  username: string;
+};
+
+export type ResetPasswordRequest = {
+  token: string;
+  newPassword: string;
+};
+
+export type Setup2FARequest = {
+  userId: number;
+};
+
+export type Verify2FARequest = {
+  userId: number;
+  code: string;
+};
+
+export type Login2FARequest = {
+  username: string;
+  password: string;
+  totpCode: string;
 };
 
 export type JoinRoomRequest = {

@@ -259,10 +259,25 @@ export default function Cosmetics() {
                   </div>
                   <Button
                     className="bg-amber-500 hover:bg-amber-600 text-black font-black"
-                    onClick={() => {
-                      // In production, this would open Stripe checkout
-                      localStorage.setItem("mafia_syndicate_pass", "true");
-                      setHasPass(true);
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/stripe/checkout-session", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.url) {
+                          window.location.href = data.url;
+                        } else {
+                          // Fallback: if Stripe isn't connected yet, unlock locally for demo
+                          localStorage.setItem("mafia_syndicate_pass", "true");
+                          setHasPass(true);
+                        }
+                      } catch {
+                        // Fallback: unlock locally for demo
+                        localStorage.setItem("mafia_syndicate_pass", "true");
+                        setHasPass(true);
+                      }
                     }}
                   >
                     <Crown className="w-4 h-4 mr-2" />

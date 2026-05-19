@@ -6,23 +6,26 @@ import { randomBytes, randomUUID } from "crypto";
 export interface IStorage {
   createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  
+  getUserById(id: number): Promise<User | undefined>;
+  updateUser(id: number, updates: Partial<User>): Promise<User>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+
   createRoom(settings: CreateRoomRequest["settings"]): Promise<Room>;
   getRoomByCode(code: string): Promise<Room | undefined>;
   getRoom(id: number): Promise<Room | undefined>;
   updateRoom(id: number, updates: Partial<Room>): Promise<Room>;
-  
+
   createPlayer(player: Omit<Player, "id" | "joinedAt">): Promise<Player>;
   getPlayer(id: number): Promise<Player | undefined>;
   getPlayersInRoom(roomId: number): Promise<Player[]>;
   updatePlayer(id: number, updates: Partial<Player>): Promise<Player>;
-  
+
   createMessage(message: Omit<Message, "id" | "timestamp">): Promise<Message>;
   getMessagesByRoom(roomId: number): Promise<Message[]>;
   deleteMessagesByRoom(roomId: number): Promise<void>;
-  
+
   getLeaderboard(): Promise<{ name: string; avatar: string | null; avatarConfig: any; wins: number; gamesPlayed: number; winRate: number }[]>;
-  
+
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
 }
@@ -35,6 +38,21 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User> {
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.resetToken, token));
     return user;
   }
 

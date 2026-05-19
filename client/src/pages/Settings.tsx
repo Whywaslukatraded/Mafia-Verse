@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,8 @@ export default function Settings() {
     const saved = localStorage.getItem("mafia_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
+  const userId = localStorage.getItem("mafia_userId");
+  const isLoggedIn = !!userId;
   const applyTheme = (enabled: boolean) => {
     document.documentElement.classList.toggle("dark", enabled);
     localStorage.setItem("mafia_theme_dark", JSON.stringify(enabled));
@@ -188,6 +190,43 @@ export default function Settings() {
               Get notified when someone sends a chat message during gameplay
             </p>
           </div>
+
+          {/* Security Section */}
+          {isLoggedIn && (
+            <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Security</h2>
+
+              <button
+                onClick={() => setLocation("/2fa-setup")}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                data-testid="button-2fa-setup"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-green-500" />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-foreground">Two-Factor Auth</p>
+                    <p className="text-xs text-muted-foreground">Add extra account protection</p>
+                  </div>
+                </div>
+                <span className="text-xs text-primary font-bold">Setup</span>
+              </button>
+
+              <button
+                onClick={() => setLocation("/reset-password")}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                data-testid="button-change-password"
+              >
+                <div className="flex items-center gap-3">
+                  <KeyRound className="w-5 h-5 text-amber-500" />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-foreground">Change Password</p>
+                    <p className="text-xs text-muted-foreground">Reset via token</p>
+                  </div>
+                </div>
+                <span className="text-xs text-primary font-bold">Reset</span>
+              </button>
+            </div>
+          )}
 
           <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
             Back to Home
