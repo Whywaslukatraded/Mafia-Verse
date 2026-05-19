@@ -13,6 +13,9 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Cosmetics from "@/pages/Cosmetics";
 import Leaderboard from "@/pages/Leaderboard";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import TwoFactorSetup from "@/pages/TwoFactorSetup";
 
 function Router() {
   return (
@@ -24,6 +27,9 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/cosmetics" component={Cosmetics} />
       <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route component={NotFound} />
     </Switch>
   );

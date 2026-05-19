@@ -38,6 +38,68 @@ export const api = {
         401: z.object({ message: z.string() }),
       },
     },
+    forgotPassword: {
+      method: 'POST' as const,
+      path: '/api/auth/forgot-password',
+      input: z.object({
+        username: z.string().min(1),
+      }),
+      responses: {
+        200: z.object({ message: z.string(), resetToken: z.string().optional() }),
+        400: z.object({ message: z.string() }),
+        404: z.object({ message: z.string() }),
+      },
+    },
+    resetPassword: {
+      method: 'POST' as const,
+      path: '/api/auth/reset-password',
+      input: z.object({
+        token: z.string().min(1),
+        newPassword: z.string().min(6),
+      }),
+      responses: {
+        200: z.object({ message: z.string() }),
+        400: z.object({ message: z.string() }),
+      },
+    },
+    setup2FA: {
+      method: 'POST' as const,
+      path: '/api/auth/2fa/setup',
+      input: z.object({
+        userId: z.number(),
+      }),
+      responses: {
+        200: z.object({
+          secret: z.string(),
+          qrCodeUri: z.string(),
+        }),
+        400: z.object({ message: z.string() }),
+      },
+    },
+    verify2FA: {
+      method: 'POST' as const,
+      path: '/api/auth/2fa/verify',
+      input: z.object({
+        userId: z.number(),
+        code: z.string().length(6),
+      }),
+      responses: {
+        200: z.object({ enabled: z.boolean() }),
+        400: z.object({ message: z.string() }),
+      },
+    },
+    disable2FA: {
+      method: 'POST' as const,
+      path: '/api/auth/2fa/disable',
+      input: z.object({
+        userId: z.number(),
+        password: z.string(),
+      }),
+      responses: {
+        200: z.object({ disabled: z.boolean() }),
+        400: z.object({ message: z.string() }),
+      },
+    },
   },
   rooms: {
     create: {

@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { WS_EVENTS, type GameState, type GameAction, type Player } from "@shared/schema";
+import { WS_EVENTS, type GameState, type GameAction, type Player, type Message } from "@shared/schema";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 
@@ -161,7 +161,7 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   let content = "";
 
   // Check if human mentioned a specific player
-  const mentionedPlayer = players.find(p => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
+  const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
   
   if (mentionedPlayer) {
     if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
@@ -227,7 +227,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     if (room.phase === 'voting') {
       actions.votes.set(bot.id, target.id);
       // Check if all alive players have voted after bot votes
-      const allAlivePlayers = players.filter(p => p.isAlive);
+      const allAlivePlayers = players.filter((p: Player) => p.isAlive);
       if (actions.votes.size === allAlivePlayers.length) {
         // All players voted - signal to advance
         return true; // Signal to advance phase immediately
@@ -249,7 +249,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       if (lastHumanMsg && Math.random() > 0.6) {
         const msgText = lastHumanMsg.content.toLowerCase();
         // Check if message mentions a specific player name (accusation)
-        const mentionedPlayer = players.find(p => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
+        const mentionedPlayer = players.find((p: Player) => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
         if (mentionedPlayer) {
           if (msgText.includes("mafia") || msgText.includes("sus") || msgText.includes("vote")) {
             content = `I agree! ${mentionedPlayer.name} does seem suspicious.`;
@@ -455,7 +455,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     if (room.phase === 'mafia') {
       console.log(`[Room ${roomId}] Night Phase: Mafia -> Doctor`);
       // Check if all mafia are dead - end game immediately
-      const aliveMafia = players.filter(p => p.role === 'mafia' && p.isAlive);
+      const aliveMafia = players.filter((p: Player) => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
         await storage.updateRoom(roomId, { status: 'ended' });
@@ -470,7 +470,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     } else if (room.phase === 'doctor') {
       console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
       // Check if doctor is alive, if not skip to detective
-      const aliveDoctor = players.find(p => p.role === 'doctor' && p.isAlive);
+      const aliveDoctor = players.find((p: Player) => p.role === 'doctor' && p.isAlive);
       // If doctor is dead, skip their phase
       await storage.updateRoom(roomId, { phase: 'detective' });
       broadcastState(roomId); // Broadcast after phase change
@@ -484,7 +484,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       // Process all mafia kills (majority vote)
       if (actions.mafiaKills.size > 0) {
         const killVotes = new Map<number, number>();
-        actions.mafiaKills.forEach((targetId) => {
+        actions.mafiaKills.forEach((targetId: number) => {
           killVotes.set(targetId, (killVotes.get(targetId) || 0) + 1);
         });
         let topTarget = -1, maxVotes = 0;
@@ -511,7 +511,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
       
       // Process all detective checks
-      actions.detectiveChecks.forEach((targetId, detectiveId) => {
+      actions.detectiveChecks.forEach((targetId: number, detectiveId: number) => {
         const target = players.find((p: Player) => p.id === targetId);
         if (target) {
           nightData.events.push({ type: 'detective_check', target: target.name, isMafia: target.role === 'mafia', detectiveId });
@@ -548,7 +548,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       history.push({
         type: 'game_end',
         winner,
-        roles: playersInRoom.map(p => ({ name: p.name, role: p.role }))
+        roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
       });
       
       for (const p of playersInRoom) {
@@ -589,7 +589,7 @@ async function broadcastState(roomId: number) {
   if (!room) return;
   const players = await storage.getPlayersInRoom(roomId);
   
-  let messages = [];
+  let messages: Message[] = [];
   try {
     messages = await storage.getMessagesByRoom(roomId);
   } catch (err) {
@@ -599,7 +599,7 @@ async function broadcastState(roomId: number) {
   sessions.forEach(sessionId => {
     const ws = clients.get(sessionId);
     if (ws && ws.readyState === WebSocket.OPEN) {
-      const me = players.find(p => p.sessionId === sessionId);
+      const me = players.find((p: Player) => p.sessionId === sessionId);
       const actions = gameActions.get(roomId);
       const myAction = me ? {
         vote: actions?.votes.get(me.id),
@@ -643,6 +643,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         wins: 0,
         gamesPlayed: 0,
         achievements: [],
+        email: null,
+        resetToken: null,
+        resetTokenExpires: null,
+        totpSecret: null,
+        is2FAEnabled: null,
       });
 
       res.status(201).json({
@@ -665,6 +670,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
+      // If 2FA is enabled, require TOTP code - don't fully authenticate yet
+      if (user.is2FAEnabled) {
+        return res.status(200).json({
+          requires2FA: true,
+          userId: user.id,
+        });
+      }
+
       res.json({
         userId: user.id,
         username: user.username,
@@ -673,6 +686,162 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       });
     } catch (error) {
       res.status(401).json({ message: "Login failed" });
+    }
+  });
+
+  // Login with 2FA code
+  app.post("/api/auth/login-2fa", async (req, res) => {
+    try {
+      const { username, password, totpCode } = req.body;
+      const user = await storage.getUserByUsername(username);
+      if (!user || !verifyPassword(password, user.passwordHash)) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      if (!user.is2FAEnabled || !user.totpSecret) {
+        return res.status(400).json({ message: "2FA not enabled" });
+      }
+
+      const { TOTP } = await import("otpauth");
+      const totp = new TOTP({ secret: user.totpSecret });
+      const isValid = totp.validate({ token: totpCode, window: 1 }) !== null;
+
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid 2FA code" });
+      }
+
+      res.json({
+        userId: user.id,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "2FA login failed" });
+    }
+  });
+
+  // Forgot Password
+  app.post(api.auth.forgotPassword.path, async (req, res) => {
+    try {
+      const input = api.auth.forgotPassword.input.parse(req.body);
+      const user = await storage.getUserByUsername(input.username);
+      if (!user) {
+        return res.status(404).json({ message: "Username not found" });
+      }
+
+      const token = randomUUID();
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.updateUser(user.id, {
+        resetToken: token,
+        resetTokenExpires: expires,
+      });
+
+      // In production, send email. For demo, return token in response.
+      console.log(`[PASSWORD RESET] Token for ${user.username}: ${token}`);
+
+      res.json({
+        message: "If this account exists, a reset link has been generated.",
+        resetToken: token, // Returned for demo/testing only
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Request failed" });
+    }
+  });
+
+  // Reset Password
+  app.post(api.auth.resetPassword.path, async (req, res) => {
+    try {
+      const input = api.auth.resetPassword.input.parse(req.body);
+      const user = await storage.getUserByResetToken(input.token);
+      if (!user || !user.resetTokenExpires || new Date() > new Date(user.resetTokenExpires)) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+
+      await storage.updateUser(user.id, {
+        passwordHash: hashPassword(input.newPassword),
+        resetToken: null,
+        resetTokenExpires: null,
+      });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Reset failed" });
+    }
+  });
+
+  // 2FA Setup
+  app.post(api.auth.setup2FA.path, async (req, res) => {
+    try {
+      const input = api.auth.setup2FA.input.parse(req.body);
+      const user = await storage.getUserById(input.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const { TOTP } = await import("otpauth");
+      const secret = new TOTP({
+        issuer: "Mafia Game",
+        label: user.username,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+      }).secret.base32;
+
+      const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(user.username)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
+
+      // Store the secret temporarily (not enabled until verified)
+      await storage.updateUser(user.id, { totpSecret: secret });
+
+      res.json({
+        secret,
+        qrCodeUri: uri,
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Setup failed" });
+    }
+  });
+
+  // 2FA Verify & Enable
+  app.post(api.auth.verify2FA.path, async (req, res) => {
+    try {
+      const input = api.auth.verify2FA.input.parse(req.body);
+      const user = await storage.getUserById(input.userId);
+      if (!user || !user.totpSecret) {
+        return res.status(400).json({ message: "2FA not set up" });
+      }
+
+      const { TOTP } = await import("otpauth");
+      const totp = new TOTP({ secret: user.totpSecret });
+      const isValid = totp.validate({ token: input.code, window: 1 }) !== null;
+
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid code" });
+      }
+
+      await storage.updateUser(user.id, { is2FAEnabled: true });
+      res.json({ enabled: true });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Verification failed" });
+    }
+  });
+
+  // 2FA Disable
+  app.post(api.auth.disable2FA.path, async (req, res) => {
+    try {
+      const input = api.auth.disable2FA.input.parse(req.body);
+      const user = await storage.getUserById(input.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!verifyPassword(input.password, user.passwordHash)) {
+        return res.status(401).json({ message: "Invalid password" });
+      }
+
+      await storage.updateUser(user.id, {
+        is2FAEnabled: false,
+        totpSecret: null,
+      });
+
+      res.json({ disabled: true });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Disable failed" });
     }
   });
 
@@ -809,7 +978,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const room = await storage.getRoomByCode(code);
           if (!room) return;
           const players = await storage.getPlayersInRoom(room.id);
-          const player = players.find(p => p.sessionId === sessionId);
+          const player = players.find((p: Player) => p.sessionId === sessionId);
           if (!player) return;
 
           mySessionId = sessionId;
@@ -823,7 +992,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (msg.type === WS_EVENTS.START_GAME) {
           if (!myRoomId || !mySessionId) return;
           const players = await storage.getPlayersInRoom(myRoomId);
-          const me = players.find(p => p.sessionId === mySessionId);
+          const me = players.find((p: Player) => p.sessionId === mySessionId);
           if (!me?.isHost) return;
 
           const room = await storage.getRoom(myRoomId);
@@ -862,7 +1031,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
            const action = msg.payload as GameAction;
            const players = await storage.getPlayersInRoom(myRoomId);
-           const me = players.find(p => p.sessionId === mySessionId);
+           const me = players.find((p: Player) => p.sessionId === mySessionId);
            const room = await storage.getRoom(myRoomId);
            console.log("ACTION LOOKUP:", { actionType: action.type, meExists: !!me, roomExists: !!room });
            if (!me || !room) {
@@ -872,7 +1041,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
-           if (action.type === 'chat' || action.type === 'message') {
+           if (action.type === 'chat') {
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
              // Only alive players can chat (dead players can't snitch!)
              if ((action as any).content && (action as any).content.trim() && myRoomId && me && me.isAlive) {
@@ -906,7 +1075,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (action.type === 'remove_bot' && me.isHost) {
-             const bot = players.find(p => p.id === action.playerId && p.isBot);
+             const bot = players.find((p: Player) => p.id === action.playerId && p.isBot);
              if (bot) { await storage.deletePlayer(bot.id); broadcastState(myRoomId); }
              return;
            }
@@ -916,7 +1085,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (currentRoom?.status !== 'ended') return; // Only allow replay from ended state
              
              // Track wins for the winning team before resetting
-             const survivors = players.filter(p => p.isAlive);
+             const survivors = players.filter((p: Player) => p.isAlive);
              const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
              const innocentsCount = survivors.length - mafiaCount;
              
@@ -979,16 +1148,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                console.log("VOTE REJECTED - Wrong phase. Expected: day/voting, Got:", room.status, room.phase);
                return;
              }
-             const target = players.find(p => p.id === action.targetId);
+             const target = players.find((p: Player) => p.id === action.targetId);
              if (me.isAlive && target?.isAlive) {
                // Register this player's vote
                actions.votes.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                
                // Have bots vote immediately if they haven't already
-               const bots = players.filter(p => p.isBot && p.isAlive && !actions.votes.has(p.id));
+               const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
                for (const bot of bots) {
-                 const eligibleTargets = players.filter(p => p.isAlive && p.id !== bot.id);
+                 const eligibleTargets = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
                  if (eligibleTargets.length > 0) {
                    const botTarget = eligibleTargets[Math.floor(Math.random() * eligibleTargets.length)];
                    actions.votes.set(bot.id, botTarget.id);
@@ -1000,7 +1169,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
                
                // Check if ALL alive players (human and bot) have voted
-               const allAlivePlayers = players.filter(p => p.isAlive);
+               const allAlivePlayers = players.filter((p: Player) => p.isAlive);
                const votedPlayers = Array.from(actions.votes.keys());
                console.log("VOTE TALLY:", { votedPlayers: votedPlayers.length, totalAlive: allAlivePlayers.length });
                if (votedPlayers.length === allAlivePlayers.length) {
@@ -1018,7 +1187,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
              console.log(`[Room ${myRoomId}] MAFIA KILL #1: ${me.name} targeting ${action.targetId}, turn=${room.turn}, status=${room.status}, phase=${room.phase}`);
-             const target = players.find(p => p.id === action.targetId);
+             const target = players.find((p: Player) => p.id === action.targetId);
              console.log(`[Room ${myRoomId}] MAFIA KILL #2: target found=${!!target}, alive=${target?.isAlive}, isMafia=${target?.role === 'mafia'}`);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKills.set(me.id, action.targetId);
@@ -1044,7 +1213,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
-             const target = players.find(p => p.id === action.targetId);
+             const target = players.find((p: Player) => p.id === action.targetId);
              if (target?.isAlive) {
                actions.doctorSaves.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
@@ -1062,7 +1231,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (room.phase === 'detective' && me.role === 'detective' && action.type === 'check') {
-             const target = players.find(p => p.id === action.targetId);
+             const target = players.find((p: Player) => p.id === action.targetId);
              if (target) {
                 actions.detectiveChecks.set(me.id, target.id);
                 gameActions.set(myRoomId, actions);
@@ -1113,6 +1282,36 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) {
       console.error("Leaderboard error", e);
       res.status(500).json({ error: "Failed to load leaderboard" });
+    }
+  });
+
+  // Stripe checkout session for Syndicate Pass
+  app.post("/api/stripe/checkout-session", async (req, res) => {
+    try {
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: { name: "The Syndicate Pass" },
+              unit_amount: 499,
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${origin}/cosmetics?success=true`,
+        cancel_url: `${origin}/cosmetics?canceled=true`,
+      });
+
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (err: any) {
+      console.error("Stripe checkout error:", err);
+      res.status(500).json({ message: err?.message || "Stripe checkout failed" });
     }
   });
 

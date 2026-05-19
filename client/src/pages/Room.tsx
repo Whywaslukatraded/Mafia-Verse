@@ -241,7 +241,7 @@ export default function Room() {
     for (const p of players) {
       // First time we see this player — initialize without triggering overlay
       if (!(p.id in prevPlayersRef.current)) {
-        prevPlayersRef.current[p.id] = p.isAlive;
+        prevPlayersRef.current[p.id] = p.isAlive ?? true;
         continue;
       }
       const wasAlive = prevPlayersRef.current[p.id];
@@ -263,7 +263,7 @@ export default function Room() {
           deathStory,
         });
       }
-      prevPlayersRef.current[p.id] = p.isAlive;
+      prevPlayersRef.current[p.id] = p.isAlive ?? true;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aliveHash]);
