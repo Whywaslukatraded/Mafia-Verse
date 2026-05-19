@@ -47,6 +47,10 @@ export default function Settings() {
   // Notifications
   useEffect(() => {
     localStorage.setItem("mafia_notifications_enabled", JSON.stringify(notificationsEnabled));
+    // Request browser notification permission when enabled
+    if (notificationsEnabled && typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   }, [notificationsEnabled]);
 
   return (

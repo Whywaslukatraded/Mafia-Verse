@@ -45,7 +45,7 @@ const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string;
     glow: "",
     bg: "bg-card/50",
     icon: null,
-    iconColor: "text-white/40",
+    iconColor: "text-muted-foreground/40",
     label: "CIVILIAN"
   },
 };
@@ -70,8 +70,8 @@ export function PlayerCard({
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
       className={cn(
         "relative w-full aspect-[3/4] rounded-xl overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-4 group",
-        !player.isAlive && "bg-slate-900/50 border-slate-800 grayscale opacity-70",
-        player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-white/10 shadow-lg",
+        !player.isAlive && "bg-muted border-muted-foreground/20 grayscale opacity-70",
+        player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-border shadow-lg",
         player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,
         isMe && !cosmetic && "border-primary/50 ring-1 ring-primary/20"
       )}
@@ -99,7 +99,7 @@ export function PlayerCard({
           </div>
         )}
         {RoleIcon && player.isAlive && (
-          <div className={cn("p-1 rounded-full bg-black/40", cosmetic?.iconColor)} title={cosmetic?.label}>
+          <div className={cn("p-1 rounded-full bg-muted/80", cosmetic?.iconColor)} title={cosmetic?.label}>
             <RoleIcon className="w-4 h-4" />
           </div>
         )}
@@ -108,7 +108,7 @@ export function PlayerCard({
       {/* Avatar */}
       <div className={cn(
         "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-4xl font-bold border-2 transition-colors relative overflow-hidden",
-        !player.isAlive ? "bg-slate-800 border-slate-700 opacity-50" : (player.avatarConfig as any)?.bg || "bg-white/5 border-primary/20 shadow-lg shadow-primary/5"
+        !player.isAlive ? "bg-muted border-muted-foreground/30 opacity-50" : (player.avatarConfig as any)?.bg || "bg-card border-primary/20 shadow-lg shadow-primary/5"
       )}>
         {player.isAlive ? (
           <>
@@ -132,7 +132,7 @@ export function PlayerCard({
           !player.isAlive && "line-through text-muted-foreground"
         )}>
           {player.name}
-          {player.isBot && <span className="text-[10px] bg-white/10 px-1 rounded text-muted-foreground font-normal">BOT</span>}
+          {player.isBot && <span className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-normal">BOT</span>}
           {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">(You)</span>}
         </h3>
         

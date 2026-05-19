@@ -5,7 +5,7 @@ interface GameAudioProps {
   status: string;
 }
 
-// Importing assets directly (Vite handles this as URLs)
+// Vite handles these as URLs
 import nightTheme from '../assets/sounds/night-theme.mp3';
 import dayTheme from '../assets/sounds/day-theme.mp3';
 import voteSound from '../assets/sounds/vote-sound.mp3';
@@ -16,8 +16,8 @@ export function GameAudio({ phase, status }: GameAudioProps) {
   const sfxRef = useRef<HTMLAudioElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundVolume, setSoundVolume] = useState(0.7);
-  // AudioContext must be unlocked via user interaction per browser autoplay policy
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const prevPhaseRef = useRef<string>("");
 
   // Sync settings from localStorage
   useEffect(() => {
@@ -32,18 +32,10 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     return () => window.removeEventListener("storage", sync);
   }, []);
 
-  // Unlock audio on first user click anywhere
+  // Unlock audio on first user interaction (required by browser autoplay policy)
   const unlockAudio = useCallback(() => {
     if (audioUnlocked) return;
     setAudioUnlocked(true);
-    // Pre-load audio elements by playing them muted briefly
-    if (bgMusicRef.current) {
-      bgMusicRef.current.muted = true;
-      bgMusicRef.current.play().catch(() => {});
-      setTimeout(() => {
-        if (bgMusicRef.current) bgMusicRef.current.muted = false;
-      }, 100);
-    }
     window.removeEventListener("click", unlockAudio);
     window.removeEventListener("touchstart", unlockAudio);
   }, [audioUnlocked]);
@@ -57,17 +49,26 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     };
   }, [unlockAudio]);
 
-  // Handle Background Music
+  // Initialize audio elements once
   useEffect(() => {
     if (!bgMusicRef.current) {
       bgMusicRef.current = new Audio();
       bgMusicRef.current.loop = true;
     }
+    if (!sfxRef.current) {
+      sfxRef.current = new Audio();
+    }
+  }, []);
 
+  // Handle Background Music
+  useEffect(() => {
     const music = bgMusicRef.current;
-    music.volume = soundVolume * 0.5;
-    let targetSrc = '';
+    if (!music) return;
 
+    music.volume = soundVolume * 0.5;
+    const shouldPlay = soundEnabled && audioUnlocked;
+
+    let targetSrc = '';
     if (status === 'lobby' || status === 'ended') {
       targetSrc = dayTheme;
     } else if (status === 'night') {
@@ -76,39 +77,48 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       targetSrc = dayTheme;
     }
 
-    if (targetSrc && music.src !== new URL(targetSrc, window.location.origin).href) {
-      music.pause();
-      music.src = targetSrc;
-      if (soundEnabled && audioUnlocked) {
-        music.play().catch(() => {});
+    if (targetSrc) {
+      const targetHref = new URL(targetSrc, window.location.origin).href;
+      if (music.src !== targetHref) {
+        // Src changed - load new track
+        music.pause();
+        music.src = targetSrc;
+        if (shouldPlay) {
+          music.play().catch(() => {});
+        }
+      } else {
+        // Same src - just play/pause based on state
+        if (shouldPlay && music.paused) {
+          music.play().catch(() => {});
+        } else if (!shouldPlay && !music.paused) {
+          music.pause();
+        }
       }
-    } else if (!soundEnabled || !audioUnlocked) {
+    } else {
       music.pause();
     }
-
-    return () => {
-      music.pause();
-    };
   }, [status, soundEnabled, soundVolume, audioUnlocked]);
 
-  // Handle Sound Effects on Phase/Status changes
+  // Handle Sound Effects on Phase transitions
   useEffect(() => {
-    if (!sfxRef.current) {
-      sfxRef.current = new Audio();
-    }
-
     const sfx = sfxRef.current;
-    sfx.volume = soundVolume;
-    if (!soundEnabled || !audioUnlocked) return;
+    if (!sfx || !soundEnabled || !audioUnlocked) return;
 
-    if (phase === 'voting') {
+    sfx.volume = soundVolume;
+
+    // Only play when phase changes TO these states
+    if (phase === 'voting' && prevPhaseRef.current !== 'voting') {
       sfx.src = voteSound;
+      sfx.currentTime = 0;
       sfx.play().catch(() => {});
-    } else if (status === 'night' && phase === 'mafia') {
+    } else if (phase === 'mafia' && prevPhaseRef.current !== 'mafia') {
       sfx.src = killSound;
+      sfx.currentTime = 0;
       sfx.play().catch(() => {});
     }
-  }, [phase, status, soundEnabled, soundVolume, audioUnlocked]);
 
-  return null; // This component handles side effects only
+    prevPhaseRef.current = phase;
+  }, [phase, soundEnabled, soundVolume, audioUnlocked]);
+
+  return null;
 }

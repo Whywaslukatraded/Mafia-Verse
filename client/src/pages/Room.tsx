@@ -10,6 +10,7 @@ import { ChatWindow } from "@/components/ChatWindow";
 import { MafiaHandbook } from "@/components/MafiaHandbook";
 import { GameAudio } from "@/components/GameAudio";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/use-notifications";
 import type { GameAction } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,6 +105,7 @@ export default function Room() {
   const me = gameState?.me;
   const room = gameState?.room;
   const players = gameState?.players || [];
+  const { notify } = useNotifications();
   // Stable hash: only changes when alive states actually change (not on every broadcast)
   const aliveHash = players.map(p => `${p.id}:${p.isAlive ? 1 : 0}`).join(',');
   const isHost = me?.isHost;
@@ -529,7 +531,7 @@ export default function Room() {
             <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
             {/* Feature 6: Spectator count */}
             {watcherCount > 0 && (
-              <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-0.5 text-[10px] font-bold text-muted-foreground flex-shrink-0">
+              <div className="flex items-center gap-1 bg-muted border border-border rounded-full px-2 py-0.5 text-[10px] font-bold text-muted-foreground flex-shrink-0">
                 <Eye className="w-3 h-3" />
                 <span>{watcherCount}</span>
               </div>
@@ -567,7 +569,7 @@ export default function Room() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           <div className="lg:col-span-2 space-y-8">
             {room.status === "lobby" && (
-              <Card className="bg-slate-900/50 border-slate-800">
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
@@ -704,7 +706,7 @@ export default function Room() {
                     </Button>
                   </div>
                 )}
-                <Card className="bg-slate-900/50 border-slate-800 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <Card className="bg-card border-border mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-xl font-serif">
@@ -789,6 +791,7 @@ export default function Room() {
             <ChatWindow
               messages={gameState?.messages || []}
               onSendMessage={(content) => sendAction({ type: "chat", content } as any)}
+              notify={notify}
               currentPlayerId={me?.id || 0}
               isSpectator={isSpectator ?? false}
               players={players}

@@ -45,7 +45,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
       "w-full py-6 px-4 rounded-xl mb-6 relative overflow-hidden transition-all duration-500",
       isNight ? "bg-indigo-950 border border-indigo-900" : "bg-orange-50 border border-orange-200/50",
       isLobby && "bg-card border-border",
-      isEnded && "bg-slate-900 border-slate-800"
+      isEnded && "bg-muted border-muted-foreground/20"
     )}>
       <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
         <Icon className={cn("w-32 h-32", isNight ? "text-indigo-200" : "text-orange-500")} />
@@ -56,7 +56,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
           "p-3 rounded-full border shadow-sm",
           isNight ? "bg-indigo-900/50 border-indigo-700 text-indigo-300" : "bg-orange-100 border-orange-200 text-orange-600",
           isLobby && "bg-secondary text-secondary-foreground border-border",
-          isEnded && "bg-slate-800 text-slate-400 border-slate-700"
+          isEnded && "bg-muted text-muted-foreground border-muted-foreground/20"
         )}>
           {isNight ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
         </div>

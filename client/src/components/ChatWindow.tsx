@@ -33,11 +33,12 @@ interface ChatWindowProps {
     currentPlayerId?: number;
     isSpectator?: boolean;
     players?: any[];
+    notify?: (title: string, options?: NotificationOptions) => void;
 }
 
 type Reactions = Record<number, Record<string, Set<number>>>;
 
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [] }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify }: ChatWindowProps) {
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
     const [reactions, setReactions] = useState<Reactions>({});
@@ -69,11 +70,22 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         }
     }, []);
 
+    // Track previous message count for notifications
+    const prevMessagesRef = useRef<Message[]>([]);
+
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [filteredMessages]);
+        // Notify on new messages from other players
+        const prevIds = new Set(prevMessagesRef.current.map(m => m.id));
+        const newMessages = filteredMessages.filter(m => !prevIds.has(m.id) && m.playerId !== currentPlayerId && !m.isSpectator);
+        if (newMessages.length > 0 && notify) {
+            const latest = newMessages[newMessages.length - 1];
+            notify(`${latest.playerName}: ${latest.content.length > 40 ? latest.content.slice(0, 40) + "..." : latest.content}`);
+        }
+        prevMessagesRef.current = filteredMessages;
+    }, [filteredMessages, currentPlayerId, notify]);
 
     // Smooth scroll to last sent message
     useEffect(() => {
@@ -173,7 +185,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                 msg.playerId === currentPlayerId ? "flex-row-reverse" : "flex-row"
                             }`}>
                                 <span className={cn(
-                                    "text-[10px] font-black uppercase tracking-tighter bg-white/5 px-1.5 py-0.5 rounded border border-white/5 group-hover:bg-white/10 transition-colors",
+                                    "text-[10px] font-black uppercase tracking-tighter bg-muted px-1.5 py-0.5 rounded border border-border group-hover:bg-muted/80 transition-colors",
                                     msg.isSpectator ? "text-blue-400 border-blue-400/20" : getPlayerColor(msg.playerId)
                                 )}>
                                     {msg.playerName} {msg.isSpectator && "👻"}
@@ -198,7 +210,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                       "px-3 py-2 rounded-2xl max-w-[85%] text-sm shadow-sm transition-transform group-hover:scale-[1.02]",
                                       msg.playerId === currentPlayerId
                                           ? (msg.isSpectator ? "bg-blue-600 text-primary-foreground rounded-tr-none" : "bg-primary text-primary-foreground rounded-tr-none")
-                                          : (msg.isSpectator ? "bg-slate-800 text-blue-200 rounded-tl-none border border-blue-500/20" : "bg-muted text-muted-foreground rounded-tl-none border border-white/5")
+                                          : (msg.isSpectator ? "bg-muted text-blue-500 rounded-tl-none border border-blue-500/20" : "bg-muted text-muted-foreground rounded-tl-none border border-border")
                                   )}
                               >
                                   {msg.content}
@@ -214,7 +226,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                     <Smile className="w-3.5 h-3.5" />
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-fit p-2 bg-slate-900 border-slate-800 shadow-2xl z-50" side="top">
+                                <PopoverContent className="w-fit p-2 bg-card border-border shadow-2xl z-50" side="top">
                                   <div className="flex gap-1">
                                     {REACTION_EMOTES.map(emote => (
                                       <button
@@ -235,7 +247,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                   <button
                                     key={emote}
                                     onClick={() => toggleReaction(msg.id, emote)}
-                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs transition-colors group"
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted hover:bg-muted/80 border border-border text-xs transition-colors group"
                                     title={`Reacted by ${reactors.size} player${reactors.size !== 1 ? 's' : ''}`}
                                   >
                                     <span>{emote}</span>
@@ -256,9 +268,9 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 <MessageSquare className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-2 bg-slate-900 border-slate-800 shadow-2xl z-50" side="top" align="start">
+            <PopoverContent className="w-56 p-2 bg-card border-border shadow-2xl z-50" side="top" align="start">
               <div className="grid grid-cols-1 gap-1">
-                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-white/5 mb-1">Tactical Comms</div>
+                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">Tactical Comms</div>
                 {QUICK_MESSAGES.map((msg) => (
                   <Button
                     key={msg}

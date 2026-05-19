@@ -12,23 +12,23 @@ export function MafiaHandbook() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="gap-2 bg-slate-900/50 border-white/10 hover:bg-slate-800 transition-all hover:scale-105 group"
+          className="gap-2 bg-muted/50 border-border hover:bg-muted transition-all hover:scale-105 group"
         >
           <BookOpen className="w-4 h-4 text-blue-400 group-hover:rotate-12 transition-transform" />
           <span>Handbook</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl bg-slate-950 border-white/10 text-white shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-red-500/5 pointer-events-none" />
-        
-        <DialogHeader className="border-b border-white/5 pb-4 relative z-10">
-          <DialogTitle className="text-3xl font-serif tracking-[0.2em] uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">
+      <DialogContent className="max-w-2xl bg-background border-border text-foreground shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-destructive/5 pointer-events-none" />
+
+        <DialogHeader className="border-b border-border pb-4 relative z-10">
+          <DialogTitle className="text-3xl font-serif tracking-[0.2em] uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">
             Mafia Handbook
           </DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="roles" className="w-full mt-4 relative z-10">
-          <TabsList className="grid w-full grid-cols-3 bg-black/40 p-1 rounded-xl border border-white/5">
+          <TabsList className="grid w-full grid-cols-3 bg-muted/40 p-1 rounded-xl border border-border">
             <TabsTrigger value="roles" className="rounded-lg gap-2 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
               <User className="w-4 h-4" /> Roles
             </TabsTrigger>
@@ -90,31 +90,31 @@ export function MafiaHandbook() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="space-y-4"
                 >
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-amber-500/30 transition-colors">
+                  <div className="bg-card p-4 rounded-xl border border-border hover:border-amber-500/30 transition-colors">
                     <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-amber-500">
                       <Timer className="w-5 h-5" /> Game Flow
                     </h3>
-                    <div className="space-y-3 text-sm text-slate-300">
+                    <div className="space-y-3 text-sm text-muted-foreground">
                       <div className="flex gap-3 items-start group">
                         <span className="font-bold text-amber-500/50 group-hover:text-amber-500 transition-colors">01</span>
-                        <p><strong className="text-white">Lobby:</strong> Game starts when the host clicks 'Start' (minimum 6 players).</p>
+                        <p><strong className="text-foreground">Lobby:</strong> Game starts when the host clicks 'Start' (minimum 6 players).</p>
                       </div>
                       <div className="flex gap-3 items-start group">
                         <span className="font-bold text-amber-500/50 group-hover:text-amber-500 transition-colors">02</span>
-                        <p><strong className="text-white">Day Phase:</strong> Discussion followed by public voting. Majority vote eliminates a player.</p>
+                        <p><strong className="text-foreground">Day Phase:</strong> Discussion followed by public voting. Majority vote eliminates a player.</p>
                       </div>
                       <div className="flex gap-3 items-start group">
                         <span className="font-bold text-amber-500/50 group-hover:text-amber-500 transition-colors">03</span>
-                        <p><strong className="text-white">Night Phase:</strong> Roles perform secret actions. The city wakes up to the results.</p>
+                        <p><strong className="text-foreground">Night Phase:</strong> Roles perform secret actions. The city wakes up to the results.</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors">
+                  <div className="bg-card p-4 rounded-xl border border-border hover:border-purple-500/30 transition-colors">
                     <h3 className="text-lg font-bold flex items-center gap-2 mb-2 text-purple-500">
                       <Zap className="w-5 h-5" /> Victory Conditions
                     </h3>
-                    <ul className="text-sm text-slate-300 space-y-3">
+                    <ul className="text-sm text-muted-foreground space-y-3">
                       <li className="flex items-center gap-2">
                         <ChevronRight className="w-3 h-3 text-emerald-500" />
                         <span><strong className="text-emerald-400">Town Victory:</strong> All Mafia members are eliminated.</span>
@@ -166,16 +166,16 @@ function RoleSection({ title, icon, color, desc, abilities, glow }: any) {
   return (
     <motion.div 
       whileHover={{ scale: 1.02 }}
-      className={`bg-white/5 p-4 rounded-xl border border-white/5 hover:bg-white/10 transition-all ${glow} hover:shadow-lg`}
+      className={`bg-card p-4 rounded-xl border border-border hover:bg-muted transition-all ${glow} hover:shadow-lg`}
     >
       <h3 className={`text-lg font-bold flex items-center gap-2 mb-2 ${color}`}>
         {icon} {title}
       </h3>
-      <p className="text-sm text-slate-300 mb-3">{desc}</p>
+      <p className="text-sm text-muted-foreground mb-3">{desc}</p>
       <div className="space-y-2">
         {abilities.map((a: string, i: number) => (
-          <div key={i} className="text-xs text-slate-400 flex gap-2 items-center bg-black/20 p-2 rounded-lg">
-            <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
+          <div key={i} className="text-xs text-muted-foreground flex gap-2 items-center bg-muted/50 p-2 rounded-lg">
+            <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_rgba(0,0,0,0.3)]" />
             {a}
           </div>
         ))}
@@ -186,14 +186,14 @@ function RoleSection({ title, icon, color, desc, abilities, glow }: any) {
 
 function StrategyCard({ title, tips, accent }: any) {
   return (
-    <div className={`bg-white/5 p-4 rounded-xl border ${accent} hover:bg-white/10 transition-colors`}>
-      <h3 className="text-lg font-bold mb-3 text-white flex items-center gap-2">
+    <div className={`bg-card p-4 rounded-xl border ${accent} hover:bg-muted transition-colors`}>
+      <h3 className="text-lg font-bold mb-3 text-foreground flex items-center gap-2">
         <Lightbulb className="w-5 h-5 text-amber-500" />
         {title}
       </h3>
       <ul className="space-y-3">
         {tips.map((tip: string, i: number) => (
-          <li key={i} className="text-sm text-slate-300 flex gap-3 group">
+          <li key={i} className="text-sm text-muted-foreground flex gap-3 group">
             <div className="w-1.5 h-1.5 rounded-full bg-amber-500/30 group-hover:bg-amber-500 transition-colors mt-1.5 shrink-0" />
             <span>{tip}</span>
           </li>
