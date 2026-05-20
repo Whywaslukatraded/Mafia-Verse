@@ -86,12 +86,7 @@ export default function Login() {
             msg = msg.map((e: any) => e.message).join("; ");
           }
         } catch { /* not JSON */ }
-        const title = res.status === 503 ? "Server Busy" : "Error";
-        toast({ title, description: msg, variant: "destructive" });
-        if (res.status === 503) {
-          setTimeout(() => setLoading(false), 2000);
-          return;
-        }
+        toast({ title: "Error", description: msg, variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -104,9 +99,12 @@ export default function Login() {
         return;
       }
       finalizeLogin(data);
-    } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-    } finally {
+    } catch (err: any) {
+      const isNetwork = err?.message?.includes("fetch") || err?.message?.includes("network") || err?.name === "TypeError";
+      const msg = isNetwork
+        ? "Could not reach the server. Please check your connection and try again."
+        : "Something went wrong. Please try again.";
+      toast({ title: "Connection Issue", description: msg, variant: "destructive" });
       setLoading(false);
     }
   };
