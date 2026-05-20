@@ -61,18 +61,19 @@ export function FeedbackWidget() {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - now larger, with label, and higher contrast */}
       <motion.button
-        whileHover={{ scale: 1.1 }}
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-colors",
-          isOpen ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"
+          "fixed bottom-6 right-6 z-50 pl-4 pr-5 py-3 rounded-full shadow-2xl shadow-primary/30 flex items-center gap-2.5 transition-all font-black text-sm tracking-wide",
+          isOpen ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground ring-2 ring-primary/40"
         )}
         data-testid="button-feedback-toggle"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+        {isOpen ? <X className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+        {isOpen ? "Close" : "Feedback"}
       </motion.button>
 
       {/* Feedback Panel */}

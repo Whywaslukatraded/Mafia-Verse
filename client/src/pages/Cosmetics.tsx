@@ -113,94 +113,163 @@ export default function Cosmetics() {
     const tier = isSyndicate ? TIER_CONFIG[cosmetic.tier as keyof typeof TIER_CONFIG] : null;
     const TierIcon = tier?.icon;
 
+    const borderGlow = isEquipped
+      ? isSyndicate && tier
+        ? tier.border
+        : "border-yellow-500/50"
+      : isOwned
+        ? "border-primary/30"
+        : isSyndicate && !hasPass
+          ? "border-border opacity-50"
+          : "border-border/60 hover:border-primary/30";
+
+    const bgGlow = isEquipped
+      ? isSyndicate && tier
+        ? tier.bg
+        : "bg-yellow-500/5"
+      : isOwned
+        ? "bg-primary/5"
+        : "bg-card/90";
+
     return (
       <motion.div
         key={cosmetic.id}
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.03, y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className={cn(
-          "bg-card/80 backdrop-blur ring-1 rounded-xl p-4 transition-all relative overflow-hidden",
-          isOwned ? "ring-primary/40 bg-primary/5" : isSyndicate && !hasPass ? "ring-border opacity-60" : "ring-border",
-          isEquipped && (tier ? tier.ring : "ring-2 ring-yellow-500/60")
+          "relative overflow-hidden rounded-2xl border-2 p-0 transition-all",
+          borderGlow,
+          bgGlow
         )}
       >
-        {/* Tier Badge */}
-        {tier && (
-          <div className={cn("absolute top-2 right-2 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1", tier.bg, tier.color, tier.border, "border")}>
-            {TierIcon && <TierIcon className="w-3 h-3" />}
-            {tier.label}
-          </div>
+        {/* Shimmer effect for legendary */}
+        {isSyndicate && cosmetic.tier === "legendary" && (
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-amber-500/10 animate-pulse pointer-events-none" />
         )}
 
-        <div className="flex items-start justify-between mb-3 pr-16">
-          <div>
-            <h3 className="font-bold text-foreground">{cosmetic.name}</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">{cosmetic.description}</p>
+        {/* Top bar with badge */}
+        <div className="relative flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2">
+            {tier && (
+              <div className={cn("px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border", tier.bg, tier.color, tier.border)}>
+                {TierIcon && <TierIcon className="w-3 h-3" />}
+                {tier.label}
+              </div>
+            )}
+            {isEquipped && (
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-500 text-[10px] font-black uppercase"
+              >
+                <Check className="w-3 h-3" /> Equipped
+              </motion.div>
+            )}
+            {isOwned && !isEquipped && (
+              <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase">Owned</span>
+            )}
           </div>
-          {isEquipped && !isSyndicate && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-            >
-              <Check className="w-5 h-5 text-yellow-400" />
-            </motion.div>
-          )}
-          {isEquipped && isSyndicate && tier && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-            >
-              <Check className={cn("w-5 h-5", tier.color)} />
-            </motion.div>
-          )}
         </div>
 
-        {/* Preview */}
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border flex items-center justify-center min-h-[48px]">
-          {cosmetic.type === "chat_border" && (
-            <div className={cn("p-2 rounded text-sm text-foreground border w-full", cosmetic.preview)}>
-              Sample message
-            </div>
-          )}
-          {cosmetic.type === "name_color" && (
-            <div className={cn("text-xl font-bold", cosmetic.preview)}>
-              {cosmetic.name.split(" ")[0]}
-            </div>
-          )}
-          {cosmetic.type === "avatar_frame" && (
-            <div className="text-3xl">✨ {cosmetic.preview === "diamond" ? "💎" : cosmetic.preview === "fire" ? "🔥" : "👑"}</div>
-          )}
-          {isSyndicate && (cosmetic.type === "accessory" || cosmetic.type === "clothing" || cosmetic.type === "background" || cosmetic.type === "banner" || cosmetic.type === "persona") && (
-            <div className="text-center">
-              <div className="text-3xl mb-1">{cosmetic.preview}</div>
-              <span className="text-[10px] text-muted-foreground uppercase">{cosmetic.type}</span>
-            </div>
-          )}
+        {/* Hero preview area */}
+        <div className="relative px-4 pb-4">
+          <div className={cn(
+            "rounded-xl flex items-center justify-center min-h-[110px] border border-border/50 overflow-hidden",
+            cosmetic.type === "background" && isSyndicate ? cosmetic.preview : "bg-gradient-to-b from-muted/30 to-muted/10"
+          )}>
+            {cosmetic.type === "chat_border" && (
+              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", cosmetic.preview)}>
+                🔥 Hey everyone, I think I know who the mafia is...
+              </div>
+            )}
+            {cosmetic.type === "name_color" && (
+              <div className="text-center">
+                <div className={cn("text-3xl font-black tracking-tight", cosmetic.preview)}>AGENT_47</div>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Username Preview</span>
+              </div>
+            )}
+            {cosmetic.type === "avatar_frame" && (
+              <div className="relative">
+                <div className="text-5xl relative z-10">🕵️</div>
+                <div className={cn(
+                  "absolute -inset-3 rounded-full border-[3px] animate-pulse",
+                  cosmetic.preview === "diamond" ? "border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.3)]" :
+                  cosmetic.preview === "fire" ? "border-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.3)]" :
+                  "border-yellow-400/60 shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+                )} />
+              </div>
+            )}
+            {isSyndicate && cosmetic.type === "accessory" && (
+              <div className="text-center">
+                <div className="text-5xl drop-shadow-lg">{cosmetic.preview}</div>
+                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{cosmetic.type}</div>
+              </div>
+            )}
+            {isSyndicate && cosmetic.type === "clothing" && (
+              <div className="text-center">
+                <div className="text-5xl drop-shadow-lg">{cosmetic.preview}</div>
+                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{cosmetic.type}</div>
+              </div>
+            )}
+            {isSyndicate && cosmetic.type === "background" && (
+              <div className="text-center">
+                <div className="text-4xl drop-shadow-lg">🏠</div>
+                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/60">Profile Background</div>
+              </div>
+            )}
+            {isSyndicate && cosmetic.type === "banner" && (
+              <div className="text-center">
+                <div className="text-5xl drop-shadow-lg">{cosmetic.preview}</div>
+                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Victory Banner</div>
+              </div>
+            )}
+            {isSyndicate && cosmetic.type === "persona" && (
+              <div className="text-center">
+                <div className="text-5xl drop-shadow-lg">{cosmetic.preview}</div>
+                <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Legendary Persona</div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Action */}
-        <div className="flex gap-2">
+        {/* Info */}
+        <div className="px-4 pb-2">
+          <h3 className="font-black text-sm text-foreground tracking-tight">{cosmetic.name}</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{cosmetic.description}</p>
+        </div>
+
+        {/* Action bar */}
+        <div className="px-4 pb-4 pt-2">
           {isSyndicate && !hasPass ? (
-            <Button disabled variant="secondary" className="flex-1 text-xs font-bold">
-              <Lock className="w-3 h-3 mr-1" />
-              Syndicate Pass Required
+            <Button disabled variant="secondary" className="w-full text-xs font-black h-10 opacity-60">
+              <Lock className="w-4 h-4 mr-2" />
+              Requires Syndicate Pass
             </Button>
           ) : !isOwned ? (
             <Button
               onClick={() => handleBuy(cosmetic)}
               disabled={!canAfford}
-              className="flex-1 text-xs font-bold"
-              variant={canAfford ? "default" : "secondary"}
+              className={cn(
+                "w-full text-xs font-black h-10 transition-all",
+                canAfford
+                  ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400 shadow-lg shadow-yellow-500/20"
+                  : "bg-muted text-muted-foreground"
+              )}
             >
-              <Sparkles className="w-3 h-3 mr-1" />
-              {cosmetic.cost || 0}
+              <Sparkles className="w-4 h-4 mr-2" />
+              Unlock for {cosmetic.cost || 0} Wins
             </Button>
           ) : (
             <Button
               onClick={() => handleEquip(cosmetic)}
               variant={isEquipped ? "default" : "outline"}
-              className="flex-1 text-xs font-bold"
+              className={cn(
+                "w-full text-xs font-black h-10",
+                isEquipped && "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+              )}
             >
-              {isEquipped ? "Equipped" : "Equip"}
+              {isEquipped ? "Equipped — Click to Unequip" : "Equip Item"}
             </Button>
           )}
         </div>
