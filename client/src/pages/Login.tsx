@@ -82,12 +82,16 @@ export default function Login() {
         try {
           const error = await res.json();
           msg = error.message || msg;
-          // Handle Zod validation error arrays
           if (Array.isArray(msg)) {
             msg = msg.map((e: any) => e.message).join("; ");
           }
         } catch { /* not JSON */ }
-        toast({ title: "Error", description: msg, variant: "destructive" });
+        const title = res.status === 503 ? "Server Busy" : "Error";
+        toast({ title, description: msg, variant: "destructive" });
+        if (res.status === 503) {
+          setTimeout(() => setLoading(false), 2000);
+          return;
+        }
         setLoading(false);
         return;
       }

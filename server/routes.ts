@@ -713,6 +713,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       });
     } catch (err: any) {
       console.error("Signup error:", err);
+      const isNetworkError = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetworkError) {
+        return res.status(503).json({ message: "Server temporarily unavailable. Please wait a moment and try again." });
+      }
       res.status(400).json({ message: err?.message || "Signup failed" });
     }
   });
@@ -739,7 +743,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         name: user.name,
         avatar: user.avatar,
       });
-    } catch (error) {
+    } catch (error: any) {
+      const isNetwork = error?.message?.includes("EAI_AGAIN") || error?.message?.includes("getaddrinfo") || error?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(401).json({ message: "Login failed" });
     }
   });
@@ -771,6 +777,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         avatar: user.avatar,
       });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "2FA login failed" });
     }
   });
@@ -781,7 +789,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const input = api.auth.forgotPassword.input.parse(req.body);
       const user = await storage.getUserByUsername(input.username);
       if (!user) {
-        return res.status(404).json({ message: "Username not found" });
+        return res.status(200).json({ message: "If this account exists, a reset link has been generated." });
       }
 
       const token = randomUUID();
@@ -800,6 +808,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         resetToken: token, // Returned for demo/testing only
       });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "Request failed" });
     }
   });
@@ -821,6 +831,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       res.json({ message: "Password updated successfully" });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "Reset failed" });
     }
   });
@@ -851,6 +863,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         qrCodeUri: uri,
       });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "Setup failed" });
     }
   });
@@ -875,6 +889,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await storage.updateUser(user.id, { is2FAEnabled: true });
       res.json({ enabled: true });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "Verification failed" });
     }
   });
@@ -896,7 +912,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       res.json({ disabled: true });
     } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
       res.status(400).json({ message: err?.message || "Disable failed" });
+    }
+  });
+
+  // Get current user info (for 2FA status, etc.)
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const userId = req.query.userId;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const user = await storage.getUserById(Number(userId));
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.json({
+        userId: user.id,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        is2FAEnabled: user.is2FAEnabled,
+      });
+    } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable." });
+      res.status(400).json({ message: err?.message || "Failed to fetch user" });
     }
   });
 

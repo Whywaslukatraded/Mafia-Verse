@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function Settings() {
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -27,6 +29,47 @@ export default function Settings() {
   });
   const userId = localStorage.getItem("mafia_userId");
   const isLoggedIn = !!userId;
+  const [has2FA, setHas2FA] = useState(false);
+  const [checking2FA, setChecking2FA] = useState(false);
+  const [disabling2FA, setDisabling2FA] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [showDisableForm, setShowDisableForm] = useState(false);
+
+  // Check if user has 2FA enabled
+  useEffect(() => {
+    if (!userId) return;
+    setChecking2FA(true);
+    fetch(`/api/auth/me?userId=${userId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setHas2FA(!!d.is2FAEnabled); })
+      .catch(() => {})
+      .finally(() => setChecking2FA(false));
+  }, [userId]);
+
+  const handleDisable2FA = async () => {
+    if (!userId || !disablePassword.trim()) return;
+    setDisabling2FA(true);
+    try {
+      const res = await fetch("/api/auth/2fa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: Number(userId), password: disablePassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.disabled) {
+        setHas2FA(false);
+        setShowDisableForm(false);
+        setDisablePassword("");
+        toast({ title: "2FA Disabled", description: "Two-factor authentication has been turned off." });
+      } else {
+        toast({ title: "Error", description: data.message || "Could not disable 2FA", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setDisabling2FA(false);
+    }
+  };
   const applyTheme = (enabled: boolean) => {
     document.documentElement.classList.toggle("dark", enabled);
     localStorage.setItem("mafia_theme_dark", JSON.stringify(enabled));
@@ -194,33 +237,90 @@ export default function Settings() {
           {/* Security Section */}
           {isLoggedIn && (
             <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
-              <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Security</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Security</h2>
+                {checking2FA && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
+              </div>
 
-              <button
-                onClick={() => setLocation("/2fa-setup")}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                data-testid="button-2fa-setup"
-              >
-                <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-green-500" />
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-foreground">Two-Factor Auth</p>
-                    <p className="text-xs text-muted-foreground">Add extra account protection</p>
+              {/* 2FA Status Card */}
+              <div className={cn(
+                "p-4 rounded-xl border transition-all",
+                has2FA
+                  ? "bg-green-500/10 border-green-500/30"
+                  : "bg-muted/50 border-border"
+              )}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    has2FA ? "bg-green-500/20" : "bg-muted"
+                  )}>
+                    {has2FA ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Shield className="w-5 h-5 text-muted-foreground" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-foreground">
+                      Two-Factor Auth {has2FA ? "Enabled" : "Not Set Up"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {has2FA ? "Your account is protected with TOTP." : "Add an extra layer to your account."}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs text-primary font-bold">Setup</span>
-              </button>
 
+                {showDisableForm ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-500 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Enter your password to confirm disabling 2FA.
+                    </p>
+                    <input
+                      type="password"
+                      placeholder="Your password"
+                      value={disablePassword}
+                      onChange={(e) => setDisablePassword(e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="destructive" onClick={handleDisable2FA} disabled={disabling2FA} className="flex-1">
+                        {disabling2FA ? "Disabling..." : "Confirm Disable"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowDisableForm(false); setDisablePassword(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : has2FA ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+                    onClick={() => setShowDisableForm(true)}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-1" />
+                    Disable 2FA
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation("/2fa-setup")}
+                    className="w-full"
+                  >
+                    <Shield className="w-4 h-4 mr-1" />
+                    Set Up Two-Factor Auth
+                  </Button>
+                )}
+              </div>
+
+              {/* Forgot / Reset Password */}
               <button
-                onClick={() => setLocation("/reset-password")}
+                onClick={() => setLocation("/forgot-password")}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                data-testid="button-change-password"
+                data-testid="button-forgot-password"
               >
                 <div className="flex items-center gap-3">
                   <KeyRound className="w-5 h-5 text-amber-500" />
                   <div className="text-left">
-                    <p className="text-sm font-bold text-foreground">Change Password</p>
-                    <p className="text-xs text-muted-foreground">Reset via token</p>
+                    <p className="text-sm font-bold text-foreground">Forgot Password</p>
+                    <p className="text-xs text-muted-foreground">Generate a reset token</p>
                   </div>
                 </div>
                 <span className="text-xs text-primary font-bold">Reset</span>
