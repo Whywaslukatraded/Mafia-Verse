@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { api } from "@shared/routes";
 import { Search, Shield } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AVATARS = ["👤", "🧔", "👨", "👩", "🧑", "👨‍🦰", "👩‍🦱", "🧔‍♂️", "🧔‍♀️", "👨‍🦱"];
 
@@ -23,27 +24,43 @@ export default function Login() {
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(AVATARS[0]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!username.trim()) e.username = "Username is required";
+    else if (username.trim().length < 3) e.username = "Min 3 characters";
+    if (!password.trim()) e.password = "Password is required";
+    else if (password.length < 6) e.password = "Min 6 characters";
+    if (isSignup) {
+      if (!name.trim()) e.name = "Display name is required";
+      else if (name.trim().length < 2) e.name = "Min 2 characters";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) {
+      toast({ title: "Check your inputs", description: "Please fix the errors above", variant: "destructive" });
+      return;
+    }
     setLoading(true);
 
     try {
-      // If 2FA step is active, submit the code
       if (needs2FA) {
         const res = await fetch("/api/auth/login-2fa", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password, totpCode }),
         });
-
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           toast({ title: "Error", description: err.message || "Invalid 2FA code", variant: "destructive" });
           setLoading(false);
           return;
         }
-
         const data = await res.json();
         finalizeLogin(data);
         return;
@@ -51,8 +68,8 @@ export default function Login() {
 
       const endpoint = isSignup ? api.auth.signup.path : api.auth.login.path;
       const body = isSignup
-        ? { username, password, name, avatar }
-        : { username, password };
+        ? { username: username.trim(), password, name: name.trim(), avatar }
+        : { username: username.trim(), password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -65,39 +82,26 @@ export default function Login() {
         try {
           const error = await res.json();
           msg = error.message || msg;
-          if (Array.isArray(error.message)) {
-            msg = error.message.map((e: any) => e.message).join("; ");
+          // Handle Zod validation error arrays
+          if (Array.isArray(msg)) {
+            msg = msg.map((e: any) => e.message).join("; ");
           }
         } catch { /* not JSON */ }
-        toast({
-          title: "Error",
-          description: msg,
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: msg, variant: "destructive" });
         setLoading(false);
         return;
       }
 
       const data = await res.json();
-
-      // If 2FA is required, show the code input
       if (data.requires2FA) {
         setNeeds2FA(true);
         setLoading(false);
-        toast({
-          title: "2FA Required",
-          description: "Enter the code from your authenticator app.",
-        });
+        toast({ title: "2FA Required", description: "Enter the code from your authenticator app." });
         return;
       }
-
       finalizeLogin(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -108,10 +112,7 @@ export default function Login() {
     localStorage.setItem("mafia_username", data.username);
     localStorage.setItem("mafia_name", data.name);
     localStorage.setItem("mafia_avatar", data.avatar);
-    toast({
-      title: needs2FA ? "Authenticated!" : "Logged in!",
-      description: `Welcome ${data.name}!`,
-    });
+    toast({ title: needs2FA ? "Authenticated!" : "Logged in!", description: `Welcome ${data.name}!` });
     setLocation("/");
   };
 
@@ -136,29 +137,39 @@ export default function Login() {
         </div>
 
         <Card className="glass-card border-none bg-card/80 backdrop-blur-xl ring-1 ring-border p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <Label className="text-xs">Username</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Username</Label>
+                <span className="text-[10px] text-muted-foreground">min 3 chars</span>
+              </div>
               <Input
                 type="text"
-                placeholder="username"
+                placeholder="choose a username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => { setUsername(e.target.value); setErrors((prev) => ({ ...prev, username: "" })); }}
                 disabled={loading}
-                className="mt-1"
+                className={cn("mt-1", errors.username && "border-destructive ring-1 ring-destructive")}
+                data-testid="input-username"
               />
+              {errors.username && <p className="text-[10px] text-destructive mt-1">{errors.username}</p>}
             </div>
 
             <div>
-              <Label className="text-xs">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Password</Label>
+                <span className="text-[10px] text-muted-foreground">min 6 chars</span>
+              </div>
               <Input
                 type="password"
-                placeholder="password"
+                placeholder="choose a password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: "" })); }}
                 disabled={loading}
-                className="mt-1"
+                className={cn("mt-1", errors.password && "border-destructive ring-1 ring-destructive")}
+                data-testid="input-password"
               />
+              {errors.password && <p className="text-[10px] text-destructive mt-1">{errors.password}</p>}
             </div>
 
             {needs2FA && (
@@ -183,43 +194,49 @@ export default function Login() {
             )}
 
             {isSignup && (
-              <>
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4">
                 <div>
-                  <Label className="text-xs">Display Name</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Display Name</Label>
+                    <span className="text-[10px] text-muted-foreground">min 2 chars</span>
+                  </div>
                   <Input
                     type="text"
-                    placeholder="your name"
+                    placeholder="how others see you"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: "" })); }}
                     disabled={loading}
-                    className="mt-1"
+                    className={cn("mt-1", errors.name && "border-destructive ring-1 ring-destructive")}
+                    data-testid="input-name"
                   />
+                  {errors.name && <p className="text-[10px] text-destructive mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <Label className="text-xs">Avatar</Label>
+                  <Label className="text-xs">Pick Your Avatar</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {AVATARS.map((a) => (
                       <button
                         key={a}
                         type="button"
                         onClick={() => setAvatar(a)}
-                        className={`w-10 h-10 rounded border flex items-center justify-center text-lg ${
+                        className={cn(
+                          "w-10 h-10 rounded-lg border-2 flex items-center justify-center text-lg transition-all",
                           avatar === a
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "bg-muted/50 border-border hover:bg-muted"
-                        }`}
+                            ? "bg-primary border-primary text-primary-foreground shadow-lg scale-110"
+                            : "bg-muted/50 border-border hover:bg-muted hover:border-primary/50"
+                        )}
                       >
                         {a}
                       </button>
                     ))}
                   </div>
                 </div>
-              </>
+              </motion.div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full mt-6">
-              {loading ? "..." : isSignup ? "Sign Up" : "Login"}
+            <Button type="submit" disabled={loading} className="w-full mt-6" data-testid="button-auth-submit">
+              {loading ? "Please wait..." : isSignup ? "Create Account" : needs2FA ? "Verify & Login" : "Login"}
             </Button>
           </form>
 
@@ -230,13 +247,15 @@ export default function Login() {
               setUsername("");
               setPassword("");
               setName("");
+              setErrors({});
+              setNeeds2FA(false);
             }}
             className="w-full text-sm text-blue-400 hover:text-blue-300 mt-4"
           >
             {isSignup ? "Already have an account? Login" : "Need an account? Sign Up"}
           </button>
 
-          {!isSignup && (
+          {!isSignup && !needs2FA && (
             <button
               type="button"
               onClick={() => setLocation("/forgot-password")}
@@ -247,12 +266,7 @@ export default function Login() {
             </button>
           )}
 
-          <Button
-            variant="outline"
-            onClick={() => setLocation("/")}
-            className="w-full mt-2"
-            size="sm"
-          >
+          <Button variant="outline" onClick={() => setLocation("/")} className="w-full mt-2" size="sm">
             Back to Home
           </Button>
         </Card>

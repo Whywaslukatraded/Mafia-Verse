@@ -108,38 +108,87 @@ async function fillWithBots(roomId: number, storage: any) {
 
 const BOT_MESSAGES = {
   general: [
-    "I think it's one of you...", "I'm innocent!", "Trust me.", "Who is the mafia?",
-    "Found anything?", "This is getting intense.", "Something feels off today.",
-    "I have a gut feeling about this.", "We need to work together.", "Don't trust anyone.",
-    "I stayed up all night thinking about this.", "My vote stands.",
+    "I watched everyone last night. Someone's story doesn't line up.",
+    "I've played enough rounds to know when someone's faking calm.",
+    "Why is the room so quiet? Guilty people stay quiet.",
+    "Call me paranoid but I always check alibis twice.",
+    "If I die tonight, check the person who just changed the subject.",
+    "I've been taking notes. Three people changed their story.",
+    "The silence is louder than any accusation right now.",
+    "Someone here is way too good at deflecting. That's a red flag.",
+    "I'm watching how fast people type when cornered.",
+    "Last round I trusted the wrong person. Never again.",
   ],
   accusation: [
-    "I'm voting for {name}. They seem suspicious.", "Could it be {name}? They haven't said much.",
-    "I'm leaning towards {name}.", "{name} was acting really weird last night.",
-    "Something about {name} doesn't add up.", "Has anyone else noticed {name} avoiding eye contact?",
-    "I don't trust {name} at all.", "{name} was the last one I expected... or was they?",
-    "Think about it — {name} has been too quiet.", "Call me crazy but... {name}.",
+    "I watched {name} carefully. Their reaction time was suspicious.",
+    "{name} only speaks up when the pressure is on someone else. Classic deflection.",
+    "Has anyone noticed {name} never votes first? They always wait to see where the wind blows.",
+    "{name} said they were a civilian but their logic sounds like mafia covering tracks.",
+    "I asked {name} a direct question and they answered with another question. Fishy.",
+    "{name} went from silent to extremely defensive in two messages. Overcompensating?",
+    "If you eliminate {name} and they're civilian, I'll take the blame. But I don't think so.",
+    "{name} keeps saying 'trust me' — people who demand trust usually don't deserve it.",
+    "I've played against {name} before. They use the same excuses every time they're mafia.",
+    "{name} contradicted themselves between round one and now. Dead giveaway.",
   ],
   defense: [
-    "It's not me, I swear!", "Why are you looking at me?", "I'm literally on your side.",
-    "You've got the wrong person.", "I was sleeping! I didn't do anything.",
-    "Check your facts before accusing me.", "I would never.", "Come on, I'm obviously a civilian.",
-    "This is a witch hunt.", "Fine, don't believe me. You'll regret it.",
+    "I've been completely transparent since round one. Check my messages.",
+    "Why would I risk drawing this much attention if I were mafia? Think about it.",
+    "I voted to eliminate a bot last round. Why would mafia waste a vote on a bot?",
+    "My story hasn't changed once. Can the accuser say the same?",
+    "If I were mafia, I'd be much quieter. I'm arguing because I'm innocent and frustrated.",
+    "Watch who benefits if you vote me out. That's the real mafia.",
+    "I literally suggested a strategy that hurt mafia last round. Use your brain.",
+    "Eliminate me and you'll lose a civilian. Then the mafia wins faster.",
+    "I've been trying to coordinate the whole team. Does that sound like mafia behavior?",
+    "The person accusing me hasn't offered a single piece of evidence. Just vibes.",
   ],
   agreement: [
-    "Yeah, I agree.", "That's a good point.", "Same thing I was thinking.",
-    "Exactly.", "Couldn't have said it better.", "100%.",
+    "Solid read. I was thinking the same thing but couldn't articulate it.",
+    "That analysis is airtight. I'm locking in behind this.",
+    "You just connected dots I missed. That's good detective work.",
+    "I'm convinced. Let's vote and move to the next round.",
+    "Finally someone speaking with logic instead of panic.",
+    "Your reasoning is sound. I'll adjust my theory accordingly.",
   ],
   suspicion: [
-    "Wait... has anyone checked on everyone?", "Something happened last night.",
-    "I have information but I don't know who to trust.", "Be careful who you believe.",
-    "The mafia is good at hiding.", "One of us is lying right now.",
+    "Something feels manufactured about this discussion. Like it's being steered.",
+    "Two people are pushing the same narrative from different angles. Coordinated?",
+    "The mafia is definitely reading this chat. Watch for who stays invisible.",
+    "I don't like how quickly the conversation moved away from the night results.",
+    "Someone here is playing us like a fiddle. We need to wake up.",
+    "The quietest player is often the most dangerous. Remember that.",
+    "Every round the mafia survives, they get bolder. We need to strike now.",
+    "I've seen this pattern before — fake confidence, redirect, eliminate a civilian.",
   ],
   response: [
-    "That makes sense.", "I can see why you'd say that.", "Hmm, maybe you're right.",
-    "I don't know about that.", "Can you explain more?", "Interesting point.",
-    "That's suspicious.", "Actually, I agree.", "No, that's not what I meant.",
-    "I'm not convinced yet."
+    "Interesting angle, but you're missing the night-phase timeline.",
+    "That would make sense if we had more players alive. Right now it's too risky.",
+    "I see your point but the data doesn't support that conclusion.",
+    "You might be right, but can you explain why the doctor didn't heal them?",
+    "That's one interpretation. Here's another: what if the mafia wanted us to think that?",
+    "Your theory relies on too many assumptions. Let's stick to what we know.",
+    "I respect the take but I've been watching different signals.",
+    "Convincing argument, but I've been burned by similar logic before. Cautious yes.",
+    "You almost had me, but {name} actually has a solid alibi from round one.",
+    "Partial credit — your first half is right, second half needs more proof.",
+  ],
+  nightMafia: [
+    "Who do we take out? The loud one or the smart one?",
+    "Let's hit the player asking too many questions. They're dangerous.",
+    "If we eliminate {name}, the civilians lose their best analyst.",
+    "Split the vote if we have to, but let's not leave evidence.",
+    "The doctor might be watching. Pick someone unexpected.",
+  ],
+  nightDoctor: [
+    "I have a feeling about tonight. Someone's going to need this save.",
+    "Who's been the most helpful? That's who the mafia wants dead.",
+    "My gut says protect the loudest voice — they're making the mafia nervous.",
+  ],
+  nightDetective: [
+    "Time to get some intel. I'll check the player who's been too smooth.",
+    "Who's hiding in plain sight? Let's find out.",
+    "The quiet ones are always worth investigating first.",
   ],
 };
 
@@ -165,23 +214,25 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   
   if (mentionedPlayer) {
     if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
-      content = `I agree! ${mentionedPlayer.name} does seem suspicious.`;
+      content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
     } else if (msgLower.includes("innocent") || msgLower.includes("not") || msgLower.includes("trust")) {
-      content = `Maybe ${mentionedPlayer.name} is innocent. Hard to tell.`;
+      content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
     } else {
-      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
     }
   } else if (msgLower.includes("?")) {
     content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-  } else if (msgLower.includes("mafia") || msgLower.includes("kill")) {
-    if (alivePlayers.length > 0 && Math.random() > 0.5) {
+  } else if (msgLower.includes("mafia") || msgLower.includes("kill") || msgLower.includes("eliminate")) {
+    if (alivePlayers.length > 0 && Math.random() > 0.4) {
       const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-      content = `Could ${victim?.name} be the mafia?`;
+      content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
     } else {
       content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
     }
-  } else {
+  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right")) {
     content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+  } else {
+    content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
   }
 
   if (content) {
@@ -245,37 +296,41 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       const recentMessages = await storage.getMessagesByRoom(roomId);
       const lastHumanMsg = recentMessages?.filter((m: any) => m.playerId !== 0 && !players.find((p: Player) => p.id === m.playerId && p.isBot))?.pop();
       
-      // Bot responds to recent human message 40% of the time
-      if (lastHumanMsg && Math.random() > 0.6) {
+      // Bot responds to recent human message 55% of the time
+      if (lastHumanMsg && Math.random() > 0.45) {
         const msgText = lastHumanMsg.content.toLowerCase();
-        // Check if message mentions a specific player name (accusation)
         const mentionedPlayer = players.find((p: Player) => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
         if (mentionedPlayer) {
-          if (msgText.includes("mafia") || msgText.includes("sus") || msgText.includes("vote")) {
-            content = `I agree! ${mentionedPlayer.name} does seem suspicious.`;
-          } else if (msgText.includes("not") || msgText.includes("innocent")) {
-            content = `Hmm, maybe ${mentionedPlayer.name} is telling the truth.`;
+          if (msgText.includes("mafia") || msgText.includes("sus") || msgText.includes("vote") || msgText.includes("kill")) {
+            content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
+          } else if (msgText.includes("not") || msgText.includes("innocent") || msgText.includes("trust")) {
+            content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
           } else {
-            content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+            content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
           }
         } else if (msgText.includes("?")) {
-          // Respond to questions
           content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-        } else {
+        } else if (msgText.includes("agree") || msgText.includes("yes") || msgText.includes("right") || msgText.includes("true")) {
           content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+        } else if (msgText.includes("mafia") || msgText.includes("kill") || msgText.includes("eliminate")) {
+          const victim = alivePlayers.length > 0 ? alivePlayers[Math.floor(Math.random() * alivePlayers.length)] : null;
+          if (victim) content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
+          else content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+        } else {
+          content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
         }
       } else {
         const rand = Math.random();
-        if (rand > 0.8 && alivePlayers.length > 0) {
+        if (rand > 0.7 && alivePlayers.length > 0) {
           const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
           content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-        } else if (rand > 0.6) {
+        } else if (rand > 0.55) {
           content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
         } else if (rand > 0.4) {
           content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
         } else if (rand > 0.25) {
           content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-        } else if (rand > 0.2) {
+        } else if (rand > 0.15) {
           content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
         } else {
           content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
