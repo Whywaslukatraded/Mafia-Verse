@@ -61,7 +61,9 @@ export function PlayerCard({
   revealedRole 
 }: PlayerCardProps) {
   // Determine which role cosmetic to apply
-  const knownRole = revealedRole?.toLowerCase() || (isMe ? player.role?.toLowerCase() : null);
+  // Server sends real roles for: self, teammates, dead players, ended games; 'unknown' for hidden roles
+  const knownRole = revealedRole?.toLowerCase()
+    || (player.role && player.role !== "unknown" ? player.role.toLowerCase() : null);
   const cosmetic = knownRole && ROLE_COSMETICS[knownRole] ? ROLE_COSMETICS[knownRole] : null;
   const RoleIcon = cosmetic?.icon;
 
@@ -138,7 +140,9 @@ export function PlayerCard({
         
         {/* Revealed Role or Status */}
         <div className="mt-2 min-h-[20px] text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {!player.isAlive ? "Eliminated" : revealedRole || (isMe && player.role) || "Unknown"}
+          {!player.isAlive
+            ? (player.role && player.role !== "unknown" ? `${player.role} — Eliminated` : "Eliminated")
+            : (revealedRole || (player.role && player.role !== "unknown" ? player.role : "Unknown"))}
         </div>
       </div>
 
