@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tv, Coins, Clock, CheckCircle2, Sparkles } from "lucide-react";
+import { Tv, Coins, Clock, CheckCircle2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function getAdStats() {
@@ -43,9 +43,13 @@ export function AdRewards({ onClose }: { onClose: () => void }) {
   const [watching, setWatching] = useState(false);
   const [progress, setProgress] = useState(0);
   const [claimed, setClaimed] = useState(false);
+  const statsRef = useRef(stats);
+  statsRef.current = stats;
 
   const startWatch = useCallback(() => {
-    if (stats.watchedToday >= MAX_ADS_PER_DAY) return;
+    const current = statsRef.current;
+    if (current.watchedToday >= MAX_ADS_PER_DAY) return;
+
     setWatching(true);
     setProgress(0);
     setClaimed(false);
@@ -58,17 +62,18 @@ export function AdRewards({ onClose }: { onClose: () => void }) {
         clearInterval(interval);
         setWatching(false);
         setClaimed(true);
-        const newStats = {
-          ...stats,
-          watchedToday: stats.watchedToday + 1,
-          totalWatched: (stats.totalWatched || 0) + 1,
+
+        const updated = {
+          watchedToday: current.watchedToday + 1,
+          totalWatched: (current.totalWatched || 0) + 1,
+          lastDate: today,
         };
-        saveAdStats(newStats);
-        setStats(newStats);
+        saveAdStats(updated);
+        setStats(updated);
         addCredits(REWARD_PER_AD);
       }
-    }, 60); // ~3 seconds total
-  }, [stats]);
+    }, 60);
+  }, [today]);
 
   const remaining = MAX_ADS_PER_DAY - stats.watchedToday;
 
@@ -93,7 +98,7 @@ export function AdRewards({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -180,3 +185,4 @@ export function AdRewards({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins, Star } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { AdRewards } from "@/components/AdRewards";
 import { ReferralSystem } from "@/components/ReferralSystem";
 import { LootCrate } from "@/components/LootCrate";
 import { CreditPacks } from "@/components/CreditPacks";
+import { RatingSystem } from "@/components/RatingSystem";
 
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
@@ -54,6 +55,7 @@ export default function Home() {
   const [showReferral, setShowReferral] = useState(false);
   const [showLootCrate, setShowLootCrate] = useState(false);
   const [showCreditPacks, setShowCreditPacks] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   
   // Persistent Profile - defensive localStorage parsing
   const safeParse = (key: string, fallback: any) => {
@@ -394,6 +396,14 @@ export default function Home() {
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Credits</span>
                   </button>
                   <button
+                    onClick={() => setShowRating(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="text-lg font-black font-mono">⭐</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
+                  </button>
+                  <button
                     onClick={() => setLocation("/settings")}
                     className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
                   >
@@ -585,6 +595,9 @@ export default function Home() {
       )}
       {showCreditPacks && (
         <CreditPacks onClose={() => setShowCreditPacks(false)} />
+      )}
+      {showRating && (
+        <RatingSystem onClose={() => setShowRating(false)} />
       )}
     </div>
   );
