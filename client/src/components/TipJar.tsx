@@ -41,7 +41,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
 
   const handleCustomTip = () => {
     const cents = Math.round(parseFloat(customAmount) * 100);
-    if (cents >= 500) {
+    if (cents >= 100) {
       handleTip(cents);
     }
   };
@@ -112,7 +112,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
               onClick={() => setShowCustom(true)}
               className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5 transition-colors"
             >
-              Or enter a custom amount ($5 minimum)
+              Or enter a custom amount ($1 minimum)
             </button>
           ) : (
             <div className="space-y-2 p-3 border border-pink-500/20 rounded-xl bg-pink-500/5">
@@ -120,9 +120,9 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                 <DollarSign className="w-4 h-4 text-pink-500" />
                 <Input
                   type="number"
-                  min="5"
+                  min="1"
                   step="0.01"
-                  placeholder="Enter amount (min $5)"
+                  placeholder="Enter amount (min $1)"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   className="flex-1"
@@ -140,7 +140,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                 <Button
                   size="sm"
                   className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
-                  disabled={parseFloat(customAmount) < 5}
+                  disabled={parseFloat(customAmount) < 1}
                   onClick={handleCustomTip}
                 >
                   Tip ${customAmount || "0"}
@@ -152,7 +152,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
 
         <div className="p-4 border-t border-border bg-muted/20">
           <p className="text-[10px] text-muted-foreground text-center">
-            100% of tips go toward server costs and new features. Minimum $5 to cover processing fees. Thank you!
+            Most of every tip goes to improving the game and keeping the servers running. The rest covers processing fees. Every dollar helps — thank you!
           </p>
         </div>
 
