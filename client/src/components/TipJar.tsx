@@ -1,31 +1,34 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Coffee, Zap, Star, X, CheckCircle2 } from "lucide-react";
+import { Heart, Zap, Star, X, CheckCircle2, DollarSign, Coffee, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const TIP_TIERS = [
-  { amount: 199, label: "$1.99", icon: Coffee, desc: "Buy us a coffee", hearts: 1 },
-  { amount: 499, label: "$4.99", icon: Zap, desc: "Power up the servers", hearts: 3 },
-  { amount: 999, label: "$9.99", icon: Star, desc: "Become a legend", hearts: 5 },
+  { amount: 499, label: "$4.99", icon: Coffee, desc: "Buy us coffee for a week", hearts: 2 },
+  { amount: 999, label: "$9.99", icon: Zap, desc: "Power up the servers", hearts: 3 },
+  { amount: 1999, label: "$19.99", icon: Star, desc: "Major supporter", hearts: 4 },
+  { amount: 4999, label: "$49.99", icon: Crown, desc: "Become a legend", hearts: 5 },
 ];
 
 export function TipJar({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [thanks, setThanks] = useState(false);
+  const [customAmount, setCustomAmount] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
 
-  const handleTip = async (tier: typeof TIP_TIERS[0]) => {
-    setSelected(tier.amount);
+  const handleTip = async (amount: number) => {
+    setSelected(amount);
     try {
       const res = await fetch("/api/stripe/tip-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: tier.amount }),
+        body: JSON.stringify({ amount }),
       });
       const data = await res.json();
       if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
-        // Demo fallback
         setThanks(true);
         setTimeout(() => setThanks(false), 3000);
       }
@@ -34,6 +37,13 @@ export function TipJar({ onClose }: { onClose: () => void }) {
       setTimeout(() => setThanks(false), 3000);
     }
     setSelected(null);
+  };
+
+  const handleCustomTip = () => {
+    const cents = Math.round(parseFloat(customAmount) * 100);
+    if (cents >= 500) {
+      handleTip(cents);
+    }
   };
 
   return (
@@ -71,7 +81,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                 key={tier.amount}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => handleTip(tier)}
+                onClick={() => handleTip(tier.amount)}
                 disabled={selected !== null}
                 className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
               >
@@ -95,11 +105,54 @@ export function TipJar({ onClose }: { onClose: () => void }) {
               </motion.button>
             );
           })}
+
+          {/* Custom Amount */}
+          {!showCustom ? (
+            <button
+              onClick={() => setShowCustom(true)}
+              className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5 transition-colors"
+            >
+              Or enter a custom amount ($5 minimum)
+            </button>
+          ) : (
+            <div className="space-y-2 p-3 border border-pink-500/20 rounded-xl bg-pink-500/5">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-pink-500" />
+                <Input
+                  type="number"
+                  min="5"
+                  step="0.01"
+                  placeholder="Enter amount (min $5)"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setShowCustom(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+                  disabled={parseFloat(customAmount) < 5}
+                  onClick={handleCustomTip}
+                >
+                  Tip ${customAmount || "0"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-4 border-t border-border bg-muted/20">
           <p className="text-[10px] text-muted-foreground text-center">
-            100% of tips go toward server costs and new features. Thank you!
+            100% of tips go toward server costs and new features. Minimum $5 to cover processing fees. Thank you!
           </p>
         </div>
 
