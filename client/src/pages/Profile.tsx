@@ -20,16 +20,19 @@ const ACHIEVEMENTS = [
 export default function Profile() {
   const [, setLocation] = useLocation();
 
-  const [name] = useState(() => localStorage.getItem("mafia_profile_name") || "Unknown Agent");
-  const [avatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || "👤");
-  const [config] = useState(() => {
-    const saved = localStorage.getItem("mafia_profile_config");
-    return saved ? JSON.parse(saved) : { accessory: "None", clothing: "None", bg: "bg-primary/10" };
-  });
-  const [stats, setStats] = useState(() => {
-    const saved = localStorage.getItem("mafia_stats");
-    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0 };
-  });
+  const safeParse = (key: string, fallback: any) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      if (typeof fallback === 'object' && fallback !== null) return JSON.parse(raw);
+      return raw;
+    } catch { return fallback; }
+  };
+
+  const [name] = useState(() => safeParse("mafia_profile_name", "Unknown Agent"));
+  const [avatar] = useState(() => safeParse("mafia_profile_avatar", "👤"));
+  const [config] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: "bg-primary/10" }));
+  const [stats, setStats] = useState(() => safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 }));
 
   useEffect(() => {
     const onStorage = () => {
@@ -99,12 +102,13 @@ export default function Profile() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
             {[
               { icon: Trophy, label: "Wins", value: stats.wins || 0, color: "text-yellow-500" },
               { icon: Skull, label: "Losses", value: losses, color: "text-red-500" },
               { icon: Target, label: "Games", value: stats.gamesPlayed || 0, color: "text-blue-500" },
               { icon: TrendingUp, label: "Win %", value: `${winRate}%`, color: "text-emerald-500" },
+              { icon: Flame, label: "Credits", value: stats.credits || 0, color: "text-amber-500" },
             ].map(stat => (
               <div key={stat.label} className="bg-card/80 ring-1 ring-border rounded-xl p-3 flex flex-col items-center gap-1.5">
                 <stat.icon className={cn("w-4 h-4", stat.color)} />
