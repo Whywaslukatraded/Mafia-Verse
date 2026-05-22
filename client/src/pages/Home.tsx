@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { DailyRewards } from "@/components/DailyRewards";
+import { TipJar } from "@/components/TipJar";
+import { AdRewards } from "@/components/AdRewards";
+import { ReferralSystem } from "@/components/ReferralSystem";
+import { LootCrate } from "@/components/LootCrate";
+import { CreditPacks } from "@/components/CreditPacks";
 
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
@@ -44,6 +49,11 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");
   const [showDailyRewards, setShowDailyRewards] = useState(false);
+  const [showTipJar, setShowTipJar] = useState(false);
+  const [showAdRewards, setShowAdRewards] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
+  const [showLootCrate, setShowLootCrate] = useState(false);
+  const [showCreditPacks, setShowCreditPacks] = useState(false);
   
   // Persistent Profile - defensive localStorage parsing
   const safeParse = (key: string, fallback: any) => {
@@ -317,10 +327,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-white/5 flex gap-4 w-full">
+                <div className="pt-4 border-t border-white/5 flex gap-2 w-full flex-wrap">
                   <button
                     onClick={() => setLocation("/profile")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
                   >
                     <Trophy className="w-4 h-4 text-yellow-500" />
                     <span className="text-2xl font-black font-mono">{stats.wins}</span>
@@ -328,7 +338,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => setShowDailyRewards(true)}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative min-w-[70px]"
                   >
                     <Gift className="w-4 h-4 text-amber-500" />
                     <span className="text-lg font-black font-mono">🎁</span>
@@ -336,16 +346,56 @@ export default function Home() {
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                   </button>
                   <button
+                    onClick={() => setShowAdRewards(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Tv className="w-4 h-4 text-blue-500" />
+                    <span className="text-lg font-black font-mono">📺</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
+                  </button>
+                  <button
+                    onClick={() => setShowReferral(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Users className="w-4 h-4 text-emerald-500" />
+                    <span className="text-lg font-black font-mono">🔗</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Invite</span>
+                  </button>
+                  <button
                     onClick={() => setLocation("/cosmetics")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
                   >
                     <Sparkles className="w-4 h-4 text-yellow-400" />
                     <span className="text-lg font-black font-mono">✨</span>
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
                   </button>
                   <button
+                    onClick={() => setShowTipJar(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Coffee className="w-4 h-4 text-pink-500" />
+                    <span className="text-lg font-black font-mono">☕</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Tip</span>
+                  </button>
+                  <button
+                    onClick={() => setShowLootCrate(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Box className="w-4 h-4 text-purple-500" />
+                    <span className="text-lg font-black font-mono">📦</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Crate</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreditPacks(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
+                  >
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    <span className="text-lg font-black font-mono">💰</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Credits</span>
+                  </button>
+                  <button
                     onClick={() => setLocation("/settings")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
                   >
                     <Settings className="w-4 h-4 text-gray-400" />
                     <span className="text-lg font-black font-mono">⚙️</span>
@@ -520,6 +570,21 @@ export default function Home() {
 
       {showDailyRewards && (
         <DailyRewards onClose={() => setShowDailyRewards(false)} />
+      )}
+      {showTipJar && (
+        <TipJar onClose={() => setShowTipJar(false)} />
+      )}
+      {showAdRewards && (
+        <AdRewards onClose={() => setShowAdRewards(false)} />
+      )}
+      {showReferral && (
+        <ReferralSystem onClose={() => setShowReferral(false)} />
+      )}
+      {showLootCrate && (
+        <LootCrate onClose={() => setShowLootCrate(false)} />
+      )}
+      {showCreditPacks && (
+        <CreditPacks onClose={() => setShowCreditPacks(false)} />
       )}
     </div>
   );

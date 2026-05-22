@@ -13,16 +13,33 @@ class AudioEngine {
   droneGain: GainNode | null = null;
   lfo: OscillatorNode | null = null;
 
-  init() {
-    if (this.ctx) return;
+  init(): AudioContext | null {
     const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
+    if (!Ctx) return null;
+
+    const ctx = this.ctx ?? new Ctx();
     this.ctx = ctx;
-    const masterGain = ctx.createGain();
-    this.masterGain = masterGain;
-    masterGain.connect(ctx.destination);
-    masterGain.gain.value = 0.3;
+    if (!this.masterGain) {
+      const masterGain = ctx.createGain();
+      this.masterGain = masterGain;
+      masterGain.connect(ctx.destination);
+      masterGain.gain.value = 0.3;
+    }
+    return ctx;
+  }
+
+  resume(): boolean {
+    const ctx = this.ctx;
+    if (!ctx) return false;
+    if (ctx.state === 'suspended') {
+      try {
+        ctx.resume();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return ctx.state === 'running';
   }
 
   setVolume(v: number) {
@@ -56,7 +73,7 @@ class AudioEngine {
     const lfoGain = this.ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.value = 110; // A2
+    osc.frequency.value = 110;
 
     filter.type = 'lowpass';
     filter.frequency.value = 400;
@@ -94,9 +111,9 @@ class AudioEngine {
     const filter = this.ctx.createBiquadFilter();
 
     osc.type = 'sine';
-    osc.frequency.value = 55; // A1 - deep
+    osc.frequency.value = 55;
     osc2.type = 'triangle';
-    osc2.frequency.value = 58; // slight detune for unease
+    osc2.frequency.value = 58;
 
     filter.type = 'lowpass';
     filter.frequency.value = 250;
@@ -122,7 +139,7 @@ class AudioEngine {
     if (!this.ctx || !this.masterGain) return;
 
     const now = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+    const notes = [523.25, 659.25, 783.99, 1046.5];
 
     notes.forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
@@ -146,7 +163,6 @@ class AudioEngine {
 
     const now = this.ctx.currentTime;
 
-    // Low impact sound
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'sawtooth';
@@ -160,7 +176,6 @@ class AudioEngine {
     osc.start(now);
     osc.stop(now + 0.6);
 
-    // Dissonant upper tone for tension
     const osc2 = this.ctx.createOscillator();
     const gain2 = this.ctx.createGain();
     osc2.type = 'square';
@@ -180,7 +195,6 @@ class AudioEngine {
     if (!this.ctx || !this.masterGain) return;
 
     const now = this.ctx.currentTime;
-    // Dramatic descending tones
     [440, 370, 311, 277].forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
@@ -195,6 +209,23 @@ class AudioEngine {
       osc.start(now + i * 0.25);
       osc.stop(now + i * 0.25 + 0.6);
     });
+  }
+
+  playTestSound() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 440;
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.5);
   }
 }
 
@@ -220,21 +251,30 @@ export function GameAudio({ phase, status }: GameAudioProps) {
     return () => window.removeEventListener("storage", sync);
   }, []);
 
-  // Unlock audio on first user interaction
+  // Unlock audio on first user interaction - must be synchronous!
   const unlockAudio = useCallback(() => {
     if (audioUnlocked) return;
     engine.init();
-    setAudioUnlocked(true);
-    window.removeEventListener("click", unlockAudio);
-    window.removeEventListener("touchstart", unlockAudio);
+    const ok = engine.resume();
+    if (ok) {
+      setAudioUnlocked(true);
+      // Play a subtle unlock chime so the user knows it worked
+      engine.playTestSound();
+    }
+    window.removeEventListener("click", unlockAudio, true);
+    window.removeEventListener("touchstart", unlockAudio, true);
+    window.removeEventListener("keydown", unlockAudio, true);
   }, [audioUnlocked]);
 
   useEffect(() => {
-    window.addEventListener("click", unlockAudio);
-    window.addEventListener("touchstart", unlockAudio);
+    // Add capture-phase listeners so we catch clicks before React handlers
+    window.addEventListener("click", unlockAudio, true);
+    window.addEventListener("touchstart", unlockAudio, true);
+    window.addEventListener("keydown", unlockAudio, true);
     return () => {
-      window.removeEventListener("click", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("click", unlockAudio, true);
+      window.removeEventListener("touchstart", unlockAudio, true);
+      window.removeEventListener("keydown", unlockAudio, true);
     };
   }, [unlockAudio]);
 
@@ -250,7 +290,6 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       return;
     }
 
-    // Only react to status changes, not every render
     if (status !== prevStatusRef.current) {
       prevStatusRef.current = status;
 
@@ -262,10 +301,6 @@ export function GameAudio({ phase, status }: GameAudioProps) {
         engine.stopDrone();
       }
     }
-
-    return () => {
-      // Don't stop on unmount - let the next status change handle it
-    };
   }, [status, soundEnabled, audioUnlocked]);
 
   // Handle sound effects on phase transitions
@@ -285,3 +320,5 @@ export function GameAudio({ phase, status }: GameAudioProps) {
 
   return null;
 }
+
+export { engine };
