@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const TIP_TIERS = [
-  { amount: 499, label: "$4.99", icon: Coffee, desc: "Buy us coffee for a week", hearts: 2 },
+  { amount: 499, label: "$4.99", icon: Coffee, desc: "Buy us a coffee", hearts: 2 },
   { amount: 999, label: "$9.99", icon: Zap, desc: "Power up the servers", hearts: 3 },
   { amount: 1999, label: "$19.99", icon: Star, desc: "Major supporter", hearts: 4 },
   { amount: 4999, label: "$49.99", icon: Crown, desc: "Become a legend", hearts: 5 },
