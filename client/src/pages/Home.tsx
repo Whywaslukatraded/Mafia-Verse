@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { DailyRewards } from "@/components/DailyRewards";
 
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
@@ -42,18 +43,24 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");
+  const [showDailyRewards, setShowDailyRewards] = useState(false);
   
-  // Persistent Profile
-  const [name, setName] = useState(() => localStorage.getItem("mafia_profile_name") || "");
-  const [avatar, setAvatar] = useState(() => localStorage.getItem("mafia_profile_avatar") || AVATARS[0]);
-  const [config, setConfig] = useState(() => {
-    const saved = localStorage.getItem("mafia_profile_config");
-    return saved ? JSON.parse(saved) : { accessory: "None", clothing: "None", bg: BGS[0] };
-  });
-  const [stats, setStats] = useState(() => {
-    const saved = localStorage.getItem("mafia_stats");
-    return saved ? JSON.parse(saved) : { wins: 0, gamesPlayed: 0, achievements: [] };
-  });
+  // Persistent Profile - defensive localStorage parsing
+  const safeParse = (key: string, fallback: any) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      if (typeof fallback === 'object' && fallback !== null) return JSON.parse(raw);
+      return raw;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const [name, setName] = useState(() => safeParse("mafia_profile_name", ""));
+  const [avatar, setAvatar] = useState(() => safeParse("mafia_profile_avatar", AVATARS[0]));
+  const [config, setConfig] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: BGS[0] }));
+  const [stats, setStats] = useState(() => safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] }));
 
   useEffect(() => {
     localStorage.setItem("mafia_profile_name", name);
@@ -282,12 +289,13 @@ export default function Home() {
               <div className="w-full space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Your Mafia Handle</Label>
-                  <Input 
-                    placeholder="CHOOSE A NAME..." 
+                  <Input
+                    placeholder="CHOOSE A NAME..."
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground"
                     maxLength={12}
+                    data-testid="input-player-name"
                   />
                 </div>
                 
@@ -319,12 +327,21 @@ export default function Home() {
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
                   </button>
                   <button
-                    onClick={() => setLocation("/leaderboard")}
+                    onClick={() => setShowDailyRewards(true)}
+                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
+                  >
+                    <Gift className="w-4 h-4 text-amber-500" />
+                    <span className="text-lg font-black font-mono">🎁</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  </button>
+                  <button
+                    onClick={() => setLocation("/cosmetics")}
                     className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
                   >
-                    <BarChart2 className="w-4 h-4 text-blue-500" />
-                    <span className="text-2xl font-black font-mono">{stats.gamesPlayed}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Leaderboard</span>
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <span className="text-lg font-black font-mono">✨</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
                   </button>
                   <button
                     onClick={() => setLocation("/settings")}
@@ -333,14 +350,6 @@ export default function Home() {
                     <Settings className="w-4 h-4 text-gray-400" />
                     <span className="text-lg font-black font-mono">⚙️</span>
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
-                  </button>
-                  <button
-                    onClick={() => setLocation("/cosmetics")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4 text-yellow-400" />
-                    <span className="text-lg font-black font-mono">✨</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Cosmetics</span>
                   </button>
                 </div>
 
@@ -397,10 +406,11 @@ export default function Home() {
                       maxLength={4}
                     />
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
                     disabled={joinRoom.isPending || !joinCode || !name}
+                    data-testid="button-join-room"
                   >
                     {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
                   </Button>
@@ -494,10 +504,11 @@ export default function Home() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={handleCreate}
                   className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6}
+                  disabled={createRoom.isPending || totalPlayers < 6 || !name}
+                  data-testid="button-create-room"
                 >
                   {createRoom.isPending ? "PREPARING..." : "CREATE ROOM"}
                 </Button>
@@ -506,6 +517,10 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {showDailyRewards && (
+        <DailyRewards onClose={() => setShowDailyRewards(false)} />
+      )}
     </div>
   );
 }

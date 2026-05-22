@@ -607,7 +607,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
       
       for (const p of playersInRoom) {
-        await storage.updatePlayer(p.id, { gameHistory: history });
+        await storage.updatePlayer(p.id, {
+          gameHistory: history,
+          gamesPlayed: (p.gamesPlayed || 0) + 1,
+          wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
+        });
       }
       await storage.updateRoom(roomId, { status: 'ended' });
       if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
