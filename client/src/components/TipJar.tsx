@@ -1,0 +1,130 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Coffee, Zap, Star, X, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const TIP_TIERS = [
+  { amount: 199, label: "$1.99", icon: Coffee, desc: "Buy us a coffee", hearts: 1 },
+  { amount: 499, label: "$4.99", icon: Zap, desc: "Power up the servers", hearts: 3 },
+  { amount: 999, label: "$9.99", icon: Star, desc: "Become a legend", hearts: 5 },
+];
+
+export function TipJar({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [thanks, setThanks] = useState(false);
+
+  const handleTip = async (tier: typeof TIP_TIERS[0]) => {
+    setSelected(tier.amount);
+    try {
+      const res = await fetch("/api/stripe/tip-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: tier.amount }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        // Demo fallback
+        setThanks(true);
+        setTimeout(() => setThanks(false), 3000);
+      }
+    } catch {
+      setThanks(true);
+      setTimeout(() => setThanks(false), 3000);
+    }
+    setSelected(null);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0 }}
+        className="relative bg-card border border-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden"
+      >
+        <div className="bg-gradient-to-r from-pink-500/20 via-rose-500/10 to-pink-500/20 p-6 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
+                <Heart className="w-5 h-5 text-pink-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Support the Game</h2>
+                <p className="text-xs text-muted-foreground">Tips keep the servers running</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {TIP_TIERS.map((tier) => {
+            const Icon = tier.icon;
+            const isSelected = selected === tier.amount;
+            return (
+              <motion.button
+                key={tier.amount}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleTip(tier)}
+                disabled={selected !== null}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors text-left disabled:opacity-50"
+              >
+                <div className="w-12 h-12 rounded-lg bg-pink-500/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-6 h-6 text-pink-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-foreground">{tier.label}</p>
+                  <p className="text-xs text-muted-foreground">{tier.desc}</p>
+                </div>
+                <div className="flex gap-0.5">
+                  {Array.from({ length: tier.hearts }).map((_, i) => (
+                    <Heart key={i} className="w-3 h-3 text-pink-500 fill-pink-500" />
+                  ))}
+                </div>
+                {isSelected && (
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                    <Zap className="w-4 h-4 text-pink-500" />
+                  </motion.div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="p-4 border-t border-border bg-muted/20">
+          <p className="text-[10px] text-muted-foreground text-center">
+            100% of tips go toward server costs and new features. Thank you!
+          </p>
+        </div>
+
+        <AnimatePresence>
+          {thanks && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-10"
+            >
+              <motion.div
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                className="bg-card border border-pink-500/30 rounded-2xl p-8 text-center"
+              >
+                <CheckCircle2 className="w-12 h-12 text-pink-500 mx-auto mb-3" />
+                <p className="text-lg font-bold">Thank You!</p>
+                <p className="text-sm text-muted-foreground">Your support means everything</p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+}

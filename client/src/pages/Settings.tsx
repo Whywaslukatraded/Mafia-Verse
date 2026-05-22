@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { engine } from "@/components/GameAudio";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -197,6 +198,16 @@ export default function Settings() {
                   }}
                   className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                 />
+                <button
+                  className="w-full mt-3 py-2 px-4 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                  onClick={() => {
+                    engine.init();
+                    const ok = engine.resume();
+                    if (ok) engine.playTestSound();
+                  }}
+                >
+                  <Play className="w-4 h-4" /> Play Test Sound
+                </button>
               </div>
             )}
           </div>
