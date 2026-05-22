@@ -37,6 +37,10 @@ function setHasRated() {
   localStorage.setItem("mafia_has_rated", "true");
 }
 
+function clearHasRated() {
+  localStorage.removeItem("mafia_has_rated");
+}
+
 export function RatingSystem({ onClose }: { onClose: () => void }) {
   const [stars, setStars] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
@@ -44,6 +48,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
   const [ratings, setRatings] = useState<Rating[]>(getRatings);
   const [showHistory, setShowHistory] = useState(false);
+  const [canRateAgain, setCanRateAgain] = useState(false);
 
   const average = ratings.length > 0
     ? (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length).toFixed(1)
@@ -124,7 +129,25 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
           )}
 
           <AnimatePresence mode="wait">
-            {submitted ? (
+            {canRateAgain ? (
+              <motion.div
+                key="again"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-6 space-y-3"
+              >
+                <p className="text-lg font-bold">Rating Cleared</p>
+                <p className="text-sm text-muted-foreground">Your rating has been reset. You can submit a new one now.</p>
+                <Button size="sm" onClick={() => {
+                  setCanRateAgain(false);
+                  setStars(0);
+                  setFeedback("");
+                  setSubmitted(false);
+                }}>
+                  Rate Again
+                </Button>
+              </motion.div>
+            ) : submitted ? (
               <motion.div
                 key="submitted"
                 initial={{ opacity: 0, y: 10 }}
@@ -139,9 +162,22 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                 </motion.div>
                 <p className="text-lg font-bold">Thanks for rating!</p>
                 <p className="text-sm text-muted-foreground">Your feedback helps us improve</p>
-                <Button variant="outline" size="sm" onClick={onClose}>
-                  Close
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" size="sm" onClick={onClose}>
+                    Close
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      clearHasRated();
+                      setCanRateAgain(true);
+                    }}
+                  >
+                    Reset My Rating
+                  </Button>
+                </div>
               </motion.div>
             ) : showHistory ? (
               <motion.div

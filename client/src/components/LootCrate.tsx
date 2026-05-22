@@ -4,15 +4,14 @@ import { Box, Coins, Sparkles, X, Gift, Star, Diamond, Crown, Flame } from "luci
 import { Button } from "@/components/ui/button";
 
 const LOOT_ITEMS = [
-  { id: "lc_border_gold", name: "Golden Border", type: "chat_border", tier: "rare", weight: 15 },
-  { id: "lc_name_gold", name: "Gold Name", type: "name_color", tier: "rare", weight: 15 },
-  { id: "lc_frame_diamond", name: "Diamond Frame", type: "avatar_frame", tier: "epic", weight: 8 },
-  { id: "lc_frame_fire", name: "Fire Frame", type: "avatar_frame", tier: "epic", weight: 8 },
-  { id: "lc_frame_crown", name: "Crown Frame", type: "avatar_frame", tier: "epic", weight: 8 },
-  { id: "lc_10_credits", name: "10 Credits", type: "credits", tier: "common", weight: 20 },
-  { id: "lc_25_credits", name: "25 Credits", type: "credits", tier: "common", weight: 15 },
-  { id: "lc_50_credits", name: "50 Credits", type: "credits", tier: "rare", weight: 8 },
-  { id: "lc_100_credits", name: "100 Credits", type: "credits", tier: "epic", weight: 3 },
+  { id: "lc_border_gold", name: "Golden Border", type: "chat_border", tier: "rare", weight: 18 },
+  { id: "lc_name_gold", name: "Gold Name", type: "name_color", tier: "rare", weight: 18 },
+  { id: "lc_frame_diamond", name: "Diamond Frame", type: "avatar_frame", tier: "epic", weight: 10 },
+  { id: "lc_frame_fire", name: "Fire Frame", type: "avatar_frame", tier: "epic", weight: 10 },
+  { id: "lc_frame_crown", name: "Crown Frame", type: "avatar_frame", tier: "epic", weight: 10 },
+  { id: "lc_5_credits", name: "5 Credits", type: "credits", tier: "common", weight: 12 },
+  { id: "lc_7_credits", name: "7 Credits", type: "credits", tier: "rare", weight: 10 },
+  { id: "lc_10_credits", name: "10 Credits", type: "credits", tier: "epic", weight: 5 },
 ];
 
 const TIER_COLORS: Record<string, string> = {
