@@ -69,10 +69,22 @@ export default function Home() {
     }
   };
 
-  const [name, setName] = useState(() => safeParse("mafia_profile_name", ""));
-  const [avatar, setAvatar] = useState(() => safeParse("mafia_profile_avatar", AVATARS[0]));
-  const [config, setConfig] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: BGS[0] }));
-  const [stats, setStats] = useState(() => safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] }));
+  const [name, setName] = useState(() => {
+    const raw = safeParse("mafia_profile_name", "");
+    return typeof raw === "string" ? raw : "";
+  });
+  const [avatar, setAvatar] = useState(() => {
+    const raw = safeParse("mafia_profile_avatar", AVATARS[0]);
+    return typeof raw === "string" ? raw : AVATARS[0];
+  });
+  const [config, setConfig] = useState(() => {
+    const raw = safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: BGS[0] });
+    return raw && typeof raw === "object" ? raw : { accessory: "None", clothing: "None", bg: BGS[0] };
+  });
+  const [stats, setStats] = useState(() => {
+    const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] });
+    return raw && typeof raw === "object" ? raw : { wins: 0, gamesPlayed: 0, achievements: [] };
+  });
 
   useEffect(() => {
     localStorage.setItem("mafia_profile_name", name);
@@ -138,13 +150,13 @@ export default function Home() {
   };
 
   const handleCreate = async () => {
-    if (!name) {
+    if (!name || !name.trim()) {
       toast({ title: "Name required", description: "Please enter your name before creating a room.", variant: "destructive" });
       return;
     }
     try {
-      const res = await createRoom.mutateAsync({ 
-        name, 
+      const res = await createRoom.mutateAsync({
+        name: name.trim(),
         avatar,
         avatarConfig: config,
         settings: {
@@ -167,8 +179,8 @@ export default function Home() {
     } catch (err: any) {
       console.error("Create room failed:", err);
       toast({
-        title: "Failed to create",
-        description: err?.message || "Unknown error",
+        title: "Failed to create room",
+        description: err?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
@@ -305,9 +317,13 @@ export default function Home() {
                     placeholder="CHOOSE A NAME..."
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground"
+                    className={cn(
+                      "bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground",
+                      !name.trim() && "border-red-500/50 focus:border-red-500"
+                    )}
                     maxLength={12}
                     data-testid="input-player-name"
+                    autoComplete="off"
                   />
                 </div>
                 
