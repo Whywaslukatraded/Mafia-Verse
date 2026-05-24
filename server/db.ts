@@ -22,9 +22,14 @@ pool.on("error", (err) => {
   console.error("Unexpected DB pool error:", err.message);
 });
 
+// Auto-reconnect on connection failures
+pool.on("connect", () => {
+  console.log("[DB] New client connected to pool");
+});
+
 export const db = drizzle(pool, { schema });
 
-export async function testConnection(retries = 3, delayMs = 1000): Promise<boolean> {
+export async function testConnection(retries = 5, delayMs = 2000): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
@@ -35,9 +40,12 @@ export async function testConnection(retries = 3, delayMs = 1000): Promise<boole
     } catch (err: any) {
       console.error(`[DB] Connection attempt ${i + 1}/${retries} failed:`, err.message);
       if (i < retries - 1) {
-        await new Promise((r) => setTimeout(r, delayMs));
+        const backoff = delayMs * Math.pow(2, i); // exponential backoff
+        console.log(`[DB] Retrying in ${backoff}ms...`);
+        await new Promise((r) => setTimeout(r, backoff));
       }
     }
   }
+  console.error("[DB] All connection attempts failed. Database is unreachable.");
   return false;
 }
