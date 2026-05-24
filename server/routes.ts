@@ -1387,12 +1387,48 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Stripe checkout session for Syndicate Pass
-  app.post("/api/stripe/checkout-session", async (req, res) => {
+  // Stripe checkout: Credit Packs
+  app.post("/api/stripe/credit-checkout", async (req, res) => {
+    try {
+      const { credits, amount } = req.body;
+      if (!credits || !amount) return res.status(400).json({ message: "Missing credits or amount" });
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: { name: `${credits} Credits` },
+              unit_amount: amount,
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: { item: "credits", amount: String(credits) },
+        success_url: `${origin}/store?success=true&item=credits&amount=${credits}`,
+        cancel_url: `${origin}/store?canceled=true`,
+      });
+
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (err: any) {
+      console.error("Stripe credit checkout error:", err);
+      res.status(500).json({ message: err?.message || "Checkout failed" });
+    }
+  });
+
+  // Stripe checkout: Syndicate Pass
+  app.post("/api/stripe/syndicate-checkout", async (req, res) => {
     try {
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
       const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
@@ -1406,14 +1442,50 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             quantity: 1,
           },
         ],
-        success_url: `${origin}/cosmetics?success=true`,
-        cancel_url: `${origin}/cosmetics?canceled=true`,
+        metadata: { item: "syndicate" },
+        success_url: `${origin}/store?success=true&item=syndicate`,
+        cancel_url: `${origin}/store?canceled=true`,
       });
 
       res.json({ url: session.url, sessionId: session.id });
     } catch (err: any) {
-      console.error("Stripe checkout error:", err);
-      res.status(500).json({ message: err?.message || "Stripe checkout failed" });
+      console.error("Stripe syndicate checkout error:", err);
+      res.status(500).json({ message: err?.message || "Checkout failed" });
+    }
+  });
+
+  // Stripe checkout: Tips
+  app.post("/api/stripe/tip-checkout", async (req, res) => {
+    try {
+      const { amount } = req.body;
+      if (!amount || amount < 100) return res.status(400).json({ message: "Minimum tip is $1.00" });
+
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: { name: "Support the Game" },
+              unit_amount: amount,
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: { item: "tip", amount: String(amount) },
+        success_url: `${origin}/store?success=true&item=tip&amount=${amount}`,
+        cancel_url: `${origin}/store?canceled=true`,
+      });
+
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (err: any) {
+      console.error("Stripe tip checkout error:", err);
+      res.status(500).json({ message: err?.message || "Checkout failed" });
     }
   });
 
