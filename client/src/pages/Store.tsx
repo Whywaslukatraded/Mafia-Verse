@@ -332,30 +332,6 @@ export default function Store() {
           </p>
         </section>
 
-        {/* Free ways to earn */}
-        <section className="mb-10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            Free Ways to Earn
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setLocation("/?tab=earn")}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
-            >
-              <Gift className="w-6 h-6 text-amber-500" />
-              <span className="text-xs font-bold">Daily Rewards</span>
-              <span className="text-[10px] text-muted-foreground">Up to 15 credits/day</span>
-            </button>
-            <button
-              onClick={() => setLocation("/?tab=earn")}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
-            >
-              <Tv className="w-6 h-6 text-blue-500" />
-              <span className="text-xs font-bold">Watch Ads</span>
-              <span className="text-[10px] text-muted-foreground">5 credits per ad</span>
-            </button>
-          </div>
-        </section>
       </div>
     </div>
   );

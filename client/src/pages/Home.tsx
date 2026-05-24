@@ -356,14 +356,6 @@ export default function Home() {
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                   </button>
                   <button
-                    onClick={() => setShowAdRewards(true)}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Tv className="w-4 h-4 text-blue-500" />
-                    <span className="text-lg font-black font-mono">📺</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
-                  </button>
-                  <button
                     onClick={() => setLocation("/cosmetics")}
                     className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
                   >
