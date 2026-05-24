@@ -12,6 +12,7 @@ import Room from "@/pages/Room";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Cosmetics from "@/pages/Cosmetics";
+import Store from "@/pages/Store";
 import Leaderboard from "@/pages/Leaderboard";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
       <Route path="/cosmetics" component={Cosmetics} />
+      <Route path="/store" component={Store} />
       <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
