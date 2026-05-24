@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { testConnection } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -79,6 +80,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Ensure database is reachable before registering routes
+  const dbReady = await testConnection(5, 2000);
+  if (!dbReady) {
+    console.warn("[WARN] Database unavailable at startup. API routes may return 503 until connection is restored.");
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
