@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Coins, Flame, Calendar, ChevronRight, Sparkles, Trophy } from "lucide-react";
+import { Gift, Coins, Flame, Calendar, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RewardDay {
@@ -11,13 +11,13 @@ interface RewardDay {
 }
 
 const REWARDS: RewardDay[] = [
-  { day: 1, wins: 1, credits: 10 },
-  { day: 2, wins: 1, credits: 15 },
-  { day: 3, wins: 2, credits: 20 },
-  { day: 4, wins: 1, credits: 15 },
-  { day: 5, wins: 2, credits: 25 },
-  { day: 6, wins: 1, credits: 20 },
-  { day: 7, wins: 5, credits: 100, bonus: true },
+  { day: 1, wins: 0, credits: 10 },
+  { day: 2, wins: 0, credits: 15 },
+  { day: 3, wins: 0, credits: 20 },
+  { day: 4, wins: 0, credits: 15 },
+  { day: 5, wins: 0, credits: 25 },
+  { day: 6, wins: 0, credits: 20 },
+  { day: 7, wins: 0, credits: 100, bonus: true },
 ];
 
 function getStreakData() {
@@ -70,7 +70,6 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
     setTimeout(() => {
       const newStats = {
         ...stats,
-        wins: (stats.wins || 0) + reward.wins,
         credits: (stats.credits || 0) + reward.credits,
       };
       saveStats(newStats);
@@ -129,7 +128,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
             </div>
             {streak.longest > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30">
-                <Trophy className="w-3 h-3 text-primary" />
+                <Flame className="w-3 h-3 text-primary" />
                 <span className="text-xs font-bold text-primary">Best: {streak.longest}</span>
               </div>
             )}
@@ -172,9 +171,6 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                     {reward.bonus && <span className="ml-2 text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">BONUS</span>}
                   </p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Trophy className="w-3 h-3" /> +{reward.wins} Wins
-                    </span>
                     <span className="text-xs text-amber-500 flex items-center gap-1">
                       <Coins className="w-3 h-3" /> +{reward.credits} Credits
                     </span>
