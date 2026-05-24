@@ -986,6 +986,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }, 1000);
     } catch (err: any) {
       console.error("POST /api/rooms failed:", err);
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please wait a moment and try again." });
       if (err instanceof z.ZodError) res.status(400).json({ message: err.errors[0].message });
       else res.status(500).json({ message: err?.message || "Internal server error" });
     }
@@ -1030,7 +1032,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
         broadcastState(room.id);
       }, 1000);
-    } catch (err) {
+    } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please wait a moment and try again." });
       if (err instanceof z.ZodError) res.status(400).json({ message: err.errors[0].message });
       else res.status(500).json({ message: "Internal server error" });
     }
