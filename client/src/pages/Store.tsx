@@ -151,7 +151,9 @@ export default function Store() {
       item = "tip";
       label = `Tip $${(b.amount / 100).toFixed(2)}`;
     }
-    setCheckoutState({ open: true, item, amount: b.amount, credits, label });
+    const state = { open: true, item, amount: b.amount, credits, label };
+    console.log("[Store] Opening test checkout:", state);
+    setCheckoutState(state);
     setBuying(null);
   };
 
@@ -186,6 +188,7 @@ export default function Store() {
   };
 
   const buySyndicate = () => {
+    if (hasSyndicatePass()) return;
     checkout("/api/stripe/syndicate-checkout", { amount: 499 });
   };
 
@@ -283,16 +286,14 @@ export default function Store() {
             Syndicate Pass
           </h2>
           <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={() => {
-              if (!hasSyndicatePass()) buySyndicate();
-            }}
+            whileHover={hasSyndicatePass() ? {} : { scale: 1.01 }}
+            whileTap={hasSyndicatePass() ? {} : { scale: 0.99 }}
+            onClick={() => buySyndicate()}
             disabled={buying !== null || hasSyndicatePass()}
             className={cn(
-              "w-full flex items-center gap-4 p-5 rounded-xl border text-left transition-all disabled:opacity-60",
+              "w-full flex items-center gap-4 p-5 rounded-xl border text-left transition-all",
               hasSyndicatePass()
-                ? "border-green-500/30 bg-green-500/5"
+                ? "border-green-500/30 bg-green-500/5 opacity-60 cursor-default"
                 : "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10"
             )}
           >
@@ -456,10 +457,11 @@ export default function Store() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 block">Expiry</label>
+                      <label className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 block">Expiry (MM/YY)</label>
                       <Input
                         value={cardExpiry}
                         onChange={(e) => setCardExpiry(e.target.value)}
+                        placeholder="MM/YY"
                         className="font-mono"
                         disabled={processingPayment}
                       />
@@ -478,9 +480,12 @@ export default function Store() {
 
                 {/* Test card helper */}
                 <div className="mt-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                  <p className="text-xs font-bold text-amber-500 mb-1">Test Card</p>
+                  <p className="text-xs font-bold text-amber-500 mb-1">Test Mode — No real charge</p>
                   <p className="text-[11px] text-muted-foreground">
-                    4242 4242 4242 4242 &middot; Any future expiry &middot; Any CVC
+                    Card: 4242 4242 4242 4242 &middot; Expiry: 12/30 &middot; CVC: 123
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    This is a local test. To see payments in your Stripe dashboard, connect a Stripe account via Replit Integrations.
                   </p>
                 </div>
 
