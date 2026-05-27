@@ -338,7 +338,7 @@ export default function Home() {
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex flex-col gap-2 w-full">
-                  <div className="grid grid-cols-5 gap-2 w-full">
+                  <div className="grid grid-cols-4 gap-2 w-full">
                     <button
                       onClick={() => setLocation("/profile")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
@@ -346,23 +346,6 @@ export default function Home() {
                       <Trophy className="w-4 h-4 text-yellow-500" />
                       <span className="text-2xl font-black font-mono">{stats.wins}</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
-                    </button>
-                    <button
-                      onClick={() => setShowDailyRewards(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
-                    >
-                      <Gift className="w-4 h-4 text-amber-500" />
-                      <span className="text-lg font-black font-mono">🎁</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                    </button>
-                    <button
-                      onClick={() => setLocation("/cosmetics")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 text-yellow-400" />
-                      <span className="text-lg font-black font-mono">✨</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
                     </button>
                     <button
                       onClick={() => setLocation("/store")}
@@ -373,6 +356,25 @@ export default function Home() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Store</span>
                     </button>
                     <button
+                      onClick={() => setLocation("/cosmetics")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-yellow-400" />
+                      <span className="text-lg font-black font-mono">✨</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
+                    </button>
+                    <button
+                      onClick={() => setShowDailyRewards(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
+                    >
+                      <Gift className="w-4 h-4 text-amber-500" />
+                      <span className="text-lg font-black font-mono">🎁</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                    <button
                       onClick={() => setShowAdRewards(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
                     >
@@ -380,8 +382,6 @@ export default function Home() {
                       <span className="text-lg font-black font-mono">📺</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
                     </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 w-full">
                     <button
                       onClick={() => setShowRating(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
