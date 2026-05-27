@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles,
-  Zap, Star, Coffee, DollarSign, CheckCircle2, X, Gift, Tv
+  Zap, Star, Coffee, DollarSign, CheckCircle2, X, Gift, Tv, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,17 @@ export default function Store() {
   const [customTip, setCustomTip] = useState("");
   const [showCustomTip, setShowCustomTip] = useState(false);
   const [fulfillMsg, setFulfillMsg] = useState<string | null>(null);
+  const [checkoutState, setCheckoutState] = useState<{
+    open: boolean;
+    item: string;
+    amount: number;
+    credits?: number;
+    label: string;
+  } | null>(null);
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [cardExpiry, setCardExpiry] = useState("12/30");
+  const [cardCvc, setCardCvc] = useState("123");
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   /* ---- Handle ?success=... & ?canceled=... from Stripe redirect ---- */
   useEffect(() => {
@@ -104,51 +115,82 @@ export default function Store() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
+
+      // Success — redirect to Stripe checkout page
       if (res.ok && data.url) {
         window.location.href = data.url;
         return;
       }
-      // If Stripe isn't connected, fall through to demo mode below
-      console.warn("Stripe checkout not available, using demo mode");
-    } catch (err: any) {
-      console.warn("Stripe checkout error, using demo mode:", err.message);
-    }
 
-    // Demo fallback: deliver the item locally without real payment
-    const b = body as any;
-    if (endpoint.includes("credit")) {
-      const credits = parseInt(b.credits || b.amount || 0, 10);
-      if (credits > 0) {
-        addCredits(credits);
-        setStats(getStats);
-        setFulfillMsg(`+${credits} Credits added (demo)!`);
-      }
-    } else if (endpoint.includes("syndicate")) {
-      setSyndicatePass(true);
-      setFulfillMsg("Syndicate Pass activated (demo)!");
-    } else if (endpoint.includes("tip")) {
-      const tipCents = parseInt(b.amount || 0, 10);
-      setFulfillMsg(`Thank you for the $${(tipCents / 100).toFixed(2)} tip (demo)!`);
+      // Backend returned an error (Stripe not connected, etc.)
+      // Open test checkout modal instead
+      setBuying(null);
+      openTestCheckout(endpoint, body);
+      return;
+    } catch (err: any) {
+      // Network error — can't reach backend at all
+      setBuying(null);
+      openTestCheckout(endpoint, body);
     }
-    setTimeout(() => setFulfillMsg(null), 4000);
+  };
+
+  /* Open test checkout modal (simulates real Stripe flow) */
+  const openTestCheckout = (endpoint: string, body: any) => {
+    const b = body;
+    let label = "";
+    let item = "";
+    let credits: number | undefined;
+    if (endpoint.includes("credit")) {
+      item = "credits";
+      credits = b.credits;
+      label = `${b.credits} Credits`;
+    } else if (endpoint.includes("syndicate")) {
+      item = "syndicate";
+      label = "The Syndicate Pass";
+    } else if (endpoint.includes("tip")) {
+      item = "tip";
+      label = `Tip $${(b.amount / 100).toFixed(2)}`;
+    }
+    setCheckoutState({ open: true, item, amount: b.amount, credits, label });
     setBuying(null);
   };
 
-  const buyCredits = (pack: typeof CREDIT_PACKS[0]) =>
-    checkout("/api/stripe/credit-checkout", {
-      credits: pack.credits,
-      amount: pack.price,
-    });
-
-  const buySyndicate = () =>
-    checkout("/api/stripe/syndicate-checkout", { amount: 499 });
-
-  const sendTip = (amountCents: number) =>
-    checkout("/api/stripe/tip-checkout", { amount: amountCents });
+  const handleTestPay = () => {
+    if (!checkoutState) return;
+    setProcessingPayment(true);
+    setTimeout(() => {
+      setProcessingPayment(false);
+      setCheckoutState(null);
+      // Deliver item
+      if (checkoutState.item === "credits" && checkoutState.credits) {
+        addCredits(checkoutState.credits);
+        setStats(getStats);
+        setFulfillMsg(`+${checkoutState.credits} Credits added!`);
+      } else if (checkoutState.item === "syndicate") {
+        setSyndicatePass(true);
+        setFulfillMsg("Syndicate Pass activated!");
+      } else if (checkoutState.item === "tip") {
+        setFulfillMsg(`Thank you for the $${(checkoutState.amount / 100).toFixed(2)} tip!`);
+      }
+      setTimeout(() => setFulfillMsg(null), 4000);
+    }, 2000);
+  };
 
   const sendCustomTip = () => {
     const cents = Math.round(parseFloat(customTip) * 100);
     if (cents >= 100) sendTip(cents);
+  };
+
+  const buyCredits = (pack: typeof CREDIT_PACKS[0]) => {
+    checkout("/api/stripe/credit-checkout", { credits: pack.credits, amount: pack.price });
+  };
+
+  const buySyndicate = () => {
+    checkout("/api/stripe/syndicate-checkout", { amount: 499 });
+  };
+
+  const sendTip = (amountCents: number) => {
+    checkout("/api/stripe/tip-checkout", { amount: amountCents });
   };
 
   return (
@@ -352,6 +394,115 @@ export default function Store() {
         </section>
 
       </div>
+
+      {/* Test Checkout Modal */}
+      <AnimatePresence>
+        {checkoutState?.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => !processingPayment && setCheckoutState(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-bold">Secure Checkout</span>
+                </div>
+                {!processingPayment && (
+                  <button onClick={() => setCheckoutState(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="p-5">
+                {/* Order summary */}
+                <div className="bg-muted/50 rounded-xl p-4 mb-5">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Order Summary</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold">{checkoutState.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {checkoutState.item === "credits" ? `${checkoutState.credits} Credits` :
+                         checkoutState.item === "syndicate" ? "The Syndicate Pass" : "Tip"}
+                      </p>
+                    </div>
+                    <p className="text-lg font-black">
+                      ${(checkoutState.amount / 100).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 block">Card Number</label>
+                    <Input
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      className="font-mono"
+                      disabled={processingPayment}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 block">Expiry</label>
+                      <Input
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(e.target.value)}
+                        className="font-mono"
+                        disabled={processingPayment}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 block">CVC</label>
+                      <Input
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value)}
+                        className="font-mono"
+                        disabled={processingPayment}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test card helper */}
+                <div className="mt-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                  <p className="text-xs font-bold text-amber-500 mb-1">Test Card</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    4242 4242 4242 4242 &middot; Any future expiry &middot; Any CVC
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleTestPay}
+                  disabled={processingPayment}
+                  className="w-full mt-4 h-11 text-sm font-black bg-primary hover:bg-primary/90"
+                >
+                  {processingPayment ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <span>Pay ${(checkoutState.amount / 100).toFixed(2)}</span>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
