@@ -61,6 +61,7 @@ export default function Store() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [stats, setStats] = useState(getStats);
+  const [syndicatePass, setSyndicatePassState] = useState(hasSyndicatePass);
   const [buying, setBuying] = useState<string | null>(null);
   const [customTip, setCustomTip] = useState("");
   const [showCustomTip, setShowCustomTip] = useState(false);
@@ -77,6 +78,13 @@ export default function Store() {
   const [cardCvc, setCardCvc] = useState("123");
   const [processingPayment, setProcessingPayment] = useState(false);
 
+  // Listen for localStorage changes so Syndicate Pass state updates across tabs & after purchase
+  useEffect(() => {
+    const handler = () => setSyndicatePassState(hasSyndicatePass());
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
   /* ---- Handle ?success=... & ?canceled=... from Stripe redirect ---- */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -92,6 +100,7 @@ export default function Store() {
         setFulfillMsg(`+${credits} Credits added!`);
       } else if (item === "syndicate") {
         setSyndicatePass(true);
+        setSyndicatePassState(true);
         setFulfillMsg("Syndicate Pass activated!");
       } else if (item === "tip" && amount) {
         setFulfillMsg(`Thank you for the $${(parseInt(amount, 10) / 100).toFixed(2)} tip!`);
@@ -170,6 +179,7 @@ export default function Store() {
         setFulfillMsg(`+${checkoutState.credits} Credits added!`);
       } else if (checkoutState.item === "syndicate") {
         setSyndicatePass(true);
+        setSyndicatePassState(true);
         setFulfillMsg("Syndicate Pass activated!");
       } else if (checkoutState.item === "tip") {
         setFulfillMsg(`Thank you for the $${(checkoutState.amount / 100).toFixed(2)} tip!`);
@@ -188,7 +198,7 @@ export default function Store() {
   };
 
   const buySyndicate = () => {
-    if (hasSyndicatePass()) return;
+    if (syndicatePass) return;
     checkout("/api/stripe/syndicate-checkout", { amount: 499 });
   };
 
@@ -286,13 +296,13 @@ export default function Store() {
             Syndicate Pass
           </h2>
           <motion.button
-            whileHover={hasSyndicatePass() ? {} : { scale: 1.01 }}
-            whileTap={hasSyndicatePass() ? {} : { scale: 0.99 }}
+            whileHover={syndicatePass ? {} : { scale: 1.01 }}
+            whileTap={syndicatePass ? {} : { scale: 0.99 }}
             onClick={() => buySyndicate()}
-            disabled={buying !== null || hasSyndicatePass()}
+            disabled={buying !== null || syndicatePass}
             className={cn(
               "w-full flex items-center gap-4 p-5 rounded-xl border text-left transition-all",
-              hasSyndicatePass()
+              syndicatePass
                 ? "border-green-500/30 bg-green-500/5 opacity-60 cursor-default"
                 : "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10"
             )}
@@ -302,16 +312,16 @@ export default function Store() {
             </div>
             <div className="flex-1">
               <p className="text-base font-black">
-                {hasSyndicatePass() ? "Syndicate Pass Active" : "The Syndicate Pass"}
+                {syndicatePass ? "Syndicate Pass Active" : "The Syndicate Pass"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {hasSyndicatePass()
+                {syndicatePass
                   ? "You have access to all premium cosmetics"
                   : "Unlock 16 exclusive cosmetics + legendary personas"}
               </p>
             </div>
             <div className="text-right">
-              {hasSyndicatePass() ? (
+              {syndicatePass ? (
                 <CheckCircle2 className="w-6 h-6 text-green-500" />
               ) : (
                 <>

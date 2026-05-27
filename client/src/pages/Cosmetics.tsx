@@ -71,8 +71,13 @@ export default function Cosmetics() {
 
   useEffect(() => {
     const onStorage = () => {
-      const saved = localStorage.getItem("mafia_stats");
-      if (saved) setStats(JSON.parse(saved));
+      const savedStats = localStorage.getItem("mafia_stats");
+      if (savedStats) setStats(JSON.parse(savedStats));
+      const savedCosmetics = localStorage.getItem("mafia_cosmetics");
+      if (savedCosmetics) setOwned(new Set(JSON.parse(savedCosmetics)));
+      const savedEquipped = localStorage.getItem("mafia_equipped_cosmetics");
+      if (savedEquipped) setEquipped(JSON.parse(savedEquipped));
+      setHasPass(localStorage.getItem("mafia_syndicate_pass") === "true");
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
