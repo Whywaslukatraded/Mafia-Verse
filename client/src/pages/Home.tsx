@@ -337,64 +337,68 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-white/5 flex gap-2 w-full flex-wrap">
-                  <button
-                    onClick={() => setLocation("/profile")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span className="text-2xl font-black font-mono">{stats.wins}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
-                  </button>
-                  <button
-                    onClick={() => setShowDailyRewards(true)}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative min-w-[70px]"
-                  >
-                    <Gift className="w-4 h-4 text-amber-500" />
-                    <span className="text-lg font-black font-mono">🎁</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                  </button>
-                  <button
-                    onClick={() => setLocation("/cosmetics")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Sparkles className="w-4 h-4 text-yellow-400" />
-                    <span className="text-lg font-black font-mono">✨</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
-                  </button>
-                  <button
-                    onClick={() => setLocation("/store")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Coins className="w-4 h-4 text-purple-500" />
-                    <span className="text-lg font-black font-mono">🛒</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Store</span>
-                  </button>
-                  <button
-                    onClick={() => setShowAdRewards(true)}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Tv className="w-4 h-4 text-blue-500" />
-                    <span className="text-lg font-black font-mono">📺</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
-                  </button>
-                  <button
-                    onClick={() => setShowRating(true)}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span className="text-lg font-black font-mono">⭐</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
-                  </button>
-                  <button
-                    onClick={() => setLocation("/settings")}
-                    className="flex-1 p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer min-w-[70px]"
-                  >
-                    <Settings className="w-4 h-4 text-gray-400" />
-                    <span className="text-lg font-black font-mono">⚙️</span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
-                  </button>
+                <div className="pt-4 border-t border-white/5 flex flex-col gap-2 w-full">
+                  <div className="grid grid-cols-5 gap-2 w-full">
+                    <button
+                      onClick={() => setLocation("/profile")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Trophy className="w-4 h-4 text-yellow-500" />
+                      <span className="text-2xl font-black font-mono">{stats.wins}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
+                    </button>
+                    <button
+                      onClick={() => setShowDailyRewards(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
+                    >
+                      <Gift className="w-4 h-4 text-amber-500" />
+                      <span className="text-lg font-black font-mono">🎁</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                    </button>
+                    <button
+                      onClick={() => setLocation("/cosmetics")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-yellow-400" />
+                      <span className="text-lg font-black font-mono">✨</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
+                    </button>
+                    <button
+                      onClick={() => setLocation("/store")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Coins className="w-4 h-4 text-purple-500" />
+                      <span className="text-lg font-black font-mono">🛒</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Store</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAdRewards(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Tv className="w-4 h-4 text-blue-500" />
+                      <span className="text-lg font-black font-mono">📺</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    <button
+                      onClick={() => setShowRating(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-lg font-black font-mono">⭐</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
+                    </button>
+                    <button
+                      onClick={() => setLocation("/settings")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 text-gray-400" />
+                      <span className="text-lg font-black font-mono">⚙️</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="pt-2 flex justify-center">

@@ -330,7 +330,7 @@ export default function Cosmetics() {
                     className="bg-amber-500 hover:bg-amber-600 text-black font-black"
                     onClick={async () => {
                       try {
-                        const res = await fetch("/api/stripe/checkout-session", {
+                        const res = await fetch("/api/stripe/syndicate-checkout", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                         });
@@ -338,12 +338,12 @@ export default function Cosmetics() {
                         if (res.ok && data.url) {
                           window.location.href = data.url;
                         } else {
-                          // Fallback: if Stripe isn't connected yet, unlock locally for demo
+                          // Fallback: demo mode — unlock locally
                           localStorage.setItem("mafia_syndicate_pass", "true");
                           setHasPass(true);
                         }
                       } catch {
-                        // Fallback: unlock locally for demo
+                        // Fallback: demo mode — unlock locally
                         localStorage.setItem("mafia_syndicate_pass", "true");
                         setHasPass(true);
                       }
