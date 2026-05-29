@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { engine } from "@/components/GameAudio";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -48,6 +49,32 @@ function App() {
     window.addEventListener("storage", syncTheme);
     return () => window.removeEventListener("storage", syncTheme);
   }, []);
+
+  // Global audio unlock — works on ALL pages, not just Room
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const unlockAudio = useCallback(() => {
+    if (audioUnlocked) return;
+    engine.init();
+    const ok = engine.resume();
+    if (ok) {
+      setAudioUnlocked(true);
+      engine.playTestSound();
+    }
+    window.removeEventListener("click", unlockAudio, true);
+    window.removeEventListener("touchstart", unlockAudio, true);
+    window.removeEventListener("keydown", unlockAudio, true);
+  }, [audioUnlocked]);
+
+  useEffect(() => {
+    window.addEventListener("click", unlockAudio, true);
+    window.addEventListener("touchstart", unlockAudio, true);
+    window.addEventListener("keydown", unlockAudio, true);
+    return () => {
+      window.removeEventListener("click", unlockAudio, true);
+      window.removeEventListener("touchstart", unlockAudio, true);
+      window.removeEventListener("keydown", unlockAudio, true);
+    };
+  }, [unlockAudio]);
 
   return (
     <QueryClientProvider client={queryClient}>
