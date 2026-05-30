@@ -58,18 +58,42 @@ export class DatabaseStorage implements IStorage {
 
   async createRoom(settings: CreateRoomRequest["settings"]): Promise<Room> {
     const code = await this.generateRoomCode();
-    const [room] = await db.insert(rooms).values({
-      code,
-      settings,
-      status: "lobby",
-      phase: "lobby"
-    }).returning();
-    return room;
+    // Retry insert on transient connection failures
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const [room] = await db.insert(rooms).values({
+          code,
+          settings,
+          status: "lobby",
+          phase: "lobby"
+        }).returning();
+        return room;
+      } catch (err: any) {
+        if (attempt < 3 && (err?.message?.includes("Failed query") || err?.code?.startsWith("08") || err?.code === "ECONNRESET")) {
+          console.warn(`[DB] createRoom retry ${attempt}/3 after error: ${err.message}`);
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error("createRoom failed after 3 retries");
   }
 
   async getRoomByCode(code: string): Promise<Room | undefined> {
-    const [room] = await db.select().from(rooms).where(eq(rooms.code, code.toUpperCase()));
-    return room;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const [room] = await db.select().from(rooms).where(eq(rooms.code, code.toUpperCase()));
+        return room;
+      } catch (err: any) {
+        if (attempt < 3 && (err?.message?.includes("Failed query") || err?.code?.startsWith("08") || err?.code === "ECONNRESET")) {
+          await new Promise((r) => setTimeout(r, 300 * attempt));
+          continue;
+        }
+        throw err;
+      }
+    }
+    return undefined;
   }
 
   async getRoom(id: number): Promise<Room | undefined> {
