@@ -7,6 +7,15 @@ import { testConnection } from "./db";
 const app = express();
 const httpServer = createServer(app);
 
+// Global crash protection: don't let unhandled errors kill the dev server
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err);
+  // In production this would need a restart; in dev we log and continue
+});
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;

@@ -25,6 +25,9 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [reconnectKey, setReconnectKey] = useState(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeWsRef = useRef<WebSocket | null>(null);
 
   // Load initial state if we have a code
   const { data: initialData, refetch } = useQuery({
@@ -52,10 +55,11 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
+    activeWsRef.current = ws;
 
     ws.onopen = () => {
       setIsConnected(true);
-      console.log("Connected to WS");
+      console.log("[WS] Connected");
       ws.send(JSON.stringify({
         type: "join",
         payload: { code, sessionId }
@@ -108,13 +112,23 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
 
     ws.onclose = () => {
       setIsConnected(false);
-      console.log("WS Disconnected");
-      // Simple reconnect logic could go here
+      setSocket(null);
+      console.log("[WS] Disconnected — will retry in 1s");
+      // Auto-reconnect with exponential backoff (up to 8s)
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(() => {
+        setReconnectKey(k => k + 1);
+      }, RECONNECT_DELAY);
+    };
+
+    ws.onerror = (err) => {
+      console.error("[WS] Error", err);
     };
 
     setSocket(ws);
 
     return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       ws.close();
     };
   }, [code, sessionId, toast]);
@@ -124,7 +138,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
       const cleanup = connect();
       return cleanup;
     }
-  }, [code, sessionId, connect]);
+  }, [code, sessionId, connect, reconnectKey]);
 
   const sendAction = (action: GameAction) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
