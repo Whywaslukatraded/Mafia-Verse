@@ -12,19 +12,28 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 10,
+  max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
   keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
+  // Replit PostgreSQL can have transient hiccups — retry
+  allowExitOnIdle: false,
 });
 
 pool.on("error", (err) => {
   console.error("Unexpected DB pool error:", err.message);
 });
 
-// Auto-reconnect on connection failures
 pool.on("connect", () => {
   console.log("[DB] New client connected to pool");
+});
+
+pool.on("acquire", () => {
+  // Log only when pool is stressed
+  if (pool.waitingCount > 0) {
+    console.warn(`[DB] Pool stressed: ${pool.waitingCount} waiting, ${pool.idleCount} idle, ${pool.totalCount} total`);
+  }
 });
 
 export const db = drizzle(pool, { schema });
