@@ -41,3 +41,6 @@ waitForPort = 5000
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[agent]
+integrations = ["stripe:1.0.0"]
