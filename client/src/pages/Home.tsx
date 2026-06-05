@@ -222,7 +222,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-transparent opacity-50" />
             <Search className="w-10 h-10 text-primary relative z-10" strokeWidth={2.5} />
           </div>
-          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50 mb-2 drop-shadow-sm font-serif uppercase tracking-tighter">MAFIA</h1>
+          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50 mb-2 drop-shadow-sm font-serif uppercase tracking-tighter">Mafia Verse</h1>
           <p className="text-muted-foreground font-medium uppercase tracking-[0.3em] text-[10px] opacity-80">Trust No One • Find The Truth • Survive The Night</p>
         </div>
 

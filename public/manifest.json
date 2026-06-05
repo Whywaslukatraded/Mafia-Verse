@@ -1,6 +1,6 @@
 {
-  "name": "Mafia Party Game",
-  "short_name": "Mafia",
+  "name": "Mafia Verse",
+  "short_name": "Mafia Verse",
   "description": "Real-time multiplayer Mafia party game. Create rooms, assign roles, and compete with friends.",
   "start_url": "/",
   "scope": "/",

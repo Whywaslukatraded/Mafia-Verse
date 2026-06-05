@@ -134,7 +134,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full mb-6">
             <Search className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-4xl font-black text-foreground mb-2">MAFIA</h1>
+          <h1 className="text-4xl font-black text-foreground mb-2">Mafia Verse</h1>
           <p className="text-muted-foreground text-sm">{isSignup ? "Create Account" : "Login"}</p>
         </div>
 
