@@ -30,7 +30,7 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
     if (env) url.searchParams.set("environment", env);
 
     const resp = await fetch(url.toString(), {
-      headers: { "Accept": "application/json", "X-Replit-Token": xReplitToken },
+      headers: { "Accept": "application/json", "X-Replit-Token": xReplitToken! },
       signal: AbortSignal.timeout(10_000),
     });
 
