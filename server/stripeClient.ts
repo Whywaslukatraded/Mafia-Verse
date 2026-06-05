@@ -22,27 +22,29 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
   const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
   const targetEnvironment = isProduction ? "production" : "development";
 
-  const url = new URL(`https://${hostname}/api/v2/connection`);
-  url.searchParams.set("include_secrets", "true");
-  url.searchParams.set("connector_names", "stripe");
-  url.searchParams.set("environment", targetEnvironment);
+  // Try with environment first, then fall back to no environment
+  async function tryFetch(env?: string) {
+    const url = new URL(`https://${hostname}/api/v2/connection`);
+    url.searchParams.set("include_secrets", "true");
+    url.searchParams.set("connector_names", "stripe");
+    if (env) url.searchParams.set("environment", env);
 
-  const resp = await fetch(url.toString(), {
-    headers: { Accept: "application/json", X_REPLIT_TOKEN: xReplitToken },
-    signal: AbortSignal.timeout(10_000),
-  });
+    const resp = await fetch(url.toString(), {
+      headers: { "Accept": "application/json", "X-Replit-Token": xReplitToken },
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch Stripe credentials: ${resp.status} ${resp.statusText}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.items?.[0]?.settings;
   }
 
-  const data = await resp.json();
-  const connectionSettings = data.items?.[0];
-  const settings = connectionSettings?.settings;
+  let settings = await tryFetch(targetEnvironment);
+  if (!settings) settings = await tryFetch();
 
   if (!settings || !settings.secret || !settings.publishable) {
     throw new Error(
-      `Stripe ${targetEnvironment} connection not found. ` +
+      `Stripe connection not found. ` +
       "Please connect Stripe via the Integrations tab."
     );
   }
