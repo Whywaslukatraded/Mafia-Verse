@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { MessageSquare, X, Bug, Lightbulb, Palette, Heart, Send, CheckCircle } from "lucide-react";
+import { MessageSquareText, X, Bug, Lightbulb, Palette, Heart, Send, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,7 +72,7 @@ export function FeedbackWidget() {
         )}
         data-testid="button-feedback-toggle"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+        {isOpen ? <X className="w-5 h-5" /> : <MessageSquareText className="w-5 h-5" />}
         {isOpen ? "Close" : "Feedback"}
       </motion.button>
 
