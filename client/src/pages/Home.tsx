@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { DailyRewards } from "@/components/DailyRewards";
 import { AdRewards } from "@/components/AdRewards";
+import { RatingSystem } from "@/components/RatingSystem";
 
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
@@ -46,6 +47,7 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState("");
   const [showDailyRewards, setShowDailyRewards] = useState(false);
   const [showAdRewards, setShowAdRewards] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   
   // Persistent Profile - defensive localStorage parsing
   const safeParse = (key: string, fallback: any) => {
@@ -381,6 +383,14 @@ export default function Home() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
                     </button>
                     <button
+                      onClick={() => setShowRating(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-lg font-black font-mono">⭐</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
+                    </button>
+                    <button
                       onClick={() => setLocation("/settings")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
                     >
@@ -561,6 +571,9 @@ export default function Home() {
       )}
       {showAdRewards && (
         <AdRewards onClose={() => setShowAdRewards(false)} />
+      )}
+      {showRating && (
+        <RatingSystem onClose={() => setShowRating(false)} />
       )}
     </div>
   );
