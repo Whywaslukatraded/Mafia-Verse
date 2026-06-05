@@ -1,4 +1,4 @@
-# Mafia Party Game
+# Mafia Verse
 
 ## Overview
 
