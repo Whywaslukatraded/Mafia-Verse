@@ -77,7 +77,11 @@ export default function Home() {
     if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
       raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
     }
-    return raw && typeof raw === "object" ? raw : { wins: 0, gamesPlayed: 0, achievements: [] };
+    if (raw && typeof raw === "object") {
+      raw.credits = 0;
+      return raw;
+    }
+    return { wins: 0, gamesPlayed: 0, achievements: [], credits: 0 };
   });
 
   useEffect(() => {

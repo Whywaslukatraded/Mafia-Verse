@@ -142,6 +142,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(messages).where(eq(messages.roomId, roomId));
   }
 
+  async resetLeaderboard(): Promise<void> {
+    await db.update(players).set({ wins: 0, gamesPlayed: 0, achievements: [] });
+  }
+
   async getLeaderboard() {
     const result = await db
       .select({
