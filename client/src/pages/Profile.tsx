@@ -36,7 +36,11 @@ export default function Profile() {
     if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
       raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
     }
-    return raw;
+    if (raw && typeof raw === "object") {
+      raw.credits = 0;
+      return raw;
+    }
+    return { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 };
   });
 
   useEffect(() => {

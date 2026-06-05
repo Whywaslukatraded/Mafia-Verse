@@ -1387,6 +1387,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Reset leaderboard (for testing)
+  app.post("/api/reset-leaderboard", async (_req, res) => {
+    try {
+      await storage.resetLeaderboard();
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error("Reset leaderboard error", e);
+      res.status(500).json({ error: e?.message || "Failed to reset leaderboard" });
+    }
+  });
+
   // Stripe checkout: Credit Packs
   app.post("/api/stripe/credit-checkout", async (req, res) => {
     try {
