@@ -1,11 +1,10 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, TrendingUp, Crown, RotateCcw } from "lucide-react";
+import { ArrowLeft, Trophy, Target, TrendingUp, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 
 interface LeaderboardEntry {
   name: string;
@@ -18,12 +17,22 @@ interface LeaderboardEntry {
 
 export default function Leaderboard() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: entries = [], isLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["/api/leaderboard"],
-  });
+  // Auto-reset leaderboard then fetch fresh data
+  useEffect(() => {
+    const load = async () => {
+      await fetch("/api/reset-leaderboard", { method: "POST" });
+      const res = await fetch("/api/leaderboard");
+      if (res.ok) {
+        const data = await res.json();
+        setEntries(data);
+      }
+      setIsLoading(false);
+    };
+    load();
+  }, []);
 
   const rankColor = (i: number) => {
     if (i === 0) return "text-yellow-400";
@@ -155,28 +164,6 @@ export default function Leaderboard() {
 
         <Button variant="outline" className="w-full mt-6" onClick={() => setLocation("/")}>
           Back to Home
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full mt-3 text-muted-foreground hover:text-destructive"
-          onClick={async () => {
-            try {
-              const res = await fetch("/api/reset-leaderboard", { method: "POST" });
-              if (res.ok) {
-                queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-                toast({ title: "Leaderboard reset", description: "All scores cleared.", variant: "default" });
-              } else {
-                toast({ title: "Reset failed", description: "Could not clear leaderboard.", variant: "destructive" });
-              }
-            } catch {
-              toast({ title: "Reset failed", description: "Could not clear leaderboard.", variant: "destructive" });
-            }
-          }}
-        >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Reset Leaderboard
         </Button>
       </div>
     </div>

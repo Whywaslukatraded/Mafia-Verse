@@ -46,7 +46,12 @@ export default function Profile() {
   useEffect(() => {
     const onStorage = () => {
       const saved = localStorage.getItem("mafia_stats");
-      if (saved) setStats(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.achievements) parsed.achievements = parsed.achievements.filter((a: string) => a !== 'fashionista');
+        parsed.credits = 0;
+        setStats(parsed);
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
