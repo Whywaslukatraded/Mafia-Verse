@@ -112,7 +112,7 @@ export default function Cosmetics() {
   const userWins = stats.wins || 0;
 
   const renderCosmeticCard = (cosmetic: any, isSyndicate: boolean = false) => {
-    const isOwned = owned.has(cosmetic.id);
+    const isOwned = isSyndicate && hasPass ? true : owned.has(cosmetic.id);
     const isEquipped = equipped[cosmetic.type] === cosmetic.id;
     const canAfford = userWins >= (cosmetic.cost || 0);
     const tier = isSyndicate ? TIER_CONFIG[cosmetic.tier as keyof typeof TIER_CONFIG] : null;
