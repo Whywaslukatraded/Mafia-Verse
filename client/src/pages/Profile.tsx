@@ -13,7 +13,6 @@ const ACHIEVEMENTS = [
   { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
   { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
   { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
-  { id: 'fashionista', name: 'Fashionista', description: 'Change your outfit 10 times', icon: '💅' },
   { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
 ];
 
@@ -32,7 +31,13 @@ export default function Profile() {
   const [name] = useState(() => safeParse("mafia_profile_name", "Unknown Agent"));
   const [avatar] = useState(() => safeParse("mafia_profile_avatar", "👤"));
   const [config] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: "bg-primary/10" }));
-  const [stats, setStats] = useState(() => safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 }));
+  const [stats, setStats] = useState(() => {
+    const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 });
+    if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
+      raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
+    }
+    return raw;
+  });
 
   useEffect(() => {
     const onStorage = () => {

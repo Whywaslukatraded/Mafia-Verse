@@ -33,7 +33,6 @@ const ACHIEVEMENTS = [
   { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
   { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
   { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
-  { id: 'fashionista', name: 'Fashionista', description: 'Change your outfit 10 times', icon: '💅' },
   { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
 ];
 
@@ -75,6 +74,9 @@ export default function Home() {
   });
   const [stats, setStats] = useState(() => {
     const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] });
+    if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
+      raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
+    }
     return raw && typeof raw === "object" ? raw : { wins: 0, gamesPlayed: 0, achievements: [] };
   });
 
@@ -82,19 +84,6 @@ export default function Home() {
     localStorage.setItem("mafia_profile_name", name);
     localStorage.setItem("mafia_profile_avatar", avatar);
     localStorage.setItem("mafia_profile_config", JSON.stringify(config));
-    
-    // Track fashionista achievement
-    const fashionCount = parseInt(localStorage.getItem("mafia_fashion_count") || "0");
-    localStorage.setItem("mafia_fashion_count", (fashionCount + 1).toString());
-    if (fashionCount + 1 >= 10) {
-      const currentStats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-      const achievements = new Set(currentStats.achievements || []);
-      if (!achievements.has('fashionista')) {
-        achievements.add('fashionista');
-        localStorage.setItem("mafia_stats", JSON.stringify({ ...currentStats, achievements: Array.from(achievements) }));
-        window.dispatchEvent(new Event('storage'));
-      }
-    }
   }, [name, avatar, config]);
 
   const [roomName, setRoomName] = useState("");
