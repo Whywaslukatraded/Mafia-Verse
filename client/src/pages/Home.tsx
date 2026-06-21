@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins, Star } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
@@ -41,6 +42,8 @@ export default function Home() {
   const { toast } = useToast();
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
+  const { isSignedIn } = useUser();
+  const { signOut } = useClerk();
 
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");
@@ -74,9 +77,6 @@ export default function Home() {
   });
   const [stats, setStats] = useState(() => {
     const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] });
-    if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
-      raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
-    }
     if (raw && typeof raw === "object") {
       raw.credits = 0;
       return raw;
@@ -187,17 +187,12 @@ export default function Home() {
       >
         <div className="text-center mb-10">
           <div className="flex justify-end mb-4">
-            {localStorage.getItem("mafia_userId") ? (
+            {isSignedIn ? (
               <Button
-                onClick={() => {
-                  localStorage.removeItem("mafia_userId");
-                  localStorage.removeItem("mafia_username");
-                  localStorage.removeItem("mafia_name");
-                  localStorage.removeItem("mafia_avatar");
-                  window.location.reload();
-                }}
+                onClick={() => signOut(() => setLocation("/"))}
                 size="sm"
                 className="bg-red-600 hover:bg-red-700"
+                data-testid="button-logout"
               >
                 Logout
               </Button>
@@ -206,6 +201,7 @@ export default function Home() {
                 onClick={() => setLocation("/login")}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-login"
               >
                 Login / Sign Up
               </Button>

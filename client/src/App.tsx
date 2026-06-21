@@ -8,30 +8,26 @@ import { engine } from "@/components/GameAudio";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import Room from "@/pages/Room";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Cosmetics from "@/pages/Cosmetics";
 import Store from "@/pages/Store";
 import Leaderboard from "@/pages/Leaderboard";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import TwoFactorSetup from "@/pages/TwoFactorSetup";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route path="/room/:code" component={Room} />
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
       <Route path="/cosmetics" component={Cosmetics} />
       <Route path="/store" component={Store} />
       <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route component={NotFound} />
     </Switch>
   );

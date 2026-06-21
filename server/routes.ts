@@ -1500,6 +1500,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Clerk public config — publishable key is safe to expose to the frontend
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      clerkPublishableKey:
+        process.env.CLERK_PUBLISHABLE_KEY ||
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+        "",
+    });
+  });
+
   // Feedback endpoint
   app.post("/api/feedback", async (req, res) => {
     try {

@@ -1,10 +1,10 @@
-import { SignIn } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function Login() {
+export default function Signup() {
   const [, setLocation] = useLocation();
 
   return (
@@ -24,10 +24,10 @@ export default function Login() {
             <Search className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Mafia Verse</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Sign in to continue</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Create your account</p>
         </div>
 
-        <SignIn
+        <SignUp
           routing="hash"
           fallbackRedirectUrl="/"
           appearance={{
@@ -48,7 +48,7 @@ export default function Login() {
           size="sm"
           onClick={() => setLocation("/")}
           className="text-muted-foreground hover:text-foreground"
-          data-testid="link-back-home"
+          data-testid="link-back-home-signup"
         >
           ← Back to Home
         </Button>
