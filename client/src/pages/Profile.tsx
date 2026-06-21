@@ -33,9 +33,6 @@ export default function Profile() {
   const [config] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: "bg-primary/10" }));
   const [stats, setStats] = useState(() => {
     const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 });
-    if (raw && typeof raw === "object" && Array.isArray(raw.achievements)) {
-      raw.achievements = raw.achievements.filter((a: string) => a !== 'fashionista');
-    }
     if (raw && typeof raw === "object") {
       raw.credits = 0;
       return raw;
@@ -48,7 +45,6 @@ export default function Profile() {
       const saved = localStorage.getItem("mafia_stats");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.achievements) parsed.achievements = parsed.achievements.filter((a: string) => a !== 'fashionista');
         parsed.credits = 0;
         setStats(parsed);
       }

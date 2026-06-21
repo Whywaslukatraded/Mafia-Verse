@@ -3,6 +3,12 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { testConnection } from "./db";
+import { clerkMiddleware } from "@clerk/express";
+
+// Clerk expects CLERK_PUBLISHABLE_KEY; map from the Replit secret name
+if (!process.env.CLERK_PUBLISHABLE_KEY && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  process.env.CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -50,6 +56,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Clerk authentication middleware — makes auth context available on all routes
+app.use(clerkMiddleware());
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
