@@ -29,7 +29,8 @@ export default function Login() {
 
         <SignIn
           routing="hash"
-          fallbackRedirectUrl="/"
+          forceRedirectUrl="/"
+          signUpUrl="/signup"
           appearance={{
             variables: {
               colorPrimary: "#6366f1",

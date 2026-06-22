@@ -23,7 +23,8 @@ async function bootstrap() {
     root.render(
       <ClerkProvider
         publishableKey={publishableKey}
-        fallbackRedirectUrl="/"
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
         afterSignOutUrl="/"
       >
         <App />

@@ -1,9 +1,16 @@
 import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
 
-// Replit Stripe Integration v2
-// Connection: conn_stripe_01KT7B0V8SJ9HTCHT38E588Y2D
+// Try env vars first, then fall back to the Replit connector API
 async function getStripeCredentials(): Promise<{ secretKey: string; publishableKey: string; webhookSecret?: string }> {
+  // 1. Use explicit keys from secrets if available
+  const envSecret = process.env.STRIPE_SECRET_KEY;
+  const envPublishable = process.env.STRIPE_PUBLISHABLE_KEY;
+  if (envSecret && envPublishable) {
+    return { secretKey: envSecret, publishableKey: envPublishable };
+  }
+
+  // 2. Fall back to the Replit Stripe connector
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
@@ -13,16 +20,15 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
 
   if (!hostname || !xReplitToken) {
     throw new Error(
-      "Missing Replit environment variables. " +
-      "Ensure the Stripe integration is connected via the Integrations tab."
+      "No Stripe credentials available. " +
+      "Set STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY in secrets, " +
+      "or connect Stripe via the Integrations tab."
     );
   }
 
-  // Determine environment based on deployment status
   const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
   const targetEnvironment = isProduction ? "production" : "development";
 
-  // Try with environment first, then fall back to no environment
   async function tryFetch(env?: string) {
     const url = new URL(`https://${hostname}/api/v2/connection`);
     url.searchParams.set("include_secrets", "true");
@@ -44,8 +50,9 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
 
   if (!settings || !settings.secret || !settings.publishable) {
     throw new Error(
-      `Stripe connection not found. ` +
-      "Please connect Stripe via the Integrations tab."
+      "Stripe credentials not found. " +
+      "Please set STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY in secrets, " +
+      "or connect Stripe via the Integrations tab."
     );
   }
 
