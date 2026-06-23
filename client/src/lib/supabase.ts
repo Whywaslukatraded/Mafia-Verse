@@ -18,6 +18,10 @@ export function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
+export function isSupabaseReady(): boolean {
+  return !!_supabase;
+}
+
 /** Re-export for convenience - only works after initSupabase */
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop: string) {

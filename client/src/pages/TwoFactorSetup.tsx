@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 export default function TwoFactorSetup() {
   const [, setLocation] = useLocation();
@@ -20,8 +20,22 @@ export default function TwoFactorSetup() {
   useEffect(() => {
     async function startSetup() {
       try {
+        console.log("[2FA] waiting for supabase...");
+        let attempts = 0;
+        while (!isSupabaseReady() && attempts < 50) {
+          await new Promise((r) => setTimeout(r, 100));
+          attempts++;
+        }
+        console.log("[2FA] isSupabaseReady:", isSupabaseReady());
+        if (!isSupabaseReady()) {
+          toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
+          setStep("qr"); // show fallback to avoid blank screen
+          return;
+        }
         const supabase = getSupabase();
+        console.log("[2FA] got supabase client");
         const { data: sessionData, error } = await supabase.auth.getSession();
+        console.log("[2FA] session:", sessionData?.session ? "present" : "missing", "error:", error);
         if (error || !sessionData?.session?.user) {
           toast({ title: "Please log in first", variant: "destructive" });
           setLocation("/login");
@@ -34,6 +48,7 @@ export default function TwoFactorSetup() {
           body: JSON.stringify({ supabaseUserId: supabaseId }),
         });
         const data = await res.json();
+        console.log("[2FA] setup response:", res.status, data);
         if (!res.ok) {
           toast({ title: data.message || "Setup failed", variant: "destructive" });
           return;
@@ -42,7 +57,7 @@ export default function TwoFactorSetup() {
         setSecret(data.secret);
         setStep("qr");
       } catch (e) {
-        console.error("2FA setup error:", e);
+        console.error("[2FA] setup error:", e);
         toast({ title: "Setup failed. Please try again.", variant: "destructive" });
       }
     }
@@ -53,6 +68,10 @@ export default function TwoFactorSetup() {
   const verifyCode = async () => {
     if (code.length !== 6) {
       toast({ title: "Enter 6-digit code", variant: "destructive" });
+      return;
+    }
+    if (!isSupabaseReady()) {
+      toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
       return;
     }
     setVerifying(true);
@@ -82,8 +101,9 @@ export default function TwoFactorSetup() {
 
   if (step === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+        <p className="text-sm text-muted-foreground">Loading 2FA setup...</p>
       </div>
     );
   }
