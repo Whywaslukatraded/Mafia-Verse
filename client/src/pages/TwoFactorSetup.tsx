@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 export default function TwoFactorSetup() {
   const [, setLocation] = useLocation();
@@ -20,10 +20,7 @@ export default function TwoFactorSetup() {
   useEffect(() => {
     async function startSetup() {
       try {
-        if (!supabase || !supabase.auth) {
-          toast({ title: "Auth not ready. Please refresh.", variant: "destructive" });
-          return;
-        }
+        const supabase = getSupabase();
         const { data: sessionData, error } = await supabase.auth.getSession();
         if (error || !sessionData?.session?.user) {
           toast({ title: "Please log in first", variant: "destructive" });
@@ -60,6 +57,7 @@ export default function TwoFactorSetup() {
     }
     setVerifying(true);
     try {
+      const supabase = getSupabase();
       const { data: sessionData } = await supabase.auth.getSession();
       const supabaseId = sessionData.session?.user?.id;
       const res = await fetch("/api/auth/2fa/verify", {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 export interface AuthUser {
   id: string;
@@ -12,6 +12,7 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const supabase = getSupabase();
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -43,6 +44,7 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
+    const supabase = getSupabase();
     await supabase.auth.signOut();
   };
 

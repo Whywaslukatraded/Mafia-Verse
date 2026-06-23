@@ -5,7 +5,7 @@ import { Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Signup() {
@@ -27,6 +27,7 @@ export default function Signup() {
       return;
     }
     setLoading(true);
+    const supabase = getSupabase();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

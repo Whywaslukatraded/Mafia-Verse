@@ -42,7 +42,30 @@ export default function Home() {
   const { toast } = useToast();
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
-  const { isSignedIn, signOut } = useAuth();
+  const { user, isSignedIn, isLoading, signOut } = useAuth();
+
+  // Guard: if signed in but 2FA not completed, redirect
+  useEffect(() => {
+    if (isLoading || !isSignedIn || !user) return;
+
+    const passed2fa = localStorage.getItem("mafia_2fa_passed") === "true";
+    if (passed2fa) return;
+
+    // One-time check: does user have 2FA set up?
+    fetch(`/api/auth/2fa/status?supabaseUserId=${user.id}`)
+      .then((res) => res.json())
+      .then((status) => {
+        if (!status.isEnabled) {
+          setLocation("/2fa-setup");
+        } else {
+          setLocation("/2fa-verify");
+        }
+      })
+      .catch(() => {
+        setLocation("/2fa-setup");
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isSignedIn, user]);
 
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");

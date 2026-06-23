@@ -56,7 +56,8 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
   const [showClaimAnim, setShowClaimAnim] = useState(false);
   const [claimingDay, setClaimingDay] = useState<number | null>(null);
 
-  const today = new Date().toDateString();
+  // Use UTC date to prevent timezone exploit
+  const today = new Date().toISOString().split("T")[0]; // e.g., "2026-06-23"
   const canClaim = streak.lastClaim !== today;
 
   const handleClaim = useCallback((dayNum: number) => {
