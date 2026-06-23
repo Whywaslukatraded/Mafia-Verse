@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 export default function TwoFactorVerify() {
   const [, setLocation] = useLocation();
@@ -17,6 +17,10 @@ export default function TwoFactorVerify() {
   const verifyCode = async () => {
     if (code.length !== 6) {
       toast({ title: "Enter 6-digit code", variant: "destructive" });
+      return;
+    }
+    if (!isSupabaseReady()) {
+      toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
       return;
     }
     setVerifying(true);
