@@ -1500,13 +1500,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Clerk public config — publishable key is safe to expose to the frontend
+  // Public config — Supabase credentials are safe to expose (anon key is public)
   app.get("/api/config", (_req, res) => {
     res.json({
-      clerkPublishableKey:
-        process.env.CLERK_PUBLISHABLE_KEY ||
-        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-        "",
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
     });
   });
 

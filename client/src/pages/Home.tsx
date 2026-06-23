@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins, Star } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
@@ -42,8 +42,7 @@ export default function Home() {
   const { toast } = useToast();
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
-  const { isSignedIn } = useUser();
-  const { signOut } = useClerk();
+  const { isSignedIn, signOut } = useAuth();
 
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");
@@ -189,7 +188,10 @@ export default function Home() {
           <div className="flex justify-end mb-4">
             {isSignedIn ? (
               <Button
-                onClick={() => signOut(() => setLocation("/"))}
+                onClick={async () => {
+                  await signOut();
+                  setLocation("/");
+                }}
                 size="sm"
                 className="bg-red-600 hover:bg-red-700"
                 data-testid="button-logout"

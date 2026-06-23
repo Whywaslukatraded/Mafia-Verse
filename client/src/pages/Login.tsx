@@ -1,11 +1,41 @@
-import { SignIn } from "@clerk/clerk-react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+    if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (data.session) {
+      toast({ title: "Welcome back!" });
+      setLocation("/");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
@@ -27,22 +57,53 @@ export default function Login() {
           <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Sign in to continue</p>
         </div>
 
-        <SignIn
-          routing="hash"
-          forceRedirectUrl="/"
-          signUpUrl="/signup"
-          appearance={{
-            variables: {
-              colorPrimary: "#6366f1",
-              colorBackground: "#0d0d14",
-              colorText: "#f4f4f5",
-              colorTextSecondary: "#a1a1aa",
-              colorInputBackground: "#18181f",
-              colorInputText: "#f4f4f5",
-              borderRadius: "0.75rem",
-            },
-          }}
-        />
+        <form onSubmit={handleLogin} className="w-full space-y-4 bg-card border border-border rounded-xl p-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              data-testid="input-email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              data-testid="input-password"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+            data-testid="button-signin"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            {loading ? "Signing in..." : "Sign In"}
+          </Button>
+
+          <div className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => setLocation("/signup")}
+              className="text-primary hover:underline font-medium"
+              data-testid="link-signup"
+            >
+              Sign up
+            </button>
+          </div>
+        </form>
 
         <Button
           variant="ghost"

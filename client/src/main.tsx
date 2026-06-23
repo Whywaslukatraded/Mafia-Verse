@@ -1,39 +1,30 @@
 import { createRoot } from "react-dom/client";
-import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App";
+import { initSupabase } from "./lib/supabase";
 import "./index.css";
 
 async function bootstrap() {
-  // Fetch Clerk publishable key from backend (it's public-safe to expose)
-  let publishableKey = "";
+  // Fetch Supabase config from backend (anon key is public-safe)
   try {
     const res = await fetch("/api/config");
     if (res.ok) {
       const data = await res.json();
-      publishableKey = data.clerkPublishableKey ?? "";
+      let url = data.supabaseUrl ?? "";
+      // Strip /rest/v1 suffix if present
+      if (url.endsWith("/rest/v1/") || url.endsWith("/rest/v1")) {
+        url = url.replace(/\/rest\/v1\/?$/, "");
+      }
+      const key = data.supabaseAnonKey ?? "";
+      if (url && key) {
+        initSupabase(url, key);
+      }
     }
   } catch {
-    // server not ready yet — key stays empty
+    // server not ready yet
   }
 
   const root = createRoot(document.getElementById("root")!);
-
-  // Always render ClerkProvider; hooks (useUser, useClerk) require it to be in tree
-  if (publishableKey) {
-    root.render(
-      <ClerkProvider
-        publishableKey={publishableKey}
-        signInFallbackRedirectUrl="/"
-        signUpFallbackRedirectUrl="/"
-        afterSignOutUrl="/"
-      >
-        <App />
-      </ClerkProvider>
-    );
-  } else {
-    // Clerk not configured — render without auth (isSignedIn will be false everywhere)
-    root.render(<App />);
-  }
+  root.render(<App />);
 }
 
 bootstrap();
