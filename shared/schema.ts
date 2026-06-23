@@ -4,6 +4,13 @@ import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 
+export const userMfa = pgTable("user_mfa", {
+  supabaseUserId: text("supabase_user_id").primaryKey(),
+  totpSecret: text("totp_secret"),
+  isEnabled: boolean("is_enabled").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),

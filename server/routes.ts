@@ -3,7 +3,9 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { WS_EVENTS, type GameState, type GameAction, type Player, type Message } from "@shared/schema";
+import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 
@@ -841,31 +843,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Setup
-  app.post(api.auth.setup2FA.path, async (req, res) => {
+  // 2FA Setup (Supabase user)
+  app.post("/api/auth/2fa/setup", async (req, res) => {
     try {
-      const input = api.auth.setup2FA.input.parse(req.body);
-      const user = await storage.getUserById(input.userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      const { supabaseUserId } = req.body;
+      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
 
       const { TOTP } = await import("otpauth");
       const secret = new TOTP({
         issuer: "Mafia Game",
-        label: user.username,
+        label: supabaseUserId,
         algorithm: "SHA1",
         digits: 6,
         period: 30,
       }).secret.base32;
 
-      const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(user.username)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
+      const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(supabaseUserId)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
 
-      // Store the secret temporarily (not enabled until verified)
-      await storage.updateUser(user.id, { totpSecret: secret });
+      // Upsert into user_mfa table
+      await db.insert(userMfa)
+        .values({ supabaseUserId, totpSecret: secret, isEnabled: false })
+        .onConflictDoUpdate({
+          target: userMfa.supabaseUserId,
+          set: { totpSecret: secret, isEnabled: false },
+        });
 
-      res.json({
-        secret,
-        qrCodeUri: uri,
-      });
+      res.json({ secret, qrCodeUri: uri });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -873,24 +876,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Verify & Enable
-  app.post(api.auth.verify2FA.path, async (req, res) => {
+  // 2FA Verify & Enable (Supabase user)
+  app.post("/api/auth/2fa/verify", async (req, res) => {
     try {
-      const input = api.auth.verify2FA.input.parse(req.body);
-      const user = await storage.getUserById(input.userId);
-      if (!user || !user.totpSecret) {
+      const { supabaseUserId, code } = req.body;
+      if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
+
+      const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
+      if (!mfa || !mfa.totpSecret) {
         return res.status(400).json({ message: "2FA not set up" });
       }
 
       const { TOTP } = await import("otpauth");
-      const totp = new TOTP({ secret: user.totpSecret });
-      const isValid = totp.validate({ token: input.code, window: 1 }) !== null;
+      const totp = new TOTP({ secret: mfa.totpSecret });
+      const isValid = totp.validate({ token: code, window: 1 }) !== null;
 
       if (!isValid) {
         return res.status(400).json({ message: "Invalid code" });
       }
 
-      await storage.updateUser(user.id, { is2FAEnabled: true });
+      await db.update(userMfa).set({ isEnabled: true }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ enabled: true });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
@@ -899,21 +904,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Disable
-  app.post(api.auth.disable2FA.path, async (req, res) => {
+  // 2FA Status check
+  app.get("/api/auth/2fa/status", async (req, res) => {
     try {
-      const input = api.auth.disable2FA.input.parse(req.body);
-      const user = await storage.getUserById(input.userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
-      if (!verifyPassword(input.password, user.passwordHash)) {
-        return res.status(401).json({ message: "Invalid password" });
-      }
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+      const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
+      res.json({ isEnabled: mfa?.isEnabled ?? false });
+    } catch (err: any) {
+      res.status(400).json({ message: err?.message || "Status check failed" });
+    }
+  });
 
-      await storage.updateUser(user.id, {
-        is2FAEnabled: false,
-        totpSecret: null,
-      });
+  // 2FA Disable
+  app.post("/api/auth/2fa/disable", async (req, res) => {
+    try {
+      const { supabaseUserId } = req.body;
+      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
 
+      await db.update(userMfa).set({ isEnabled: false, totpSecret: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ disabled: true });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";

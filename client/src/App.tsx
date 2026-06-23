@@ -9,6 +9,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import TwoFactorSetup from "@/pages/TwoFactorSetup";
+import TwoFactorVerify from "@/pages/TwoFactorVerify";
 import Room from "@/pages/Room";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/2fa-setup" component={TwoFactorSetup} />
+      <Route path="/2fa-verify" component={TwoFactorVerify} />
       <Route path="/room/:code" component={Room} />
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
