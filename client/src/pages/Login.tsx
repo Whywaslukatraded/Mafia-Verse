@@ -32,8 +32,23 @@ export default function Login() {
       return;
     }
     if (data.session) {
-      toast({ title: "Welcome back!" });
-      setLocation("/");
+      // Check if 2FA is required
+      const supabaseId = data.session.user.id;
+      try {
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
+        const status = await res.json();
+        if (status.isEnabled) {
+          // 2FA is enabled → verify it
+          setLocation("/2fa-verify");
+          return;
+        }
+        // 2FA not enabled → set it up
+        setLocation("/2fa-setup");
+        return;
+      } catch {
+        // Fallback to home
+        setLocation("/");
+      }
     }
   };
 
