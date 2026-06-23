@@ -1,11 +1,56 @@
-import { SignUp } from "@clerk/clerk-react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast({
+        title: "Signup failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (data.user) {
+      toast({
+        title: "Account created!",
+        description: "Check your email to confirm, then log in.",
+      });
+      setLocation("/login");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
@@ -27,22 +72,64 @@ export default function Signup() {
           <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Create your account</p>
         </div>
 
-        <SignUp
-          routing="hash"
-          forceRedirectUrl="/"
-          signInUrl="/login"
-          appearance={{
-            variables: {
-              colorPrimary: "#6366f1",
-              colorBackground: "#0d0d14",
-              colorText: "#f4f4f5",
-              colorTextSecondary: "#a1a1aa",
-              colorInputBackground: "#18181f",
-              colorInputText: "#f4f4f5",
-              borderRadius: "0.75rem",
-            },
-          }}
-        />
+        <form onSubmit={handleSignup} className="w-full space-y-4 bg-card border border-border rounded-xl p-6">
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Display Name</Label>
+            <Input
+              id="displayName"
+              placeholder="Your mafia handle"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              data-testid="input-display-name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              data-testid="input-email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              data-testid="input-password"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+            data-testid="button-signup"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            {loading ? "Creating..." : "Create Account"}
+          </Button>
+
+          <div className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => setLocation("/login")}
+              className="text-primary hover:underline font-medium"
+              data-testid="link-login"
+            >
+              Sign in
+            </button>
+          </div>
+        </form>
 
         <Button
           variant="ghost"
