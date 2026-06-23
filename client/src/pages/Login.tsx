@@ -5,7 +5,7 @@ import { Search, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
@@ -18,6 +18,7 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const supabase = getSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
