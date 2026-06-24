@@ -24,7 +24,7 @@ function saveReferralStats(s: any) {
   localStorage.setItem("mafia_referral_stats", JSON.stringify(s));
 }
 
-const REWARD_PER_INVITE = 20;
+const REWARD_PER_INVITE = 25;
 
 export function ReferralSystem({ onClose }: { onClose: () => void }) {
   const [code] = useState(generateReferralCode);
