@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { motion } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Target, BarChart2, Settings, Sparkles, Gift, Coffee, Tv, Users, Box, Coins, Star } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,91 @@ const ACHIEVEMENTS = [
   { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
   { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
   { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
-  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
+  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' },
+  { id: 'fashionista', name: 'Fashionista', description: 'Unlock 10 custom rare profile outfits or limited skins.', icon: '👗' },
 ];
+
+function generateReferralCode() {
+  const saved = localStorage.getItem("mafia_referral_code");
+  if (saved) return saved;
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("mafia_referral_code", code);
+  return code;
+}
+
+function ReferralModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const code = generateReferralCode();
+  const link = `${window.location.origin}/?ref=${code}`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="relative bg-card border border-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden"
+      >
+        <div className="bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-emerald-500/20 p-6 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Refer a Friend</h2>
+                <p className="text-xs text-muted-foreground">Earn 25 credits per referral</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Share your unique invite link with friends. When they join and play their first game, you both earn <strong className="text-emerald-400">25 bonus credits</strong>.
+          </p>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Your Invite Link</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
+                {link}
+              </div>
+              <Button size="sm" variant="outline" onClick={copy} className="shrink-0 gap-1">
+                {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            {[
+              { label: "Your Code", value: code, color: "text-emerald-400" },
+              { label: "Reward", value: "25 🪙", color: "text-amber-400" },
+              { label: "Per Friend", value: "Each", color: "text-blue-400" },
+            ].map((item) => (
+              <div key={item.label} className="bg-muted/30 rounded-xl p-3 text-center border border-border">
+                <p className={`text-base font-black ${item.color}`}>{item.value}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -44,26 +127,17 @@ export default function Home() {
   const joinRoom = useJoinRoom();
   const { user, isSignedIn, isLoading, signOut } = useAuth();
 
-  // Guard: if signed in but 2FA not completed, redirect
   useEffect(() => {
     if (isLoading || !isSignedIn || !user) return;
-
     const passed2fa = localStorage.getItem("mafia_2fa_passed") === "true";
     if (passed2fa) return;
-
-    // One-time check: does user have 2FA set up?
     fetch(`/api/auth/2fa/status?supabaseUserId=${user.id}`)
       .then((res) => res.json())
       .then((status) => {
-        if (!status.isEnabled) {
-          setLocation("/2fa-setup");
-        } else {
-          setLocation("/2fa-verify");
-        }
+        if (!status.isEnabled) setLocation("/2fa-setup");
+        else setLocation("/2fa-verify");
       })
-      .catch(() => {
-        setLocation("/2fa-setup");
-      });
+      .catch(() => setLocation("/2fa-setup"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isSignedIn, user]);
 
@@ -72,17 +146,15 @@ export default function Home() {
   const [showDailyRewards, setShowDailyRewards] = useState(false);
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
-  
-  // Persistent Profile - defensive localStorage parsing
+  const [showReferral, setShowReferral] = useState(false);
+
   const safeParse = (key: string, fallback: any) => {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) return fallback;
       if (typeof fallback === 'object' && fallback !== null) return JSON.parse(raw);
       return raw;
-    } catch {
-      return fallback;
-    }
+    } catch { return fallback; }
   };
 
   const [name, setName] = useState(() => {
@@ -99,11 +171,8 @@ export default function Home() {
   });
   const [stats, setStats] = useState(() => {
     const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [] });
-    if (raw && typeof raw === "object") {
-      raw.credits = 0;
-      return raw;
-    }
-    return { wins: 0, gamesPlayed: 0, achievements: [], credits: 0 };
+    if (raw && typeof raw === "object") return raw;
+    return { wins: 0, gamesPlayed: 0, achievements: [] };
   });
 
   useEffect(() => {
@@ -112,27 +181,26 @@ export default function Home() {
     localStorage.setItem("mafia_profile_config", JSON.stringify(config));
   }, [name, avatar, config]);
 
+  useEffect(() => {
+    const onStorage = () => {
+      const saved = localStorage.getItem("mafia_stats");
+      if (saved) setStats(JSON.parse(saved));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const [roomName, setRoomName] = useState("");
   const [showVoteResults, setShowVoteResults] = useState(true);
   const [showRoleReveal, setShowRoleReveal] = useState(true);
 
-  // Create State
   const [counts, setCounts] = useState({
-    mafia: 1,
-    detective: 1,
-    doctor: 1,
-    civilian: 3,
-    phaseDuration: 30,
-    mafiaDuration: 15,
-    doctorDuration: 15,
-    detectiveDuration: 15,
+    mafia: 1, detective: 1, doctor: 1, civilian: 3,
+    phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
   });
 
   const adjustCount = (role: keyof typeof counts, delta: number) => {
-    setCounts(prev => ({
-      ...prev,
-      [role]: Math.max(0, prev[role] + delta)
-    }));
+    setCounts(prev => ({ ...prev, [role]: Math.max(0, prev[role] + delta) }));
   };
 
   const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian;
@@ -140,69 +208,49 @@ export default function Home() {
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !joinCode) return;
-    
     try {
       const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config } as any);
-      // Store session info
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
-      toast({
-        title: "Failed to join",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast({ title: "Failed to join", description: err.message, variant: "destructive" });
     }
   };
 
   const handleCreate = async () => {
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       toast({ title: "Name required", description: "Please enter your name before creating a room.", variant: "destructive" });
       return;
     }
     try {
       const res = await createRoom.mutateAsync({
-        name: name.trim(),
-        avatar,
-        avatarConfig: config,
+        name: name.trim(), avatar, avatarConfig: config,
         settings: {
-          mafiaCount: counts.mafia,
-          detectiveCount: counts.detective,
-          doctorCount: counts.doctor,
-          civilianCount: counts.civilian,
-          phaseDuration: counts.phaseDuration,
-          mafiaDuration: counts.mafiaDuration,
-          doctorDuration: counts.doctorDuration,
-          detectiveDuration: counts.detectiveDuration,
-          roomName: roomName.trim() || undefined,
-          showVoteResults,
-          showRoleReveal,
+          mafiaCount: counts.mafia, detectiveCount: counts.detective,
+          doctorCount: counts.doctor, civilianCount: counts.civilian,
+          phaseDuration: counts.phaseDuration, mafiaDuration: counts.mafiaDuration,
+          doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
+          roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
         }
       } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
-      console.error("Create room failed:", err);
-      toast({
-        title: "Failed to create room",
-        description: err?.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to create room", description: err?.message || "Something went wrong.", variant: "destructive" });
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none bg-background">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
@@ -210,26 +258,9 @@ export default function Home() {
         <div className="text-center mb-10">
           <div className="flex justify-end mb-4">
             {isSignedIn ? (
-              <Button
-                onClick={async () => {
-                  await signOut();
-                  setLocation("/");
-                }}
-                size="sm"
-                className="bg-red-600 hover:bg-red-700"
-                data-testid="button-logout"
-              >
-                Logout
-              </Button>
+              <Button onClick={async () => { await signOut(); setLocation("/"); }} size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-logout">Logout</Button>
             ) : (
-              <Button
-                onClick={() => setLocation("/login")}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
-                data-testid="button-login"
-              >
-                Login / Sign Up
-              </Button>
+              <Button onClick={() => setLocation("/login")} size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-login">Login / Sign Up</Button>
             )}
           </div>
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full shadow-xl mb-6 ring-4 ring-primary/10 relative group overflow-hidden">
@@ -245,17 +276,10 @@ export default function Home() {
             <div className="flex flex-col items-center gap-6">
               <div className="flex items-start gap-8 w-full">
                 <div className="relative group flex-shrink-0">
-                  <div className={cn(
-                    "w-32 h-32 rounded-full border-2 border-primary/20 flex items-center justify-center text-6xl shadow-2xl shadow-primary/10 relative overflow-hidden",
-                    config.bg
-                  )}>
+                  <div className={cn("w-32 h-32 rounded-full border-2 border-primary/20 flex items-center justify-center text-6xl shadow-2xl shadow-primary/10 relative overflow-hidden", config.bg)}>
                     <span className="relative z-10">{avatar}</span>
-                    {config.accessory !== "None" && (
-                      <span className="absolute top-4 text-3xl z-30">{config.accessory}</span>
-                    )}
-                    {config.clothing !== "None" && (
-                      <span className="absolute bottom-4 text-3xl z-20 opacity-90">{config.clothing}</span>
-                    )}
+                    {config.accessory !== "None" && <span className="absolute top-4 text-3xl z-30">{config.accessory}</span>}
+                    {config.clothing !== "None" && <span className="absolute bottom-4 text-3xl z-20 opacity-90">{config.clothing}</span>}
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-card border border-border p-1.5 rounded-full shadow-lg">
                     <Smile className="w-4 h-4 text-primary" />
@@ -267,14 +291,9 @@ export default function Home() {
                     <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Accessory</Label>
                     <div className="flex flex-wrap gap-1">
                       {ACCESSORIES.map(a => (
-                        <button
-                          key={a}
-                          onClick={() => setConfig({ ...config, accessory: a })}
-                          className={cn(
-                            "w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
-                            config.accessory === a ? "bg-primary border-primary text-primary-foreground" : "bg-muted/50 border-border hover:bg-muted"
-                          )}
-                        >
+                        <button key={a} onClick={() => setConfig({ ...config, accessory: a })}
+                          className={cn("w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
+                            config.accessory === a ? "bg-primary border-primary text-primary-foreground" : "bg-muted/50 border-border hover:bg-muted")}>
                           {a === "None" ? "Ø" : a}
                         </button>
                       ))}
@@ -284,14 +303,9 @@ export default function Home() {
                     <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Clothing</Label>
                     <div className="flex flex-wrap gap-1">
                       {CLOTHING.map(c => (
-                        <button
-                          key={c}
-                          onClick={() => setConfig({ ...config, clothing: c })}
-                          className={cn(
-                            "w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
-                            config.clothing === c ? "bg-primary border-primary text-primary-foreground" : "bg-muted/50 border-border hover:bg-muted"
-                          )}
-                        >
+                        <button key={c} onClick={() => setConfig({ ...config, clothing: c })}
+                          className={cn("w-8 h-8 rounded border flex items-center justify-center text-sm transition-all",
+                            config.clothing === c ? "bg-primary border-primary text-primary-foreground" : "bg-muted/50 border-border hover:bg-muted")}>
                           {c === "None" ? "Ø" : c}
                         </button>
                       ))}
@@ -301,21 +315,15 @@ export default function Home() {
                     <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Background</Label>
                     <div className="flex flex-wrap gap-1">
                       {BGS.map(bg => (
-                        <button
-                          key={bg}
-                          onClick={() => setConfig({ ...config, bg })}
-                          className={cn(
-                            "w-8 h-8 rounded-full border transition-all",
-                            bg,
-                            config.bg === bg ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-border"
-                          )}
-                        />
+                        <button key={bg} onClick={() => setConfig({ ...config, bg })}
+                          className={cn("w-8 h-8 rounded-full border transition-all", bg,
+                            config.bg === bg ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-border")} />
                       ))}
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="w-full space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Your Mafia Handle</Label>
@@ -323,91 +331,79 @@ export default function Home() {
                     placeholder="CHOOSE A NAME..."
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className={cn(
-                      "bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground",
-                      !name.trim() && "border-red-500/50 focus:border-red-500"
-                    )}
+                    className={cn("bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground",
+                      !name.trim() && "border-red-500/50 focus:border-red-500")}
                     maxLength={12}
                     data-testid="input-player-name"
                     autoComplete="off"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Pick Your Persona</Label>
                   <div className="grid grid-cols-6 gap-2">
                     {AVATARS.map(a => (
-                      <button
-                        key={a}
-                        onClick={() => setAvatar(a)}
-                        className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border border-transparent",
-                          avatar === a ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110 text-primary-foreground" : "bg-muted/50 hover:bg-muted"
-                        )}
-                      >
+                      <button key={a} onClick={() => setAvatar(a)}
+                        className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all border border-transparent",
+                          avatar === a ? "bg-primary border-primary shadow-lg shadow-primary/20 scale-110 text-primary-foreground" : "bg-muted/50 hover:bg-muted")}>
                         {a}
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* 4x2 Navigation Grid */}
                 <div className="pt-4 border-t border-white/5 flex flex-col gap-2 w-full">
+                  {/* Row 1 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
-                    <button
-                      onClick={() => setLocation("/profile")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                    <button onClick={() => setLocation("/profile")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Trophy className="w-4 h-4 text-yellow-500" />
-                      <span className="text-2xl font-black font-mono">{stats.wins}</span>
+                      <span className="text-2xl font-black font-mono">{stats.wins ?? 0}</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
                     </button>
-                    <button
-                      onClick={() => setLocation("/store")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                    <button onClick={() => setLocation("/store")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Coins className="w-4 h-4 text-purple-500" />
                       <span className="text-lg font-black font-mono">🛒</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Store</span>
                     </button>
-                    <button
-                      onClick={() => setLocation("/cosmetics")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                    <button onClick={() => setLocation("/cosmetics")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Sparkles className="w-4 h-4 text-yellow-400" />
                       <span className="text-lg font-black font-mono">✨</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
                     </button>
-                    <button
-                      onClick={() => setShowDailyRewards(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative"
-                    >
+                    <button onClick={() => setShowDailyRewards(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative">
                       <Gift className="w-4 h-4 text-amber-500" />
                       <span className="text-lg font-black font-mono">🎁</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 w-full">
-                    <button
-                      onClick={() => setShowAdRewards(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                  {/* Row 2 */}
+                  <div className="grid grid-cols-4 gap-2 w-full">
+                    <button onClick={() => setShowAdRewards(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Tv className="w-4 h-4 text-blue-500" />
                       <span className="text-lg font-black font-mono">📺</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
                     </button>
-                    <button
-                      onClick={() => setShowRating(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                    <button onClick={() => setShowRating(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Star className="w-4 h-4 text-yellow-500" />
                       <span className="text-lg font-black font-mono">⭐</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
                     </button>
-                    <button
-                      onClick={() => setLocation("/settings")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer"
-                    >
+                    <button onClick={() => setShowReferral(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
+                      <Users className="w-4 h-4 text-emerald-500" />
+                      <span className="text-lg font-black font-mono">👥</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Refer</span>
+                    </button>
+                    <button onClick={() => setLocation("/settings")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Settings className="w-4 h-4 text-gray-400" />
                       <span className="text-lg font-black font-mono">⚙️</span>
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
@@ -460,20 +456,16 @@ export default function Home() {
                 <form onSubmit={handleJoin} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground">Room Code</Label>
-                    <Input 
-                      placeholder="E.G. A4X9" 
+                    <Input
+                      placeholder="E.G. A4X9"
                       value={joinCode}
                       onChange={e => setJoinCode(e.target.value.toUpperCase())}
                       className="text-center uppercase text-2xl tracking-[0.5em] font-mono bg-muted/50 border-border h-14 focus:ring-primary/50 text-foreground"
                       maxLength={4}
                     />
                   </div>
-                  <Button
-                    type="submit"
-                    className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                    disabled={joinRoom.isPending || !joinCode || !name}
-                    data-testid="button-join-room"
-                  >
+                  <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
+                    disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">
                     {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
                   </Button>
                 </form>
@@ -486,13 +478,9 @@ export default function Home() {
               <CardContent className="pt-6 space-y-6">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground">Room Name (optional)</Label>
-                  <Input
-                    placeholder="e.g. The Godfather's Table"
-                    value={roomName}
+                  <Input placeholder="e.g. The Godfather's Table" value={roomName}
                     onChange={e => setRoomName(e.target.value)}
-                    className="bg-muted/50 border-border h-11 focus:ring-primary/50 text-foreground"
-                    maxLength={32}
-                  />
+                    className="bg-muted/50 border-border h-11 focus:ring-primary/50 text-foreground" maxLength={32} />
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   {[
@@ -513,21 +501,13 @@ export default function Home() {
                         <span className="font-semibold tracking-tight text-foreground">{role.label}</span>
                       </div>
                       <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 hover:bg-muted-foreground/10 rounded-md"
-                          onClick={() => adjustCount(role.key as any, -1)}
-                        >
+                        <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-muted-foreground/10 rounded-md"
+                          onClick={() => adjustCount(role.key as any, -1)}>
                           <Minus className="w-4 h-4" />
                         </Button>
                         <span className="w-8 text-center font-mono font-bold text-lg text-foreground">{counts[role.key as keyof typeof counts]}</span>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 hover:bg-muted-foreground/10 rounded-md"
-                          onClick={() => adjustCount(role.key as any, 1)}
-                        >
+                        <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-muted-foreground/10 rounded-md"
+                          onClick={() => adjustCount(role.key as any, 1)}>
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>
@@ -543,35 +523,22 @@ export default function Home() {
                     </div>
                     <span className="text-3xl font-black font-mono tracking-tighter">{totalPlayers}</span>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2 px-2">
-                    <button
-                      onClick={() => setShowVoteResults(!showVoteResults)}
-                      className={cn(
-                        "text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
-                        showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
-                      )}
-                    >
+                    <button onClick={() => setShowVoteResults(!showVoteResults)}
+                      className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                        showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}>
                       {showVoteResults ? "✓ Vote Results" : "Vote Results"}
                     </button>
-                    <button
-                      onClick={() => setShowRoleReveal(!showRoleReveal)}
-                      className={cn(
-                        "text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
-                        showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
-                      )}
-                    >
+                    <button onClick={() => setShowRoleReveal(!showRoleReveal)}
+                      className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                        showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}>
                       {showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
                     </button>
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleCreate}
-                  className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6 || !name}
-                  data-testid="button-create-room"
-                >
+                <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
+                  disabled={createRoom.isPending || totalPlayers < 6 || !name} data-testid="button-create-room">
                   {createRoom.isPending ? "PREPARING..." : "CREATE ROOM"}
                 </Button>
               </CardContent>
@@ -580,15 +547,12 @@ export default function Home() {
         </Tabs>
       </motion.div>
 
-      {showDailyRewards && (
-        <DailyRewards onClose={() => setShowDailyRewards(false)} />
-      )}
-      {showAdRewards && (
-        <AdRewards onClose={() => setShowAdRewards(false)} />
-      )}
-      {showRating && (
-        <RatingSystem onClose={() => setShowRating(false)} />
-      )}
+      <AnimatePresence>
+        {showDailyRewards && <DailyRewards onClose={() => setShowDailyRewards(false)} />}
+        {showAdRewards && <AdRewards onClose={() => setShowAdRewards(false)} />}
+        {showRating && <RatingSystem onClose={() => setShowRating(false)} />}
+        {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

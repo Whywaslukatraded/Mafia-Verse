@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
@@ -202,7 +202,6 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
 
-  // Pick 1 random bot to respond (80% chance to respond)
   if (Math.random() > 0.8) return;
 
   const bot = bots[Math.floor(Math.random() * bots.length)];
@@ -211,7 +210,6 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
 
   let content = "";
 
-  // Check if human mentioned a specific player
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
   
   if (mentionedPlayer) {
@@ -250,13 +248,11 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
-  // Bot voting/action logic - bots act immediately, no delays
   for (const bot of bots) {
     const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
 
     let target;
-    const realPlayersAlive = alivePlayers.filter((p: Player) => !p.isBot);
     const botsAlive = alivePlayers.filter((p: Player) => p.isBot);
     
     if (Math.random() > 0.6 && botsAlive.length > 0) {
@@ -279,11 +275,9 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
     if (room.phase === 'voting') {
       actions.votes.set(bot.id, target.id);
-      // Check if all alive players have voted after bot votes
       const allAlivePlayers = players.filter((p: Player) => p.isAlive);
       if (actions.votes.size === allAlivePlayers.length) {
-        // All players voted - signal to advance
-        return true; // Signal to advance phase immediately
+        return true;
       }
     } else if (room.phase === 'mafia' && bot.role === 'mafia') {
       actions.mafiaKills.set(bot.id, target.id);
@@ -294,11 +288,9 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     if (Math.random() > 0.35) {
       let content = "";
       
-      // Check recent messages to see if bot should respond to a human
       const recentMessages = await storage.getMessagesByRoom(roomId);
       const lastHumanMsg = recentMessages?.filter((m: any) => m.playerId !== 0 && !players.find((p: Player) => p.id === m.playerId && p.isBot))?.pop();
       
-      // Bot responds to recent human message 55% of the time
       if (lastHumanMsg && Math.random() > 0.45) {
         const msgText = lastHumanMsg.content.toLowerCase();
         const mentionedPlayer = players.find((p: Player) => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
@@ -344,16 +336,14 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     }
   }
   gameActions.set(roomId, actions);
-  return false; // No advance needed
+  return false;
 }
 
 async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const shouldAdvanceImmediately = await handleBotActions(roomId, wss, storage, roomClients, clients, gameActions);
   if (shouldAdvanceImmediately) {
-    // Bots voted and completed voting phase - recursive call to process votes and move to next phase
     const room = await storage.getRoom(roomId);
     if (room?.phase === 'voting') {
-      // Process the votes immediately since all are in
       const actions = gameActions.get(roomId) || { votes: new Map() };
       const players = await storage.getPlayersInRoom(roomId);
       const voteCounts = new Map<number, number>();
@@ -393,7 +383,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
           
-          // Check if voting out this player ends the game
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
@@ -424,7 +413,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.detectiveCheck = null;
       gameActions.set(roomId, actions);
       broadcastState(roomId);
-      // CRITICAL: set a timer for the new mafia night phase so it doesn't hang
       const mafiaSettings = room.settings as any;
       const mafiaTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), mafiaSettings.mafiaDuration * 1000 || 15000);
       phaseTimers.set(roomId, mafiaTimer);
@@ -441,7 +429,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     if (room.phase === 'discussion') {
       console.log(`[Room ${roomId}] Day Phase: Discussion -> Voting`);
       await storage.updateRoom(roomId, { phase: 'voting' });
-      broadcastState(roomId); // Broadcast so clients know voting has started
+      broadcastState(roomId);
     } else if (room.phase === 'voting') {
       const voteCounts = new Map<number, number>();
       const voteResults: { voterName: string, targetName: string }[] = [];
@@ -498,7 +486,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
       }
 
-      // Only transition to night if game hasn't ended
       if (!gameEnded) {
         await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
       }
@@ -511,7 +498,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   } else if (room.status === 'night') {
     if (room.phase === 'mafia') {
       console.log(`[Room ${roomId}] Night Phase: Mafia -> Doctor`);
-      // Check if all mafia are dead - end game immediately
       const aliveMafia = players.filter((p: Player) => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
@@ -523,14 +509,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       } else {
         await storage.updateRoom(roomId, { phase: 'doctor' });
       }
-      broadcastState(roomId); // Broadcast after phase change
+      broadcastState(roomId);
     } else if (room.phase === 'doctor') {
       console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
-      // Check if doctor is alive, if not skip to detective
-      const aliveDoctor = players.find((p: Player) => p.role === 'doctor' && p.isAlive);
-      // If doctor is dead, skip their phase
       await storage.updateRoom(roomId, { phase: 'detective' });
-      broadcastState(roomId); // Broadcast after phase change
+      broadcastState(roomId);
     } else if (room.phase === 'detective') {
       console.log(`[Room ${roomId}] Night Phase: Detective -> Day Discussion`);
       const history = gameHistory.get(roomId) || [];
@@ -538,7 +521,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
       let nightSummary = "The night has ended. ";
       
-      // Process all mafia kills (majority vote)
       if (actions.mafiaKills.size > 0) {
         const killVotes = new Map<number, number>();
         actions.mafiaKills.forEach((targetId: number) => {
@@ -567,7 +549,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         nightSummary += "Nothing happened during the night.";
       }
       
-      // Process all detective checks
       actions.detectiveChecks.forEach((targetId: number, detectiveId: number) => {
         const target = players.find((p: Player) => p.id === targetId);
         if (target) {
@@ -584,7 +565,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
-      broadcastState(roomId); // Broadcast after phase change to day
+      broadcastState(roomId);
     }
   }
 
@@ -600,7 +581,6 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const history = gameHistory.get(roomId) || [];
       const playersInRoom = await storage.getPlayersInRoom(roomId);
       
-      // Add game end entry with winner
       const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
       history.push({
         type: 'game_end',
@@ -618,7 +598,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       await storage.updateRoom(roomId, { status: 'ended' });
       if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
       gameActions.delete(roomId);
-      broadcastState(roomId); // Broadcast the ended state immediately
+      broadcastState(roomId);
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
@@ -735,20 +715,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // If 2FA is enabled, require TOTP code - don't fully authenticate yet
       if (user.is2FAEnabled) {
-        return res.status(200).json({
-          requires2FA: true,
-          userId: user.id,
-        });
+        return res.status(200).json({ requires2FA: true, userId: user.id });
       }
 
-      res.json({
-        userId: user.id,
-        username: user.username,
-        name: user.name,
-        avatar: user.avatar,
-      });
+      res.json({ userId: user.id, username: user.username, name: user.name, avatar: user.avatar });
     } catch (error: any) {
       const isNetwork = error?.message?.includes("EAI_AGAIN") || error?.message?.includes("getaddrinfo") || error?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -756,7 +727,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Login with 2FA code
   app.post("/api/auth/login-2fa", async (req, res) => {
     try {
       const { username, password, totpCode } = req.body;
@@ -772,16 +742,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const totp = new TOTP({ secret: user.totpSecret });
       const isValid = totp.validate({ token: totpCode, window: 1 }) !== null;
 
-      if (!isValid) {
-        return res.status(401).json({ message: "Invalid 2FA code" });
-      }
+      if (!isValid) return res.status(401).json({ message: "Invalid 2FA code" });
 
-      res.json({
-        userId: user.id,
-        username: user.username,
-        name: user.name,
-        avatar: user.avatar,
-      });
+      res.json({ userId: user.id, username: user.username, name: user.name, avatar: user.avatar });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -789,7 +752,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Forgot Password
   app.post(api.auth.forgotPassword.path, async (req, res) => {
     try {
       const input = api.auth.forgotPassword.input.parse(req.body);
@@ -799,20 +761,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
 
       const token = randomUUID();
-      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const expires = new Date(Date.now() + 60 * 60 * 1000);
 
-      await storage.updateUser(user.id, {
-        resetToken: token,
-        resetTokenExpires: expires,
-      });
+      await storage.updateUser(user.id, { resetToken: token, resetTokenExpires: expires });
 
-      // In production, send email. For demo, return token in response.
       console.log(`[PASSWORD RESET] Token for ${user.username}: ${token}`);
 
-      res.json({
-        message: "If this account exists, a reset link has been generated.",
-        resetToken: token, // Returned for demo/testing only
-      });
+      res.json({ message: "If this account exists, a reset link has been generated.", resetToken: token });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -820,7 +775,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Reset Password
   app.post(api.auth.resetPassword.path, async (req, res) => {
     try {
       const input = api.auth.resetPassword.input.parse(req.body);
@@ -829,11 +783,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "Invalid or expired token" });
       }
 
-      await storage.updateUser(user.id, {
-        passwordHash: hashPassword(input.newPassword),
-        resetToken: null,
-        resetTokenExpires: null,
-      });
+      await storage.updateUser(user.id, { passwordHash: hashPassword(input.newPassword), resetToken: null, resetTokenExpires: null });
 
       res.json({ message: "Password updated successfully" });
     } catch (err: any) {
@@ -843,7 +793,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Setup (Supabase user)
   app.post("/api/auth/2fa/setup", async (req, res) => {
     try {
       const { supabaseUserId } = req.body;
@@ -860,7 +809,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(supabaseUserId)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
 
-      // Upsert into user_mfa table
       await db.insert(userMfa)
         .values({ supabaseUserId, totpSecret: secret, isEnabled: false })
         .onConflictDoUpdate({
@@ -876,7 +824,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Verify & Enable (Supabase user)
   app.post("/api/auth/2fa/verify", async (req, res) => {
     try {
       const { supabaseUserId, code } = req.body;
@@ -891,9 +838,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const totp = new TOTP({ secret: mfa.totpSecret });
       const isValid = totp.validate({ token: code, window: 1 }) !== null;
 
-      if (!isValid) {
-        return res.status(400).json({ message: "Invalid code" });
-      }
+      if (!isValid) return res.status(400).json({ message: "Invalid code" });
 
       await db.update(userMfa).set({ isEnabled: true }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ enabled: true });
@@ -904,7 +849,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Status check
   app.get("/api/auth/2fa/status", async (req, res) => {
     try {
       const supabaseUserId = req.query.supabaseUserId as string;
@@ -916,7 +860,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // 2FA Disable
   app.post("/api/auth/2fa/disable", async (req, res) => {
     try {
       const { supabaseUserId } = req.body;
@@ -931,20 +874,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Get current user info (for 2FA status, etc.)
   app.get("/api/auth/me", async (req, res) => {
     try {
       const userId = req.query.userId;
       if (!userId) return res.status(401).json({ message: "Not authenticated" });
       const user = await storage.getUserById(Number(userId));
       if (!user) return res.status(404).json({ message: "User not found" });
-      res.json({
-        userId: user.id,
-        username: user.username,
-        name: user.name,
-        avatar: user.avatar,
-        is2FAEnabled: user.is2FAEnabled,
-      });
+      res.json({ userId: user.id, username: user.username, name: user.name, avatar: user.avatar, is2FAEnabled: user.is2FAEnabled });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable." });
@@ -955,10 +891,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post(api.rooms.create.path, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
-      const room = await storage.createRoom({
-        ...input.settings,
-        phaseDuration: input.settings.phaseDuration ?? 30
-      } as any);
+      const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
       
       const sessionId = randomUUID();
       const player = await storage.createPlayer({
@@ -1049,7 +982,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Get room state by code
   app.get(api.rooms.get.path, async (req, res) => {
     try {
       const code = (req.params as any).code as string;
@@ -1061,12 +993,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const players = await storage.getPlayersInRoom(room.id);
       const messages = await storage.getMessagesByRoom(room.id);
 
-      res.json({
-        room,
-        players,
-        messages,
-        me: null
-      });
+      res.json({ room, players, messages, me: null });
     } catch (err) {
       console.error("GET room error", err);
       res.status(500).json({ message: "Internal server error" });
@@ -1154,7 +1081,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (action.type === 'chat') {
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
-             // Only alive players can chat (dead players can't snitch!)
              if ((action as any).content && (action as any).content.trim() && myRoomId && me && me.isAlive) {
                try {
                  console.log("CREATING MESSAGE:", { roomId: myRoomId, playerId: me.id, content: (action as any).content });
@@ -1166,7 +1092,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
-                 // Bots respond to human chat
                  await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
@@ -1193,9 +1118,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (action.type === 'replay' && me.isHost) {
              const currentRoom = await storage.getRoom(myRoomId);
-             if (currentRoom?.status !== 'ended') return; // Only allow replay from ended state
+             if (currentRoom?.status !== 'ended') return;
              
-             // Track wins for the winning team before resetting
              const survivors = players.filter((p: Player) => p.isAlive);
              const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
              const innocentsCount = survivors.length - mafiaCount;
@@ -1205,7 +1129,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
 
              for (const p of players) {
-               // Always reset bots fully — they must be alive for the new game
                if (p.isBot) {
                  await storage.updatePlayer(p.id, { role: null, isAlive: true, isSpectator: false, gameHistory: [] });
                  continue;
@@ -1214,36 +1137,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                const newWins = (p.wins || 0) + (isWinner ? 1 : 0);
                const newGamesPlayed = (p.gamesPlayed || 0) + 1;
                
-               // Check achievements
                const currentAchievements = (p.achievements as string[]) || [];
                const earnedAchievements = new Set(currentAchievements);
                
-               if (isWinner && !earnedAchievements.has('first_win')) {
-                 earnedAchievements.add('first_win');
-               }
-               if (isWinner && p.role === 'mafia' && newWins >= 5) {
-                 earnedAchievements.add('mafia_master');
-               }
+               if (isWinner && !earnedAchievements.has('first_win')) earnedAchievements.add('first_win');
+               if (isWinner && p.role === 'mafia' && newWins >= 5) earnedAchievements.add('mafia_master');
                const alivePlayers = players.filter(pl => pl.isAlive);
-               if (isWinner && p.role !== 'mafia' && alivePlayers.length === 1 && alivePlayers[0].id === p.id) {
-                 earnedAchievements.add('survivor');
-               }
-               if (isWinner && ((room.settings as any).phaseDuration <= 15)) {
-                 earnedAchievements.add('quick_thinker');
-               }
+               if (isWinner && p.role !== 'mafia' && alivePlayers.length === 1 && alivePlayers[0].id === p.id) earnedAchievements.add('survivor');
+               if (isWinner && ((room.settings as any).phaseDuration <= 15)) earnedAchievements.add('quick_thinker');
 
                await storage.updatePlayer(p.id, { 
-                 role: null, 
-                 isAlive: true, 
-                 isSpectator: false, 
-                 gamesPlayed: newGamesPlayed,
-                 wins: newWins,
-                 achievements: Array.from(earnedAchievements),
-                 gameHistory: []
+                 role: null, isAlive: true, isSpectator: false, 
+                 gamesPlayed: newGamesPlayed, wins: newWins,
+                 achievements: Array.from(earnedAchievements), gameHistory: []
                });
              }
              
-             // Clear all game state for the new game
              gameActions.delete(myRoomId);
              gameHistory.delete(myRoomId);
              if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
@@ -1261,11 +1170,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              }
              const target = players.find((p: Player) => p.id === action.targetId);
              if (me.isAlive && target?.isAlive) {
-               // Register this player's vote
                actions.votes.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                
-               // Have bots vote immediately if they haven't already
                const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
                for (const bot of bots) {
                  const eligibleTargets = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
@@ -1279,13 +1186,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
                
-               // Check if ALL alive players (human and bot) have voted
                const allAlivePlayers = players.filter((p: Player) => p.isAlive);
                const votedPlayers = Array.from(actions.votes.keys());
                console.log("VOTE TALLY:", { votedPlayers: votedPlayers.length, totalAlive: allAlivePlayers.length });
                if (votedPlayers.length === allAlivePlayers.length) {
                  console.log("ALL PLAYERS VOTED - Advancing immediately");
-                 // All players voted - advance phase immediately
                  if (phaseTimers.has(myRoomId)) { 
                    clearTimeout(phaseTimers.get(myRoomId)); 
                    phaseTimers.delete(myRoomId); 
@@ -1297,28 +1202,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (room.phase === 'mafia' && me.role === 'mafia' && action.type === 'kill') {
-             console.log(`[Room ${myRoomId}] MAFIA KILL #1: ${me.name} targeting ${action.targetId}, turn=${room.turn}, status=${room.status}, phase=${room.phase}`);
+             console.log(`[Room ${myRoomId}] MAFIA KILL #1: ${me.name} targeting ${action.targetId}`);
              const target = players.find((p: Player) => p.id === action.targetId);
-             console.log(`[Room ${myRoomId}] MAFIA KILL #2: target found=${!!target}, alive=${target?.isAlive}, isMafia=${target?.role === 'mafia'}`);
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKills.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
-               console.log(`[Room ${myRoomId}] MAFIA KILL #3: Registered kill, broadcasting state...`);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
                
-               console.log(`[Room ${myRoomId}] MAFIA KILL #4: Kill registered, clearing timer and advancing...`);
-               // Advance immediately when Mafia acts
                if (phaseTimers.has(myRoomId)) { 
-                 console.log(`[Room ${myRoomId}] MAFIA KILL #5: Timer exists, clearing...`);
                  clearTimeout(phaseTimers.get(myRoomId)); 
                  phaseTimers.delete(myRoomId); 
                }
-               console.log(`[Room ${myRoomId}] MAFIA KILL #6: Calling advancePhase...`);
                await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
-               console.log(`[Room ${myRoomId}] MAFIA KILL #7: advancePhase returned!`);
-             } else {
-               console.log(`[Room ${myRoomId}] MAFIA KILL REJECTED: target alive=${target?.isAlive}, not mafia=${target?.role !== 'mafia'}`);
              }
              return;
            }
@@ -1331,7 +1227,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
                
-               // Advance immediately when doctor acts
                if (phaseTimers.has(myRoomId)) { 
                  clearTimeout(phaseTimers.get(myRoomId)); 
                  phaseTimers.delete(myRoomId); 
@@ -1354,7 +1249,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
                   broadcastState(myRoomId);
                 } else {
-                  // Detective checked but it's not mafia - advance to next phase immediately
                   if (phaseTimers.has(myRoomId)) { 
                     clearTimeout(phaseTimers.get(myRoomId)); 
                     phaseTimers.delete(myRoomId); 
@@ -1385,7 +1279,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
-  // Leaderboard endpoint
+  // Leaderboard
   app.get("/api/leaderboard", async (_req, res) => {
     try {
       const entries = await storage.getLeaderboard();
@@ -1396,7 +1290,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Reset leaderboard (for testing)
   app.post("/api/reset-leaderboard", async (_req, res) => {
     try {
       await storage.resetLeaderboard();
@@ -1420,16 +1313,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: { name: `${credits} Credits` },
-              unit_amount: amount,
-            },
-            quantity: 1,
-          },
-        ],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: `${credits} Credits` }, unit_amount: amount }, quantity: 1 }],
         metadata: { item: "credits", amount: String(credits) },
         success_url: `${origin}/store?success=true&item=credits&amount=${credits}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1452,16 +1336,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: { name: "The Syndicate Pass" },
-              unit_amount: 499,
-            },
-            quantity: 1,
-          },
-        ],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: "The Syndicate Pass" }, unit_amount: 499 }, quantity: 1 }],
         metadata: { item: "syndicate" },
         success_url: `${origin}/store?success=true&item=syndicate`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1487,16 +1362,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: { name: "Support the Game" },
-              unit_amount: amount,
-            },
-            quantity: 1,
-          },
-        ],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: "Support the Game" }, unit_amount: amount }, quantity: 1 }],
         metadata: { item: "tip", amount: String(amount) },
         success_url: `${origin}/store?success=true&item=tip&amount=${amount}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1509,12 +1375,111 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Public config — Supabase credentials are safe to expose (anon key is public)
+  // Public config
   app.get("/api/config", (_req, res) => {
     res.json({
       supabaseUrl: process.env.SUPABASE_URL || "",
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
     });
+  });
+
+  // Get player credits from DB
+  app.get("/api/players/:sessionId/credits", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const roomCode = req.query.roomCode as string;
+      if (!sessionId || !roomCode) return res.status(400).json({ credits: 0 });
+      const room = await storage.getRoomByCode(roomCode);
+      if (!room) return res.status(404).json({ credits: 0 });
+      const players = await storage.getPlayersInRoom(room.id);
+      const player = players.find((p) => p.sessionId === sessionId);
+      if (!player) return res.status(404).json({ credits: 0 });
+      res.json({ credits: (player as any).credits ?? 0 });
+    } catch {
+      res.status(500).json({ credits: 0 });
+    }
+  });
+
+  // Check ad claim status for today (server-side rate limit check)
+  app.get("/api/ad-claim/status", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      if (!sessionId) return res.json({ claimsToday: 0, remaining: 5 });
+
+      const today = new Date().toISOString().split("T")[0];
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
+          [sessionId, today]
+        );
+        const count = result.rows[0]?.claim_count ?? 0;
+        res.json({ claimsToday: count, remaining: Math.max(0, 5 - count) });
+      } finally {
+        client.release();
+      }
+    } catch {
+      res.json({ claimsToday: 0, remaining: 5 });
+    }
+  });
+
+  // Claim free ad credits — enforced server-side 5/day limit
+  app.post("/api/ad-claim", async (req, res) => {
+    try {
+      const { sessionId, roomCode } = req.body;
+      if (!sessionId) return res.status(400).json({ message: "Missing sessionId" });
+
+      const today = new Date().toISOString().split("T")[0];
+      const MAX_DAILY = 5;
+      const REWARD = 5;
+
+      const client = await pool.connect();
+      try {
+        const check = await client.query(
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
+          [sessionId, today]
+        );
+        const currentCount = check.rows[0]?.claim_count ?? 0;
+
+        if (currentCount >= MAX_DAILY) {
+          return res.status(429).json({ message: "Daily limit reached. Try again tomorrow." });
+        }
+
+        await client.query(
+          `INSERT INTO ad_claims (session_id, claim_date, claim_count, last_claim_at)
+           VALUES ($1, $2, 1, now())
+           ON CONFLICT (session_id, claim_date)
+           DO UPDATE SET claim_count = ad_claims.claim_count + 1, last_claim_at = now()`,
+          [sessionId, today]
+        );
+
+        const newCount = currentCount + 1;
+
+        // Award credits to player in DB if room context available
+        if (roomCode) {
+          try {
+            const room = await storage.getRoomByCode(roomCode as string);
+            if (room) {
+              const players = await storage.getPlayersInRoom(room.id);
+              const player = players.find((p) => p.sessionId === sessionId);
+              if (player) {
+                const currentCredits = (player as any).credits ?? 0;
+                await storage.updatePlayer(player.id, { credits: currentCredits + REWARD } as any);
+              }
+            }
+          } catch {
+            // Non-fatal
+          }
+        }
+
+        res.json({ success: true, creditsAwarded: REWARD, claimsToday: newCount, remaining: Math.max(0, MAX_DAILY - newCount) });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Ad claim error:", e.message);
+      res.status(500).json({ message: "Failed to process claim" });
+    }
   });
 
   // Feedback endpoint

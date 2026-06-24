@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   }>(),
   wins: integer("wins").default(0),
   gamesPlayed: integer("games_played").default(0),
+  credits: integer("credits").default(0),
   achievements: jsonb("achievements").default([]),
   // Password reset
   resetToken: text("reset_token"),
@@ -59,7 +60,7 @@ export const rooms = pgTable("rooms", {
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  roomId: integer("room_id").notNull(), // Foreign key handled in app logic for simplicity or can be strict
+  roomId: integer("room_id").notNull(),
   name: text("name").notNull(),
   avatar: text("avatar"),
   avatarConfig: jsonb("avatar_config").$type<{
@@ -70,11 +71,12 @@ export const players = pgTable("players", {
   role: text("role"), // mafia, detective, doctor, civilian (null in lobby)
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
-  sessionId: text("session_id").notNull(), // To reconnect
+  sessionId: text("session_id").notNull(),
   isSpectator: boolean("is_spectator").default(false),
   isBot: boolean("is_bot").default(false),
   wins: integer("wins").default(0),
   gamesPlayed: integer("games_played").default(0),
+  credits: integer("credits").default(0),
   achievements: jsonb("achievements").default([]),
   gameHistory: jsonb("game_history").default([]),
   joinedAt: timestamp("joined_at").defaultNow(),
@@ -105,6 +107,14 @@ export const messages = pgTable("messages", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+export const adClaims = pgTable("ad_claims", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  claimDate: text("claim_date").notNull(),
+  claimCount: integer("claim_count").notNull().default(0),
+  lastClaimAt: timestamp("last_claim_at").defaultNow(),
+});
+
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   timestamp: true,
@@ -115,6 +125,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 export type User = typeof users.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type AdClaim = typeof adClaims.$inferSelect;
 
 export type Room = typeof rooms.$inferSelect;
 export type Player = typeof players.$inferSelect;
@@ -191,7 +202,7 @@ export const WS_EVENTS = {
   CONNECT: 'connect',
   JOIN: 'join',
   START_GAME: 'start_game',
-  ACTION: 'action', // vote, kill, heal, check, chat
+  ACTION: 'action',
   STATE_UPDATE: 'state_update',
   ERROR: 'error',
 } as const;

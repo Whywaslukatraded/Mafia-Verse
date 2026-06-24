@@ -13,7 +13,8 @@ const ACHIEVEMENTS = [
   { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
   { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
   { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
-  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' }
+  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' },
+  { id: 'fashionista', name: 'Fashionista', description: 'Unlock 10 custom rare profile outfits or limited skins.', icon: '👗' },
 ];
 
 export default function Profile() {
@@ -32,27 +33,35 @@ export default function Profile() {
   const [avatar] = useState(() => safeParse("mafia_profile_avatar", "👤"));
   const [config] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: "bg-primary/10" }));
   const [stats, setStats] = useState(() => {
-    const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 });
-    if (raw && typeof raw === "object") {
-      raw.credits = 0;
-      return raw;
-    }
-    return { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0, credits: 0 };
+    const raw = safeParse("mafia_stats", { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0 });
+    return raw && typeof raw === "object" ? raw : { wins: 0, gamesPlayed: 0, achievements: [], currentStreak: 0, bestStreak: 0 };
   });
+  const [dbCredits, setDbCredits] = useState<number | null>(null);
 
   useEffect(() => {
     const onStorage = () => {
       const saved = localStorage.getItem("mafia_stats");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        parsed.credits = 0;
-        setStats(parsed);
-      }
+      if (saved) setStats(JSON.parse(saved));
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // Fetch credits from DB if we have a session
+  useEffect(() => {
+    const roomCodes = Object.keys(localStorage).filter(k => k.startsWith("mafia_session_"));
+    if (roomCodes.length === 0) return;
+    const lastRoom = roomCodes[roomCodes.length - 1];
+    const roomCode = lastRoom.replace("mafia_session_", "");
+    const sessionId = localStorage.getItem(lastRoom);
+    if (!sessionId || !roomCode) return;
+    fetch(`/api/players/${encodeURIComponent(sessionId)}/credits?roomCode=${roomCode}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && typeof data.credits === "number") setDbCredits(data.credits); })
+      .catch(() => {});
+  }, []);
+
+  const credits = dbCredits !== null ? dbCredits : (stats.credits || 0);
   const losses = Math.max(0, (stats.gamesPlayed || 0) - (stats.wins || 0));
   const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
   const earnedAchievements = new Set(stats.achievements || []);
@@ -85,12 +94,8 @@ export default function Profile() {
               config.bg
             )}>
               <span className="relative z-10">{avatar}</span>
-              {config.accessory !== "None" && (
-                <span className="absolute top-3 text-2xl z-30">{config.accessory}</span>
-              )}
-              {config.clothing !== "None" && (
-                <span className="absolute bottom-3 text-2xl z-20 opacity-90">{config.clothing}</span>
-              )}
+              {config.accessory !== "None" && <span className="absolute top-3 text-2xl z-30">{config.accessory}</span>}
+              {config.clothing !== "None" && <span className="absolute bottom-3 text-2xl z-20 opacity-90">{config.clothing}</span>}
             </div>
             <div>
               <h2 className="text-3xl font-black tracking-tight text-foreground">{name}</h2>
@@ -98,15 +103,9 @@ export default function Profile() {
                 {earnedAchievements.size}/{ACHIEVEMENTS.length} Badges
               </p>
               <div className="flex gap-2 mt-3">
-                {winRate >= 60 && (
-                  <span className="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Elite</span>
-                )}
-                {stats.gamesPlayed >= 5 && (
-                  <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Veteran</span>
-                )}
-                {earnedAchievements.size >= 5 && (
-                  <span className="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Collector</span>
-                )}
+                {winRate >= 60 && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Elite</span>}
+                {stats.gamesPlayed >= 5 && <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Veteran</span>}
+                {earnedAchievements.size >= 5 && <span className="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Collector</span>}
               </div>
             </div>
           </div>
@@ -118,7 +117,7 @@ export default function Profile() {
               { icon: Skull, label: "Losses", value: losses, color: "text-red-500" },
               { icon: Target, label: "Games", value: stats.gamesPlayed || 0, color: "text-blue-500" },
               { icon: TrendingUp, label: "Win %", value: `${winRate}%`, color: "text-emerald-500" },
-              { icon: Flame, label: "Credits", value: stats.credits || 0, color: "text-amber-500" },
+              { icon: Flame, label: "Credits", value: credits, color: "text-amber-500" },
             ].map(stat => (
               <div key={stat.label} className="bg-card/80 ring-1 ring-border rounded-xl p-3 flex flex-col items-center gap-1.5">
                 <stat.icon className={cn("w-4 h-4", stat.color)} />
@@ -128,7 +127,7 @@ export default function Profile() {
             ))}
           </div>
 
-          {/* Role Statistics */}
+          {/* Role Performance */}
           {stats.gamesPlayed > 0 && (
             <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Role Performance</h3>
@@ -154,17 +153,12 @@ export default function Profile() {
             </div>
           )}
 
-          {/* Feature 8: Streaks */}
+          {/* Streaks */}
           {((stats.currentStreak || 0) > 0 || (stats.bestStreak || 0) > 0) && (
             <div className="grid grid-cols-2 gap-3">
-              <div className={cn(
-                "bg-card/80 ring-1 rounded-xl p-4 flex items-center gap-3",
-                (stats.currentStreak || 0) >= 3 ? "ring-orange-500/40 bg-orange-950/20" : "ring-border"
-              )}>
-                <motion.div
-                  animate={stats.currentStreak >= 3 ? { scale: [1, 1.2, 1] } : {}}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                >
+              <div className={cn("bg-card/80 ring-1 rounded-xl p-4 flex items-center gap-3",
+                (stats.currentStreak || 0) >= 3 ? "ring-orange-500/40 bg-orange-950/20" : "ring-border")}>
+                <motion.div animate={stats.currentStreak >= 3 ? { scale: [1, 1.2, 1] } : {}} transition={{ repeat: Infinity, duration: 1.5 }}>
                   <Flame className={cn("w-6 h-6", (stats.currentStreak || 0) >= 3 ? "text-orange-400" : "text-muted-foreground")} />
                 </motion.div>
                 <div>
@@ -182,9 +176,12 @@ export default function Profile() {
             </div>
           )}
 
-          {/* Achievements */}
+          {/* Achievement Hall — 9 Badges */}
           <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Achievement Hall</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Achievement Hall</h3>
+              <span className="text-[10px] font-bold text-muted-foreground font-mono">{earnedAchievements.size}/{ACHIEVEMENTS.length}</span>
+            </div>
             <div className="grid grid-cols-3 gap-3">
               {ACHIEVEMENTS.map(ach => {
                 const earned = earnedAchievements.has(ach.id);
@@ -201,9 +198,9 @@ export default function Profile() {
                   >
                     <span className="text-3xl">{ach.icon}</span>
                     <div className="text-center">
-                      <p className={cn("text-[10px] font-black uppercase tracking-tight leading-tight", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
+                      <p className={cn("text-[10px] font-black uppercase tracking-tight leading-tight",
+                        earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
                     </div>
-                    {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 bg-popover border border-border rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <p className={cn("font-bold uppercase mb-0.5", earned ? "text-yellow-400" : "text-muted-foreground")}>{ach.name}</p>
                       <p className="text-muted-foreground leading-tight">{ach.description}</p>
