@@ -1,12 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+
+function getReferralCodeFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("ref") || "";
+}
+
+function claimReferralReward(refCode: string) {
+  if (!refCode) return;
+  const stats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
+  // Only process once per referral code
+  const processed = new Set(JSON.parse(localStorage.getItem("mafia_referrals_processed") || "[]"));
+  if (processed.has(refCode)) return;
+  processed.add(refCode);
+  localStorage.setItem("mafia_referrals_processed", JSON.stringify(Array.from(processed)));
+  // Award 25 credits to the referrer
+  const referrerId = localStorage.getItem(`mafia_referral_owner_${refCode}`);
+  if (referrerId) {
+    // Award credits to referrer
+    const referrerStats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
+    referrerStats.claimed = (referrerStats.claimed || 0) + 1;
+    referrerStats.totalCredits = (referrerStats.totalCredits || 0) + 25;
+    localStorage.setItem("mafia_referral_stats", JSON.stringify(referrerStats));
+  }
+  // Also give 25 credits to the new user
+  const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+  s.credits = (s.credits || 0) + 25;
+  localStorage.setItem("mafia_stats", JSON.stringify(s));
+  window.dispatchEvent(new Event("storage"));
+}
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -15,6 +44,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [refCode] = useState(getReferralCodeFromURL);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +75,8 @@ export default function Signup() {
       return;
     }
     if (data.user) {
+      // Claim referral bonus if applicable
+      claimReferralReward(refCode);
       toast({
         title: "Account created!",
         description: "Check your email to confirm, then log in.",
