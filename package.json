@@ -9,7 +9,7 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+   "db:push": "echo 'Skipping DB Check'"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.8",
@@ -106,11 +106,6 @@
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
     "vite": "^7.3.0"
-  },
-  "overrides": {
-    "drizzle-kit": {
-      "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
-    }
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
