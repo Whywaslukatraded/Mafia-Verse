@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles, Zap, Star, Coffee, DollarSign, CircleCheck as CheckCircle2, X, Gift, Tv, Lock, Timer, Package } from "lucide-react";
+import { ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles, Zap, Star, Coffee, DollarSign, CircleCheck as CheckCircle2, X, Gift, Lock, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -21,36 +21,6 @@ const TIP_TIERS = [
   { amount: 4999, label: "$49.99", icon: Crown, desc: "Become a legend" },
 ];
 
-const BILLBOARD_ADS = [
-  {
-    id: "item_shop",
-    title: "🔥 GEAR UP IN THE SHOP!",
-    subtitle: "Check out the Item Shop right now to unlock exclusive limited-edition mystery costumes and special rare items before they fly off the shelves!",
-    accent: "from-amber-500 to-orange-600",
-    border: "border-amber-500/30",
-  },
-  {
-    id: "buy_credits",
-    title: "💼 NO MORE WAITING",
-    subtitle: "Need credits right now for a rare item? Skip the daily limit and visit our store page to instantly buy bundles of credits securely powered by Stripe!",
-    accent: "from-emerald-500 to-teal-600",
-    border: "border-emerald-500/30",
-  },
-  {
-    id: "referral_program",
-    title: "📣 GROW YOUR CREW",
-    subtitle: "Want even more rewards? Use our Referral System to invite your friends! Share your unique invite link with your crew to earn a massive 25 bonus credits together when they join.",
-    accent: "from-blue-500 to-indigo-600",
-    border: "border-blue-500/30",
-  },
-  {
-    id: "security",
-    title: "🔒 BACKUP SECURED",
-    subtitle: "Your game profile is protected. Ensure your account is fully secure by linking your login profile with Google 2-Step Authentication via Supabase.",
-    accent: "from-red-500 to-rose-600",
-    border: "border-red-500/30",
-  },
-];
 
 function getStats() {
   try {
@@ -96,13 +66,6 @@ export default function Store() {
   const [cardCvc, setCardCvc] = useState("123");
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Free Credits state
-  const [adTimer, setAdTimer] = useState<number | null>(null);
-  const [isAdWatching, setIsAdWatching] = useState(false);
-  const [adLocked, setAdLocked] = useState(false);
-
-  const selectedAd = useMemo(() => BILLBOARD_ADS[Math.floor(Math.random() * BILLBOARD_ADS.length)], []);
-
   // Fetch real credits from DB
   const [dbCredits, setDbCredits] = useState<number | null>(null);
   useEffect(() => {
@@ -128,49 +91,6 @@ export default function Store() {
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
-
-  // Ad timer countdown
-  useEffect(() => {
-    if (adTimer === null) return;
-    if (adTimer === 0) {
-      setIsAdWatching(false);
-      setAdTimer(null);
-      // Award via server
-      const roomCodes = Object.keys(localStorage).filter(k => k.startsWith("mafia_session_"));
-      const lastRoom = roomCodes[roomCodes.length - 1];
-      const roomCode = lastRoom?.replace("mafia_session_", "");
-      const sessionId = lastRoom ? localStorage.getItem(lastRoom) : null;
-
-      fetch("/api/ad-claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: sessionId || `store_${Date.now()}`, roomCode }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            addCreditsLocal(5);
-            setStats(getStats());
-            setFulfillMsg("+5 Free Credits claimed!");
-            setTimeout(() => setFulfillMsg(null), 4000);
-          } else {
-            toast({ title: "Claim Limit Reached", description: data.message, variant: "destructive" });
-          }
-        })
-        .catch(() => toast({ title: "Network error", description: "Could not claim credits.", variant: "destructive" }))
-        .finally(() => setAdLocked(false));
-      return;
-    }
-    const interval = setTimeout(() => setAdTimer(adTimer - 1), 1000);
-    return () => clearTimeout(interval);
-  }, [adTimer, toast]);
-
-  const handleStartWatchAd = () => {
-    if (adLocked) return;
-    setAdLocked(true);
-    setIsAdWatching(true);
-    setAdTimer(15);
-  };
 
   // Handle Stripe redirect params
   useEffect(() => {
@@ -361,55 +281,6 @@ export default function Store() {
                 </div>
               </div>
             )}
-          </div>
-        </section>
-
-        {/* Free Credits Zone */}
-        <section className="mb-10 border-t border-border/60 pt-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Tv className="w-5 h-5 text-amber-500 animate-pulse" />
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Free Credits</h2>
-              <p className="text-[11px] text-muted-foreground">Claim 5 free credits every 24 hours.</p>
-            </div>
-          </div>
-
-          {/* Countdown display */}
-          <div className={cn("flex items-center gap-2 bg-muted/30 px-4 py-2.5 rounded-xl border border-border/60 mb-3 max-w-sm",
-            isAdWatching && "border-amber-500/30 bg-amber-500/5")}>
-            <Timer className={cn("w-4 h-4 text-muted-foreground", isAdWatching && "text-amber-500 animate-spin")} />
-            <span className="text-xs font-mono font-bold">
-              {isAdWatching ? `Streaming... ${adTimer}s remaining` : "Status: Ready to Stream"}
-            </span>
-          </div>
-
-          {/* Premium Billboard */}
-          <div className={cn(
-            "relative w-full rounded-2xl overflow-hidden border shadow-xl transition-all duration-300 bg-card max-w-sm",
-            selectedAd.border,
-            isAdWatching && "ring-2 ring-amber-500/40 animate-pulse"
-          )}>
-            <div className="flex items-center gap-2 px-4 pt-3 pb-1 border-b border-border/50">
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sponsored</span>
-              <div className="ml-auto flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted" />
-              </div>
-            </div>
-            <div className="p-5 space-y-2">
-              <h3 className="text-sm font-black tracking-tight text-card-foreground uppercase">{selectedAd.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed font-medium">{selectedAd.subtitle}</p>
-            </div>
-            <div className="px-5 pb-4 flex items-center justify-between border-t border-border mt-1 pt-3">
-              <span className="text-[9px] font-mono text-muted-foreground/60 uppercase">Refreshes every load</span>
-              <Button size="sm" disabled={adLocked} onClick={handleStartWatchAd}
-                className={cn("h-7 text-[11px] font-black px-3 rounded-lg text-white",
-                  adLocked ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-gradient-to-r from-amber-500 to-orange-500")}>
-                {isAdWatching ? "Streaming..." : "Activate Stream"}
-              </Button>
-            </div>
           </div>
         </section>
 
