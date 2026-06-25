@@ -1,53 +1,69 @@
 const fs = require('fs');
+const path = require('path');
 
-const filesToRead = ['server.js', 'package.json']; 
+const nm = path.join(__dirname, 'node_modules');
 
-const userPrompt = `
-Please update the "Free Credits" sub-page. focus entirely on a high-quality visual layout. Build a custom internal ad container styled to look like a premium digital billboard.Program the code to completely randomize which of the following four advertisements displays inside the billboard container every single time a user loads or refreshes the page:Ad 1 (Item Shop Promo): "🔥 GEAR UP IN THE SHOP! Check out the Item Shop right now to unlock exclusive limited-edition mystery costumes and special rare items before they fly off the shelves!"Ad 2 (Buy Credits Promo): "💼 NO MORE WAITING: Need credits right now for a rare item? Skip the daily limit and visit our store page to instantly buy bundles of credits securely powered by Stripe!"Ad 3 (Referral Program Promo): "📣 GROW YOUR CREW: Want even more rewards? Use our Referral System to invite your friends! Share your unique invite link with your crew to earn a massive 25 bonus credits together when they join."Ad 4 (Security Promo): "🔒 BACKUP SECURED: Your game profile is protected. Ensure your account is fully secure by linking your login profile with Google 2-Step Authentication via Supabase."Please ensure our core game logic remains securely programmed:Keep the 15-second visual countdown timer right above this billboard.Maintain the backend server rule limiting users to 5 credit claims every 24 hours.Securely award the 5 credits to the player's profile balance only when the timer successfully hits zero.Ensure the layout looks sharp and centers properly on mobile screens. also crates are still not their and bring back fahionista as a achievement
-`;
-
-async function runUpdate() {
-    console.log("Reading workspace files...");
-    let codeContext = "";
-    filesToRead.forEach(file => {
-        if (fs.existsSync(file)) {
-            codeContext += `\n--- FILE: ${file} ---\n${fs.readFileSync(file, 'utf8')}\n`;
-        }
-    });
-
-    console.log("Sending files directly to Qwen Coding Engine...");
-    try {
-        const response = await fetch('https://openrouter.ai', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'openrouter/qwen/qwen-2.5-coder-32b-instruct:free',
-                messages: [
-                    { role: 'system', content: 'You are an expert coder. Return ONLY the fully updated, fixed code content for the files. Wrap code cleanly in markdown format.' },
-                    { role: 'user', content: `Code files:\n${codeContext}\n\nInstructions:\n${userPrompt}` }
-                ]
-            })
-        });
-
-        const textData = await response.text();
-        if (textData.trim().startsWith('<!DOCTYPE') || !response.ok) {
-            throw new Error("Server overloaded with traffic.");
-        }
-
-        const data = JSON.parse(textData);
-        if (data.choices && data.choices[0]) {
-            console.log("\n--- FIXED CODE FROM AI ---");
-            console.log(data.choices[0].message.content);
-        } else {
-            throw new Error("Invalid API response format.");
-        }
-    } catch (err) {
-        console.log(`[Error]: ${err.message}. Retrying...`);
-        process.exit(1);
-    }
+// For each .PKGNAME-XXXXXXXX temp dir, move its contents into the real package dir
+function readdirSafe(d) {
+  try { return fs.readdirSync(d); } catch(e) { return []; }
 }
 
-runUpdate();
+function copyRecursive(src, dest) {
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSafe(src)) {
+    const s = path.join(src, entry);
+    const d = path.join(dest, entry);
+    try {
+      const stat = fs.lstatSync(s);
+      if (stat.isSymbolicLink()) {
+        const target = fs.readlinkSync(s);
+        try { fs.unlinkSync(d); } catch(e) {}
+        fs.symlinkSync(target, d, stat.isDirectory() ? 'dir' : 'file');
+      } else if (stat.isDirectory()) {
+        copyRecursive(s, d);
+      } else {
+        fs.copyFileSync(s, d);
+      }
+    } catch(e) {}
+  }
+}
+
+function rmrf(dir) {
+  for (const entry of readdirSafe(dir)) {
+    const full = path.join(dir, entry);
+    try {
+      if (fs.lstatSync(full).isDirectory()) rmrf(full);
+      else fs.unlinkSync(full);
+    } catch(e) {}
+  }
+  try { fs.rmdirSync(dir); } catch(e) {}
+}
+
+function swapTempDirs(dir) {
+  const tempPattern = /^\.(.+)-[0-9A-Za-z]{8}$/;
+  for (const entry of readdirSafe(dir)) {
+    const m = entry.match(tempPattern);
+    if (!m) continue;
+    const tempPath = path.join(dir, entry);
+    const realName = m[1];
+    const realPath = path.join(dir, realName);
+    try {
+      // Copy temp -> real (overwrite)
+      copyRecursive(tempPath, realPath);
+      // Remove temp dir
+      rmrf(tempPath);
+      console.log('swapped:', realName);
+    } catch(e) {
+      console.error('failed:', realName, e.message);
+    }
+  }
+}
+
+swapTempDirs(nm);
+// Also handle scoped packages
+for (const entry of readdirSafe(nm)) {
+  if (entry.startsWith('@')) {
+    swapTempDirs(path.join(nm, entry));
+  }
+}
+console.log('done');
