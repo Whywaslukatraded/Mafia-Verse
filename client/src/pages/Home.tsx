@@ -127,8 +127,19 @@ export default function Home() {
   const joinRoom = useJoinRoom();
   const { user, isSignedIn, isLoading, signOut } = useAuth();
 
-  // 2FA is optional - users can set it up in Settings if they want
-  // No forced redirect on login
+  useEffect(() => {
+    if (isLoading || !isSignedIn || !user) return;
+    const passed2fa = localStorage.getItem("mafia_2fa_passed") === "true";
+    if (passed2fa) return;
+    fetch(`/api/auth/2fa/status?supabaseUserId=${user.id}`)
+      .then((res) => res.json())
+      .then((status) => {
+        if (!status.isEnabled) setLocation("/2fa-setup");
+        else setLocation("/2fa-verify");
+      })
+      .catch(() => setLocation("/2fa-setup"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, isSignedIn, user]);
 
   const [activeTab, setActiveTab] = useState("join");
   const [joinCode, setJoinCode] = useState("");

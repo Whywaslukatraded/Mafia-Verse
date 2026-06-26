@@ -63,7 +63,6 @@ export async function runMigrations(): Promise<void> {
     try {
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
-      await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS supabase_user_id text`);
       await client.query(`
         CREATE TABLE IF NOT EXISTS ad_claims (
           id serial PRIMARY KEY,
