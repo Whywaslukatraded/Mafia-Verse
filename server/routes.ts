@@ -589,6 +589,21 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
       
       for (const p of playersInRoom) {
+        // Award referral credits for human players who completed a game
+        if (!p.isBot && p.supabaseUserId) {
+          try {
+            await fetch(`${process.env.SUPABASE_URL}/functions/v1/award-referral-credits`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({ supabaseUserId: p.supabaseUserId }),
+            });
+          } catch (e) {
+            // Non-fatal
+          }
+        }
         await storage.updatePlayer(p.id, {
           gameHistory: history,
           gamesPlayed: (p.gamesPlayed || 0) + 1,
@@ -903,6 +918,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isAlive: true,
         isHost: true,
         sessionId,
+        supabaseUserId: (input as any).supabaseUserId || null,
         isSpectator: false,
         isBot: false,
         wins: 0,

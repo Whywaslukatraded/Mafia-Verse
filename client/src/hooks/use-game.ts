@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
+import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest } from "@shared/schema";
 
@@ -34,7 +34,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
     queryKey: [api.rooms.get.path, code],
     queryFn: async () => {
       if (!code) return null;
-      const url = buildUrl(api.rooms.get.path, { code });
+      const url = api.rooms.get.path.replace(":code", code);
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch game state");
       return await res.json();
@@ -167,16 +167,22 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
 export function useCreateRoom() {
   return useMutation({
     mutationFn: async (data: CreateRoomRequest) => {
+      // Get Supabase user ID if logged in
+      const { getSupabase } = await import("@/lib/supabase");
+      const supabase = getSupabase();
+      const { data: session } = await supabase.auth.getSession();
+      const supabaseUserId = session?.session?.user?.id;
+      const payload = supabaseUserId ? { ...data, supabaseUserId } : data;
       const res = await fetch(api.rooms.create.path, {
-        method: api.rooms.create.method,
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const msg = await safeErrorMessage(res);
         throw new Error(msg);
       }
-      return api.rooms.create.responses[201].parse(await res.json());
+      return (await res.json()) as { code: string; playerId: number; sessionId: string };
     },
   });
 }
@@ -184,16 +190,22 @@ export function useCreateRoom() {
 export function useJoinRoom() {
   return useMutation({
     mutationFn: async (data: JoinRoomRequest) => {
+      // Get Supabase user ID if logged in
+      const { getSupabase } = await import("@/lib/supabase");
+      const supabase = getSupabase();
+      const { data: session } = await supabase.auth.getSession();
+      const supabaseUserId = session?.session?.user?.id;
+      const payload = supabaseUserId ? { ...data, supabaseUserId } : data;
       const res = await fetch(api.rooms.join.path, {
-        method: api.rooms.join.method,
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const msg = await safeErrorMessage(res);
         throw new Error(msg);
       }
-      return api.rooms.join.responses[200].parse(await res.json());
+      return (await res.json()) as { code: string; playerId: number; sessionId: string };
     },
   });
 }

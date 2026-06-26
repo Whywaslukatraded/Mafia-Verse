@@ -61,7 +61,7 @@ export default function Login() {
       return;
     }
     if (data.session) {
-      // Check if 2FA is required
+      // Check if 2FA is already enabled
       const supabaseId = data.session.user.id;
       try {
         const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
@@ -71,11 +71,10 @@ export default function Login() {
           setLocation("/2fa-verify");
           return;
         }
-        // 2FA not enabled → set it up
-        setLocation("/2fa-setup");
+        // 2FA not enabled → go home (user can set it up in Settings)
+        setLocation("/");
         return;
       } catch {
-        // Fallback to home
         setLocation("/");
       }
     }

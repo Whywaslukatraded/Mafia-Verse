@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Search, UserPlus, Gift } from "lucide-react";
@@ -8,33 +8,13 @@ import { Label } from "@/components/ui/label";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
+function generateReferralCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 function getReferralCodeFromURL() {
   const params = new URLSearchParams(window.location.search);
   return params.get("ref") || "";
-}
-
-function claimReferralReward(refCode: string) {
-  if (!refCode) return;
-  const stats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
-  // Only process once per referral code
-  const processed = new Set(JSON.parse(localStorage.getItem("mafia_referrals_processed") || "[]"));
-  if (processed.has(refCode)) return;
-  processed.add(refCode);
-  localStorage.setItem("mafia_referrals_processed", JSON.stringify(Array.from(processed)));
-  // Award 25 credits to the referrer
-  const referrerId = localStorage.getItem(`mafia_referral_owner_${refCode}`);
-  if (referrerId) {
-    // Award credits to referrer
-    const referrerStats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
-    referrerStats.claimed = (referrerStats.claimed || 0) + 1;
-    referrerStats.totalCredits = (referrerStats.totalCredits || 0) + 25;
-    localStorage.setItem("mafia_referral_stats", JSON.stringify(referrerStats));
-  }
-  // Also give 25 credits to the new user
-  const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-  s.credits = (s.credits || 0) + 25;
-  localStorage.setItem("mafia_stats", JSON.stringify(s));
-  window.dispatchEvent(new Event("storage"));
 }
 
 export default function Signup() {
@@ -44,7 +24,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [refCode] = useState(getReferralCodeFromURL);
+  const refCode = getReferralCodeFromURL();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,12 +55,34 @@ export default function Signup() {
       return;
     }
     if (data.user) {
-      // Claim referral bonus if applicable
-      claimReferralReward(refCode);
-      toast({
-        title: "Account created!",
-        description: "Check your email to confirm, then log in.",
-      });
+      // Create profile with referral code
+      const myCode = generateReferralCode();
+      try {
+        await supabase.from("profiles").insert({
+          supabase_user_id: data.user.id,
+          referral_code: myCode,
+          referred_by: refCode || null,
+          credits: 25,
+        });
+        // If referral code was used, record the referral
+        if (refCode) {
+          await supabase.from("referrals").insert({
+            referred_id: data.user.id,
+            referrer_id: refCode,
+            credits_awarded: 0,
+          });
+        }
+        // Award signup bonus
+        toast({
+          title: "Account created!",
+          description: "Check your email to confirm, then log in. You earned 25 free credits!",
+        });
+      } catch (e) {
+        toast({
+          title: "Account created!",
+          description: "Check your email to confirm, then log in.",
+        });
+      }
       setLocation("/login");
     }
   };
@@ -106,6 +108,12 @@ export default function Signup() {
         </div>
 
         <form onSubmit={handleSignup} className="w-full space-y-4 bg-card border border-border rounded-xl p-6">
+          {refCode && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-center gap-2">
+              <Gift className="w-4 h-4 text-emerald-500" />
+              <p className="text-sm text-emerald-500">Referral code applied: <strong>{refCode}</strong></p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>
             <Input

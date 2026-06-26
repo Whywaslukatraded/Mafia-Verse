@@ -1,43 +1,86 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Copy, CheckCircle2, Link2, Gift } from "lucide-react";
+import { Users, Copy, CheckCircle2, Gift, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getSupabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
-function generateReferralCode() {
-  const saved = localStorage.getItem("mafia_referral_code");
-  if (saved) return saved;
-  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-  localStorage.setItem("mafia_referral_code", code);
-  return code;
+interface ReferralStats {
+  code: string;
+  invited: number;
+  claimed: number;
+  totalCredits: number;
 }
-
-function getReferralStats() {
-  try {
-    const raw = localStorage.getItem("mafia_referral_stats");
-    return raw ? JSON.parse(raw) : { invited: 0, claimed: 0, totalCredits: 0 };
-  } catch {
-    return { invited: 0, claimed: 0, totalCredits: 0 };
-  }
-}
-
-function saveReferralStats(s: any) {
-  localStorage.setItem("mafia_referral_stats", JSON.stringify(s));
-}
-
-const REWARD_PER_INVITE = 25;
 
 export function ReferralSystem({ onClose }: { onClose: () => void }) {
-  const [code] = useState(generateReferralCode);
-  const [stats] = useState(getReferralStats);
+  const { toast } = useToast();
+  const [stats, setStats] = useState<ReferralStats | null>(null);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const supabase = getSupabase();
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.user) {
+          setLoading(false);
+          return;
+        }
+        const userId = session.session.user.id;
+
+        // Get my profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("referral_code, credits")
+          .eq("supabase_user_id", userId)
+          .maybeSingle();
+
+        // Get my referrals count
+        const { data: referrals } = await supabase
+          .from("referrals")
+          .select("credits_awarded")
+          .eq("referrer_id", userId);
+
+        const invited = referrals?.length || 0;
+        const claimed = referrals?.filter((r) => r.credits_awarded > 0).length || 0;
+        const totalCredits = referrals?.reduce((sum, r) => sum + (r.credits_awarded || 0), 0) || 0;
+
+        setStats({
+          code: profile?.referral_code || "",
+          invited,
+          claimed,
+          totalCredits,
+        });
+      } catch (e) {
+        console.error("Referral stats error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
 
   const copyCode = useCallback(() => {
-    const link = `${window.location.origin}/?ref=${code}`;
+    if (!stats?.code) return;
+    const link = `${window.location.origin}/?ref=${stats.code}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [code]);
+  }, [stats]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-card border border-border rounded-2xl p-8">
+          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-sm text-muted-foreground mt-3">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -70,9 +113,9 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-muted-foreground uppercase tracking-widest">Your Referral Link</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
-                {window.location.origin}/?ref={code}
+                {window.location.origin}/?ref={stats?.code || "..."}
               </div>
-              <Button size="sm" variant="outline" onClick={copyCode} className="shrink-0">
+              <Button size="sm" variant="outline" onClick={copyCode} className="shrink-0" disabled={!stats?.code}>
                 {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
@@ -80,15 +123,15 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-muted/30 rounded-xl p-3 text-center">
-              <p className="text-xl font-black text-foreground">{stats.invited}</p>
+              <p className="text-xl font-black text-foreground">{stats?.invited || 0}</p>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Invited</p>
             </div>
             <div className="bg-muted/30 rounded-xl p-3 text-center">
-              <p className="text-xl font-black text-foreground">{stats.claimed}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Joined</p>
+              <p className="text-xl font-black text-foreground">{stats?.claimed || 0}</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Played</p>
             </div>
             <div className="bg-muted/30 rounded-xl p-3 text-center">
-              <p className="text-xl font-black text-emerald-500">{stats.totalCredits}</p>
+              <p className="text-xl font-black text-emerald-500">{stats?.totalCredits || 0}</p>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Credits</p>
             </div>
           </div>
@@ -96,8 +139,18 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
             <Gift className="w-5 h-5 text-emerald-500" />
             <div>
-              <p className="text-sm font-bold text-foreground">{REWARD_PER_INVITE} Credits per friend</p>
-              <p className="text-xs text-muted-foreground">They join a game, you get rewarded</p>
+              <p className="text-sm font-bold text-foreground">25 Credits per friend</p>
+              <p className="text-xs text-muted-foreground">When they complete their first game</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+            <CreditCard className="w-5 h-5 text-blue-500" />
+            <div>
+              <p className="text-sm font-bold text-foreground">Your Balance</p>
+              <p className="text-xs text-muted-foreground">
+                {stats?.totalCredits || 0} credits earned from referrals
+              </p>
             </div>
           </div>
         </div>

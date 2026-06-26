@@ -72,6 +72,7 @@ export const players = pgTable("players", {
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
   sessionId: text("session_id").notNull(),
+  supabaseUserId: text("supabase_user_id"),
   isSpectator: boolean("is_spectator").default(false),
   isBot: boolean("is_bot").default(false),
   wins: integer("wins").default(0),
