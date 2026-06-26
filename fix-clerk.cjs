@@ -18,7 +18,6 @@ function rmrf(dir) {
 const nm = path.join(__dirname, 'node_modules');
 if (!fs.existsSync(nm)) process.exit(0);
 
-// Clean ALL dot-prefixed temp dirs at top level and inside scoped packages
 function cleanDotDirs(dir) {
   try {
     for (const entry of fs.readdirSync(dir)) {
@@ -33,6 +32,7 @@ function cleanDotDirs(dir) {
 }
 
 cleanDotDirs(nm);
+
 try {
   for (const entry of fs.readdirSync(nm)) {
     if (entry.startsWith('@')) {
@@ -40,3 +40,31 @@ try {
     }
   }
 } catch(e) {}
+
+// Recursively clean all nested node_modules
+function cleanAllNested(dir) {
+  try {
+    const entries = fs.readdirSync(dir);
+    for (const entry of entries) {
+      const full = path.join(dir, entry);
+      try {
+        if (fs.lstatSync(full).isDirectory()) {
+          if (entry === 'node_modules') {
+            cleanDotDirs(full);
+            try {
+              for (const sub of fs.readdirSync(full)) {
+                if (sub.startsWith('@')) {
+                  cleanDotDirs(path.join(full, sub));
+                }
+              }
+            } catch(e) {}
+          } else {
+            cleanAllNested(full);
+          }
+        }
+      } catch(e) {}
+    }
+  } catch(e) {}
+}
+
+cleanAllNested(nm);

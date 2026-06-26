@@ -689,6 +689,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         resetTokenExpires: null,
         totpSecret: null,
         is2FAEnabled: null,
+        credits: 0,
+        supabaseUserId: null,
       });
 
       res.status(201).json({
@@ -903,12 +905,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isAlive: true,
         isHost: true,
         sessionId,
+        supabaseUserId: (input as any).supabaseUserId || null,
         isSpectator: false,
         isBot: false,
         wins: 0,
         gamesPlayed: 0,
         achievements: [],
-        gameHistory: []
+        gameHistory: [],
+        credits: 0,
       });
 
       res.status(201).json({ code: room.code, playerId: player.id, sessionId });
@@ -954,12 +958,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isAlive: !isSpectator,
         isHost: players.length === 0,
         sessionId,
+        supabaseUserId: (input as any).supabaseUserId || null,
         isSpectator,
         isBot: false,
         wins: 0,
         gamesPlayed: 0,
         achievements: [],
-        gameHistory: []
+        gameHistory: [],
+        credits: 0,
       });
 
       res.json({ code: room.code, playerId: player.id, sessionId });

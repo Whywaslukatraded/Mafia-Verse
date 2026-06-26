@@ -6,6 +6,8 @@ import { Send, MessageSquare, Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { containsProfanity } from "@/lib/profanity";
+import { useToast } from "@/hooks/use-toast";
 
 const QUICK_MESSAGES = [
   "I think {name} is mafia",
@@ -44,6 +46,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const [reactions, setReactions] = useState<Reactions>({});
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastSentRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
 
     const filteredMessages = messages.filter(msg => {
         if (isSpectator) return true;
@@ -106,28 +109,44 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (input.trim()) {
-            onSendMessage(input);
-            setInput("");
-            
-            if (isSpectator) {
-                const newCount = messageCount + 1;
-                setMessageCount(newCount);
-                if (newCount === 50) {
-                    const stats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-                    const achievements = new Set(stats.achievements || []);
-                    if (!achievements.has('ghost_whisperer')) {
-                        achievements.add('ghost_whisperer');
-                        localStorage.setItem("mafia_stats", JSON.stringify({ ...stats, achievements: Array.from(achievements) }));
-                        window.dispatchEvent(new Event('storage'));
-                    }
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        if (containsProfanity(trimmed)) {
+            toast({
+                title: "Message blocked",
+                description: "Inappropriate language is not allowed.",
+                variant: "destructive",
+            });
+            return;
+        }
+        onSendMessage(trimmed);
+        setInput("");
+        
+        if (isSpectator) {
+            const newCount = messageCount + 1;
+            setMessageCount(newCount);
+            if (newCount === 50) {
+                const stats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+                const achievements = new Set(stats.achievements || []);
+                if (!achievements.has('ghost_whisperer')) {
+                    achievements.add('ghost_whisperer');
+                    localStorage.setItem("mafia_stats", JSON.stringify({ ...stats, achievements: Array.from(achievements) }));
+                    window.dispatchEvent(new Event('storage'));
                 }
             }
         }
     };
 
     const handleQuickMessage = (msg: string) => {
-      onSendMessage(msg);
+        if (containsProfanity(msg)) {
+            toast({
+                title: "Message blocked",
+                description: "Inappropriate language is not allowed.",
+                variant: "destructive",
+            });
+            return;
+        }
+        onSendMessage(msg);
     };
 
     const addReaction = (messageId: number, emote: string) => {
@@ -279,9 +298,6 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                     className="justify-start h-8 text-xs font-medium hover:bg-primary/20 hover:text-primary transition-colors truncate"
                     onClick={() => {
                       if (msg.includes("{name}")) {
-                        // For messages needing a name, we just pick a random alive player for simplicity in the quick wheel
-                        // but usually a sub-menu would be better. For MVP fast-mode, we'll just use the base string
-                        // or pick a random alive opponent
                         const targets = players.filter(p => p.id !== currentPlayerId && p.isAlive);
                         const target = targets[Math.floor(Math.random() * targets.length)];
                         handleQuickMessage(msg.replace("{name}", target?.name || "someone"));

@@ -65,7 +65,7 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
 
 export async function getUncachableStripeClient(): Promise<Stripe> {
   const { secretKey } = await getStripeCredentials();
-  return new Stripe(secretKey, { apiVersion: "2025-11-17.clover" });
+  return new Stripe(secretKey, { apiVersion: "2026-02-25.clover" as any });
 }
 
 export async function getStripePublishableKey(): Promise<string> {

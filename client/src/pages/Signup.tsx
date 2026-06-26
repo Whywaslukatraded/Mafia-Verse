@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { containsProfanity } from "@/lib/profanity";
 
 function getReferralCodeFromURL() {
   const params = new URLSearchParams(window.location.search);
@@ -52,6 +53,22 @@ export default function Signup() {
       toast({
         title: "Password too short",
         description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (containsProfanity(displayName)) {
+      toast({
+        title: "Inappropriate display name",
+        description: "Your display name contains inappropriate language.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (containsProfanity(password)) {
+      toast({
+        title: "Inappropriate password",
+        description: "Your password contains inappropriate language. Please choose a different password.",
         variant: "destructive",
       });
       return;

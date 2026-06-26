@@ -11,6 +11,8 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import TwoFactorSetup from "@/pages/TwoFactorSetup";
 import TwoFactorVerify from "@/pages/TwoFactorVerify";
+import ResetPassword from "@/pages/ResetPassword";
+import AuthCallback from "@/pages/AuthCallback";
 import Room from "@/pages/Room";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route path="/2fa-verify" component={TwoFactorVerify} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/room/:code" component={Room} />
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
