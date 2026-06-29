@@ -1306,6 +1306,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Live Stripe Price IDs
+  const PRICE_MAP: Record<string, string> = {
+    syndicate: "price_1TnVRsKGKlGqtitkze2aFiLy",
+    tip_499: "price_1TnVSQKGKlGqtitkn3g7TKL8",
+    tip_999: "price_1TnVUpKGKlGqtitkHTf6RlqZ",
+    tip_1999: "price_1TnVVIKGKlGqtitkG7mJ8DsV",
+    tip_4999: "price_1TnVVhKGKlGqtitkZ123cwOu",
+    tip_custom: "price_1TnVfbKGKlGqtitk2i0LzhPC",
+    credits_100: "price_1TnVWHKGKlGqtitkfRcApkz6",
+    credits_550: "price_1TnVWhKGKlGqtitkEp8OjapI",
+    credits_1200: "price_1TnVX6KGKlGqtitkLaTGiebt",
+    credits_3000: "price_1TnVXjKGKlGqtitk1vFcOyOt",
+  };
+
   // Stripe checkout: Credit Packs
   app.post("/api/stripe/credit-checkout", async (req, res) => {
     try {
@@ -1316,10 +1330,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const stripe = await getUncachableStripeClient();
       const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
 
+      let priceId: string;
+      if (credits === 100) priceId = PRICE_MAP.credits_100;
+      else if (credits === 550) priceId = PRICE_MAP.credits_550;
+      else if (credits === 1200) priceId = PRICE_MAP.credits_1200;
+      else if (credits === 3000) priceId = PRICE_MAP.credits_3000;
+      else return res.status(400).json({ message: "Invalid credit pack" });
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price_data: { currency: "usd", product_data: { name: `${credits} Credits` }, unit_amount: amount }, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         metadata: { item: "credits", amount: String(credits) },
         success_url: `${origin}/store?success=true&item=credits&amount=${credits}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1342,7 +1363,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price_data: { currency: "usd", product_data: { name: "The Syndicate Pass" }, unit_amount: 499 }, quantity: 1 }],
+        line_items: [{ price: PRICE_MAP.syndicate, quantity: 1 }],
         metadata: { item: "syndicate" },
         success_url: `${origin}/store?success=true&item=syndicate`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1365,10 +1386,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const stripe = await getUncachableStripeClient();
       const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
 
+      let priceId: string;
+      if (amount === 499) priceId = PRICE_MAP.tip_499;
+      else if (amount === 999) priceId = PRICE_MAP.tip_999;
+      else if (amount === 1999) priceId = PRICE_MAP.tip_1999;
+      else if (amount === 4999) priceId = PRICE_MAP.tip_4999;
+      else if (amount >= 100 && amount <= 1_000_000) priceId = PRICE_MAP.tip_custom;
+      else return res.status(400).json({ message: "Invalid tip amount. Must be between $1.00 and $10,000.00" });
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price_data: { currency: "usd", product_data: { name: "Support the Game" }, unit_amount: amount }, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         metadata: { item: "tip", amount: String(amount) },
         success_url: `${origin}/store?success=true&item=tip&amount=${amount}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1384,8 +1413,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Public config
   app.get("/api/config", (_req, res) => {
     res.json({
-      supabaseUrl: process.env.SUPABASE_URL || "",
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+      supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
     });
   });
 
