@@ -5,7 +5,7 @@ import { StripeSync } from "stripe-replit-sync";
 async function getStripeCredentials(): Promise<{ secretKey: string; publishableKey: string; webhookSecret?: string }> {
   // 1. Use explicit keys from secrets if available
   const envSecret = process.env.STRIPE_SECRET_KEY;
-  const envPublishable = process.env.STRIPE_PUBLISHABLE_KEY;
+  const envPublishable = process.env.VITE_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY;
   if (envSecret && envPublishable) {
     return { secretKey: envSecret, publishableKey: envPublishable };
   }
