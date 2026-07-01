@@ -1,10 +1,9 @@
 {
-  "name": "rest-express",
+  "name": "mafia-verse",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "preinstall": "node fix-clerk.cjs 2>/dev/null || true",
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
@@ -12,8 +11,6 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.8",
-    "@clerk/express": "^2.1.30",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@radix-ui/react-accordion": "^1.2.4",
@@ -72,7 +69,6 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "stripe": "^20.0.0",
-    "stripe-replit-sync": "^1.0.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.5",
@@ -83,9 +79,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@replit/vite-plugin-cartographer": "^0.4.4",
-    "@replit/vite-plugin-dev-banner": "^0.1.1",
-    "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.18",
     "@types/connect-pg-simple": "^7.0.3",

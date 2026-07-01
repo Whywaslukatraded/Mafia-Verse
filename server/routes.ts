@@ -1306,18 +1306,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Live Stripe Price IDs
+  // Live Stripe Price IDs (one-time payments)
   const PRICE_MAP: Record<string, string> = {
+    // Syndicate Pass - $4.99 one-time
     syndicate: "price_1TnVRsKGKlGqtitkze2aFiLy",
-    tip_499: "price_1TnVSQKGKlGqtitkn3g7TKL8",
-    tip_999: "price_1TnVUpKGKlGqtitkHTf6RlqZ",
-    tip_1999: "price_1TnVVIKGKlGqtitkG7mJ8DsV",
-    tip_4999: "price_1TnVVhKGKlGqtitkZ123cwOu",
-    tip_custom: "price_1TnVfbKGKlGqtitk2i0LzhPC",
-    credits_100: "price_1TnVWHKGKlGqtitkfRcApkz6",
-    credits_550: "price_1TnVWhKGKlGqtitkEp8OjapI",
-    credits_1200: "price_1TnVX6KGKlGqtitkLaTGiebt",
-    credits_3000: "price_1TnVXjKGKlGqtitk1vFcOyOt",
+    // Donations - one-time
+    tip_499: "price_1TnVSQKGKlGqtitkn3g7TKL8",      // $4.99
+    tip_999: "price_1TnVUpKGKlGqtitkHTf6RlqZ",      // $9.99
+    tip_1999: "price_1TnVVIKGKlGqtitkG7mJ8DsV",     // $19.99
+    tip_4999: "price_1TnVVhKGKlGqtitkZ123cwOu",     // $49.99
+    tip_custom: "price_1TnVfbKGKlGqtitk2i0LzhPC",  // Custom $1-$10,000
+    // Credits - one-time
+    credits_100: "price_1TnVWHKGKlGqtitkfRcApkz6",  // 100 credits $0.99
+    credits_550: "price_1TnVWhKGKlGqtitkEp8OjapI",  // 550 credits $4.99
+    credits_1200: "price_1TnVX6KGKlGqtitkLaTGiebt", // 1200 credits $9.99
+    credits_3000: "price_1TnVXjKGKlGqtitk1vFcOyOt", // 3000 credits $24.99 (Note: user said $24.99 for 3000
   };
 
   // Stripe checkout: Credit Packs
@@ -1534,6 +1537,142 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } else {
         res.status(500).json({ error: "Failed to submit feedback" });
       }
+    }
+  });
+
+  // Referral system endpoints
+  app.post("/api/referrals/track", async (req, res) => {
+    try {
+      const { referralCode, referredUserId } = req.body;
+      if (!referralCode || !referredUserId) {
+        return res.status(400).json({ message: "Missing referralCode or referredUserId" });
+      }
+
+      // Find referrer by referral code in profiles table
+      const referrerResult = await pool.query(
+        "SELECT supabase_user_id FROM profiles WHERE referral_code = $1",
+        [referralCode.toUpperCase()]
+      );
+
+      if (referrerResult.rows.length === 0) {
+        return res.status(404).json({ message: "Invalid referral code" });
+      }
+
+      const referrerId = referrerResult.rows[0].supabase_user_id;
+
+      // Don't allow self-referrals
+      if (referrerId === referredUserId) {
+        return res.status(400).json({ message: "Cannot refer yourself" });
+      }
+
+      // Check if this user was already referred
+      const existingReferral = await pool.query(
+        "SELECT id FROM referrals WHERE referred_id = $1",
+        [referredUserId]
+      );
+
+      if (existingReferral.rows.length > 0) {
+        return res.status(400).json({ message: "User already referred" });
+      }
+
+      // Create the referral record
+      await pool.query(
+        "INSERT INTO referrals (referrer_id, referred_id, credits_awarded) VALUES ($1, $2, $3)",
+        [referrerId, referredUserId, 25]
+      );
+
+      // Award credits to both users
+      await pool.query(
+        "UPDATE profiles SET credits = credits + 25 WHERE supabase_user_id = $1",
+        [referrerId]
+      );
+
+      // Create or update profile for referred user
+      await pool.query(
+        `INSERT INTO profiles (supabase_user_id, referred_by, credits)
+         VALUES ($1, $2, 25)
+         ON CONFLICT (supabase_user_id)
+         DO UPDATE SET referred_by = $2, credits = profiles.credits + 25`,
+        [referredUserId, referralCode.toUpperCase()]
+      );
+
+      res.json({ success: true, creditsAwarded: 25 });
+    } catch (err: any) {
+      console.error("Referral tracking error:", err.message);
+      res.status(500).json({ message: "Failed to track referral" });
+    }
+  });
+
+  // Get or create user profile
+  app.post("/api/profiles/upsert", async (req, res) => {
+    try {
+      const { supabaseUserId, referralCode } = req.body;
+      if (!supabaseUserId) {
+        return res.status(400).json({ message: "Missing supabaseUserId" });
+      }
+
+      // Generate a unique referral code if not provided
+      const code = referralCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      const result = await pool.query(
+        `INSERT INTO profiles (supabase_user_id, referral_code, credits)
+         VALUES ($1, $2, 0)
+         ON CONFLICT (supabase_user_id)
+         DO UPDATE SET referral_code = COALESCE(NULLIF(profiles.referral_code, ''), EXCLUDED.referral_code)
+         RETURNING *`,
+        [supabaseUserId, code]
+      );
+
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      console.error("Profile upsert error:", err.message);
+      res.status(500).json({ message: "Failed to upsert profile" });
+    }
+  });
+
+  // Get user profile
+  app.get("/api/profiles/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const result = await pool.query(
+        "SELECT * FROM profiles WHERE supabase_user_id = $1",
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      console.error("Profile fetch error:", err.message);
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  // Update user credits
+  app.post("/api/profiles/:userId/credits", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { amount } = req.body;
+
+      if (typeof amount !== "number") {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      const result = await pool.query(
+        "UPDATE profiles SET credits = GREATEST(0, credits + $1) WHERE supabase_user_id = $2 RETURNING credits",
+        [amount, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      res.json({ credits: result.rows[0].credits });
+    } catch (err: any) {
+      console.error("Credits update error:", err.message);
+      res.status(500).json({ message: "Failed to update credits" });
     }
   });
 

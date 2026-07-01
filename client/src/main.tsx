@@ -4,23 +4,30 @@ import { initSupabase } from "./lib/supabase";
 import "./index.css";
 
 async function bootstrap() {
-  // Fetch Supabase config from backend (anon key is public-safe)
-  try {
-    const res = await fetch("/api/config");
-    if (res.ok) {
-      const data = await res.json();
-      let url = data.supabaseUrl ?? "";
-      // Strip /rest/v1 suffix if present
-      if (url.endsWith("/rest/v1/") || url.endsWith("/rest/v1")) {
-        url = url.replace(/\/rest\/v1\/?$/, "");
+  // Initialize Supabase from VITE_ env vars (available at build time)
+  const url = import.meta.env.VITE_SUPABASE_URL || "";
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+  if (url && key) {
+    initSupabase(url, key);
+  } else {
+    // Fallback: fetch from backend API
+    try {
+      const res = await fetch("/api/config");
+      if (res.ok) {
+        const data = await res.json();
+        let configUrl = data.supabaseUrl ?? "";
+        if (configUrl.endsWith("/rest/v1/") || configUrl.endsWith("/rest/v1")) {
+          configUrl = configUrl.replace(/\/rest\/v1\/?$/, "");
+        }
+        const configKey = data.supabaseAnonKey ?? "";
+        if (configUrl && configKey) {
+          initSupabase(configUrl, configKey);
+        }
       }
-      const key = data.supabaseAnonKey ?? "";
-      if (url && key) {
-        initSupabase(url, key);
-      }
+    } catch {
+      // server not ready yet
     }
-  } catch {
-    // server not ready yet
   }
 
   const root = createRoot(document.getElementById("root")!);
