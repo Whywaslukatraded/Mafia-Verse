@@ -74,32 +74,41 @@ export default function Signup() {
       return;
     }
     setLoading(true);
-    const supabase = getSupabase();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: displayName },
-      },
-    });
-    setLoading(false);
-    if (error) {
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { display_name: displayName },
+        },
+      });
+      if (error) {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      if (data.user) {
+        // Claim referral bonus if applicable
+        claimReferralReward(refCode);
+        toast({
+          title: "Account created!",
+          description: "Check your email to confirm, then log in.",
+        });
+        setLocation("/login");
+      }
+    } catch (err: any) {
       toast({
-        title: "Signup failed",
-        description: error.message,
+        title: "Connection error",
+        description: err?.message || "Unable to connect. Please try again.",
         variant: "destructive",
       });
-      return;
     }
-    if (data.user) {
-      // Claim referral bonus if applicable
-      claimReferralReward(refCode);
-      toast({
-        title: "Account created!",
-        description: "Check your email to confirm, then log in.",
-      });
-      setLocation("/login");
-    }
+    setLoading(false);
   };
 
   return (

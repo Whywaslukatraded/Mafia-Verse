@@ -146,12 +146,12 @@ const BOT_MESSAGES = {
     "The person accusing me hasn't offered a single piece of evidence. Just vibes.",
   ],
   agreement: [
-    "Solid read. I was thinking the same thing but couldn't articulate it.",
-    "That analysis is airtight. I'm locking in behind this.",
-    "You just connected dots I missed. That's good detective work.",
-    "I'm convinced. Let's vote and move to the next round.",
-    "Finally someone speaking with logic instead of panic.",
-    "Your reasoning is sound. I'll adjust my theory accordingly.",
+    "Solid read {speaker}. I was thinking the same thing.",
+    "{speaker} that's airtight logic. I'm locking in behind this.",
+    "You just connected dots I missed {speaker}. Good detective work.",
+    "{speaker} I'm convinced. Let's vote and move to the next round.",
+    "Finally {speaker} speaking with logic instead of panic.",
+    "{speaker} your reasoning is sound. I'll adjust my theory accordingly.",
   ],
   suspicion: [
     "Something feels manufactured about this discussion. Like it's being steered.",
@@ -164,16 +164,28 @@ const BOT_MESSAGES = {
     "I've seen this pattern before — fake confidence, redirect, eliminate a civilian.",
   ],
   response: [
-    "Interesting angle, but you're missing the night-phase timeline.",
-    "That would make sense if we had more players alive. Right now it's too risky.",
-    "I see your point but the data doesn't support that conclusion.",
-    "You might be right, but can you explain why the doctor didn't heal them?",
-    "That's one interpretation. Here's another: what if the mafia wanted us to think that?",
-    "Your theory relies on too many assumptions. Let's stick to what we know.",
-    "I respect the take but I've been watching different signals.",
-    "Convincing argument, but I've been burned by similar logic before. Cautious yes.",
-    "You almost had me, but {name} actually has a solid alibi from round one.",
-    "Partial credit — your first half is right, second half needs more proof.",
+    "Interesting angle {speaker}, but you're missing the night-phase timeline.",
+    "{speaker} that would make sense if we had more players alive. Right now it's too risky.",
+    "I see your point {speaker} but the data doesn't support that conclusion.",
+    "{speaker} you might be right, but can you explain why the doctor didn't heal them?",
+    "{speaker} that's one interpretation. Here's another: what if the mafia wanted us to think that?",
+    "Your theory relies on too many assumptions {speaker}. Let's stick to what we know.",
+    "I respect the take {speaker} but I've been watching different signals.",
+    "Convincing argument {speaker}, but I've been burned by similar logic before.",
+    "{speaker} you almost had me, but {name} actually has a solid alibi from round one.",
+    "Partial credit {speaker} — your first half is right, second half needs more proof.",
+  ],
+  directResponse: [
+    "{speaker}, I hear you. But let me play devil's advocate for a second.",
+    "That's an interesting point {speaker}. What made you think of that?",
+    "{speaker} I was just about to say something similar. Great minds think alike... or do they?",
+    "Hold up {speaker}, are you sure about that? Seems a bit convenient.",
+    "{speaker} you're making a lot of sense. A little TOO much sense if you ask me.",
+    "I'm with {speaker} on this one. The math checks out.",
+    "{speaker} raises a valid point. We should dig deeper there.",
+    "Not so fast {speaker}. Remember what happened last time we rushed a vote.",
+    "{speaker} that's the smartest thing anyone's said all game. Concerningly smart.",
+    "Okay {speaker} I'll bite — walk me through your logic step by step.",
   ],
   nightMafia: [
     "Who do we take out? The loud one or the smart one?",
@@ -194,7 +206,7 @@ const BOT_MESSAGES = {
   ],
 };
 
-async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
+async function respondToHumanChat(roomId: number, humanMessage: string, storage: any, speakerName?: string) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
@@ -202,26 +214,34 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
 
-  if (Math.random() > 0.8) return;
+  // Higher response rate for more engagement
+  if (Math.random() > 0.65) return;
 
   const bot = bots[Math.floor(Math.random() * bots.length)];
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+  const humanPlayers = alivePlayers.filter((p: Player) => !p.isBot);
   const msgLower = humanMessage.toLowerCase();
+  const speaker = speakerName || (humanPlayers.length > 0 ? humanPlayers[0].name : "someone");
 
   let content = "";
 
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
-  
+
+  // More contextual responses based on the actual message content
   if (mentionedPlayer) {
     if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
       content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
     } else if (msgLower.includes("innocent") || msgLower.includes("not") || msgLower.includes("trust")) {
       content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
     } else {
-      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
+      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name).replace("{speaker}", speaker);
     }
+  } else if (msgLower.includes("i think") || msgLower.includes("maybe") || msgLower.includes("probably")) {
+    // Responding to speculation
+    content = BOT_MESSAGES.directResponse[Math.floor(Math.random() * BOT_MESSAGES.directResponse.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
   } else if (msgLower.includes("?")) {
-    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+    // Someone asked a question - respond directly
+    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "someone");
   } else if (msgLower.includes("mafia") || msgLower.includes("kill") || msgLower.includes("eliminate")) {
     if (alivePlayers.length > 0 && Math.random() > 0.4) {
       const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
@@ -229,10 +249,17 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
     } else {
       content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
     }
-  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right")) {
-    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right") || msgLower.includes("true") || msgLower.includes("exactly")) {
+    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)].replace("{speaker}", speaker);
+  } else if (msgLower.includes("no") || msgLower.includes("wrong") || msgLower.includes("disagree")) {
+    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
   } else {
-    content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+    // Generic response that still references the speaker
+    if (Math.random() > 0.5) {
+      content = BOT_MESSAGES.directResponse[Math.floor(Math.random() * BOT_MESSAGES.directResponse.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
+    } else {
+      content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+    }
   }
 
   if (content) {
@@ -736,12 +763,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!user || !verifyPassword(password, user.passwordHash)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      if (!user.is2FAEnabled || !user.totpSecret) {
+
+      // Look up 2FA in userMfa table by supabaseUserId
+      const userMfaRecord = user.supabaseUserId ? await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, user.supabaseUserId)) : [];
+      const mfaRecord = userMfaRecord[0];
+
+      if (!mfaRecord || !mfaRecord.isEnabled || !mfaRecord.totpSecret) {
         return res.status(400).json({ message: "2FA not enabled" });
       }
 
-      const { TOTP } = await import("otpauth");
-      const totp = new TOTP({ secret: user.totpSecret });
+      const { TOTP, Secret } = await import("otpauth");
+      const totp = new TOTP({
+        secret: Secret.fromBase32(mfaRecord.totpSecret),
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30
+      });
       const isValid = totp.validate({ token: totpCode, window: 1 }) !== null;
 
       if (!isValid) return res.status(401).json({ message: "Invalid 2FA code" });
@@ -800,14 +837,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
 
-      const { TOTP } = await import("otpauth");
-      const secret = new TOTP({
+      const { TOTP, Secret } = await import("otpauth");
+      const totp = new TOTP({
         issuer: "Mafia Game",
         label: supabaseUserId,
         algorithm: "SHA1",
         digits: 6,
         period: 30,
-      }).secret.base32;
+      });
+      const secret = totp.secret.base32;
 
       const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(supabaseUserId)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
 
@@ -836,8 +874,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "2FA not set up" });
       }
 
-      const { TOTP } = await import("otpauth");
-      const totp = new TOTP({ secret: mfa.totpSecret });
+      const { TOTP, Secret } = await import("otpauth");
+      const totp = new TOTP({
+        secret: Secret.fromBase32(mfa.totpSecret),
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30
+      });
       const isValid = totp.validate({ token: code, window: 1 }) !== null;
 
       if (!isValid) return res.status(400).json({ message: "Invalid code" });
@@ -1098,7 +1141,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
-                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
+                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage, me.name);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
