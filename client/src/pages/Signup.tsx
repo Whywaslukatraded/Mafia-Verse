@@ -93,11 +93,13 @@ export default function Signup() {
         return;
       }
       if (data.user) {
-        // Claim referral bonus if applicable
-        claimReferralReward(refCode);
+        // Store referral code for processing after first login
+        if (refCode) {
+          localStorage.setItem("mafia_pending_referral", refCode);
+        }
         toast({
           title: "Account created!",
-          description: "Check your email to confirm, then log in.",
+          description: "You can now log in with your credentials.",
         });
         setLocation("/login");
       }

@@ -1524,6 +1524,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = req.query.sessionId as string;
       if (!sessionId) return res.json({ claimsToday: 0, remaining: 5 });
 
+      if (!pool) {
+        return res.json({ claimsToday: 0, remaining: 5 });
+      }
+
       const client = await pool.connect();
       try {
         // Use PostgreSQL's UTC date to prevent timezone manipulation
@@ -1550,6 +1554,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const { sessionId, roomCode } = req.body;
       if (!sessionId) return res.status(400).json({ message: "Missing sessionId" });
+
+      if (!pool) {
+        return res.status(503).json({ message: "Database unavailable. Please try again later." });
+      }
 
       const MAX_DAILY = 5;
       const REWARD = 5;
@@ -1632,6 +1640,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "Missing referralCode or referredUserId" });
       }
 
+      if (!pool) {
+        return res.status(503).json({ message: "Database unavailable. Please try again later." });
+      }
+
       // Find referrer by referral code in profiles table
       const referrerResult = await pool.query(
         "SELECT supabase_user_id FROM profiles WHERE referral_code = $1",
@@ -1695,6 +1707,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "Missing supabaseUserId" });
       }
 
+      if (!pool) {
+        return res.status(503).json({ message: "Database unavailable" });
+      }
+
       // Generate a cryptographically secure referral code if not provided
       const code = referralCode || randomBytes(4).toString("hex").toUpperCase();
 
@@ -1718,6 +1734,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/profiles/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
+
+      if (!pool) {
+        return res.status(503).json({ message: "Database unavailable" });
+      }
+
       const result = await pool.query(
         "SELECT * FROM profiles WHERE supabase_user_id = $1",
         [userId]
@@ -1742,6 +1763,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       if (typeof amount !== "number") {
         return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      if (!pool) {
+        return res.status(503).json({ message: "Database unavailable" });
       }
 
       const result = await pool.query(

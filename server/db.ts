@@ -6,13 +6,9 @@ const { Pool } = pg;
 
 const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
 
-if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL or SUPABASE_DB_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({
+// Create pool - will fail on first query if DB URL is missing
+// This allows the server to start for static file serving even without DB
+export const pool = databaseUrl ? new Pool({
   connectionString: databaseUrl,
   max: 20,
   idleTimeoutMillis: 30000,
@@ -20,25 +16,34 @@ export const pool = new Pool({
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
   allowExitOnIdle: false,
-});
+}) : null;
 
-pool.on("error", (err) => {
-  console.error("Unexpected DB pool error:", err.message);
-});
+if (!pool) {
+  console.warn("[DB] No DATABASE_URL or SUPABASE_DB_URL provided. Database features will be unavailable.");
+} else {
+  pool.on("error", (err) => {
+    console.error("Unexpected DB pool error:", err.message);
+  });
 
-pool.on("connect", () => {
-  console.log("[DB] New client connected to pool");
-});
+  pool.on("connect", () => {
+    console.log("[DB] New client connected to pool");
+  });
 
-pool.on("acquire", () => {
-  if (pool.waitingCount > 0) {
-    console.warn(`[DB] Pool stressed: ${pool.waitingCount} waiting, ${pool.idleCount} idle, ${pool.totalCount} total`);
-  }
-});
+  pool.on("acquire", () => {
+    if (pool && pool.waitingCount > 0) {
+      console.warn(`[DB] Pool stressed: ${pool.waitingCount} waiting, ${pool.idleCount} idle, ${pool.totalCount} total`);
+    }
+  });
+}
 
-export const db = drizzle(pool, { schema });
+export const db = pool ? drizzle(pool, { schema }) : null as any;
 
 export async function testConnection(retries = 5, delayMs = 2000): Promise<boolean> {
+  if (!pool) {
+    console.warn("[DB] No pool available - database features disabled");
+    return false;
+  }
+
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
@@ -60,6 +65,8 @@ export async function testConnection(retries = 5, delayMs = 2000): Promise<boole
 }
 
 export async function runMigrations(): Promise<void> {
+  if (!pool) return;
+
   try {
     const client = await pool.connect();
     try {
