@@ -9,6 +9,34 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 
+// Simple in-memory rate limiter: key → { count, resetAt }
+const _rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string, maxRequests = 10, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const entry = _rateLimitStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    _rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) return false;
+  entry.count++;
+  return true;
+}
+// Clean up stale entries periodically
+setInterval(() => {
+  const now = Date.now();
+  _rateLimitStore.forEach((v, k) => { if (now > v.resetAt) _rateLimitStore.delete(k); });
+}, 300_000);
+
+// Get trusted app origin (never trust req.headers.origin from client)
+function getTrustedOrigin(req: any): string {
+  const configured = process.env.APP_URL || process.env.VITE_APP_URL;
+  if (configured) return configured.replace(/\/$/, "");
+  const host = req.headers.host || "localhost:5000";
+  const proto = req.headers["x-forwarded-proto"] || "https";
+  return `${proto}://${host}`;
+}
+
 // Password hashing helpers
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
@@ -757,6 +785,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/auth/login-2fa", async (req, res) => {
+    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    if (!checkRateLimit(`login:${ip}`, 10, 60_000)) {
+      return res.status(429).json({ message: "Too many login attempts. Try again later." });
+    }
     try {
       const { username, password, totpCode } = req.body;
       const user = await storage.getUserByUsername(username);
@@ -804,9 +836,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       await storage.updateUser(user.id, { resetToken: token, resetTokenExpires: expires });
 
-      console.log(`[PASSWORD RESET] Token for ${user.username}: ${token}`);
+      // Token is sent only via the reset link, never returned in the response body
+      console.log(`[PASSWORD RESET] Token generated for user ID: ${user.id}`);
 
-      res.json({ message: "If this account exists, a reset link has been generated.", resetToken: token });
+      res.json({ message: "If this account exists, a reset link has been generated." });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -865,6 +898,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/auth/2fa/verify", async (req, res) => {
+    const ip2fa = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    if (!checkRateLimit(`2fa-verify:${ip2fa}`, 10, 60_000)) {
+      return res.status(429).json({ message: "Too many verification attempts. Try again later." });
+    }
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
@@ -1374,7 +1411,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+      const origin = getTrustedOrigin(req);
 
       let priceId: string;
       if (credits === 100) priceId = PRICE_MAP.credits_100;
@@ -1404,7 +1441,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+      const origin = getTrustedOrigin(req);
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -1430,7 +1467,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
+      const origin = getTrustedOrigin(req);
 
       let priceId: string;
       if (amount === 499) priceId = PRICE_MAP.tip_499;
@@ -1487,12 +1524,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = req.query.sessionId as string;
       if (!sessionId) return res.json({ claimsToday: 0, remaining: 5 });
 
-      const today = new Date().toISOString().split("T")[0];
       const client = await pool.connect();
       try {
+        // Use PostgreSQL's UTC date to prevent timezone manipulation
         const result = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
-          [sessionId, today]
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date",
+          [sessionId]
         );
         const count = result.rows[0]?.claim_count ?? 0;
         res.json({ claimsToday: count, remaining: Math.max(0, 5 - count) });
@@ -1506,19 +1543,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Claim free ad credits — enforced server-side 5/day limit
   app.post("/api/ad-claim", async (req, res) => {
+    const adIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    if (!checkRateLimit(`ad-claim:${adIp}`, 20, 60_000)) {
+      return res.status(429).json({ message: "Too many requests. Slow down." });
+    }
     try {
       const { sessionId, roomCode } = req.body;
       if (!sessionId) return res.status(400).json({ message: "Missing sessionId" });
 
-      const today = new Date().toISOString().split("T")[0];
       const MAX_DAILY = 5;
       const REWARD = 5;
 
       const client = await pool.connect();
       try {
+        // Use PostgreSQL UTC date to prevent client-side timezone manipulation
         const check = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
-          [sessionId, today]
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date",
+          [sessionId]
         );
         const currentCount = check.rows[0]?.claim_count ?? 0;
 
@@ -1528,10 +1569,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         await client.query(
           `INSERT INTO ad_claims (session_id, claim_date, claim_count, last_claim_at)
-           VALUES ($1, $2, 1, now())
+           VALUES ($1, (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date, 1, now())
            ON CONFLICT (session_id, claim_date)
            DO UPDATE SET claim_count = ad_claims.claim_count + 1, last_claim_at = now()`,
-          [sessionId, today]
+          [sessionId]
         );
 
         const newCount = currentCount + 1;
@@ -1654,8 +1695,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "Missing supabaseUserId" });
       }
 
-      // Generate a unique referral code if not provided
-      const code = referralCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+      // Generate a cryptographically secure referral code if not provided
+      const code = referralCode || randomBytes(4).toString("hex").toUpperCase();
 
       const result = await pool.query(
         `INSERT INTO profiles (supabase_user_id, referral_code, credits)

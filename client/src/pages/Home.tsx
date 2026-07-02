@@ -506,8 +506,8 @@ export default function Home() {
                     />
                   </div>
                   <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                    disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">
-                    {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
+                    disabled={joinRoom.isPending || !joinCode || !name?.trim()} data-testid="button-join-room">
+                    {joinRoom.isPending ? "JOINING..." : !name?.trim() ? "ENTER YOUR NAME ABOVE ↑" : !joinCode ? "ENTER ROOM CODE" : "ENTER THE ABYSS"}
                   </Button>
                 </form>
               </CardContent>
@@ -579,8 +579,8 @@ export default function Home() {
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6 || !name} data-testid="button-create-room">
-                  {createRoom.isPending ? "PREPARING..." : "CREATE ROOM"}
+                  disabled={createRoom.isPending || totalPlayers < 6 || !name?.trim()} data-testid="button-create-room">
+                  {createRoom.isPending ? "PREPARING..." : !name?.trim() ? "ENTER YOUR NAME ABOVE ↑" : totalPlayers < 6 ? `NEED ${6 - totalPlayers} MORE PLAYER${6 - totalPlayers !== 1 ? "S" : ""}` : "CREATE ROOM"}
                 </Button>
               </CardContent>
             </Card>

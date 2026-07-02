@@ -69,12 +69,13 @@ export async function runMigrations(): Promise<void> {
         CREATE TABLE IF NOT EXISTS ad_claims (
           id serial PRIMARY KEY,
           session_id text NOT NULL,
-          claim_date text NOT NULL,
+          claim_date date NOT NULL,
           claim_count integer NOT NULL DEFAULT 0,
           last_claim_at timestamp DEFAULT now(),
           UNIQUE(session_id, claim_date)
         )
       `);
+      await client.query(`ALTER TABLE ad_claims ALTER COLUMN claim_date TYPE date USING claim_date::date`).catch(() => {});
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();
