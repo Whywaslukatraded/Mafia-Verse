@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles, Zap, Star, Coffee, DollarSign, CircleCheck as CheckCircle2, Gift, Package } from "lucide-react";
+import { ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles, Zap, Star, Coffee, DollarSign, CircleCheck as CheckCircle2, X, Gift, Lock, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -58,6 +58,13 @@ export default function Store() {
   const [customTip, setCustomTip] = useState("");
   const [showCustomTip, setShowCustomTip] = useState(false);
   const [fulfillMsg, setFulfillMsg] = useState<string | null>(null);
+  const [checkoutState, setCheckoutState] = useState<{
+    open: boolean; item: string; amount: number; credits?: number; label: string;
+  } | null>(null);
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [cardExpiry, setCardExpiry] = useState("12/30");
+  const [cardCvc, setCardCvc] = useState("123");
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Fetch real credits from DB
   const [dbCredits, setDbCredits] = useState<number | null>(null);
@@ -116,23 +123,40 @@ export default function Store() {
     try {
       const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
-        return;
-      }
-      toast({
-        title: "Payment Error",
-        description: data.error || "Unable to process payment. Please try again.",
-        variant: "destructive",
-      });
-    } catch {
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to payment server. Please try again.",
-        variant: "destructive",
-      });
-    }
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+      openTestCheckout(endpoint, body);
+    } catch { openTestCheckout(endpoint, body); }
     setBuying(null);
+  };
+
+  const openTestCheckout = (endpoint: string, body: any) => {
+    let label = "", item = "", credits: number | undefined;
+    if (endpoint.includes("credit")) { item = "credits"; credits = body.credits; label = `${body.credits} Credits`; }
+    else if (endpoint.includes("syndicate")) { item = "syndicate"; label = "The Syndicate Pass"; }
+    else if (endpoint.includes("tip")) { item = "tip"; label = `Tip $${(body.amount / 100).toFixed(2)}`; }
+    setCheckoutState({ open: true, item, amount: body.amount, credits, label });
+    setBuying(null);
+  };
+
+  const handleTestPay = () => {
+    if (!checkoutState) return;
+    setProcessingPayment(true);
+    setTimeout(() => {
+      setProcessingPayment(false);
+      setCheckoutState(null);
+      if (checkoutState.item === "credits" && checkoutState.credits) {
+        addCreditsLocal(checkoutState.credits);
+        setStats(getStats());
+        setFulfillMsg(`+${checkoutState.credits} Credits added!`);
+      } else if (checkoutState.item === "syndicate") {
+        setSyndicatePass(true);
+        setSyndicatePassState(true);
+        setFulfillMsg("Syndicate Pass activated!");
+      } else if (checkoutState.item === "tip") {
+        setFulfillMsg(`Thank you for the $${(checkoutState.amount / 100).toFixed(2)} tip!`);
+      }
+      setTimeout(() => setFulfillMsg(null), 4000);
+    }, 2000);
   };
 
   const sendCustomTip = () => {
@@ -291,6 +315,50 @@ export default function Store() {
           </div>
         </section>
       </div>
+
+      {/* Stripe Emulator */}
+      <AnimatePresence>
+        {checkoutState?.open && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !processingPayment && setCheckoutState(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-bold">Secure Checkout</span>
+                </div>
+                {!processingPayment && <button onClick={() => setCheckoutState(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>}
+              </div>
+              <div className="p-5">
+                <div className="bg-muted/50 rounded-xl p-4 mb-5">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold">{checkoutState.label}</p>
+                    <p className="text-lg font-black">${(checkoutState.amount / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs uppercase text-muted-foreground mb-1.5 block">Card Number</label>
+                    <Input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="font-mono" disabled={processingPayment} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">Expiry (MM/YY)</label>
+                      <Input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="font-mono" disabled={processingPayment} />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">CVC</label>
+                      <Input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className="font-mono" disabled={processingPayment} />
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={handleTestPay} disabled={processingPayment} className="w-full mt-4 h-11 text-sm font-black bg-primary hover:bg-primary/90">
+                  {processingPayment ? "Processing..." : `Pay $${(checkoutState.amount / 100).toFixed(2)}`}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

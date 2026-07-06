@@ -74,43 +74,32 @@ export default function Signup() {
       return;
     }
     setLoading(true);
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { display_name: displayName },
-        },
-      });
-      if (error) {
-        toast({
-          title: "Signup failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      if (data.user) {
-        // Store referral code for processing after first login
-        if (refCode) {
-          localStorage.setItem("mafia_pending_referral", refCode);
-        }
-        toast({
-          title: "Account created!",
-          description: "You can now log in with your credentials.",
-        });
-        setLocation("/login");
-      }
-    } catch (err: any) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+      },
+    });
+    setLoading(false);
+    if (error) {
       toast({
-        title: "Connection error",
-        description: err?.message || "Unable to connect. Please try again.",
+        title: "Signup failed",
+        description: error.message,
         variant: "destructive",
       });
+      return;
     }
-    setLoading(false);
+    if (data.user) {
+      // Claim referral bonus if applicable
+      claimReferralReward(refCode);
+      toast({
+        title: "Account created!",
+        description: "Check your email to confirm, then log in.",
+      });
+      setLocation("/login");
+    }
   };
 
   return (

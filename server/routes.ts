@@ -9,34 +9,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 
-// Simple in-memory rate limiter: key → { count, resetAt }
-const _rateLimitStore = new Map<string, { count: number; resetAt: number }>();
-function checkRateLimit(key: string, maxRequests = 10, windowMs = 60_000): boolean {
-  const now = Date.now();
-  const entry = _rateLimitStore.get(key);
-  if (!entry || now > entry.resetAt) {
-    _rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= maxRequests) return false;
-  entry.count++;
-  return true;
-}
-// Clean up stale entries periodically
-setInterval(() => {
-  const now = Date.now();
-  _rateLimitStore.forEach((v, k) => { if (now > v.resetAt) _rateLimitStore.delete(k); });
-}, 300_000);
-
-// Get trusted app origin (never trust req.headers.origin from client)
-function getTrustedOrigin(req: any): string {
-  const configured = process.env.APP_URL || process.env.VITE_APP_URL;
-  if (configured) return configured.replace(/\/$/, "");
-  const host = req.headers.host || "localhost:5000";
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  return `${proto}://${host}`;
-}
-
 // Password hashing helpers
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
@@ -174,12 +146,12 @@ const BOT_MESSAGES = {
     "The person accusing me hasn't offered a single piece of evidence. Just vibes.",
   ],
   agreement: [
-    "Solid read {speaker}. I was thinking the same thing.",
-    "{speaker} that's airtight logic. I'm locking in behind this.",
-    "You just connected dots I missed {speaker}. Good detective work.",
-    "{speaker} I'm convinced. Let's vote and move to the next round.",
-    "Finally {speaker} speaking with logic instead of panic.",
-    "{speaker} your reasoning is sound. I'll adjust my theory accordingly.",
+    "Solid read. I was thinking the same thing but couldn't articulate it.",
+    "That analysis is airtight. I'm locking in behind this.",
+    "You just connected dots I missed. That's good detective work.",
+    "I'm convinced. Let's vote and move to the next round.",
+    "Finally someone speaking with logic instead of panic.",
+    "Your reasoning is sound. I'll adjust my theory accordingly.",
   ],
   suspicion: [
     "Something feels manufactured about this discussion. Like it's being steered.",
@@ -192,28 +164,16 @@ const BOT_MESSAGES = {
     "I've seen this pattern before — fake confidence, redirect, eliminate a civilian.",
   ],
   response: [
-    "Interesting angle {speaker}, but you're missing the night-phase timeline.",
-    "{speaker} that would make sense if we had more players alive. Right now it's too risky.",
-    "I see your point {speaker} but the data doesn't support that conclusion.",
-    "{speaker} you might be right, but can you explain why the doctor didn't heal them?",
-    "{speaker} that's one interpretation. Here's another: what if the mafia wanted us to think that?",
-    "Your theory relies on too many assumptions {speaker}. Let's stick to what we know.",
-    "I respect the take {speaker} but I've been watching different signals.",
-    "Convincing argument {speaker}, but I've been burned by similar logic before.",
-    "{speaker} you almost had me, but {name} actually has a solid alibi from round one.",
-    "Partial credit {speaker} — your first half is right, second half needs more proof.",
-  ],
-  directResponse: [
-    "{speaker}, I hear you. But let me play devil's advocate for a second.",
-    "That's an interesting point {speaker}. What made you think of that?",
-    "{speaker} I was just about to say something similar. Great minds think alike... or do they?",
-    "Hold up {speaker}, are you sure about that? Seems a bit convenient.",
-    "{speaker} you're making a lot of sense. A little TOO much sense if you ask me.",
-    "I'm with {speaker} on this one. The math checks out.",
-    "{speaker} raises a valid point. We should dig deeper there.",
-    "Not so fast {speaker}. Remember what happened last time we rushed a vote.",
-    "{speaker} that's the smartest thing anyone's said all game. Concerningly smart.",
-    "Okay {speaker} I'll bite — walk me through your logic step by step.",
+    "Interesting angle, but you're missing the night-phase timeline.",
+    "That would make sense if we had more players alive. Right now it's too risky.",
+    "I see your point but the data doesn't support that conclusion.",
+    "You might be right, but can you explain why the doctor didn't heal them?",
+    "That's one interpretation. Here's another: what if the mafia wanted us to think that?",
+    "Your theory relies on too many assumptions. Let's stick to what we know.",
+    "I respect the take but I've been watching different signals.",
+    "Convincing argument, but I've been burned by similar logic before. Cautious yes.",
+    "You almost had me, but {name} actually has a solid alibi from round one.",
+    "Partial credit — your first half is right, second half needs more proof.",
   ],
   nightMafia: [
     "Who do we take out? The loud one or the smart one?",
@@ -234,7 +194,7 @@ const BOT_MESSAGES = {
   ],
 };
 
-async function respondToHumanChat(roomId: number, humanMessage: string, storage: any, speakerName?: string) {
+async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
@@ -242,34 +202,26 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
 
-  // Higher response rate for more engagement
-  if (Math.random() > 0.65) return;
+  if (Math.random() > 0.8) return;
 
   const bot = bots[Math.floor(Math.random() * bots.length)];
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
-  const humanPlayers = alivePlayers.filter((p: Player) => !p.isBot);
   const msgLower = humanMessage.toLowerCase();
-  const speaker = speakerName || (humanPlayers.length > 0 ? humanPlayers[0].name : "someone");
 
   let content = "";
 
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
-
-  // More contextual responses based on the actual message content
+  
   if (mentionedPlayer) {
     if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
       content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
     } else if (msgLower.includes("innocent") || msgLower.includes("not") || msgLower.includes("trust")) {
       content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
     } else {
-      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name).replace("{speaker}", speaker);
+      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
     }
-  } else if (msgLower.includes("i think") || msgLower.includes("maybe") || msgLower.includes("probably")) {
-    // Responding to speculation
-    content = BOT_MESSAGES.directResponse[Math.floor(Math.random() * BOT_MESSAGES.directResponse.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
   } else if (msgLower.includes("?")) {
-    // Someone asked a question - respond directly
-    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "someone");
+    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
   } else if (msgLower.includes("mafia") || msgLower.includes("kill") || msgLower.includes("eliminate")) {
     if (alivePlayers.length > 0 && Math.random() > 0.4) {
       const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
@@ -277,17 +229,10 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
     } else {
       content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
     }
-  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right") || msgLower.includes("true") || msgLower.includes("exactly")) {
-    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)].replace("{speaker}", speaker);
-  } else if (msgLower.includes("no") || msgLower.includes("wrong") || msgLower.includes("disagree")) {
-    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
+  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right")) {
+    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
   } else {
-    // Generic response that still references the speaker
-    if (Math.random() > 0.5) {
-      content = BOT_MESSAGES.directResponse[Math.floor(Math.random() * BOT_MESSAGES.directResponse.length)].replace("{speaker}", speaker).replace("{name}", alivePlayers[0]?.name || "them");
-    } else {
-      content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
-    }
+    content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
   }
 
   if (content) {
@@ -785,32 +730,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/auth/login-2fa", async (req, res) => {
-    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
-    if (!checkRateLimit(`login:${ip}`, 10, 60_000)) {
-      return res.status(429).json({ message: "Too many login attempts. Try again later." });
-    }
     try {
       const { username, password, totpCode } = req.body;
       const user = await storage.getUserByUsername(username);
       if (!user || !verifyPassword(password, user.passwordHash)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
-      // Look up 2FA in userMfa table by supabaseUserId
-      const userMfaRecord = user.supabaseUserId ? await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, user.supabaseUserId)) : [];
-      const mfaRecord = userMfaRecord[0];
-
-      if (!mfaRecord || !mfaRecord.isEnabled || !mfaRecord.totpSecret) {
+      if (!user.is2FAEnabled || !user.totpSecret) {
         return res.status(400).json({ message: "2FA not enabled" });
       }
 
-      const { TOTP, Secret } = await import("otpauth");
-      const totp = new TOTP({
-        secret: Secret.fromBase32(mfaRecord.totpSecret),
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30
-      });
+      const { TOTP } = await import("otpauth");
+      const totp = new TOTP({ secret: user.totpSecret });
       const isValid = totp.validate({ token: totpCode, window: 1 }) !== null;
 
       if (!isValid) return res.status(401).json({ message: "Invalid 2FA code" });
@@ -836,10 +767,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       await storage.updateUser(user.id, { resetToken: token, resetTokenExpires: expires });
 
-      // Token is sent only via the reset link, never returned in the response body
-      console.log(`[PASSWORD RESET] Token generated for user ID: ${user.id}`);
+      console.log(`[PASSWORD RESET] Token for ${user.username}: ${token}`);
 
-      res.json({ message: "If this account exists, a reset link has been generated." });
+      res.json({ message: "If this account exists, a reset link has been generated.", resetToken: token });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -870,15 +800,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
 
-      const { TOTP, Secret } = await import("otpauth");
-      const totp = new TOTP({
+      const { TOTP } = await import("otpauth");
+      const secret = new TOTP({
         issuer: "Mafia Game",
         label: supabaseUserId,
         algorithm: "SHA1",
         digits: 6,
         period: 30,
-      });
-      const secret = totp.secret.base32;
+      }).secret.base32;
 
       const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(supabaseUserId)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
 
@@ -898,10 +827,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/auth/2fa/verify", async (req, res) => {
-    const ip2fa = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
-    if (!checkRateLimit(`2fa-verify:${ip2fa}`, 10, 60_000)) {
-      return res.status(429).json({ message: "Too many verification attempts. Try again later." });
-    }
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
@@ -911,13 +836,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "2FA not set up" });
       }
 
-      const { TOTP, Secret } = await import("otpauth");
-      const totp = new TOTP({
-        secret: Secret.fromBase32(mfa.totpSecret),
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30
-      });
+      const { TOTP } = await import("otpauth");
+      const totp = new TOTP({ secret: mfa.totpSecret });
       const isValid = totp.validate({ token: code, window: 1 }) !== null;
 
       if (!isValid) return res.status(400).json({ message: "Invalid code" });
@@ -1178,7 +1098,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
-                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage, me.name);
+                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
@@ -1386,23 +1306,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Live Stripe Price IDs (one-time payments)
-  const PRICE_MAP: Record<string, string> = {
-    // Syndicate Pass - $4.99 one-time
-    syndicate: "price_1TnVRsKGKlGqtitkze2aFiLy",
-    // Donations - one-time
-    tip_499: "price_1TnVSQKGKlGqtitkn3g7TKL8",      // $4.99
-    tip_999: "price_1TnVUpKGKlGqtitkHTf6RlqZ",      // $9.99
-    tip_1999: "price_1TnVVIKGKlGqtitkG7mJ8DsV",     // $19.99
-    tip_4999: "price_1TnVVhKGKlGqtitkZ123cwOu",     // $49.99
-    tip_custom: "price_1TnVfbKGKlGqtitk2i0LzhPC",  // Custom $1-$10,000
-    // Credits - one-time
-    credits_100: "price_1TnVWHKGKlGqtitkfRcApkz6",  // 100 credits $0.99
-    credits_550: "price_1TnVWhKGKlGqtitkEp8OjapI",  // 550 credits $4.99
-    credits_1200: "price_1TnVX6KGKlGqtitkLaTGiebt", // 1200 credits $9.99
-    credits_3000: "price_1TnVXjKGKlGqtitk1vFcOyOt", // 3000 credits $24.99 (Note: user said $24.99 for 3000
-  };
-
   // Stripe checkout: Credit Packs
   app.post("/api/stripe/credit-checkout", async (req, res) => {
     try {
@@ -1411,19 +1314,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = getTrustedOrigin(req);
-
-      let priceId: string;
-      if (credits === 100) priceId = PRICE_MAP.credits_100;
-      else if (credits === 550) priceId = PRICE_MAP.credits_550;
-      else if (credits === 1200) priceId = PRICE_MAP.credits_1200;
-      else if (credits === 3000) priceId = PRICE_MAP.credits_3000;
-      else return res.status(400).json({ message: "Invalid credit pack" });
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: `${credits} Credits` }, unit_amount: amount }, quantity: 1 }],
         metadata: { item: "credits", amount: String(credits) },
         success_url: `${origin}/store?success=true&item=credits&amount=${credits}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1441,12 +1337,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = getTrustedOrigin(req);
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price: PRICE_MAP.syndicate, quantity: 1 }],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: "The Syndicate Pass" }, unit_amount: 499 }, quantity: 1 }],
         metadata: { item: "syndicate" },
         success_url: `${origin}/store?success=true&item=syndicate`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1467,20 +1363,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
-      const origin = getTrustedOrigin(req);
-
-      let priceId: string;
-      if (amount === 499) priceId = PRICE_MAP.tip_499;
-      else if (amount === 999) priceId = PRICE_MAP.tip_999;
-      else if (amount === 1999) priceId = PRICE_MAP.tip_1999;
-      else if (amount === 4999) priceId = PRICE_MAP.tip_4999;
-      else if (amount >= 100 && amount <= 1_000_000) priceId = PRICE_MAP.tip_custom;
-      else return res.status(400).json({ message: "Invalid tip amount. Must be between $1.00 and $10,000.00" });
+      const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price_data: { currency: "usd", product_data: { name: "Support the Game" }, unit_amount: amount }, quantity: 1 }],
         metadata: { item: "tip", amount: String(amount) },
         success_url: `${origin}/store?success=true&item=tip&amount=${amount}`,
         cancel_url: `${origin}/store?canceled=true`,
@@ -1496,8 +1384,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Public config
   app.get("/api/config", (_req, res) => {
     res.json({
-      supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
-      supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
     });
   });
 
@@ -1524,16 +1412,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = req.query.sessionId as string;
       if (!sessionId) return res.json({ claimsToday: 0, remaining: 5 });
 
-      if (!pool) {
-        return res.json({ claimsToday: 0, remaining: 5 });
-      }
-
+      const today = new Date().toISOString().split("T")[0];
       const client = await pool.connect();
       try {
-        // Use PostgreSQL's UTC date to prevent timezone manipulation
         const result = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date",
-          [sessionId]
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
+          [sessionId, today]
         );
         const count = result.rows[0]?.claim_count ?? 0;
         res.json({ claimsToday: count, remaining: Math.max(0, 5 - count) });
@@ -1547,27 +1431,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Claim free ad credits — enforced server-side 5/day limit
   app.post("/api/ad-claim", async (req, res) => {
-    const adIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
-    if (!checkRateLimit(`ad-claim:${adIp}`, 20, 60_000)) {
-      return res.status(429).json({ message: "Too many requests. Slow down." });
-    }
     try {
       const { sessionId, roomCode } = req.body;
       if (!sessionId) return res.status(400).json({ message: "Missing sessionId" });
 
-      if (!pool) {
-        return res.status(503).json({ message: "Database unavailable. Please try again later." });
-      }
-
+      const today = new Date().toISOString().split("T")[0];
       const MAX_DAILY = 5;
       const REWARD = 5;
 
       const client = await pool.connect();
       try {
-        // Use PostgreSQL UTC date to prevent client-side timezone manipulation
         const check = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date",
-          [sessionId]
+          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
+          [sessionId, today]
         );
         const currentCount = check.rows[0]?.claim_count ?? 0;
 
@@ -1577,10 +1453,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         await client.query(
           `INSERT INTO ad_claims (session_id, claim_date, claim_count, last_claim_at)
-           VALUES ($1, (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date, 1, now())
+           VALUES ($1, $2, 1, now())
            ON CONFLICT (session_id, claim_date)
            DO UPDATE SET claim_count = ad_claims.claim_count + 1, last_claim_at = now()`,
-          [sessionId]
+          [sessionId, today]
         );
 
         const newCount = currentCount + 1;
@@ -1629,159 +1505,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } else {
         res.status(500).json({ error: "Failed to submit feedback" });
       }
-    }
-  });
-
-  // Referral system endpoints
-  app.post("/api/referrals/track", async (req, res) => {
-    try {
-      const { referralCode, referredUserId } = req.body;
-      if (!referralCode || !referredUserId) {
-        return res.status(400).json({ message: "Missing referralCode or referredUserId" });
-      }
-
-      if (!pool) {
-        return res.status(503).json({ message: "Database unavailable. Please try again later." });
-      }
-
-      // Find referrer by referral code in profiles table
-      const referrerResult = await pool.query(
-        "SELECT supabase_user_id FROM profiles WHERE referral_code = $1",
-        [referralCode.toUpperCase()]
-      );
-
-      if (referrerResult.rows.length === 0) {
-        return res.status(404).json({ message: "Invalid referral code" });
-      }
-
-      const referrerId = referrerResult.rows[0].supabase_user_id;
-
-      // Don't allow self-referrals
-      if (referrerId === referredUserId) {
-        return res.status(400).json({ message: "Cannot refer yourself" });
-      }
-
-      // Check if this user was already referred
-      const existingReferral = await pool.query(
-        "SELECT id FROM referrals WHERE referred_id = $1",
-        [referredUserId]
-      );
-
-      if (existingReferral.rows.length > 0) {
-        return res.status(400).json({ message: "User already referred" });
-      }
-
-      // Create the referral record
-      await pool.query(
-        "INSERT INTO referrals (referrer_id, referred_id, credits_awarded) VALUES ($1, $2, $3)",
-        [referrerId, referredUserId, 25]
-      );
-
-      // Award credits to both users
-      await pool.query(
-        "UPDATE profiles SET credits = credits + 25 WHERE supabase_user_id = $1",
-        [referrerId]
-      );
-
-      // Create or update profile for referred user
-      await pool.query(
-        `INSERT INTO profiles (supabase_user_id, referred_by, credits)
-         VALUES ($1, $2, 25)
-         ON CONFLICT (supabase_user_id)
-         DO UPDATE SET referred_by = $2, credits = profiles.credits + 25`,
-        [referredUserId, referralCode.toUpperCase()]
-      );
-
-      res.json({ success: true, creditsAwarded: 25 });
-    } catch (err: any) {
-      console.error("Referral tracking error:", err.message);
-      res.status(500).json({ message: "Failed to track referral" });
-    }
-  });
-
-  // Get or create user profile
-  app.post("/api/profiles/upsert", async (req, res) => {
-    try {
-      const { supabaseUserId, referralCode } = req.body;
-      if (!supabaseUserId) {
-        return res.status(400).json({ message: "Missing supabaseUserId" });
-      }
-
-      if (!pool) {
-        return res.status(503).json({ message: "Database unavailable" });
-      }
-
-      // Generate a cryptographically secure referral code if not provided
-      const code = referralCode || randomBytes(4).toString("hex").toUpperCase();
-
-      const result = await pool.query(
-        `INSERT INTO profiles (supabase_user_id, referral_code, credits)
-         VALUES ($1, $2, 0)
-         ON CONFLICT (supabase_user_id)
-         DO UPDATE SET referral_code = COALESCE(NULLIF(profiles.referral_code, ''), EXCLUDED.referral_code)
-         RETURNING *`,
-        [supabaseUserId, code]
-      );
-
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      console.error("Profile upsert error:", err.message);
-      res.status(500).json({ message: "Failed to upsert profile" });
-    }
-  });
-
-  // Get user profile
-  app.get("/api/profiles/:userId", async (req, res) => {
-    try {
-      const { userId } = req.params;
-
-      if (!pool) {
-        return res.status(503).json({ message: "Database unavailable" });
-      }
-
-      const result = await pool.query(
-        "SELECT * FROM profiles WHERE supabase_user_id = $1",
-        [userId]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      console.error("Profile fetch error:", err.message);
-      res.status(500).json({ message: "Failed to fetch profile" });
-    }
-  });
-
-  // Update user credits
-  app.post("/api/profiles/:userId/credits", async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const { amount } = req.body;
-
-      if (typeof amount !== "number") {
-        return res.status(400).json({ message: "Invalid amount" });
-      }
-
-      if (!pool) {
-        return res.status(503).json({ message: "Database unavailable" });
-      }
-
-      const result = await pool.query(
-        "UPDATE profiles SET credits = GREATEST(0, credits + $1) WHERE supabase_user_id = $2 RETURNING credits",
-        [amount, userId]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      res.json({ credits: result.rows[0].credits });
-    } catch (err: any) {
-      console.error("Credits update error:", err.message);
-      res.status(500).json({ message: "Failed to update credits" });
     }
   });
 

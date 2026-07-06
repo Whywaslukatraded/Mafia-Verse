@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, LogIn, KeyRound, Mail, ArrowLeft, Loader as Loader2 } from "lucide-react";
+import { Search, LogIn, KeyRound, Mail, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,7 +61,7 @@ export default function Login() {
       return;
     }
     if (data.session) {
-      // Check if 2FA is required (only redirect if user has enabled it)
+      // Check if 2FA is required
       const supabaseId = data.session.user.id;
       try {
         const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
@@ -71,8 +71,8 @@ export default function Login() {
           setLocation("/2fa-verify");
           return;
         }
-        // 2FA not enabled → go to home (optional setup in Settings)
-        setLocation("/");
+        // 2FA not enabled → set it up
+        setLocation("/2fa-setup");
         return;
       } catch {
         // Fallback to home

@@ -4,46 +4,39 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
+}
 
-// Create pool - will fail on first query if DB URL is missing
-// This allows the server to start for static file serving even without DB
-export const pool = databaseUrl ? new Pool({
-  connectionString: databaseUrl,
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
   allowExitOnIdle: false,
-}) : null;
+});
 
-if (!pool) {
-  console.warn("[DB] No DATABASE_URL or SUPABASE_DB_URL provided. Database features will be unavailable.");
-} else {
-  pool.on("error", (err) => {
-    console.error("Unexpected DB pool error:", err.message);
-  });
+pool.on("error", (err) => {
+  console.error("Unexpected DB pool error:", err.message);
+});
 
-  pool.on("connect", () => {
-    console.log("[DB] New client connected to pool");
-  });
+pool.on("connect", () => {
+  console.log("[DB] New client connected to pool");
+});
 
-  pool.on("acquire", () => {
-    if (pool && pool.waitingCount > 0) {
-      console.warn(`[DB] Pool stressed: ${pool.waitingCount} waiting, ${pool.idleCount} idle, ${pool.totalCount} total`);
-    }
-  });
-}
+pool.on("acquire", () => {
+  if (pool.waitingCount > 0) {
+    console.warn(`[DB] Pool stressed: ${pool.waitingCount} waiting, ${pool.idleCount} idle, ${pool.totalCount} total`);
+  }
+});
 
-export const db = pool ? drizzle(pool, { schema }) : null as any;
+export const db = drizzle(pool, { schema });
 
 export async function testConnection(retries = 5, delayMs = 2000): Promise<boolean> {
-  if (!pool) {
-    console.warn("[DB] No pool available - database features disabled");
-    return false;
-  }
-
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
@@ -65,8 +58,6 @@ export async function testConnection(retries = 5, delayMs = 2000): Promise<boole
 }
 
 export async function runMigrations(): Promise<void> {
-  if (!pool) return;
-
   try {
     const client = await pool.connect();
     try {
@@ -76,13 +67,12 @@ export async function runMigrations(): Promise<void> {
         CREATE TABLE IF NOT EXISTS ad_claims (
           id serial PRIMARY KEY,
           session_id text NOT NULL,
-          claim_date date NOT NULL,
+          claim_date text NOT NULL,
           claim_count integer NOT NULL DEFAULT 0,
           last_claim_at timestamp DEFAULT now(),
           UNIQUE(session_id, claim_date)
         )
       `);
-      await client.query(`ALTER TABLE ad_claims ALTER COLUMN claim_date TYPE date USING claim_date::date`).catch(() => {});
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();

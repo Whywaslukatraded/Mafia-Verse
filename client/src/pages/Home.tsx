@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, MessageCircle } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X } from "lucide-react";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,41 +127,6 @@ export default function Home() {
   const createRoom = useCreateRoom();
   const joinRoom = useJoinRoom();
   const { user, isSignedIn, isLoading, signOut } = useAuth();
-
-  // Handle referral parameter
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const refCode = params.get("ref");
-    if (refCode) {
-      localStorage.setItem("mafia_pending_referral", refCode.toUpperCase());
-      // Clean the URL
-      window.history.replaceState({}, "/", "/");
-    }
-  }, []);
-
-  // Process pending referral after user signs in
-  useEffect(() => {
-    if (isSignedIn && user?.id) {
-      const pendingRef = localStorage.getItem("mafia_pending_referral");
-      if (pendingRef) {
-        fetch("/api/referrals/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referralCode: pendingRef, referredUserId: user.id }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.success) {
-              toast({ title: "Referral bonus!", description: "You earned 25 credits!" });
-            }
-            localStorage.removeItem("mafia_pending_referral");
-          })
-          .catch(() => {
-            // Silently fail - referral might already be processed
-          });
-      }
-    }
-  }, [isSignedIn, user?.id, toast]);
 
   // 2FA is optional — users can set it up in Settings if they want
   // No forced redirect on login
@@ -442,14 +407,6 @@ export default function Home() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
                     </button>
                   </div>
-                  {/* Row 3 - Discord */}
-                  <div className="grid grid-cols-1 gap-2 w-full">
-                    <a href="https://discord.gg/j5Vmfr5GF" target="_blank" rel="noopener noreferrer"
-                      className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30 flex items-center justify-center gap-2 hover:bg-indigo-500/20 transition-colors cursor-pointer">
-                      <MessageCircle className="w-4 h-4 text-indigo-400" />
-                      <span className="text-sm font-bold text-indigo-400">Join our Discord</span>
-                    </a>
-                  </div>
                 </div>
 
                 <div className="pt-2 flex justify-center">
@@ -506,8 +463,8 @@ export default function Home() {
                     />
                   </div>
                   <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                    disabled={joinRoom.isPending || !joinCode || !name?.trim()} data-testid="button-join-room">
-                    {joinRoom.isPending ? "JOINING..." : !name?.trim() ? "ENTER YOUR NAME ABOVE ↑" : !joinCode ? "ENTER ROOM CODE" : "ENTER THE ABYSS"}
+                    disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">
+                    {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
                   </Button>
                 </form>
               </CardContent>
@@ -579,8 +536,8 @@ export default function Home() {
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6 || !name?.trim()} data-testid="button-create-room">
-                  {createRoom.isPending ? "PREPARING..." : !name?.trim() ? "ENTER YOUR NAME ABOVE ↑" : totalPlayers < 6 ? `NEED ${6 - totalPlayers} MORE PLAYER${6 - totalPlayers !== 1 ? "S" : ""}` : "CREATE ROOM"}
+                  disabled={createRoom.isPending || totalPlayers < 6 || !name} data-testid="button-create-room">
+                  {createRoom.isPending ? "PREPARING..." : "CREATE ROOM"}
                 </Button>
               </CardContent>
             </Card>
