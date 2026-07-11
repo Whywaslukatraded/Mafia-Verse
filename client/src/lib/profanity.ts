@@ -55,15 +55,11 @@ const LEET_MAP: Record<string, string> = {
   "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "6": "g", "7": "t", "8": "b", "$": "s", "@": "a", "!": "i", "+": "t", "#": "h", "%": "x", "?": "q", "&": "and",
 };
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function normalize(text: string): string {
   let result = text.toLowerCase();
   // Replace leetspeak
   for (const [char, replacement] of Object.entries(LEET_MAP)) {
-    result = result.replace(new RegExp(escapeRegex(char), "g"), replacement);
+    result = result.replace(new RegExp(char, "g"), replacement);
   }
   // Remove common obfuscation characters
   result = result.replace(/[^a-z0-9\s]/g, "");
