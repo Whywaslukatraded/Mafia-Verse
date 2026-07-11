@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mafia-game-v2';
+const CACHE_NAME = 'mafia-game-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -36,18 +36,21 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
+
   if (request.method !== 'GET') {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  // Skip unsupported schemes (e.g. chrome-extension://) to avoid cache.put() errors
+  if (!request.url.startsWith('http')) {
+    return;
+  }
 
-      return fetch(request).then((response) => {
+  // Network-first: always try to get the latest file from the server.
+  // Only fall back to cache if the network request fails (e.g. offline).
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
         if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
@@ -58,9 +61,11 @@ self.addEventListener('fetch', (event) => {
         });
 
         return response;
-      }).catch(() => {
-        return caches.match('/');
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(request).then((cachedResponse) => {
+          return cachedResponse || caches.match('/');
+        });
+      })
   );
 });
