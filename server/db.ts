@@ -73,6 +73,28 @@ export async function runMigrations(): Promise<void> {
           UNIQUE(session_id, claim_date)
         )
       `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS rooms (
+          id serial PRIMARY KEY,
+          code text NOT NULL UNIQUE,
+          status text NOT NULL DEFAULT 'lobby',
+          phase text DEFAULT 'lobby',
+          turn integer DEFAULT 1,
+          settings jsonb NOT NULL,
+          last_updated timestamp DEFAULT now()
+        )
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS messages (
+          id serial PRIMARY KEY,
+          room_id integer NOT NULL,
+          player_id integer NOT NULL,
+          player_name text NOT NULL,
+          content text NOT NULL,
+          is_spectator boolean DEFAULT false,
+          timestamp timestamp DEFAULT now()
+        )
+      `);
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();
