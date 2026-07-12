@@ -33,7 +33,7 @@ export default function AuthCallback() {
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken || "",
-      }).then(({ error }) => {
+      }).then(async ({ data, error }) => {
         if (error) {
           setError(error.message);
           toast({
@@ -47,6 +47,22 @@ export default function AuthCallback() {
             title: "Email verified",
             description: "Your email has been confirmed. Welcome to Mafia Verse!",
           });
+          const supabaseId = data.session?.user?.id;
+          if (supabaseId) {
+            try {
+              const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
+              const status = await res.json();
+              if (status.isEnabled) {
+                setLocation("/2fa-verify");
+                return;
+              }
+              setLocation("/2fa-setup");
+              return;
+            } catch {
+              setLocation("/");
+              return;
+            }
+          }
           setLocation("/");
         }
       });
