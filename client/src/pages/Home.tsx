@@ -409,6 +409,16 @@ export default function Home() {
                   </div>
                 </div>
 
+                <a
+                  href="https://discord.gg/j5Vmfr5GF"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl transition-colors cursor-pointer"
+                >
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  <span className="text-sm font-bold text-indigo-400">Join our Discord</span>
+                </a>
+
                 <div className="pt-2 flex justify-center">
                   <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
                     System Core: 2,900+ Source Lines
