@@ -51,6 +51,7 @@ export default function TwoFactorSetup() {
         console.log("[2FA] setup response:", res.status, data);
         if (!res.ok) {
           toast({ title: data.message || "Setup failed", variant: "destructive" });
+          setLocation("/");
           return;
         }
         setQrUri(data.qrCodeUri);
@@ -59,6 +60,7 @@ export default function TwoFactorSetup() {
       } catch (e) {
         console.error("[2FA] setup error:", e);
         toast({ title: "Setup failed. Please try again.", variant: "destructive" });
+        setLocation("/");
       }
     }
     startSetup();
