@@ -132,11 +132,24 @@ export default function Home() {
   // No forced redirect on login
 
   const [activeTab, setActiveTab] = useState("join");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinParam = params.get("join");
+    return joinParam ? joinParam.toUpperCase() : "";
+  });
   const [showDailyRewards, setShowDailyRewards] = useState(false);
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
+
+  // If a room code was passed via ?join=CODE (from a shared room link),
+  // make sure the Join tab is active so the pre-filled code is visible.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("join")) {
+      setActiveTab("join");
+    }
+  }, []);
 
   const safeParse = (key: string, fallback: any) => {
     try {

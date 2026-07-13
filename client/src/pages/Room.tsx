@@ -136,10 +136,10 @@ export default function Room() {
   // Session check
   useEffect(() => {
     if (gameState && !sessionId && gameState.room.status === "lobby") {
-      toast({ title: "Session not found", variant: "destructive" });
-      setLocation("/");
+      toast({ title: "Join the room", description: "Enter your name to join." });
+      setLocation(`/?join=${code}`);
     }
-  }, [sessionId, setLocation, toast, gameState]);
+  }, [sessionId, setLocation, toast, gameState, code]);
 
   // Feature 8: Streak tracking + stats sync on game end
   useEffect(() => {
