@@ -303,7 +303,7 @@ export default function Room() {
 
   const getPlayerButtonState = (targetId: number): { label: string; variant: any; action: GameAction; isNight: boolean } | null => {
     if (room?.status === "day" && room?.phase === "voting") {
-      const isVoted = (gameState as any)?.me?.vote === targetId;
+      const isVoted = (gameState as any)?.me?.currentAction?.vote === targetId;
       return {
         label: isVoted ? "Voted" : "Vote",
         variant: isVoted ? "secondary" : "default",
