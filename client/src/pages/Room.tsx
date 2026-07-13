@@ -185,6 +185,13 @@ export default function Room() {
     }
   }, [gameState?.room.status]);
 
+  // Reset role reveal flag whenever the room goes back to lobby (fresh game or replay)
+  useEffect(() => {
+    if (room?.status === "lobby" && hasRevealed) {
+      setHasRevealed(false);
+    }
+  }, [room?.status, hasRevealed]);
+
   // Role reveal on first night (if enabled)
   useEffect(() => {
     if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
