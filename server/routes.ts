@@ -406,7 +406,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         return;
       }
       
-      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
+      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date() });
       actions.votes.clear();
       actions.mafiaKill = null;
       actions.doctorSave = null;
@@ -428,7 +428,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   if (room.status === 'day') {
     if (room.phase === 'discussion') {
       console.log(`[Room ${roomId}] Day Phase: Discussion -> Voting`);
-      await storage.updateRoom(roomId, { phase: 'voting' });
+      await storage.updateRoom(roomId, { phase: 'voting', lastUpdated: new Date() });
       broadcastState(roomId);
     } else if (room.phase === 'voting') {
       const voteCounts = new Map<number, number>();
@@ -487,7 +487,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
 
       if (!gameEnded) {
-        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1 });
+        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date() });
       }
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
@@ -507,12 +507,12 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         broadcastState(roomId);
         return;
       } else {
-        await storage.updateRoom(roomId, { phase: 'doctor' });
+        await storage.updateRoom(roomId, { phase: 'doctor', lastUpdated: new Date() });
       }
       broadcastState(roomId);
     } else if (room.phase === 'doctor') {
       console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
-      await storage.updateRoom(roomId, { phase: 'detective' });
+      await storage.updateRoom(roomId, { phase: 'detective', lastUpdated: new Date() });
       broadcastState(roomId);
     } else if (room.phase === 'detective') {
       console.log(`[Room ${roomId}] Night Phase: Detective -> Day Discussion`);
@@ -560,7 +560,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       gameHistory.set(roomId, history);
 
       await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
-      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion' });
+      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date() });
       actions.votes.clear();
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
@@ -1052,7 +1052,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             await storage.updatePlayer(p.id, { role: p.role });
           }
 
-          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1 });
+          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1, lastUpdated: new Date() });
           gameActions.set(myRoomId, {
             votes: new Map(),
             mafiaKills: new Map(),

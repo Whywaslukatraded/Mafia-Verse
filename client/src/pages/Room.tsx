@@ -96,7 +96,6 @@ export default function Room() {
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
-  const [phaseStartTime, setPhaseStartTime] = useState<number>(Date.now());
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
   const prevWinsRef = useRef<number | null>(null);
@@ -204,7 +203,6 @@ export default function Room() {
   // Reset night action state when phase changes
   useEffect(() => {
     setLockedIn(false);
-    setPhaseStartTime(Date.now());
     // Only clear pending action when moving away from night phases, not when entering them
     if (room?.status !== "night") {
       setPendingNightAction(null);
@@ -215,7 +213,8 @@ export default function Room() {
     }
   }, [room?.phase, room?.status]);
 
-  // Timer countdown
+  // Timer countdown - driven by the server's lastUpdated timestamp so it stays
+  // accurate across reloads, network lag, and the role-reveal overlay
   useEffect(() => {
     if (!room || room.status === "lobby" || room.status === "ended") return;
 
@@ -231,14 +230,15 @@ export default function Room() {
     };
 
     const duration = getDuration();
+    const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - phaseStartTime) / 1000);
+      const elapsed = Math.floor((Date.now() - serverPhaseStart) / 1000);
       const remaining = Math.max(0, duration - elapsed);
       setTimeRemaining(remaining);
     }, 100);
 
     return () => clearInterval(interval);
-  }, [room?.status, room?.phase, room?.settings, phaseStartTime]);
+  }, [room?.status, room?.phase, room?.settings, room?.lastUpdated]);
 
   // Feature 7: Detect eliminations (only show once per player per game)
   // Uses aliveHash so this only fires when alive states actually change, not on every broadcast
