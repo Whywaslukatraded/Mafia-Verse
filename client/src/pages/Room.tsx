@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check } from "lucide-react";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -96,6 +96,8 @@ export default function Room() {
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
   const prevWinsRef = useRef<number | null>(null);
@@ -129,8 +131,34 @@ export default function Room() {
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
     toast({ title: "Link copied!", description: "Send it to your friends." });
+    setTimeout(() => setLinkCopied(false), 2000);
   };
+
+  // Feature: Share room — Web Share API on supported devices (covers WhatsApp,
+  // Messages, and anything else installed), falls back to a QR code + copy link panel.
+  const handleShare = async () => {
+    const shareData = {
+      title: roomName ? `Join ${roomName} on Mafia Verse` : "Join my Mafia Verse game",
+      text: "Join my Mafia Verse game! Tap the link to jump in.",
+      url: window.location.href,
+    };
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share(shareData);
+        return;
+      } catch (err) {
+        // User cancelled the native share sheet, or it failed — fall back to the panel.
+        if ((err as any)?.name === "AbortError") return;
+      }
+    }
+    setShowShareModal(true);
+  };
+
+  const qrCodeUrl = code
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(window.location.href)}`
+    : "";
 
   // Session check
   useEffect(() => {
@@ -517,6 +545,55 @@ export default function Room() {
         )}
       </AnimatePresence>
 
+      {/* Share Panel — fallback for devices without the native Web Share API */}
+      <AnimatePresence>
+        {showShareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-xl px-4"
+            onClick={() => setShowShareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 text-center relative shadow-2xl"
+            >
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="font-serif font-bold text-xl text-primary mb-1">Invite Friends</h3>
+              <p className="text-xs text-muted-foreground mb-5">Scan the code or copy the link to Room {room.code}</p>
+
+              {qrCodeUrl && (
+                <div className="flex justify-center mb-5">
+                  <div className="bg-white p-3 rounded-xl">
+                    <img src={qrCodeUrl} alt="Room QR code" width={180} height={180} className="rounded-lg" />
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={copyLink}
+                variant="outline"
+                className="w-full gap-2"
+              >
+                {linkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {linkCopied ? "Copied!" : "Copy Link"}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} />}
 
       {/* Header */}
@@ -548,7 +625,7 @@ export default function Room() {
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
             <MafiaHandbook />
-            <Button variant="outline" size="sm" onClick={copyLink} className="gap-2">
+            <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
               <Share2 className="w-3 h-3" />
               Share
             </Button>
