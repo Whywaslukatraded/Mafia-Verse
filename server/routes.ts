@@ -108,6 +108,22 @@ async function fillWithBots(roomId: number, storage: any) {
   }
 }
 
+// Tracks each bot's last message so they never repeat themselves back-to-back
+const botLastMessage = new Map<number, string>();
+
+function pickUnique(arr: string[], botId: number): string {
+  if (arr.length <= 1) return arr[0] || "";
+  const last = botLastMessage.get(botId);
+  let choice = arr[Math.floor(Math.random() * arr.length)];
+  let attempts = 0;
+  while (choice === last && attempts < 5) {
+    choice = arr[Math.floor(Math.random() * arr.length)];
+    attempts++;
+  }
+  botLastMessage.set(botId, choice);
+  return choice;
+}
+
 const BOT_MESSAGES = {
   general: [
     "I watched everyone last night. Someone's story doesn't line up.",
@@ -192,7 +208,93 @@ const BOT_MESSAGES = {
     "Who's hiding in plain sight? Let's find out.",
     "The quiet ones are always worth investigating first.",
   ],
+  // Someone said the bot's own name directly
+  calledOut: [
+    "Me? I've said nothing but the truth this whole game. Check the logs.",
+    "Wow, okay. Pointing at me changes nothing — I haven't been suspicious once.",
+    "You can accuse me all you want, it won't hold up. I'm just playing logically.",
+    "I'm the least suspicious person here honestly. Look at who's actually being quiet.",
+    "Funny how the moment someone's cornered, they swing at me instead.",
+    "Go ahead, vote me out. When I'm innocent, you'll wish you hadn't.",
+  ],
+  roleClaim: [
+    "Anyone can type 'I'm the detective.' Where's your proof?",
+    "Claiming a role this early is either brave or reckless. We'll see which.",
+    "If that's true, why wait until now to say it?",
+    "Interesting timing on that claim. What made you speak up right now?",
+    "I'll believe it when the results back it up, not before.",
+  ],
+  deathTalk: [
+    "That death changes everything. We need to rethink who we trust now.",
+    "RIP. Let's not waste that. What did they say right before they died?",
+    "Someone benefited from that death. Who does it point to?",
+    "That's a big loss for the town if they were telling the truth.",
+    "Convenient that they died right after speaking up, don't you think?",
+  ],
+  greeting: [
+    "Hey. Let's figure this out together.",
+    "Alright, everyone locked in? Let's get to work.",
+    "Morning. Who's got theories?",
+  ],
 };
+
+// Reads an actual human message and picks the bot response category that best
+// matches what was said, instead of only checking a couple of keywords.
+function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[]) {
+  const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
+
+  const roleWords = ["i'm the detective", "i am the detective", "i'm the doctor", "i am the doctor", "i'm detective", "i'm doctor", "claim detective", "claim doctor", "i am detective", "i am doctor"];
+  if (roleWords.some(w => msgLower.includes(w))) {
+    return { category: "roleClaim" as const, targetName: undefined };
+  }
+
+  const deathWords = ["died", "dead", "killed last night", "who died", "rip", "eliminated"];
+  if (deathWords.some(w => msgLower.includes(w))) {
+    return { category: "deathTalk" as const, targetName: undefined };
+  }
+
+  const accusationWords = ["mafia", "sus", "vote", "kill", "suspicious", "guilty", "lying"];
+  const defenseWords = ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"];
+  const agreementWords = ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"];
+  const greetingWords = ["hey", "hi ", "hello", "morning", "good morning", "gm"];
+
+  if (mentionedPlayer) {
+    if (accusationWords.some(w => msgLower.includes(w))) {
+      return { category: "accusation" as const, targetName: mentionedPlayer.name };
+    }
+    if (defenseWords.some(w => msgLower.includes(w))) {
+      return { category: "defense" as const, targetName: undefined };
+    }
+    return { category: "response" as const, targetName: mentionedPlayer.name };
+  }
+
+  if (msgLower.includes("?")) {
+    return { category: "response" as const, targetName: undefined };
+  }
+  if (accusationWords.some(w => msgLower.includes(w))) {
+    if (alivePlayers.length > 0 && Math.random() > 0.4) {
+      const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      return { category: "accusation" as const, targetName: victim.name };
+    }
+    return { category: "suspicion" as const, targetName: undefined };
+  }
+  if (agreementWords.some(w => msgLower.includes(w))) {
+    return { category: "agreement" as const, targetName: undefined };
+  }
+  if (greetingWords.some(w => msgLower.startsWith(w) || msgLower.includes(w))) {
+    return { category: "greeting" as const, targetName: undefined };
+  }
+  if (defenseWords.some(w => msgLower.includes(w))) {
+    return { category: "defense" as const, targetName: undefined };
+  }
+
+  return { category: "general" as const, targetName: undefined };
+}
+
+function buildBotReply(category: keyof typeof BOT_MESSAGES, targetName: string | undefined, botId: number): string {
+  const line = pickUnique(BOT_MESSAGES[category], botId);
+  return targetName ? line.replace("{name}", targetName) : line;
+}
 
 async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
   const room = await storage.getRoom(roomId);
@@ -202,38 +304,27 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
 
-  if (Math.random() > 0.8) return;
-
-  const bot = bots[Math.floor(Math.random() * bots.length)];
-  const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
   const msgLower = humanMessage.toLowerCase();
 
-  let content = "";
+  // If a bot was directly named in the message, that specific bot always replies —
+  // being called out shouldn't have a chance of being ignored.
+  const calledBot = bots.find((b: Player) => b.name && msgLower.includes(b.name.toLowerCase().split("_")[0].toLowerCase()));
+  // A direct question also deserves a guaranteed response, otherwise it's a coin flip.
+  const isDirectQuestion = msgLower.includes("?");
 
-  const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
-  
-  if (mentionedPlayer) {
-    if (msgLower.includes("mafia") || msgLower.includes("sus") || msgLower.includes("vote") || msgLower.includes("kill")) {
-      content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
-    } else if (msgLower.includes("innocent") || msgLower.includes("not") || msgLower.includes("trust")) {
-      content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
-    } else {
-      content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
-    }
-  } else if (msgLower.includes("?")) {
-    content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-  } else if (msgLower.includes("mafia") || msgLower.includes("kill") || msgLower.includes("eliminate")) {
-    if (alivePlayers.length > 0 && Math.random() > 0.4) {
-      const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-      content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-    } else {
-      content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
-    }
-  } else if (msgLower.includes("agree") || msgLower.includes("yes") || msgLower.includes("right")) {
-    content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
-  } else {
-    content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+  if (!calledBot && !isDirectQuestion && Math.random() > 0.8) return;
+
+  const bot = calledBot || bots[Math.floor(Math.random() * bots.length)];
+  const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+
+  if (calledBot) {
+    const content = buildBotReply("calledOut", undefined, bot.id);
+    await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
+    return;
   }
+
+  const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers);
+  const content = buildBotReply(category, targetName, bot.id);
 
   if (content) {
     await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
@@ -287,47 +378,34 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
     if (Math.random() > 0.35) {
       let content = "";
-      
+
       const recentMessages = await storage.getMessagesByRoom(roomId);
       const lastHumanMsg = recentMessages?.filter((m: any) => m.playerId !== 0 && !players.find((p: Player) => p.id === m.playerId && p.isBot))?.pop();
-      
+
       if (lastHumanMsg && Math.random() > 0.45) {
         const msgText = lastHumanMsg.content.toLowerCase();
-        const mentionedPlayer = players.find((p: Player) => p.name && msgText.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
-        if (mentionedPlayer) {
-          if (msgText.includes("mafia") || msgText.includes("sus") || msgText.includes("vote") || msgText.includes("kill")) {
-            content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", mentionedPlayer.name);
-          } else if (msgText.includes("not") || msgText.includes("innocent") || msgText.includes("trust")) {
-            content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
-          } else {
-            content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)].replace("{name}", mentionedPlayer.name);
-          }
-        } else if (msgText.includes("?")) {
-          content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
-        } else if (msgText.includes("agree") || msgText.includes("yes") || msgText.includes("right") || msgText.includes("true")) {
-          content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
-        } else if (msgText.includes("mafia") || msgText.includes("kill") || msgText.includes("eliminate")) {
-          const victim = alivePlayers.length > 0 ? alivePlayers[Math.floor(Math.random() * alivePlayers.length)] : null;
-          if (victim) content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
-          else content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+        const calledBot = msgText.includes(bot.name.toLowerCase().split("_")[0].toLowerCase());
+        if (calledBot) {
+          content = buildBotReply("calledOut", undefined, bot.id);
         } else {
-          content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+          const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers);
+          content = buildBotReply(category, targetName, bot.id);
         }
       } else {
         const rand = Math.random();
         if (rand > 0.7 && alivePlayers.length > 0) {
           const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-          content = BOT_MESSAGES.accusation[Math.floor(Math.random() * BOT_MESSAGES.accusation.length)].replace("{name}", victim.name);
+          content = buildBotReply("accusation", victim.name, bot.id);
         } else if (rand > 0.55) {
-          content = BOT_MESSAGES.defense[Math.floor(Math.random() * BOT_MESSAGES.defense.length)];
+          content = buildBotReply("defense", undefined, bot.id);
         } else if (rand > 0.4) {
-          content = BOT_MESSAGES.suspicion[Math.floor(Math.random() * BOT_MESSAGES.suspicion.length)];
+          content = buildBotReply("suspicion", undefined, bot.id);
         } else if (rand > 0.25) {
-          content = BOT_MESSAGES.response[Math.floor(Math.random() * BOT_MESSAGES.response.length)];
+          content = buildBotReply("response", undefined, bot.id);
         } else if (rand > 0.15) {
-          content = BOT_MESSAGES.agreement[Math.floor(Math.random() * BOT_MESSAGES.agreement.length)];
+          content = buildBotReply("agreement", undefined, bot.id);
         } else {
-          content = BOT_MESSAGES.general[Math.floor(Math.random() * BOT_MESSAGES.general.length)];
+          content = buildBotReply("general", undefined, bot.id);
         }
       }
       if (content) {
