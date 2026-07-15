@@ -1,18 +1,21 @@
 import { useState, useCallback } from "react";
 import { MessageSquareText, X, Bug, Lightbulb, Palette, Heart, Send, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { id: "BUG_REPORT", label: "Bug", icon: Bug, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20" },
-  { id: "FEATURE_REQUEST", label: "Feature", icon: Lightbulb, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  { id: "DESIGN", label: "Design", icon: Palette, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-  { id: "OTHER", label: "Praise", icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+const CATEGORIES_META = [
+  { id: "BUG_REPORT", labelKey: "bug", icon: Bug, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20" },
+  { id: "FEATURE_REQUEST", labelKey: "feature", icon: Lightbulb, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  { id: "DESIGN", labelKey: "design", icon: Palette, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  { id: "OTHER", labelKey: "praise", icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10", border: "border-pink-500/20" },
 ];
 
 export function FeedbackWidget() {
+  const { t } = useTranslation();
+  const CATEGORIES = CATEGORIES_META.map(c => ({ ...c, label: t(`feedback.categories.${c.labelKey}`) }));
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState("BUG_REPORT");
   const [message, setMessage] = useState("");
@@ -73,7 +76,7 @@ export function FeedbackWidget() {
         data-testid="button-feedback-toggle"
       >
         {isOpen ? <X className="w-5 h-5" /> : <MessageSquareText className="w-5 h-5" />}
-        {isOpen ? "Close" : "Feedback"}
+        {isOpen ? t("common.close") : t("feedback.feedback")}
       </motion.button>
 
       {/* Feedback Panel */}
@@ -96,12 +99,12 @@ export function FeedbackWidget() {
                 >
                   <CheckCircle className="w-12 h-12 text-green-500" />
                 </motion.div>
-                <p className="text-sm font-bold text-foreground">Feedback Sent!</p>
-                <p className="text-xs text-muted-foreground text-center">Thank you for helping make Mafia better.</p>
+                <p className="text-sm font-bold text-foreground">{t("feedback.feedbackSent")}</p>
+                <p className="text-xs text-muted-foreground text-center">{t("feedback.thankYouForHelping")}</p>
               </div>
             ) : (
               <>
-                <h3 className="text-sm font-black uppercase tracking-wider text-foreground mb-4">Send Feedback</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-foreground mb-4">{t("feedback.sendFeedback")}</h3>
 
                 {/* Category Selection */}
                 <div className="grid grid-cols-2 gap-2 mb-4">
@@ -127,7 +130,7 @@ export function FeedbackWidget() {
 
                 {/* Message Input */}
                 <Textarea
-                  placeholder="Tell us what's on your mind..."
+                  placeholder={t("feedback.tellUsWhatsOnYourMind")}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="bg-muted/50 border-border text-sm min-h-[80px] mb-3 resize-none"
@@ -141,7 +144,7 @@ export function FeedbackWidget() {
                   data-testid="button-feedback-submit"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {submitting ? "Sending..." : "Send Feedback"}
+                  {submitting ? t("feedback.sending") : t("feedback.sendFeedback")}
                 </Button>
               </>
             )}

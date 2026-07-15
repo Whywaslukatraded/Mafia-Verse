@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Coins, Sparkles, X, Gift, Star, Diamond, Crown, Flame } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 /* ------------------------------------------------------------------ */
@@ -15,147 +16,150 @@ const RARITY_WEIGHTS = {
   mythic:     5,
 };
 
+// Item names are translated via lootCrate.items.<id> in the locale files;
+// credit items compute their display name dynamically instead of storing
+// "N Credits" as a literal string.
 const LOOT_ITEMS = [
   /* ---------- COMMON (chat borders + name colours) ---------- */
-  { id: "lc_border_grey",   name: "Ash Border",       type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_olive", name: "Olive Border",     type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_tan",   name: "Tan Border",       type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_navy",  name: "Navy Border",      type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_teal",  name: "Teal Border",      type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_mint",  name: "Mint Border",      type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_lav",   name: "Lavender Border",  type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_coral", name: "Coral Border",     type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_peach", name: "Peach Border",     type: "chat_border",  tier: "common", weight: 5 },
-  { id: "lc_border_ink",   name: "Ink Border",       type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_grey",   type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_olive",  type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_tan",    type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_navy",   type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_teal",   type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_mint",   type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_lav",    type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_coral",  type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_peach",  type: "chat_border",  tier: "common", weight: 5 },
+  { id: "lc_border_ink",    type: "chat_border",  tier: "common", weight: 5 },
 
-  { id: "lc_name_grey",    name: "Ash Name",         type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_olive",   name: "Olive Name",       type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_tan",     name: "Tan Name",         type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_navy",    name: "Navy Name",        type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_teal",    name: "Teal Name",        type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_mint",    name: "Mint Name",        type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_lav",     name: "Lavender Name",    type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_coral",   name: "Coral Name",       type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_peach",   name: "Peach Name",       type: "name_color",   tier: "common", weight: 5 },
-  { id: "lc_name_ink",     name: "Ink Name",         type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_grey",     type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_olive",    type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_tan",      type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_navy",     type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_teal",     type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_mint",     type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_lav",      type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_coral",    type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_peach",    type: "name_color",   tier: "common", weight: 5 },
+  { id: "lc_name_ink",      type: "name_color",   tier: "common", weight: 5 },
 
-  { id: "lc_1c",   name: "1 Credit",   type: "credits", tier: "common", weight: 10 },
-  { id: "lc_2c",   name: "2 Credits",  type: "credits", tier: "common", weight: 8 },
-  { id: "lc_3c",   name: "3 Credits",  type: "credits", tier: "common", weight: 6 },
-  { id: "lc_4c",   name: "4 Credits",  type: "credits", tier: "common", weight: 4 },
-  { id: "lc_5c",   name: "5 Credits",  type: "credits", tier: "common", weight: 3 },
+  { id: "lc_1c",  credits: 1,  type: "credits", tier: "common", weight: 10 },
+  { id: "lc_2c",  credits: 2,  type: "credits", tier: "common", weight: 8 },
+  { id: "lc_3c",  credits: 3,  type: "credits", tier: "common", weight: 6 },
+  { id: "lc_4c",  credits: 4,  type: "credits", tier: "common", weight: 4 },
+  { id: "lc_5c",  credits: 5,  type: "credits", tier: "common", weight: 3 },
 
   /* ---------- RARE (chat borders + name colours + avatar frames) ---------- */
-  { id: "lc_border_gold",   name: "Golden Border",   type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_silver", name: "Silver Border",   type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_bronze", name: "Bronze Border",   type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_ruby",   name: "Ruby Border",     type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_sapphire", name: "Sapphire Border", type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_emerald", name: "Emerald Border",  type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_amethyst", name: "Amethyst Border", type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_amber",   name: "Amber Border",    type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_jade",    name: "Jade Border",     type: "chat_border",  tier: "rare", weight: 4 },
-  { id: "lc_border_onyx",    name: "Onyx Border",     type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_gold",     type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_silver",   type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_bronze",   type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_ruby",     type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_sapphire", type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_emerald",  type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_amethyst", type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_amber",    type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_jade",     type: "chat_border",  tier: "rare", weight: 4 },
+  { id: "lc_border_onyx",     type: "chat_border",  tier: "rare", weight: 4 },
 
-  { id: "lc_name_gold",   name: "Gold Name",         type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_silver", name: "Silver Name",       type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_bronze", name: "Bronze Name",       type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_ruby",   name: "Ruby Name",         type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_sapphire", name: "Sapphire Name",   type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_emerald",  name: "Emerald Name",    type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_amethyst", name: "Amethyst Name",   type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_amber",    name: "Amber Name",      type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_jade",     name: "Jade Name",       type: "name_color",   tier: "rare", weight: 4 },
-  { id: "lc_name_onyx",     name: "Onyx Name",       type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_gold",       type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_silver",     type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_bronze",     type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_ruby",       type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_sapphire",   type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_emerald",    type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_amethyst",   type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_amber",      type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_jade",       type: "name_color",   tier: "rare", weight: 4 },
+  { id: "lc_name_onyx",       type: "name_color",   tier: "rare", weight: 4 },
 
-  { id: "lc_frame_steel",    name: "Steel Frame",      type: "avatar_frame", tier: "rare", weight: 3 },
-  { id: "lc_frame_bronze",   name: "Bronze Frame",     type: "avatar_frame", tier: "rare", weight: 3 },
-  { id: "lc_frame_silver",   name: "Silver Frame",     type: "avatar_frame", tier: "rare", weight: 3 },
-  { id: "lc_frame_wood",     name: "Mahogany Frame",    type: "avatar_frame", tier: "rare", weight: 3 },
-  { id: "lc_frame_ivy",      name: "Ivy Frame",        type: "avatar_frame", tier: "rare", weight: 3 },
+  { id: "lc_frame_steel",     type: "avatar_frame", tier: "rare", weight: 3 },
+  { id: "lc_frame_bronze",    type: "avatar_frame", tier: "rare", weight: 3 },
+  { id: "lc_frame_silver",    type: "avatar_frame", tier: "rare", weight: 3 },
+  { id: "lc_frame_wood",      type: "avatar_frame", tier: "rare", weight: 3 },
+  { id: "lc_frame_ivy",       type: "avatar_frame", tier: "rare", weight: 3 },
 
-  { id: "lc_6c",  name: "6 Credits",   type: "credits", tier: "rare", weight: 4 },
-  { id: "lc_7c",  name: "7 Credits",   type: "credits", tier: "rare", weight: 3 },
-  { id: "lc_8c",  name: "8 Credits",   type: "credits", tier: "rare", weight: 2 },
-  { id: "lc_10c", name: "10 Credits",  type: "credits", tier: "rare", weight: 2 },
+  { id: "lc_6c",  credits: 6,  type: "credits", tier: "rare", weight: 4 },
+  { id: "lc_7c",  credits: 7,  type: "credits", tier: "rare", weight: 3 },
+  { id: "lc_8c",  credits: 8,  type: "credits", tier: "rare", weight: 2 },
+  { id: "lc_10c", credits: 10, type: "credits", tier: "rare", weight: 2 },
 
   /* ---------- EPIC (avatar frames + emotes) ---------- */
-  { id: "lc_frame_diamond",  name: "Diamond Frame",   type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_fire",     name: "Fire Frame",      type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_crown",    name: "Crown Frame",     type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_ice",      name: "Ice Frame",       type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_shadow",   name: "Shadow Frame",    type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_neon",     name: "Neon Frame",      type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_goldleaf", name: "Goldleaf Frame",  type: "avatar_frame", tier: "epic", weight: 3 },
-  { id: "lc_frame_cyber",    name: "Cyber Frame",     type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_diamond",   type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_fire",      type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_crown",     type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_ice",       type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_shadow",    type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_neon",      type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_goldleaf",  type: "avatar_frame", tier: "epic", weight: 3 },
+  { id: "lc_frame_cyber",     type: "avatar_frame", tier: "epic", weight: 3 },
 
-  { id: "lc_emote_gun",     name: "Finger Gun",       type: "emote", tier: "epic", weight: 2 },
-  { id: "lc_emote_hood",    name: "Over the Hood",    type: "emote", tier: "epic", weight: 2 },
-  { id: "lc_emote_cigar",   name: "Cigar",            type: "emote", tier: "epic", weight: 2 },
-  { id: "lc_emote_glass",   name: "Tumbler",          type: "emote", tier: "epic", weight: 2 },
-  { id: "lc_emote_ring",    name: "Boss Ring",        type: "emote", tier: "epic", weight: 2 },
+  { id: "lc_emote_gun",       type: "emote", tier: "epic", weight: 2 },
+  { id: "lc_emote_hood",      type: "emote", tier: "epic", weight: 2 },
+  { id: "lc_emote_cigar",     type: "emote", tier: "epic", weight: 2 },
+  { id: "lc_emote_glass",     type: "emote", tier: "epic", weight: 2 },
+  { id: "lc_emote_ring",      type: "emote", tier: "epic", weight: 2 },
 
-  { id: "lc_12c", name: "12 Credits", type: "credits", tier: "epic", weight: 3 },
-  { id: "lc_15c", name: "15 Credits", type: "credits", tier: "epic", weight: 2 },
-  { id: "lc_20c", name: "20 Credits", type: "credits", tier: "epic", weight: 1 },
+  { id: "lc_12c", credits: 12, type: "credits", tier: "epic", weight: 3 },
+  { id: "lc_15c", credits: 15, type: "credits", tier: "epic", weight: 2 },
+  { id: "lc_20c", credits: 20, type: "credits", tier: "epic", weight: 1 },
 
   /* ---------- LEGENDARY (rare frames + emotes + title) ---------- */
-  { id: "lc_frame_dragon",  name: "Dragon Frame",    type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_angel",   name: "Seraph Frame",     type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_demon",   name: "Demon Frame",      type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_royal",   name: "Royal Frame",      type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_thorn",   name: "Thorn Frame",      type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_legend",  name: "Legend Frame",     type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_ghost",   name: "Ghost Frame",      type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_moon",    name: "Moonlight Frame",  type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_sun",     name: "Sunburst Frame",   type: "avatar_frame", tier: "legendary", weight: 2 },
-  { id: "lc_frame_void",    name: "Void Frame",       type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_dragon",    type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_angel",     type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_demon",     type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_royal",     type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_thorn",     type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_legend",    type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_ghost",     type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_moon",      type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_sun",       type: "avatar_frame", tier: "legendary", weight: 2 },
+  { id: "lc_frame_void",      type: "avatar_frame", tier: "legendary", weight: 2 },
 
-  { id: "lc_emote_kingpin", name: "Kingpin",          type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_enforcer", name: "The Enforcer",    type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_mastermind", name: "Mastermind",    type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_don",     name: "The Don",          type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_silencer", name: "Silencer",        type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_legend",  name: "Living Legend",    type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_myth",    name: "Urban Myth",       type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_boss",    name: "Final Boss",       type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_godfather", name: "Godfather",      type: "emote", tier: "legendary", weight: 2 },
-  { id: "lc_emote_shadow",  name: "Shadow Walker",    type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_kingpin",    type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_enforcer",   type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_mastermind", type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_don",        type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_silencer",   type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_legend",     type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_myth",       type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_boss",       type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_godfather",  type: "emote", tier: "legendary", weight: 2 },
+  { id: "lc_emote_shadow",     type: "emote", tier: "legendary", weight: 2 },
 
-  { id: "lc_title_made",    name: "Title: Made Man",   type: "title", tier: "legendary", weight: 2 },
-  { id: "lc_title_capo",    name: "Title: Capo",       type: "title", tier: "legendary", weight: 2 },
-  { id: "lc_title_consigliere", name: "Title: Consigliere", type: "title", tier: "legendary", weight: 2 },
-  { id: "lc_title_underboss", name: "Title: Underboss", type: "title", tier: "legendary", weight: 2 },
+  { id: "lc_title_made",         type: "title", tier: "legendary", weight: 2 },
+  { id: "lc_title_capo",         type: "title", tier: "legendary", weight: 2 },
+  { id: "lc_title_consigliere",  type: "title", tier: "legendary", weight: 2 },
+  { id: "lc_title_underboss",    type: "title", tier: "legendary", weight: 2 },
 
-  { id: "lc_25c", name: "25 Credits", type: "credits", tier: "legendary", weight: 2 },
-  { id: "lc_30c", name: "30 Credits", type: "credits", tier: "legendary", weight: 1 },
-  { id: "lc_50c", name: "50 Credits", type: "credits", tier: "legendary", weight: 1 },
+  { id: "lc_25c", credits: 25, type: "credits", tier: "legendary", weight: 2 },
+  { id: "lc_30c", credits: 30, type: "credits", tier: "legendary", weight: 1 },
+  { id: "lc_50c", credits: 50, type: "credits", tier: "legendary", weight: 1 },
 
   /* ---------- MYTHIC (1-of-a-kind) ---------- */
-  { id: "lc_frame_godfather", name: "Godfather Frame", type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_immortal",  name: "Immortal Frame",  type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_celestial", name: "Celestial Frame", type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_doom",      name: "Doom Frame",      type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_phoenix",   name: "Phoenix Frame",   type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_eclipse",   name: "Eclipse Frame",   type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_nexus",     name: "Nexus Frame",     type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_overlord",  name: "Overlord Frame",  type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_titan",     name: "Titan Frame",     type: "avatar_frame", tier: "mythic", weight: 1 },
-  { id: "lc_frame_omega",     name: "Omega Frame",     type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_godfather", type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_immortal",  type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_celestial", type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_doom",      type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_phoenix",   type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_eclipse",   type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_nexus",     type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_overlord",  type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_titan",     type: "avatar_frame", tier: "mythic", weight: 1 },
+  { id: "lc_frame_omega",     type: "avatar_frame", tier: "mythic", weight: 1 },
 
-  { id: "lc_emote_omega",    name: "Omega",           type: "emote", tier: "mythic", weight: 1 },
-  { id: "lc_emote_overlord", name: "Overlord",        type: "emote", tier: "mythic", weight: 1 },
-  { id: "lc_emote_immortal", name: "Immortal",        type: "emote", tier: "mythic", weight: 1 },
-  { id: "lc_emote_celestial", name: "Celestial",      type: "emote", tier: "mythic", weight: 1 },
-  { id: "lc_emote_doom",     name: "Doom",            type: "emote", tier: "mythic", weight: 1 },
+  { id: "lc_emote_omega",     type: "emote", tier: "mythic", weight: 1 },
+  { id: "lc_emote_overlord",  type: "emote", tier: "mythic", weight: 1 },
+  { id: "lc_emote_immortal",  type: "emote", tier: "mythic", weight: 1 },
+  { id: "lc_emote_celestial", type: "emote", tier: "mythic", weight: 1 },
+  { id: "lc_emote_doom",      type: "emote", tier: "mythic", weight: 1 },
 
-  { id: "lc_title_don",      name: "Title: The Don",          type: "title", tier: "mythic", weight: 1 },
-  { id: "lc_title_godfather", name: "Title: Godfather",       type: "title", tier: "mythic", weight: 1 },
-  { id: "lc_title_overlord", name: "Title: Overlord",         type: "title", tier: "mythic", weight: 1 },
-  { id: "lc_title_immortal", name: "Title: Immortal",         type: "title", tier: "mythic", weight: 1 },
+  { id: "lc_title_don",       type: "title", tier: "mythic", weight: 1 },
+  { id: "lc_title_godfather", type: "title", tier: "mythic", weight: 1 },
+  { id: "lc_title_overlord",  type: "title", tier: "mythic", weight: 1 },
+  { id: "lc_title_immortal",  type: "title", tier: "mythic", weight: 1 },
 
-  { id: "lc_100c", name: "100 Credits", type: "credits", tier: "mythic", weight: 1 },
-  { id: "lc_250c", name: "250 Credits", type: "credits", tier: "mythic", weight: 1 },
+  { id: "lc_100c", credits: 100, type: "credits", tier: "mythic", weight: 1 },
+  { id: "lc_250c", credits: 250, type: "credits", tier: "mythic", weight: 1 },
 ];
 
 const TIER_COLORS: Record<string, string> = {
@@ -218,10 +222,16 @@ function rollLoot() {
 const CRATE_COST = 15;
 
 export function LootCrate({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [credits, setCredits] = useState(getCredits);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<typeof LOOT_ITEMS[0] | null>(null);
   const [revealed, setRevealed] = useState(false);
+
+  const getItemName = (item: typeof LOOT_ITEMS[0]) =>
+    item.type === "credits" ? t("lootCrate.creditsAmount", { count: item.credits }) : t(`lootCrate.items.${item.id}`);
+
+  const tierLabel = (tier: string) => t(`cosmetics.tiers.${tier}`, tier);
 
   const open = useCallback(() => {
     if (credits < CRATE_COST || spinning) return;
@@ -239,8 +249,7 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
       setTimeout(() => {
         setRevealed(true);
         if (item.type === "credits") {
-          const val = parseInt(item.name);
-          addCredits(val);
+          addCredits(item.credits || 0);
           setCredits(getCredits);
         } else {
           addOwnedItem(item.id);
@@ -267,8 +276,8 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
                 <Box className="w-5 h-5 text-purple-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Loot Crate</h2>
-                <p className="text-xs text-muted-foreground">Spend credits, get surprises</p>
+                <h2 className="text-lg font-bold text-foreground">{t("lootCrate.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("lootCrate.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -281,7 +290,7 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
           <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
             <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-muted-foreground">Your Credits</span>
+              <span className="text-sm text-muted-foreground">{t("lootCrate.yourCredits")}</span>
             </div>
             <span className="text-sm font-bold text-amber-500">{credits}</span>
           </div>
@@ -289,13 +298,13 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
           <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
             <div className="flex items-center gap-2">
               <Box className="w-4 h-4 text-purple-500" />
-              <span className="text-sm text-muted-foreground">Crate Cost</span>
+              <span className="text-sm text-muted-foreground">{t("lootCrate.crateCost")}</span>
             </div>
-            <span className="text-sm font-bold text-purple-500">{CRATE_COST} Credits</span>
+            <span className="text-sm font-bold text-purple-500">{t("lootCrate.creditsAmount", { count: CRATE_COST })}</span>
           </div>
 
           <div className="text-xs text-center text-muted-foreground">
-            <span className="text-gray-400">Common</span> • <span className="text-blue-400">Rare</span> • <span className="text-purple-400">Epic</span> • <span className="text-yellow-400">Legendary</span> • <span className="text-rose-400">Mythic</span>
+            <span className="text-gray-400">{t("cosmetics.tiers.common", "Common")}</span> • <span className="text-blue-400">{t("lootCrate.rare")}</span> • <span className="text-purple-400">{t("lootCrate.epic")}</span> • <span className="text-yellow-400">{t("cosmetics.tiers.legendary")}</span> • <span className="text-rose-400">{t("lootCrate.mythic")}</span>
           </div>
 
           <AnimatePresence mode="wait">
@@ -313,7 +322,7 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
                 >
                   <Box className="w-16 h-16 text-purple-500" />
                 </motion.div>
-                <p className="mt-4 text-sm font-bold text-foreground">Opening...</p>
+                <p className="mt-4 text-sm font-bold text-foreground">{t("lootCrate.opening")}</p>
               </motion.div>
             ) : result ? (
               <motion.div
@@ -332,8 +341,8 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
                   ) : (
                     <Gift className="w-10 h-10 text-purple-500 mx-auto" />
                   )}
-                  <p className={`mt-2 font-black text-lg ${TIER_COLORS[result.tier]}`}>{result.name}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{result.tier}</p>
+                  <p className={`mt-2 font-black text-lg ${TIER_COLORS[result.tier]}`}>{getItemName(result)}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{tierLabel(result.tier)}</p>
                 </motion.div>
                 {revealed && (
                   <motion.p
@@ -342,8 +351,8 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
                     className="mt-3 text-sm text-muted-foreground"
                   >
                     {result.type === "credits"
-                      ? `${result.name} added to your balance!`
-                      : "Added to your collection!"}
+                      ? t("lootCrate.addedToBalance", { name: getItemName(result) })
+                      : t("lootCrate.addedToCollection")}
                   </motion.p>
                 )}
               </motion.div>
@@ -355,8 +364,8 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1 }}
               >
                 <Box className="w-14 h-14 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm font-bold text-foreground">Feeling lucky?</p>
-                <p className="text-xs text-muted-foreground">Open for a chance at rare cosmetics & credits</p>
+                <p className="text-sm font-bold text-foreground">{t("lootCrate.feelingLucky")}</p>
+                <p className="text-xs text-muted-foreground">{t("lootCrate.openForChance")}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -367,12 +376,12 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
             onClick={open}
           >
             <Sparkles className="w-4 h-4" />
-            {spinning ? "Opening..." : canAfford ? `Open Crate (${CRATE_COST} Credits)` : "Not Enough Credits"}
+            {spinning ? t("lootCrate.opening") : canAfford ? t("lootCrate.openCrate", { count: CRATE_COST }) : t("lootCrate.notEnoughCredits")}
           </Button>
 
           {!canAfford && !spinning && (
             <p className="text-xs text-center text-muted-foreground">
-              Earn more credits from daily rewards, ads, or referrals
+              {t("lootCrate.earnMoreCredits")}
             </p>
           )}
         </div>

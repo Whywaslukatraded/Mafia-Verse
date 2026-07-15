@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import { Search, KeyRound, Eye, EyeOff, CircleCheck as CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { containsProfanity } from "@/lib/profanity";
 
 export default function ResetPassword() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [password, setPassword] = useState("");
@@ -37,8 +39,8 @@ export default function ResetPassword() {
         if (error) {
           setValidSession(false);
           toast({
-            title: "Invalid or expired link",
-            description: "This reset link has expired. Please request a new one.",
+            title: t("resetPassword.invalidLinkTitle"),
+            description: t("resetPassword.expiredLinkDescription"),
             variant: "destructive",
           });
         }
@@ -46,8 +48,8 @@ export default function ResetPassword() {
     } else if (!accessToken) {
       setValidSession(false);
       toast({
-        title: "Invalid link",
-        description: "This reset link is missing required tokens.",
+        title: t("resetPassword.invalidLinkTitleShort"),
+        description: t("resetPassword.missingTokensDescription"),
         variant: "destructive",
       });
     }
@@ -57,24 +59,24 @@ export default function ResetPassword() {
     e.preventDefault();
     if (password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: t("signup.passwordTooShortTitle"),
+        description: t("signup.passwordTooShortDescription"),
         variant: "destructive",
       });
       return;
     }
     if (password !== confirmPassword) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords match.",
+        title: t("resetPassword.mismatchTitle"),
+        description: t("resetPassword.mismatchDescription"),
         variant: "destructive",
       });
       return;
     }
     if (containsProfanity(password)) {
       toast({
-        title: "Inappropriate password",
-        description: "Your password contains inappropriate language. Please choose a different password.",
+        title: t("signup.inappropriatePasswordTitle"),
+        description: t("signup.inappropriatePasswordDescription"),
         variant: "destructive",
       });
       return;
@@ -85,15 +87,15 @@ export default function ResetPassword() {
     setLoading(false);
     if (error) {
       toast({
-        title: "Failed to reset password",
+        title: t("resetPassword.failedTitle"),
         description: error.message,
         variant: "destructive",
       });
     } else {
       setSuccess(true);
       toast({
-        title: "Password reset successful",
-        description: "You can now sign in with your new password.",
+        title: t("resetPassword.successTitle"),
+        description: t("resetPassword.successDescription"),
       });
       setTimeout(() => setLocation("/login"), 2000);
     }
@@ -106,9 +108,9 @@ export default function ResetPassword() {
           <div className="inline-flex items-center justify-center p-4 bg-red-500/10 rounded-full">
             <KeyRound className="w-8 h-8 text-red-500" />
           </div>
-          <h1 className="text-2xl font-bold">Invalid or Expired Link</h1>
-          <p className="text-muted-foreground">This password reset link is no longer valid. Please request a new one.</p>
-          <Button onClick={() => setLocation("/login")} className="mt-4">Go to Login</Button>
+          <h1 className="text-2xl font-bold">{t("resetPassword.invalidOrExpired")}</h1>
+          <p className="text-muted-foreground">{t("resetPassword.invalidOrExpiredDescription")}</p>
+          <Button onClick={() => setLocation("/login")} className="mt-4">{t("resetPassword.goToLogin")}</Button>
         </div>
       </div>
     );
@@ -130,8 +132,8 @@ export default function ResetPassword() {
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full mb-4">
             <Search className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Reset Password</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Choose a new password</p>
+          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">{t("resetPassword.title")}</h1>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("resetPassword.subtitle")}</p>
         </div>
 
         {success ? (
@@ -139,18 +141,18 @@ export default function ResetPassword() {
             <div className="inline-flex items-center justify-center p-4 bg-emerald-500/10 rounded-full">
               <CheckCircle2 className="w-8 h-8 text-emerald-500" />
             </div>
-            <h2 className="text-xl font-bold">Password Updated!</h2>
-            <p className="text-muted-foreground">Redirecting you to login...</p>
+            <h2 className="text-xl font-bold">{t("resetPassword.updated")}</h2>
+            <p className="text-muted-foreground">{t("resetPassword.redirecting")}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="w-full space-y-4 bg-card border border-border rounded-xl p-6">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t("resetPassword.newPassword")}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="At least 6 characters"
+                  placeholder={t("signup.passwordPlaceholder")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -166,11 +168,11 @@ export default function ResetPassword() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t("resetPassword.confirmPassword")}</Label>
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
-                placeholder="Retype your password"
+                placeholder={t("resetPassword.retypePassword")}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -179,7 +181,7 @@ export default function ResetPassword() {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               <KeyRound className="w-4 h-4 mr-2" />
-              {loading ? "Updating..." : "Reset Password"}
+              {loading ? t("resetPassword.updating") : t("resetPassword.title")}
             </Button>
           </form>
         )}
@@ -190,7 +192,7 @@ export default function ResetPassword() {
           onClick={() => setLocation("/login")}
           className="text-muted-foreground hover:text-foreground"
         >
-          ← Back to Login
+          ← {t("resetPassword.backToLogin")}
         </Button>
       </motion.div>
     </div>

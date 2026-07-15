@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Users, Copy, CheckCircle2, Link2, Gift } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 function generateReferralCode() {
@@ -27,6 +28,7 @@ function saveReferralStats(s: any) {
 const REWARD_PER_INVITE = 25;
 
 export function ReferralSystem({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [code] = useState(generateReferralCode);
   const [stats] = useState(getReferralStats);
   const [copied, setCopied] = useState(false);
@@ -55,8 +57,8 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
                 <Users className="w-5 h-5 text-emerald-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Invite Friends</h2>
-                <p className="text-xs text-muted-foreground">Earn credits for every player</p>
+                <h2 className="text-lg font-bold text-foreground">{t("referralSystem.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("referralSystem.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -67,7 +69,7 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
 
         <div className="p-6 space-y-4">
           <div className="bg-muted/30 rounded-xl p-4 text-center space-y-2">
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">Your Referral Link</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">{t("referralSystem.yourReferralLink")}</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
                 {window.location.origin}/?ref={code}
@@ -81,23 +83,23 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-muted/30 rounded-xl p-3 text-center">
               <p className="text-xl font-black text-foreground">{stats.invited}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Invited</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("referralSystem.invited")}</p>
             </div>
             <div className="bg-muted/30 rounded-xl p-3 text-center">
               <p className="text-xl font-black text-foreground">{stats.claimed}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Joined</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("referralSystem.joined")}</p>
             </div>
             <div className="bg-muted/30 rounded-xl p-3 text-center">
               <p className="text-xl font-black text-emerald-500">{stats.totalCredits}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Credits</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("referralSystem.credits")}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
             <Gift className="w-5 h-5 text-emerald-500" />
             <div>
-              <p className="text-sm font-bold text-foreground">{REWARD_PER_INVITE} Credits per friend</p>
-              <p className="text-xs text-muted-foreground">They join a game, you get rewarded</p>
+              <p className="text-sm font-bold text-foreground">{t("referralSystem.creditsPerFriend", { count: REWARD_PER_INVITE })}</p>
+              <p className="text-xs text-muted-foreground">{t("referralSystem.theyJoinYouGetRewarded")}</p>
             </div>
           </div>
         </div>

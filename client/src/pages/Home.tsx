@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,15 +29,15 @@ const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🦺", "🧣"
 const BGS = ["bg-primary/10", "bg-red-500/10", "bg-blue-500/10", "bg-emerald-500/10", "bg-amber-500/10", "bg-purple-500/10"];
 
 const ACHIEVEMENTS = [
-  { id: 'first_win', name: 'First Blood', description: 'Win your first game', icon: '🩸' },
-  { id: 'mafia_master', name: 'Don of the City', description: 'Win 5 games as Mafia', icon: '🍷' },
-  { id: 'savior', name: 'Life Saver', description: 'Save 3 players as Doctor', icon: '💉' },
-  { id: 'truth_seeker', name: 'Eagle Eye', description: 'Find 3 Mafia as Detective', icon: '🔍' },
-  { id: 'survivor', name: 'Final Stand', description: 'Win as the last Civilian alive', icon: '🛡️' },
-  { id: 'quick_thinker', name: 'Quick Thinker', description: 'Win a game with short phase durations', icon: '⚡' },
-  { id: 'ghost_whisperer', name: 'Ghost Whisperer', description: 'Chat 50 times in spectator chat', icon: '👻' },
-  { id: 'night_owl', name: 'Night Owl', description: 'Play 10 games during the night phase', icon: '🦉' },
-  { id: 'fashionista', name: 'Fashionista', description: 'Unlock 10 custom rare profile outfits or limited skins.', icon: '👗' },
+  { id: 'first_win', icon: '🩸' },
+  { id: 'mafia_master', icon: '🍷' },
+  { id: 'savior', icon: '💉' },
+  { id: 'truth_seeker', icon: '🔍' },
+  { id: 'survivor', icon: '🛡️' },
+  { id: 'quick_thinker', icon: '⚡' },
+  { id: 'ghost_whisperer', icon: '👻' },
+  { id: 'night_owl', icon: '🦉' },
+  { id: 'fashionista', icon: '👗' },
 ];
 
 function generateReferralCode() {
@@ -48,6 +49,7 @@ function generateReferralCode() {
 }
 
 function ReferralModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const code = generateReferralCode();
   const link = `${window.location.origin}/?ref=${code}`;
@@ -75,8 +77,8 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
                 <Users className="w-5 h-5 text-emerald-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Refer a Friend</h2>
-                <p className="text-xs text-muted-foreground">Earn 25 credits per referral</p>
+                <h2 className="text-lg font-bold text-foreground">{t("home.referral.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("home.referral.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -87,27 +89,27 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 
         <div className="p-6 space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Share your unique invite link with friends. When they join and play their first game, you both earn <strong className="text-emerald-400">25 bonus credits</strong>.
+            {t("home.referral.shareDescription1")} <strong className="text-emerald-400">{t("home.referral.shareDescription2")}</strong>.
           </p>
 
           <div className="space-y-2">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Your Invite Link</Label>
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.referral.yourInviteLink")}</Label>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
                 {link}
               </div>
               <Button size="sm" variant="outline" onClick={copy} className="shrink-0 gap-1">
                 {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t("common.copied") : t("common.copy")}
               </Button>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-2">
             {[
-              { label: "Your Code", value: code, color: "text-emerald-400" },
-              { label: "Reward", value: "25 🪙", color: "text-amber-400" },
-              { label: "Per Friend", value: "Each", color: "text-blue-400" },
+              { label: t("home.referral.yourCode"), value: code, color: "text-emerald-400" },
+              { label: t("home.referral.reward"), value: "25 🪙", color: "text-amber-400" },
+              { label: t("home.referral.perFriend"), value: t("home.referral.each"), color: "text-blue-400" },
             ].map((item) => (
               <div key={item.label} className="bg-muted/30 rounded-xl p-3 text-center border border-border">
                 <p className={`text-base font-black ${item.color}`}>{item.value}</p>
@@ -122,6 +124,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const createRoom = useCreateRoom();
@@ -212,7 +215,7 @@ export default function Home() {
     e.preventDefault();
     if (!name || !joinCode) return;
     if (containsProfanity(name)) {
-      toast({ title: "Inappropriate name", description: "Your name contains inappropriate language.", variant: "destructive" });
+      toast({ title: t("home.inappropriateName"), description: t("home.inappropriateNameDescription"), variant: "destructive" });
       return;
     }
     try {
@@ -221,17 +224,17 @@ export default function Home() {
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
-      toast({ title: "Failed to join", description: err.message, variant: "destructive" });
+      toast({ title: t("home.failedToJoin"), description: err.message, variant: "destructive" });
     }
   };
 
   const handleCreate = async () => {
     if (!name?.trim()) {
-      toast({ title: "Name required", description: "Please enter your name before creating a room.", variant: "destructive" });
+      toast({ title: t("home.nameRequired"), description: t("home.nameRequiredDescription"), variant: "destructive" });
       return;
     }
     if (containsProfanity(name)) {
-      toast({ title: "Inappropriate name", description: "Your name contains inappropriate language.", variant: "destructive" });
+      toast({ title: t("home.inappropriateName"), description: t("home.inappropriateNameDescription"), variant: "destructive" });
       return;
     }
     try {
@@ -249,9 +252,20 @@ export default function Home() {
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
-      toast({ title: "Failed to create room", description: err?.message || "Something went wrong.", variant: "destructive" });
+      toast({ title: t("home.failedToCreate"), description: err?.message || t("home.somethingWentWrong"), variant: "destructive" });
     }
   };
+
+  const ROLE_ROWS = [
+    { key: 'mafia', label: t("home.roles.mafias"), icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
+    { key: 'detective', label: t("home.roles.detectives"), icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { key: 'doctor', label: t("home.roles.doctors"), icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { key: 'civilian', label: t("home.roles.civilians"), icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+    { key: 'phaseDuration', label: t("home.roles.votingTime"), icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { key: 'mafiaDuration', label: t("home.roles.mafiaNightTime"), icon: Skull, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { key: 'doctorDuration', label: t("home.roles.doctorNightTime"), icon: Heart, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { key: 'detectiveDuration', label: t("home.roles.detectiveNightTime"), icon: Shield, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -269,9 +283,9 @@ export default function Home() {
         <div className="text-center mb-10">
           <div className="flex justify-end mb-4">
             {isSignedIn ? (
-              <Button onClick={async () => { await signOut(); setLocation("/"); }} size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-logout">Logout</Button>
+              <Button onClick={async () => { await signOut(); setLocation("/"); }} size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-logout">{t("home.logout")}</Button>
             ) : (
-              <Button onClick={() => setLocation("/login")} size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-login">Login / Sign Up</Button>
+              <Button onClick={() => setLocation("/login")} size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-login">{t("home.loginSignup")}</Button>
             )}
           </div>
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full shadow-xl mb-6 ring-4 ring-primary/10 relative group overflow-hidden">
@@ -279,7 +293,7 @@ export default function Home() {
             <Search className="w-10 h-10 text-primary relative z-10" strokeWidth={2.5} />
           </div>
           <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50 mb-2 drop-shadow-sm font-serif uppercase tracking-tighter">Mafia Verse</h1>
-          <p className="text-muted-foreground font-medium uppercase tracking-[0.3em] text-[10px] opacity-80">Trust No One • Find The Truth • Survive The Night</p>
+          <p className="text-muted-foreground font-medium uppercase tracking-[0.3em] text-[10px] opacity-80">{t("home.tagline")}</p>
         </div>
 
         <div className="space-y-6 mb-8">
@@ -299,7 +313,7 @@ export default function Home() {
 
                 <div className="flex-1 space-y-4">
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Accessory</Label>
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.accessory")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {ACCESSORIES.map(a => (
                         <button key={a} onClick={() => setConfig({ ...config, accessory: a })}
@@ -311,7 +325,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Clothing</Label>
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.clothing")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {CLOTHING.map(c => (
                         <button key={c} onClick={() => setConfig({ ...config, clothing: c })}
@@ -323,7 +337,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Background</Label>
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.background")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {BGS.map(bg => (
                         <button key={bg} onClick={() => setConfig({ ...config, bg })}
@@ -337,9 +351,9 @@ export default function Home() {
 
               <div className="w-full space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Your Mafia Handle</Label>
+                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.mafiaHandle")}</Label>
                   <Input
-                    placeholder="CHOOSE A NAME..."
+                    placeholder={t("home.chooseNamePlaceholder")}
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className={cn("bg-muted/50 border-border h-12 text-center font-bold tracking-tight focus:ring-primary/50 text-lg text-foreground",
@@ -351,7 +365,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Pick Your Persona</Label>
+                  <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.pickPersona")}</Label>
                   <div className="grid grid-cols-6 gap-2">
                     {AVATARS.map(a => (
                       <button key={a} onClick={() => setAvatar(a)}
@@ -371,25 +385,25 @@ export default function Home() {
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Trophy className="w-4 h-4 text-yellow-500" />
                       <span className="text-2xl font-black font-mono">{stats.wins ?? 0}</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wins</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.wins")}</span>
                     </button>
                     <button onClick={() => setLocation("/store")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Coins className="w-4 h-4 text-purple-500" />
                       <span className="text-lg font-black font-mono">🛒</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Store</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.store")}</span>
                     </button>
                     <button onClick={() => setLocation("/cosmetics")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Sparkles className="w-4 h-4 text-yellow-400" />
                       <span className="text-lg font-black font-mono">✨</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Shop</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.shop")}</span>
                     </button>
                     <button onClick={() => setShowDailyRewards(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer relative">
                       <Gift className="w-4 h-4 text-amber-500" />
                       <span className="text-lg font-black font-mono">🎁</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Daily</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.daily")}</span>
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                     </button>
                   </div>
@@ -399,25 +413,25 @@ export default function Home() {
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Tv className="w-4 h-4 text-blue-500" />
                       <span className="text-lg font-black font-mono">📺</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Free</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.free")}</span>
                     </button>
                     <button onClick={() => setShowRating(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Star className="w-4 h-4 text-yellow-500" />
                       <span className="text-lg font-black font-mono">⭐</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Rate</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.rate")}</span>
                     </button>
                     <button onClick={() => setShowReferral(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Users className="w-4 h-4 text-emerald-500" />
                       <span className="text-lg font-black font-mono">👥</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Refer</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.refer")}</span>
                     </button>
                     <button onClick={() => setLocation("/settings")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted transition-colors cursor-pointer">
                       <Settings className="w-4 h-4 text-gray-400" />
                       <span className="text-lg font-black font-mono">⚙️</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Settings</span>
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.settings")}</span>
                     </button>
                   </div>
                 </div>
@@ -429,18 +443,18 @@ export default function Home() {
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl transition-colors cursor-pointer"
                 >
                   <Users className="w-4 h-4 text-indigo-400" />
-                  <span className="text-sm font-bold text-indigo-400">Join our Discord</span>
+                  <span className="text-sm font-bold text-indigo-400">{t("home.joinDiscord")}</span>
                 </a>
 
                 <div className="pt-2 flex justify-center">
                   <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
-                    System Core: 2,900+ Source Lines
+                    {t("home.systemCore")}
                   </span>
                 </div>
 
                 {stats.achievements?.length > 0 && (
                   <div className="w-full space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Achievements</Label>
+                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.achievementsLabel")}</Label>
                     <div className="flex flex-wrap gap-2">
                       {stats.achievements.map((id: string) => {
                         const ach = ACHIEVEMENTS.find(a => a.id === id);
@@ -451,8 +465,8 @@ export default function Home() {
                               {ach.icon}
                             </div>
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-popover border border-border rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                              <p className="font-bold text-yellow-500 uppercase">{ach.name}</p>
-                              <p className="text-muted-foreground">{ach.description}</p>
+                              <p className="font-bold text-yellow-500 uppercase">{t(`home.achievements.${ach.id}.name`)}</p>
+                              <p className="text-muted-foreground">{t(`home.achievements.${ach.id}.description`)}</p>
                             </div>
                           </div>
                         );
@@ -467,8 +481,8 @@ export default function Home() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 backdrop-blur border border-border p-1 h-14 rounded-full">
-            <TabsTrigger value="join" className="rounded-full h-full data-[state=active]:bg-primary font-bold tracking-wide">JOIN GAME</TabsTrigger>
-            <TabsTrigger value="create" className="rounded-full h-full data-[state=active]:bg-primary font-bold tracking-wide">CREATE ROOM</TabsTrigger>
+            <TabsTrigger value="join" className="rounded-full h-full data-[state=active]:bg-primary font-bold tracking-wide">{t("home.joinGameTab")}</TabsTrigger>
+            <TabsTrigger value="create" className="rounded-full h-full data-[state=active]:bg-primary font-bold tracking-wide">{t("home.createRoomTab")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="join">
@@ -476,9 +490,9 @@ export default function Home() {
               <CardContent className="pt-6">
                 <form onSubmit={handleJoin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Room Code</Label>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.roomCode")}</Label>
                     <Input
-                      placeholder="E.G. A4X9"
+                      placeholder={t("home.roomCodePlaceholder")}
                       value={joinCode}
                       onChange={e => setJoinCode(e.target.value.toUpperCase())}
                       className="text-center uppercase text-2xl tracking-[0.5em] font-mono bg-muted/50 border-border h-14 focus:ring-primary/50 text-foreground"
@@ -487,7 +501,7 @@ export default function Home() {
                   </div>
                   <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
                     disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">
-                    {joinRoom.isPending ? "JOINING..." : "ENTER THE ABYSS"}
+                    {joinRoom.isPending ? t("home.joining") : t("home.enterAbyss")}
                   </Button>
                 </form>
               </CardContent>
@@ -498,22 +512,13 @@ export default function Home() {
             <Card className="glass-card border-none bg-card/80 backdrop-blur-xl ring-1 ring-border">
               <CardContent className="pt-6 space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Room Name (optional)</Label>
-                  <Input placeholder="e.g. The Godfather's Table" value={roomName}
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.roomNameOptional")}</Label>
+                  <Input placeholder={t("home.roomNamePlaceholder")} value={roomName}
                     onChange={e => setRoomName(e.target.value)}
                     className="bg-muted/50 border-border h-11 focus:ring-primary/50 text-foreground" maxLength={32} />
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { key: 'mafia', label: 'Mafias', icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
-                    { key: 'detective', label: 'Detectives', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                    { key: 'doctor', label: 'Doctors', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                    { key: 'civilian', label: 'Civilians', icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
-                    { key: 'phaseDuration', label: 'Voting Time (sec)', icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                    { key: 'mafiaDuration', label: 'Mafia Night Time (sec)', icon: Skull, color: 'text-red-400', bg: 'bg-red-400/10' },
-                    { key: 'doctorDuration', label: 'Doctor Night Time (sec)', icon: Heart, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                    { key: 'detectiveDuration', label: 'Detective Night Time (sec)', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-                  ].map((role) => (
+                  {ROLE_ROWS.map((role) => (
                     <div key={role.key} className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border hover:border-border/80 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className={`p-2 rounded-lg ${role.bg}`}>
@@ -539,8 +544,8 @@ export default function Home() {
                 <div className="pt-4 border-t border-border space-y-3">
                   <div className="flex justify-between items-center px-2">
                     <div className="flex flex-col">
-                      <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">Total Players</span>
-                      <span className="text-xs text-muted-foreground/60 italic">Min 6 players required</span>
+                      <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">{t("home.totalPlayers")}</span>
+                      <span className="text-xs text-muted-foreground/60 italic">{t("home.minPlayers")}</span>
                     </div>
                     <span className="text-3xl font-black font-mono tracking-tighter">{totalPlayers}</span>
                   </div>
@@ -548,19 +553,19 @@ export default function Home() {
                     <button onClick={() => setShowVoteResults(!showVoteResults)}
                       className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
                         showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}>
-                      {showVoteResults ? "✓ Vote Results" : "Vote Results"}
+                      {showVoteResults ? `✓ ${t("home.voteResults")}` : t("home.voteResults")}
                     </button>
                     <button onClick={() => setShowRoleReveal(!showRoleReveal)}
                       className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
                         showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}>
-                      {showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
+                      {showRoleReveal ? `✓ ${t("home.roleReveal")}` : t("home.roleReveal")}
                     </button>
                   </div>
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
                   disabled={createRoom.isPending || totalPlayers < 6 || !name} data-testid="button-create-room">
-                  {createRoom.isPending ? "PREPARING..." : "CREATE ROOM"}
+                  {createRoom.isPending ? t("home.preparing") : t("home.createRoomButton")}
                 </Button>
               </CardContent>
             </Card>

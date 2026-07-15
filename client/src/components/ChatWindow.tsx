@@ -3,29 +3,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, MessageSquare, Smile } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Message } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { containsProfanity } from "@/lib/profanity";
 import { useToast } from "@/hooks/use-toast";
-
-const QUICK_MESSAGES = [
-  "I think {name} is mafia",
-  "I am innocent!",
-  "Who killed last night?",
-  "I trust {name}",
-  "Don't vote me out!",
-  "{name} seems suspicious",
-  "I have a bad feeling about {name}",
-  "{name} is acting weird",
-  "Let me explain myself",
-  "I'm the doctor protecting {name}",
-  "That doesn't make sense",
-  "Wait, {name} said what?",
-  "I believe {name}",
-  "Something's off about {name}",
-  "Who are you voting?"
-];
 
 const REACTION_EMOTES = ["😂", "🤔", "👀", "😱", "👍", "❤️", "🎉", "🔥"];
 
@@ -41,6 +24,11 @@ interface ChatWindowProps {
 type Reactions = Record<number, Record<string, Set<number>>>;
 
 export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify }: ChatWindowProps) {
+    const { t } = useTranslation();
+    // Quick chat templates live in translation files so the messages sent match
+    // whichever language the sender has selected.
+    const QUICK_MESSAGES = t("chat.quickMessages", { returnObjects: true }) as string[];
+
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
     const [reactions, setReactions] = useState<Reactions>({});
@@ -113,8 +101,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         if (!trimmed) return;
         if (containsProfanity(trimmed)) {
             toast({
-                title: "Message blocked",
-                description: "Inappropriate language is not allowed.",
+                title: t("chat.messageBlocked"),
+                description: t("chat.inappropriateLanguage"),
                 variant: "destructive",
             });
             return;
@@ -140,8 +128,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const handleQuickMessage = (msg: string) => {
         if (containsProfanity(msg)) {
             toast({
-                title: "Message blocked",
-                description: "Inappropriate language is not allowed.",
+                title: t("chat.messageBlocked"),
+                description: t("chat.inappropriateLanguage"),
                 variant: "destructive",
             });
             return;
@@ -187,8 +175,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     return (
         <div className="flex flex-col h-[400px] border rounded-lg bg-card overflow-hidden">
             <div className="p-3 border-b bg-muted/50 font-semibold text-sm uppercase tracking-wider flex justify-between items-center">
-                <span>{isSpectator ? "Spectator Chat" : "Room Chat"}</span>
-                {isSpectator && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">SECRET</span>}
+                <span>{isSpectator ? t("chat.spectatorChat") : t("chat.roomChat")}</span>
+                {isSpectator && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>}
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 <div className="space-y-4">
@@ -267,7 +255,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                     key={emote}
                                     onClick={() => toggleReaction(msg.id, emote)}
                                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted hover:bg-muted/80 border border-border text-xs transition-colors group"
-                                    title={`Reacted by ${reactors.size} player${reactors.size !== 1 ? 's' : ''}`}
+                                    title={t("chat.reactedBy", { count: reactors.size })}
                                   >
                                     <span>{emote}</span>
                                     {reactors.size > 0 && <span className="text-[10px] text-muted-foreground font-semibold">{reactors.size}</span>}
@@ -280,7 +268,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 </div>
             </ScrollArea>
       <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
-        <form onSubmit={handleSubmit} className="flex gap-2" title={isSpectator || !currentPlayerId ? "The dead cannot speak" : ""}>
+        <form onSubmit={handleSubmit} className="flex gap-2" title={isSpectator || !currentPlayerId ? t("chat.deadCannotSpeak") : ""}>
           <Popover>
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={isSpectator || !currentPlayerId}>
@@ -289,7 +277,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2 bg-card border-border shadow-2xl z-50" side="top" align="start">
               <div className="grid grid-cols-1 gap-1">
-                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">Tactical Comms</div>
+                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">{t("chat.tacticalComms")}</div>
                 {QUICK_MESSAGES.map((msg) => (
                   <Button
                     key={msg}
@@ -300,7 +288,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                       if (msg.includes("{name}")) {
                         const targets = players.filter(p => p.id !== currentPlayerId && p.isAlive);
                         const target = targets[Math.floor(Math.random() * targets.length)];
-                        handleQuickMessage(msg.replace("{name}", target?.name || "someone"));
+                        handleQuickMessage(msg.replace("{name}", target?.name || t("chat.someone")));
                       } else {
                         handleQuickMessage(msg);
                       }
@@ -315,7 +303,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isSpectator || !currentPlayerId ? "Dead players cannot speak..." : "Type a message..."}
+            placeholder={isSpectator || !currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage")}
             className="bg-background h-10"
             disabled={isSpectator || !currentPlayerId}
           />

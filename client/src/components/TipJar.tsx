@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Zap, Star, X, CheckCircle2, DollarSign, Coffee, Crown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const TIP_TIERS = [
-  { amount: 499, label: "$4.99", icon: Coffee, desc: "Buy us a coffee", hearts: 2 },
-  { amount: 999, label: "$9.99", icon: Zap, desc: "Power up the servers", hearts: 3 },
-  { amount: 1999, label: "$19.99", icon: Star, desc: "Major supporter", hearts: 4 },
-  { amount: 4999, label: "$49.99", icon: Crown, desc: "Become a legend", hearts: 5 },
+const TIP_TIERS_META = [
+  { amount: 499, label: "$4.99", icon: Coffee, key: "buyCoffee", hearts: 2 },
+  { amount: 999, label: "$9.99", icon: Zap, key: "powerServers", hearts: 3 },
+  { amount: 1999, label: "$19.99", icon: Star, key: "majorSupporter", hearts: 4 },
+  { amount: 4999, label: "$49.99", icon: Crown, key: "becomeLegend", hearts: 5 },
 ];
 
 export function TipJar({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const TIP_TIERS = TIP_TIERS_META.map(tier => ({ ...tier, desc: t(`store.tipTiers.${tier.key}`) }));
   const [selected, setSelected] = useState<number | null>(null);
   const [thanks, setThanks] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
@@ -62,8 +65,8 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                 <Heart className="w-5 h-5 text-pink-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Support the Game</h2>
-                <p className="text-xs text-muted-foreground">Tips keep the servers running</p>
+                <h2 className="text-lg font-bold text-foreground">{t("tipJar.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("tipJar.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -112,7 +115,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
               onClick={() => setShowCustom(true)}
               className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5 transition-colors"
             >
-              Or enter a custom amount ($1 minimum)
+              {t("store.customAmount")}
             </button>
           ) : (
             <div className="space-y-2 p-3 border border-pink-500/20 rounded-xl bg-pink-500/5">
@@ -122,7 +125,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                   type="number"
                   min="1"
                   step="0.01"
-                  placeholder="Enter amount (min $1)"
+                  placeholder={t("tipJar.enterAmountMin")}
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
                   className="flex-1"
@@ -135,7 +138,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                   className="flex-1"
                   onClick={() => setShowCustom(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -143,7 +146,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                   disabled={parseFloat(customAmount) < 1}
                   onClick={handleCustomTip}
                 >
-                  Tip ${customAmount || "0"}
+                  {t("store.tipAmount", { amount: customAmount || "0" })}
                 </Button>
               </div>
             </div>
@@ -152,7 +155,7 @@ export function TipJar({ onClose }: { onClose: () => void }) {
 
         <div className="p-4 border-t border-border bg-muted/20">
           <p className="text-[10px] text-muted-foreground text-center">
-            Most of every tip goes to improving the game and keeping the servers running. The rest covers processing fees. Every dollar helps — thank you!
+            {t("tipJar.disclaimer")}
           </p>
         </div>
 
@@ -171,8 +174,8 @@ export function TipJar({ onClose }: { onClose: () => void }) {
                 className="bg-card border border-pink-500/30 rounded-2xl p-8 text-center"
               >
                 <CheckCircle2 className="w-12 h-12 text-pink-500 mx-auto mb-3" />
-                <p className="text-lg font-bold">Thank You!</p>
-                <p className="text-sm text-muted-foreground">Your support means everything</p>
+                <p className="text-lg font-bold">{t("tipJar.thankYou")}</p>
+                <p className="text-sm text-muted-foreground">{t("tipJar.supportMeansEverything")}</p>
               </motion.div>
             </motion.div>
           )}

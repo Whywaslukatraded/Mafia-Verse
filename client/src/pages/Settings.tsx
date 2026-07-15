@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play, Languages } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { engine } from "@/components/GameAudio";
 
+const LANGUAGES = [
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+];
+
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [darkMode, setDarkMode] = useState(() => {
@@ -61,12 +68,12 @@ export default function Settings() {
         setHas2FA(false);
         setShowDisableForm(false);
         setDisablePassword("");
-        toast({ title: "2FA Disabled", description: "Two-factor authentication has been turned off." });
+        toast({ title: t("settings.twoFADisabledTitle"), description: t("settings.twoFADisabledDescription") });
       } else {
-        toast({ title: "Error", description: data.message || "Could not disable 2FA", variant: "destructive" });
+        toast({ title: t("settings.errorTitle"), description: data.message || t("settings.couldNotDisable2FA"), variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+      toast({ title: t("settings.errorTitle"), description: t("settings.somethingWentWrong"), variant: "destructive" });
     } finally {
       setDisabling2FA(false);
     }
@@ -99,6 +106,12 @@ export default function Settings() {
     }
   }, [notificationsEnabled]);
 
+  // Feature: Spanish language option — switches i18next's active language and
+  // persists the choice (i18next-browser-languagedetector reads/writes this key).
+  const changeLanguage = (code: string) => {
+    i18n.changeLanguage(code);
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -111,20 +124,46 @@ export default function Settings() {
           <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">Settings</h1>
+          <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">{t("settings.title")}</h1>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          {/* Language Selector */}
+          <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
+            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+              <Languages className="w-3.5 h-3.5" />
+              {t("settings.language")}
+            </h2>
+            <div className="grid grid-cols-2 gap-2">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border font-bold text-sm transition-all",
+                    i18n.language === lang.code
+                      ? "bg-primary/20 border-primary/50 text-primary"
+                      : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                  )}
+                  data-testid={`button-language-${lang.code}`}
+                >
+                  <span className="text-lg">{lang.flag}</span>
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Theme Toggle */}
           <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Display</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{t("settings.display")}</h2>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {darkMode ? <Moon className="w-5 h-5 text-indigo-400" /> : <Sun className="w-5 h-5 text-yellow-500" />}
                 <div>
-                  <p className="text-sm font-bold text-foreground">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">{darkMode ? "On" : "Off"}</p>
+                  <p className="text-sm font-bold text-foreground">{t("settings.darkMode")}</p>
+                  <p className="text-xs text-muted-foreground">{darkMode ? t("settings.on") : t("settings.off")}</p>
                 </div>
               </div>
               <button
@@ -150,14 +189,14 @@ export default function Settings() {
 
           {/* Sound Settings */}
           <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Audio</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{t("settings.audio")}</h2>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {soundEnabled ? <Volume2 className="w-5 h-5 text-green-500" /> : <VolumeX className="w-5 h-5 text-red-500" />}
                 <div>
-                  <p className="text-sm font-bold text-foreground">Sound Effects</p>
-                  <p className="text-xs text-muted-foreground">{soundEnabled ? "Enabled" : "Disabled"}</p>
+                  <p className="text-sm font-bold text-foreground">{t("settings.soundEffects")}</p>
+                  <p className="text-xs text-muted-foreground">{soundEnabled ? t("settings.enabled") : t("settings.disabled")}</p>
                 </div>
               </div>
               <button
@@ -183,7 +222,7 @@ export default function Settings() {
             {soundEnabled && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-foreground">Volume</p>
+                  <p className="text-sm font-bold text-foreground">{t("settings.volume")}</p>
                   <span className="text-xs font-mono text-primary">{soundVolume}%</span>
                 </div>
                 <input
@@ -206,7 +245,7 @@ export default function Settings() {
                     if (ok) engine.playTestSound();
                   }}
                 >
-                  <Play className="w-4 h-4" /> Play Test Sound
+                  <Play className="w-4 h-4" /> {t("settings.playTestSound")}
                 </button>
               </div>
             )}
@@ -214,14 +253,14 @@ export default function Settings() {
 
           {/* Notifications */}
           <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Notifications</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{t("settings.notifications")}</h2>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {notificationsEnabled ? <Bell className="w-5 h-5 text-blue-500" /> : <BellOff className="w-5 h-5 text-muted-foreground" />}
                 <div>
-                  <p className="text-sm font-bold text-foreground">Chat Alerts</p>
-                  <p className="text-xs text-muted-foreground">{notificationsEnabled ? "Enabled" : "Disabled"}</p>
+                  <p className="text-sm font-bold text-foreground">{t("settings.chatAlerts")}</p>
+                  <p className="text-xs text-muted-foreground">{notificationsEnabled ? t("settings.enabled") : t("settings.disabled")}</p>
                 </div>
               </div>
               <button
@@ -241,7 +280,7 @@ export default function Settings() {
             </div>
 
             <p className="text-[10px] text-muted-foreground italic pt-2 border-t border-border">
-              Get notified when someone sends a chat message during gameplay
+              {t("settings.notificationsDescription")}
             </p>
           </div>
 
@@ -249,7 +288,7 @@ export default function Settings() {
           {isLoggedIn && (
             <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Security</h2>
+                <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("settings.security")}</h2>
                 {checking2FA && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
               </div>
 
@@ -269,10 +308,10 @@ export default function Settings() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-foreground">
-                      Two-Factor Auth {has2FA ? "Enabled" : "Not Set Up"}
+                      {has2FA ? t("settings.twoFAEnabled") : t("settings.twoFANotSetUp")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {has2FA ? "Your account is protected with TOTP." : "Add an extra layer to your account."}
+                      {has2FA ? t("settings.accountProtected") : t("settings.addExtraLayer")}
                     </p>
                   </div>
                 </div>
@@ -281,21 +320,21 @@ export default function Settings() {
                   <div className="space-y-2">
                     <p className="text-xs text-amber-500 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      Enter your password to confirm disabling 2FA.
+                      {t("settings.enterPasswordToDisable")}
                     </p>
                     <input
                       type="password"
-                      placeholder="Your password"
+                      placeholder={t("settings.yourPassword")}
                       value={disablePassword}
                       onChange={(e) => setDisablePassword(e.target.value)}
                       className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" variant="destructive" onClick={handleDisable2FA} disabled={disabling2FA} className="flex-1">
-                        {disabling2FA ? "Disabling..." : "Confirm Disable"}
+                        {disabling2FA ? t("settings.disabling") : t("settings.confirmDisable")}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => { setShowDisableForm(false); setDisablePassword(""); }}>
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                     </div>
                   </div>
@@ -307,7 +346,7 @@ export default function Settings() {
                     onClick={() => setShowDisableForm(true)}
                   >
                     <AlertTriangle className="w-4 h-4 mr-1" />
-                    Disable 2FA
+                    {t("settings.disable2FA")}
                   </Button>
                 ) : (
                   <Button
@@ -316,7 +355,7 @@ export default function Settings() {
                     className="w-full"
                   >
                     <Shield className="w-4 h-4 mr-1" />
-                    Set Up Two-Factor Auth
+                    {t("settings.setUp2FA")}
                   </Button>
                 )}
               </div>
@@ -330,17 +369,17 @@ export default function Settings() {
                 <div className="flex items-center gap-3">
                   <KeyRound className="w-5 h-5 text-amber-500" />
                   <div className="text-left">
-                    <p className="text-sm font-bold text-foreground">Forgot Password</p>
-                    <p className="text-xs text-muted-foreground">Generate a reset token</p>
+                    <p className="text-sm font-bold text-foreground">{t("settings.forgotPassword")}</p>
+                    <p className="text-xs text-muted-foreground">{t("settings.generateResetToken")}</p>
                   </div>
                 </div>
-                <span className="text-xs text-primary font-bold">Reset</span>
+                <span className="text-xs text-primary font-bold">{t("settings.reset")}</span>
               </button>
             </div>
           )}
 
           <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
-            Back to Home
+            {t("common.backToHome")}
           </Button>
         </motion.div>
       </div>

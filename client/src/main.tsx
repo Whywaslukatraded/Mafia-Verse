@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { initSupabase } from "./lib/supabase";
+import "./lib/i18n";
 import "./index.css";
 
 async function bootstrap() {

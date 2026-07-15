@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Target, TrendingUp, Crown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,7 @@ interface LeaderboardEntry {
 }
 
 export default function Leaderboard() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,8 +63,8 @@ export default function Leaderboard() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">Hall of Infamy</h1>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">Global Leaderboard</p>
+            <h1 className="text-2xl font-black font-serif uppercase tracking-wider text-foreground">{t("leaderboard.title")}</h1>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium">{t("leaderboard.subtitle")}</p>
           </div>
         </div>
 
@@ -75,9 +77,9 @@ export default function Leaderboard() {
                 <span>{entries[1]?.avatar || "👤"}</span>
               </div>
               <div className="bg-muted ring-1 ring-muted-foreground/30 rounded-xl px-3 py-2 text-center w-24 h-20 flex flex-col items-center justify-center">
-                <span className="text-muted-foreground font-black text-lg">2nd</span>
+                <span className="text-muted-foreground font-black text-lg">{t("leaderboard.second")}</span>
                 <span className="text-xs font-bold text-foreground/80 truncate w-full text-center">{entries[1]?.name}</span>
-                <span className="text-[10px] text-muted-foreground">{entries[1]?.wins}W</span>
+                <span className="text-[10px] text-muted-foreground">{t("leaderboard.winsAbbrev", { count: entries[1]?.wins })}</span>
               </div>
             </div>
             {/* 1st */}
@@ -87,9 +89,9 @@ export default function Leaderboard() {
                 <span>{entries[0]?.avatar || "👤"}</span>
               </div>
               <div className="bg-yellow-500/10 ring-1 ring-yellow-500/40 rounded-xl px-3 py-2 text-center w-28 h-24 flex flex-col items-center justify-center">
-                <span className="text-yellow-400 font-black text-xl">1st</span>
+                <span className="text-yellow-400 font-black text-xl">{t("leaderboard.first")}</span>
                 <span className="text-sm font-bold text-foreground truncate w-full text-center">{entries[0]?.name}</span>
-                <span className="text-[10px] text-yellow-400/70">{entries[0]?.wins}W · {entries[0]?.winRate}%</span>
+                <span className="text-[10px] text-yellow-400/70">{t("leaderboard.winsAbbrev", { count: entries[0]?.wins })} · {entries[0]?.winRate}%</span>
               </div>
             </div>
             {/* 3rd */}
@@ -98,9 +100,9 @@ export default function Leaderboard() {
                 <span>{entries[2]?.avatar || "👤"}</span>
               </div>
               <div className="bg-amber-600/10 ring-1 ring-amber-600/30 rounded-xl px-3 py-2 text-center w-24 h-20 flex flex-col items-center justify-center">
-                <span className="text-amber-600 font-black text-lg">3rd</span>
+                <span className="text-amber-600 font-black text-lg">{t("leaderboard.third")}</span>
                 <span className="text-xs font-bold text-foreground/80 truncate w-full text-center">{entries[2]?.name}</span>
-                <span className="text-[10px] text-muted-foreground">{entries[2]?.wins}W</span>
+                <span className="text-[10px] text-muted-foreground">{t("leaderboard.winsAbbrev", { count: entries[2]?.wins })}</span>
               </div>
             </div>
           </motion.div>
@@ -109,9 +111,9 @@ export default function Leaderboard() {
         {/* Full Rankings */}
         <div className="space-y-2">
           <div className="grid grid-cols-4 px-3 mb-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold col-span-2">Player</span>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center flex items-center justify-center gap-1"><Trophy className="w-3 h-3" />Wins</span>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3" />Rate</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold col-span-2">{t("leaderboard.player")}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center flex items-center justify-center gap-1"><Trophy className="w-3 h-3" />{t("leaderboard.wins")}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold text-center flex items-center justify-center gap-1"><TrendingUp className="w-3 h-3" />{t("leaderboard.rate")}</span>
           </div>
 
           {isLoading ? (
@@ -121,8 +123,8 @@ export default function Leaderboard() {
           ) : entries.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Trophy className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p className="font-bold uppercase tracking-wider">No games played yet</p>
-              <p className="text-sm mt-1 opacity-60">Play your first game to appear here!</p>
+              <p className="font-bold uppercase tracking-wider">{t("leaderboard.noGamesYet")}</p>
+              <p className="text-sm mt-1 opacity-60">{t("leaderboard.playFirstGame")}</p>
             </div>
           ) : (
             entries.map((entry, i) => (
@@ -148,7 +150,7 @@ export default function Leaderboard() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate">{entry.name}</p>
                   <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Target className="w-3 h-3" /> {entry.gamesPlayed} games
+                    <Target className="w-3 h-3" /> {t("leaderboard.gamesCount", { count: entry.gamesPlayed })}
                   </p>
                 </div>
                 <div className="text-center w-14">
@@ -163,7 +165,7 @@ export default function Leaderboard() {
         </div>
 
         <Button variant="outline" className="w-full mt-6" onClick={() => setLocation("/")}>
-          Back to Home
+          {t("common.backToHome")}
         </Button>
       </div>
     </div>

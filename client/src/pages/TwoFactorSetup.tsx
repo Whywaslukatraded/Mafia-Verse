@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Shield, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 export default function TwoFactorSetup() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState<"loading" | "qr" | "verify">("loading");
@@ -28,7 +30,7 @@ export default function TwoFactorSetup() {
         }
         console.log("[2FA] isSupabaseReady:", isSupabaseReady());
         if (!isSupabaseReady()) {
-          toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
+          toast({ title: t("twoFactor.authNotReady"), variant: "destructive" });
           setStep("qr"); // show fallback to avoid blank screen
           return;
         }
@@ -37,7 +39,7 @@ export default function TwoFactorSetup() {
         const { data: sessionData, error } = await supabase.auth.getSession();
         console.log("[2FA] session:", sessionData?.session ? "present" : "missing", "error:", error);
         if (error || !sessionData?.session?.user) {
-          toast({ title: "Please log in first", variant: "destructive" });
+          toast({ title: t("twoFactor.pleaseLogInFirst"), variant: "destructive" });
           setLocation("/login");
           return;
         }
@@ -50,7 +52,7 @@ export default function TwoFactorSetup() {
         const data = await res.json();
         console.log("[2FA] setup response:", res.status, data);
         if (!res.ok) {
-          toast({ title: data.message || "Setup failed", variant: "destructive" });
+          toast({ title: data.message || t("twoFactor.setupFailed"), variant: "destructive" });
           setLocation("/");
           return;
         }
@@ -59,7 +61,7 @@ export default function TwoFactorSetup() {
         setStep("qr");
       } catch (e) {
         console.error("[2FA] setup error:", e);
-        toast({ title: "Setup failed. Please try again.", variant: "destructive" });
+        toast({ title: t("twoFactor.setupFailedRetry"), variant: "destructive" });
         setLocation("/");
       }
     }
@@ -69,11 +71,11 @@ export default function TwoFactorSetup() {
 
   const verifyCode = async () => {
     if (code.length !== 6) {
-      toast({ title: "Enter 6-digit code", variant: "destructive" });
+      toast({ title: t("twoFactor.enterSixDigit"), variant: "destructive" });
       return;
     }
     if (!isSupabaseReady()) {
-      toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
+      toast({ title: t("twoFactor.authNotReady"), variant: "destructive" });
       return;
     }
     setVerifying(true);
@@ -88,15 +90,15 @@ export default function TwoFactorSetup() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: data.message || "Invalid code", variant: "destructive" });
+        toast({ title: data.message || t("twoFactor.invalidCode"), variant: "destructive" });
         setVerifying(false);
         return;
       }
       localStorage.setItem("mafia_2fa_passed", "true");
-      toast({ title: "2FA enabled! Your account is secure." });
+      toast({ title: t("twoFactor.enabledSuccess") });
       setLocation("/");
     } catch (e) {
-      toast({ title: "Verification failed", variant: "destructive" });
+      toast({ title: t("twoFactor.verificationFailed"), variant: "destructive" });
       setVerifying(false);
     }
   };
@@ -105,7 +107,7 @@ export default function TwoFactorSetup() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-        <p className="text-sm text-muted-foreground">Loading 2FA setup...</p>
+        <p className="text-sm text-muted-foreground">{t("twoFactor.loadingSetup")}</p>
       </div>
     );
   }
@@ -126,14 +128,14 @@ export default function TwoFactorSetup() {
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full mb-4">
             <Shield className="w-8 h-8 text-emerald-500" />
           </div>
-          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Secure Your Account</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Two-factor authentication required</p>
+          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">{t("twoFactor.secureAccount")}</h1>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("twoFactor.required")}</p>
         </div>
 
         {step === "qr" && (
           <div className="w-full bg-card border border-border rounded-xl p-6 space-y-4">
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Scan this QR code with Google Authenticator</p>
+              <p className="text-sm text-muted-foreground">{t("twoFactor.scanQrCode")}</p>
               <div className="flex justify-center">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
@@ -143,13 +145,13 @@ export default function TwoFactorSetup() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Can't scan? Enter this code manually:
+                {t("twoFactor.cantScan")}
               </p>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono text-foreground">{secret}</code>
             </div>
             <Button className="w-full" onClick={() => setStep("verify")}>
               <Check className="w-4 h-4 mr-2" />
-              I've scanned it
+              {t("twoFactor.scannedIt")}
             </Button>
           </div>
         )}
@@ -157,7 +159,7 @@ export default function TwoFactorSetup() {
         {step === "verify" && (
           <div className="w-full bg-card border border-border rounded-xl p-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Enter the 6-digit code from your authenticator</Label>
+              <Label htmlFor="code">{t("twoFactor.enterCodeLabel")}</Label>
               <Input
                 id="code"
                 type="text"
@@ -176,7 +178,7 @@ export default function TwoFactorSetup() {
               data-testid="button-verify-2fa"
             >
               <Check className="w-4 h-4 mr-2" />
-              {verifying ? "Verifying..." : "Verify & Enable"}
+              {verifying ? t("twoFactor.verifying") : t("twoFactor.verifyAndEnable")}
             </Button>
             <Button
               variant="ghost"
@@ -184,7 +186,7 @@ export default function TwoFactorSetup() {
               className="w-full text-muted-foreground"
               onClick={() => setStep("qr")}
             >
-              ← Back to QR code
+              ← {t("twoFactor.backToQr")}
             </Button>
           </div>
         )}

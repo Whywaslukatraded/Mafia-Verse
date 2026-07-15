@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Search, UserPlus, Gift } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ function claimReferralReward(refCode: string) {
 }
 
 export default function Signup() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -51,24 +53,24 @@ export default function Signup() {
     e.preventDefault();
     if (password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: t("signup.passwordTooShortTitle"),
+        description: t("signup.passwordTooShortDescription"),
         variant: "destructive",
       });
       return;
     }
     if (containsProfanity(displayName)) {
       toast({
-        title: "Inappropriate display name",
-        description: "Your display name contains inappropriate language.",
+        title: t("signup.inappropriateNameTitle"),
+        description: t("signup.inappropriateNameDescription"),
         variant: "destructive",
       });
       return;
     }
     if (containsProfanity(password)) {
       toast({
-        title: "Inappropriate password",
-        description: "Your password contains inappropriate language. Please choose a different password.",
+        title: t("signup.inappropriatePasswordTitle"),
+        description: t("signup.inappropriatePasswordDescription"),
         variant: "destructive",
       });
       return;
@@ -86,7 +88,7 @@ export default function Signup() {
     setLoading(false);
     if (error) {
       toast({
-        title: "Signup failed",
+        title: t("signup.signupFailedTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -96,8 +98,8 @@ export default function Signup() {
       // Claim referral bonus if applicable
       claimReferralReward(refCode);
       toast({
-        title: "Account created!",
-        description: "Check your email to confirm, then log in.",
+        title: t("signup.accountCreatedTitle"),
+        description: t("signup.accountCreatedDescription"),
       });
       setLocation("/login");
     }
@@ -120,15 +122,15 @@ export default function Signup() {
             <Search className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Mafia Verse</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Create your account</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("signup.subtitle")}</p>
         </div>
 
         <form onSubmit={handleSignup} className="w-full space-y-4 bg-card border border-border rounded-xl p-6">
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor="displayName">{t("signup.displayName")}</Label>
             <Input
               id="displayName"
-              placeholder="Your mafia handle"
+              placeholder={t("signup.displayNamePlaceholder")}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required
@@ -136,7 +138,7 @@ export default function Signup() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("common.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -148,11 +150,11 @@ export default function Signup() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("common.password")}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="At least 6 characters"
+              placeholder={t("signup.passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -166,18 +168,18 @@ export default function Signup() {
             data-testid="button-signup"
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            {loading ? "Creating..." : "Create Account"}
+            {loading ? t("signup.creating") : t("signup.createAccount")}
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+            {t("signup.alreadyHaveAccount")}{" "}
             <button
               type="button"
               onClick={() => setLocation("/login")}
               className="text-primary hover:underline font-medium"
               data-testid="link-login"
             >
-              Sign in
+              {t("signup.signIn")}
             </button>
           </div>
         </form>
@@ -189,7 +191,7 @@ export default function Signup() {
           className="text-muted-foreground hover:text-foreground"
           data-testid="link-back-home-signup"
         >
-          ← Back to Home
+          ← {t("common.backToHome")}
         </Button>
       </motion.div>
     </div>

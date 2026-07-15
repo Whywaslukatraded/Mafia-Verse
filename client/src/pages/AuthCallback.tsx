@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader as Loader2 } from "lucide-react";
 
 export default function AuthCallback() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function AuthCallback() {
     if (errorDescription) {
       setError(errorDescription);
       toast({
-        title: "Authentication failed",
+        title: t("authCallback.authFailed"),
         description: errorDescription,
         variant: "destructive",
       });
@@ -37,15 +39,15 @@ export default function AuthCallback() {
         if (error) {
           setError(error.message);
           toast({
-            title: "Email verification failed",
+            title: t("authCallback.emailVerificationFailed"),
             description: error.message,
             variant: "destructive",
           });
           setTimeout(() => setLocation("/"), 3000);
         } else {
           toast({
-            title: "Email verified",
-            description: "Your email has been confirmed. Welcome to Mafia Verse!",
+            title: t("authCallback.emailVerified"),
+            description: t("authCallback.welcomeMessage"),
           });
           const supabaseId = data.session?.user?.id;
           if (supabaseId) {
@@ -78,14 +80,14 @@ export default function AuthCallback() {
         if (error) {
           setError(error.message);
           toast({
-            title: "Email change failed",
+            title: t("authCallback.emailChangeFailed"),
             description: error.message,
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Email updated",
-            description: "Your email has been successfully changed.",
+            title: t("authCallback.emailUpdated"),
+            description: t("authCallback.emailUpdatedDescription"),
           });
           setLocation("/");
         }
@@ -94,14 +96,14 @@ export default function AuthCallback() {
       // No valid auth params — just redirect home
       setLocation("/");
     }
-  }, [setLocation, toast]);
+  }, [setLocation, toast, t]);
 
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <p className="text-red-500 font-semibold">{error}</p>
-          <p className="text-muted-foreground">Redirecting you...</p>
+          <p className="text-muted-foreground">{t("authCallback.redirecting")}</p>
         </div>
       </div>
     );
@@ -111,7 +113,7 @@ export default function AuthCallback() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-        <p className="text-muted-foreground">Processing your login...</p>
+        <p className="text-muted-foreground">{t("authCallback.processingLogin")}</p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, LogIn, KeyRound, Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -30,15 +32,15 @@ export default function Login() {
     setResetLoading(false);
     if (error) {
       toast({
-        title: "Reset failed",
+        title: t("login.resetFailedTitle"),
         description: error.message,
         variant: "destructive",
       });
     } else {
       setResetSent(true);
       toast({
-        title: "Reset link sent",
-        description: "Check your email for a password reset link.",
+        title: t("login.resetSentTitle"),
+        description: t("login.resetSentDescription"),
       });
     }
   };
@@ -54,7 +56,7 @@ export default function Login() {
     setLoading(false);
     if (error) {
       toast({
-        title: "Login failed",
+        title: t("login.loginFailedTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -98,7 +100,7 @@ export default function Login() {
             <Search className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Mafia Verse</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Sign in to continue</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("login.subtitle")}</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -117,7 +119,7 @@ export default function Login() {
                   onClick={() => setShowReset(false)}
                   className="h-8 px-2 text-muted-foreground hover:text-foreground"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Back
+                  <ArrowLeft className="w-4 h-4" /> {t("common.back")}
                 </Button>
               </div>
               <div className="flex items-center gap-3">
@@ -125,20 +127,20 @@ export default function Login() {
                   <KeyRound className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-foreground">Reset Password</h2>
-                  <p className="text-xs text-muted-foreground">We'll send you a recovery link</p>
+                  <h2 className="font-bold text-foreground">{t("login.resetPasswordTitle")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("login.resetPasswordSubtitle")}</p>
                 </div>
               </div>
               {resetSent ? (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 text-center">
                   <Mail className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-foreground">Check your email!</p>
-                  <p className="text-xs text-muted-foreground mt-1">A reset link has been sent to {resetEmail}</p>
+                  <p className="text-sm font-bold text-foreground">{t("login.checkEmail")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("login.resetLinkSentTo", { email: resetEmail })}</p>
                 </div>
               ) : (
                 <form onSubmit={handleReset} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="resetEmail">Email</Label>
+                    <Label htmlFor="resetEmail">{t("common.email")}</Label>
                     <Input
                       id="resetEmail"
                       type="email"
@@ -159,12 +161,12 @@ export default function Login() {
                     {resetLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
+                        {t("common.sending")}
                       </>
                     ) : (
                       <>
                         <Mail className="w-4 h-4 mr-2" />
-                        Send Reset Link
+                        {t("login.sendResetLink")}
                       </>
                     )}
                   </Button>
@@ -181,7 +183,7 @@ export default function Login() {
               className="w-full space-y-4 bg-card border border-border rounded-xl p-6"
             >
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("common.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -193,7 +195,7 @@ export default function Login() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("common.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -211,7 +213,7 @@ export default function Login() {
                 data-testid="button-signin"
               >
                 <LogIn className="w-4 h-4 mr-2" />
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? t("login.signingIn") : t("login.signIn")}
               </Button>
 
               <div className="flex items-center justify-between text-sm">
@@ -221,17 +223,17 @@ export default function Login() {
                   className="text-muted-foreground hover:text-primary hover:underline transition-colors"
                   data-testid="link-forgot-password"
                 >
-                  Forgot password?
+                  {t("login.forgotPassword")}
                 </button>
                 <div className="text-muted-foreground">
-                  No account?{" "}
+                  {t("login.noAccount")}{" "}
                   <button
                     type="button"
                     onClick={() => setLocation("/signup")}
                     className="text-primary hover:underline font-medium"
                     data-testid="link-signup"
                   >
-                    Sign up
+                    {t("login.signUp")}
                   </button>
                 </div>
               </div>
@@ -246,7 +248,7 @@ export default function Login() {
           className="text-muted-foreground hover:text-foreground"
           data-testid="link-back-home"
         >
-          ← Back to Home
+          ← {t("common.backToHome")}
         </Button>
       </motion.div>
     </div>

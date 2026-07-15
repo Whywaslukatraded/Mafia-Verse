@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Coins, CreditCard, Crown, Heart, Sparkles, Zap, Star, Coffee, DollarSign, CircleCheck as CheckCircle2, X, Gift, Lock, Package } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,13 +15,12 @@ const CREDIT_PACKS = [
   { credits: 3000, price: 2499, label: "$24.99", badge: "+30%" },
 ];
 
-const TIP_TIERS = [
-  { amount: 499, label: "$4.99", icon: Coffee, desc: "Buy us a coffee" },
-  { amount: 999, label: "$9.99", icon: Zap, desc: "Power up the servers" },
-  { amount: 1999, label: "$19.99", icon: Star, desc: "Major supporter" },
-  { amount: 4999, label: "$49.99", icon: Crown, desc: "Become a legend" },
+const TIP_TIERS_META = [
+  { amount: 499, label: "$4.99", icon: Coffee, key: "buyCoffee" },
+  { amount: 999, label: "$9.99", icon: Zap, key: "powerServers" },
+  { amount: 1999, label: "$19.99", icon: Star, key: "majorSupporter" },
+  { amount: 4999, label: "$49.99", icon: Crown, key: "becomeLegend" },
 ];
-
 
 function getStats() {
   try {
@@ -50,6 +50,7 @@ function hasSyndicatePass(): boolean {
 }
 
 export default function Store() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [stats, setStats] = useState(getStats);
@@ -65,6 +66,8 @@ export default function Store() {
   const [cardExpiry, setCardExpiry] = useState("12/30");
   const [cardCvc, setCardCvc] = useState("123");
   const [processingPayment, setProcessingPayment] = useState(false);
+
+  const TIP_TIERS = TIP_TIERS_META.map(tier => ({ ...tier, desc: t(`store.tipTiers.${tier.key}`) }));
 
   // Fetch real credits from DB
   const [dbCredits, setDbCredits] = useState<number | null>(null);
@@ -102,21 +105,21 @@ export default function Store() {
         const credits = parseInt(amount, 10);
         addCreditsLocal(credits);
         setStats(getStats());
-        setFulfillMsg(`+${credits} Credits added!`);
+        setFulfillMsg(t("store.creditsAdded", { credits }));
       } else if (item === "syndicate") {
         setSyndicatePass(true);
         setSyndicatePassState(true);
-        setFulfillMsg("Syndicate Pass activated!");
+        setFulfillMsg(t("store.syndicateActivated"));
       } else if (item === "tip" && amount) {
-        setFulfillMsg(`Thank you for the $${(parseInt(amount, 10) / 100).toFixed(2)} tip!`);
+        setFulfillMsg(t("store.thankYouTip", { amount: (parseInt(amount, 10) / 100).toFixed(2) }));
       }
       window.history.replaceState({}, "", "/store");
       setTimeout(() => setFulfillMsg(null), 4000);
     } else if (params.get("canceled") === "true") {
-      toast({ title: "Payment canceled", description: "No charges were made." });
+      toast({ title: t("store.paymentCanceled"), description: t("store.noChargesMade") });
       window.history.replaceState({}, "", "/store");
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const checkout = async (endpoint: string, body: object) => {
     setBuying(JSON.stringify(body));
@@ -131,9 +134,9 @@ export default function Store() {
 
   const openTestCheckout = (endpoint: string, body: any) => {
     let label = "", item = "", credits: number | undefined;
-    if (endpoint.includes("credit")) { item = "credits"; credits = body.credits; label = `${body.credits} Credits`; }
-    else if (endpoint.includes("syndicate")) { item = "syndicate"; label = "The Syndicate Pass"; }
-    else if (endpoint.includes("tip")) { item = "tip"; label = `Tip $${(body.amount / 100).toFixed(2)}`; }
+    if (endpoint.includes("credit")) { item = "credits"; credits = body.credits; label = t("store.creditsLabel", { count: body.credits }); }
+    else if (endpoint.includes("syndicate")) { item = "syndicate"; label = t("store.syndicatePassName"); }
+    else if (endpoint.includes("tip")) { item = "tip"; label = t("store.tipLabel", { amount: (body.amount / 100).toFixed(2) }); }
     setCheckoutState({ open: true, item, amount: body.amount, credits, label });
     setBuying(null);
   };
@@ -147,13 +150,13 @@ export default function Store() {
       if (checkoutState.item === "credits" && checkoutState.credits) {
         addCreditsLocal(checkoutState.credits);
         setStats(getStats());
-        setFulfillMsg(`+${checkoutState.credits} Credits added!`);
+        setFulfillMsg(t("store.creditsAdded", { credits: checkoutState.credits }));
       } else if (checkoutState.item === "syndicate") {
         setSyndicatePass(true);
         setSyndicatePassState(true);
-        setFulfillMsg("Syndicate Pass activated!");
+        setFulfillMsg(t("store.syndicateActivated"));
       } else if (checkoutState.item === "tip") {
-        setFulfillMsg(`Thank you for the $${(checkoutState.amount / 100).toFixed(2)} tip!`);
+        setFulfillMsg(t("store.thankYouTip", { amount: (checkoutState.amount / 100).toFixed(2) }));
       }
       setTimeout(() => setFulfillMsg(null), 4000);
     }, 2000);
@@ -176,8 +179,8 @@ export default function Store() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">Storefront</h1>
-            <p className="text-xs text-muted-foreground">Support the game & unlock perks</p>
+            <h1 className="text-2xl font-black tracking-tight">{t("store.title")}</h1>
+            <p className="text-xs text-muted-foreground">{t("store.subtitle")}</p>
           </div>
           <div className="ml-auto flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border">
             <Coins className="w-4 h-4 text-amber-500" />
@@ -196,19 +199,19 @@ export default function Store() {
 
         {/* Credit Packs */}
         <section className="mb-10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Credit Packs</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">{t("store.creditPacks")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CREDIT_PACKS.map((pack) => (
               <motion.button key={pack.price} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => buyCredits(pack)} disabled={buying !== null}
                 className={cn("relative flex items-center gap-4 p-4 rounded-xl border text-left transition-all disabled:opacity-50",
                   pack.popular ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-card hover:border-primary/30")}>
-                {pack.popular && <span className="absolute -top-2 left-4 px-2 py-0.5 bg-amber-500 text-white text-[9px] font-black uppercase rounded-full">Popular</span>}
+                {pack.popular && <span className="absolute -top-2 left-4 px-2 py-0.5 bg-amber-500 text-white text-[9px] font-black uppercase rounded-full">{t("store.popular")}</span>}
                 <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center shrink-0", pack.popular ? "bg-amber-500/20" : "bg-muted")}>
                   <Coins className={cn("w-6 h-6", pack.popular ? "text-amber-500" : "text-muted-foreground")} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold">{pack.credits.toLocaleString()} Credits</p>
-                  <p className="text-[10px] text-muted-foreground">Spend on crates & cosmetics</p>
+                  <p className="text-sm font-bold">{t("store.creditsLabel", { count: pack.credits })}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("store.spendOnCrates")}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black">{pack.label}</p>
@@ -221,7 +224,7 @@ export default function Store() {
 
         {/* Syndicate Pass */}
         <section className="mb-10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Syndicate Pass</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">{t("store.syndicatePassName")}</h2>
           <motion.button whileHover={syndicatePass ? {} : { scale: 1.01 }} whileTap={syndicatePass ? {} : { scale: 0.99 }} onClick={buySyndicate} disabled={buying !== null || syndicatePass}
             className={cn("w-full flex items-center gap-4 p-5 rounded-xl border text-left transition-all",
               syndicatePass ? "border-green-500/30 bg-green-500/5 opacity-60 cursor-default" : "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10")}>
@@ -229,14 +232,14 @@ export default function Store() {
               <Crown className="w-7 h-7 text-purple-500" />
             </div>
             <div className="flex-1">
-              <p className="text-base font-black">{syndicatePass ? "Syndicate Pass Active" : "The Syndicate Pass"}</p>
+              <p className="text-base font-black">{syndicatePass ? t("store.syndicateActive") : t("store.syndicatePassName")}</p>
               {syndicatePass ? (
-                <p className="text-xs text-muted-foreground">You have access to all premium cosmetics</p>
+                <p className="text-xs text-muted-foreground">{t("store.allPremiumUnlocked")}</p>
               ) : (
                 <div className="mt-1.5 space-y-1 text-xs text-muted-foreground font-medium">
-                  <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Unlock 16 exclusive cosmetics + legendary personas</div>
-                  <div className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5 text-pink-400" /> Instantly receive a premium mystery street kit pack</div>
-                  <div className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-red-400" /> Gain permanent priority match lobby status and badge</div>
+                  <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> {t("store.perk1")}</div>
+                  <div className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5 text-pink-400" /> {t("store.perk2")}</div>
+                  <div className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-red-400" /> {t("store.perk3")}</div>
                 </div>
               )}
             </div>
@@ -248,7 +251,7 @@ export default function Store() {
 
         {/* Tip Jar */}
         <section className="mb-10">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Support the Devs</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">{t("store.supportTheDevs")}</h2>
           <div className="space-y-3">
             {TIP_TIERS.map((tier) => {
               const Icon = tier.icon;
@@ -265,18 +268,18 @@ export default function Store() {
             })}
             {!showCustomTip ? (
               <button onClick={() => setShowCustomTip(true)} className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5 transition-colors">
-                Or enter a custom amount ($1 minimum)
+                {t("store.customAmount")}
               </button>
             ) : (
               <div className="space-y-2 p-3 border border-pink-500/20 rounded-xl bg-pink-500/5">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-pink-500" />
-                  <Input type="number" min="1" step="0.01" placeholder="Enter amount" value={customTip} onChange={(e) => setCustomTip(e.target.value)} className="flex-1" />
+                  <Input type="number" min="1" step="0.01" placeholder={t("store.enterAmount")} value={customTip} onChange={(e) => setCustomTip(e.target.value)} className="flex-1" />
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowCustomTip(false)}>Cancel</Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowCustomTip(false)}>{t("common.cancel")}</Button>
                   <Button size="sm" className="flex-1 bg-pink-500 hover:bg-pink-600 text-white" disabled={parseFloat(customTip) < 1} onClick={sendCustomTip}>
-                    Tip ${customTip || "0"}
+                    {t("store.tipAmount", { amount: customTip || "0" })}
                   </Button>
                 </div>
               </div>
@@ -288,28 +291,28 @@ export default function Store() {
         <section className="mb-10">
           <div className="flex items-center gap-3 mb-4">
             <Package className="w-5 h-5 text-blue-500" />
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Capsule Stash Drops</h2>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t("store.capsuleStashDrops")}</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 flex items-center justify-between gap-4 text-left">
               <div>
-                <p className="text-sm font-bold">Underworld Stash</p>
-                <p className="text-[11px] text-muted-foreground">Contains common to rare street gear.</p>
+                <p className="text-sm font-bold">{t("store.underworldStash")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("store.underworldStashDesc")}</p>
               </div>
               <Button size="sm" onClick={() => {
-                if ((stats.credits || 0) < 150) return toast({ title: "Insufficient Credits", variant: "destructive" });
-                addCreditsLocal(-150); setStats(getStats()); toast({ title: "Stash Unlocked!" });
+                if ((stats.credits || 0) < 150) return toast({ title: t("store.insufficientCredits"), variant: "destructive" });
+                addCreditsLocal(-150); setStats(getStats()); toast({ title: t("store.stashUnlocked") });
               }} className="h-8 font-mono bg-neutral-800 text-neutral-200">150 🪙</Button>
             </div>
             <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 flex items-center justify-between gap-4 text-left relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-purple-500 text-white text-[8px] font-black px-2 py-0.5 uppercase">HOT</div>
+              <div className="absolute top-0 right-0 bg-purple-500 text-white text-[8px] font-black px-2 py-0.5 uppercase">{t("store.hot")}</div>
               <div>
-                <p className="text-sm font-bold">Syndicate Vault</p>
-                <p className="text-[11px] text-muted-foreground">High chance for Epic outfits.</p>
+                <p className="text-sm font-bold">{t("store.syndicateVault")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("store.syndicateVaultDesc")}</p>
               </div>
               <Button size="sm" onClick={() => {
-                if ((stats.credits || 0) < 400) return toast({ title: "Insufficient Credits", variant: "destructive" });
-                addCreditsLocal(-400); setStats(getStats()); toast({ title: "Vault Unlocked!" });
+                if ((stats.credits || 0) < 400) return toast({ title: t("store.insufficientCredits"), variant: "destructive" });
+                addCreditsLocal(-400); setStats(getStats()); toast({ title: t("store.vaultUnlocked") });
               }} className="h-8 font-mono bg-neutral-800 text-neutral-200">400 🪙</Button>
             </div>
           </div>
@@ -324,7 +327,7 @@ export default function Store() {
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-bold">Secure Checkout</span>
+                  <span className="text-sm font-bold">{t("store.secureCheckout")}</span>
                 </div>
                 {!processingPayment && <button onClick={() => setCheckoutState(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>}
               </div>
@@ -337,22 +340,22 @@ export default function Store() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs uppercase text-muted-foreground mb-1.5 block">Card Number</label>
+                    <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.cardNumber")}</label>
                     <Input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="font-mono" disabled={processingPayment} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">Expiry (MM/YY)</label>
+                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.expiry")}</label>
                       <Input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="font-mono" disabled={processingPayment} />
                     </div>
                     <div>
-                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">CVC</label>
+                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.cvc")}</label>
                       <Input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className="font-mono" disabled={processingPayment} />
                     </div>
                   </div>
                 </div>
                 <Button onClick={handleTestPay} disabled={processingPayment} className="w-full mt-4 h-11 text-sm font-black bg-primary hover:bg-primary/90">
-                  {processingPayment ? "Processing..." : `Pay $${(checkoutState.amount / 100).toFixed(2)}`}
+                  {processingPayment ? t("store.processing") : t("store.payAmount", { amount: (checkoutState.amount / 100).toFixed(2) })}
                 </Button>
               </div>
             </motion.div>

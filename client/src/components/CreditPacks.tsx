@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Coins, CreditCard, X, CheckCircle2, Zap } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
-const PACKS = [
+const PACKS_META = [
   { credits: 100, price: 99, label: "$0.99", popular: false },
-  { credits: 550, price: 499, label: "$4.99", popular: true, badge: "+10% Bonus" },
-  { credits: 1200, price: 999, label: "$9.99", popular: false, badge: "+20% Bonus" },
-  { credits: 3000, price: 2499, label: "$24.99", popular: false, badge: "+30% Bonus" },
+  { credits: 550, price: 499, label: "$4.99", popular: true, badgeKey: "bonus10" },
+  { credits: 1200, price: 999, label: "$9.99", popular: false, badgeKey: "bonus20" },
+  { credits: 3000, price: 2499, label: "$24.99", popular: false, badgeKey: "bonus30" },
 ];
 
 function addCredits(amount: number) {
@@ -20,6 +21,8 @@ function addCredits(amount: number) {
 }
 
 export function CreditPacks({ onClose }: { onClose: () => void }) {
+  const { t, i18n } = useTranslation();
+  const PACKS = PACKS_META.map(p => ({ ...p, badge: p.badgeKey ? t(`creditPacks.${p.badgeKey}`) : undefined }));
   const [buying, setBuying] = useState<number | null>(null);
   const [thanks, setThanks] = useState(false);
 
@@ -64,8 +67,8 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
                 <Coins className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Credit Store</h2>
-                <p className="text-xs text-muted-foreground">Buy credits, skip the grind</p>
+                <h2 className="text-lg font-bold text-foreground">{t("creditPacks.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("creditPacks.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -95,7 +98,7 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-foreground">{pack.credits.toLocaleString()} Credits</p>
+                  <p className="text-sm font-bold text-foreground">{t("store.creditsLabel", { count: pack.credits, formattedCount: pack.credits.toLocaleString(i18n.language) })}</p>
                   {pack.badge && (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-500/10 text-green-500 border border-green-500/20">
                       {pack.badge}
@@ -103,7 +106,7 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
                   )}
                 </div>
                 {pack.popular && (
-                  <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Most Popular</p>
+                  <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">{t("creditPacks.mostPopular")}</p>
                 )}
               </div>
               <div className="text-right">
@@ -121,7 +124,7 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
 
         <div className="p-4 border-t border-border bg-muted/20">
           <p className="text-[10px] text-muted-foreground text-center">
-            Credits unlock cosmetics, loot crates, and premium features. No refunds.
+            {t("creditPacks.disclaimer")}
           </p>
         </div>
 
@@ -140,8 +143,8 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
                 className="bg-card border border-amber-500/30 rounded-2xl p-8 text-center"
               >
                 <CheckCircle2 className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-                <p className="text-lg font-bold">Credits Added!</p>
-                <p className="text-sm text-muted-foreground">Spend them in the shop</p>
+                <p className="text-lg font-bold">{t("creditPacks.creditsAdded")}</p>
+                <p className="text-sm text-muted-foreground">{t("creditPacks.spendInShop")}</p>
               </motion.div>
             </motion.div>
           )}

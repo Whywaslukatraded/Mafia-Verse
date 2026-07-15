@@ -4,8 +4,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Skull, Shield, Heart, User, Timer, Lightbulb, Zap, Info, ChevronRight, Users, Eye, Crosshair, Vote, Moon, Sun, Trophy, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function MafiaHandbook() {
+  const { t } = useTranslation();
+  const mafiaAbilities = t("handbook.roles.mafia.abilities", { returnObjects: true }) as string[];
+  const detectiveAbilities = t("handbook.roles.detective.abilities", { returnObjects: true }) as string[];
+  const doctorAbilities = t("handbook.roles.doctor.abilities", { returnObjects: true }) as string[];
+  const civilianAbilities = t("handbook.roles.civilian.abilities", { returnObjects: true }) as string[];
+  const townTips = t("handbook.strategy.townTips", { returnObjects: true }) as string[];
+  const mafiaTips = t("handbook.strategy.mafiaTips", { returnObjects: true }) as string[];
+  const redFlags = t("handbook.strategy.redFlags", { returnObjects: true }) as string[];
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -15,7 +25,7 @@ export function MafiaHandbook() {
           className="gap-2 bg-muted/50 border-border hover:bg-muted transition-all hover:scale-105 group"
         >
           <BookOpen className="w-4 h-4 text-blue-400 group-hover:rotate-12 transition-transform" />
-          <span>Handbook</span>
+          <span>{t("handbook.title")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl bg-background border-border text-foreground shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
@@ -23,26 +33,26 @@ export function MafiaHandbook() {
 
         <DialogHeader className="border-b border-border pb-4 relative z-10">
           <DialogTitle className="text-3xl font-serif tracking-[0.2em] uppercase text-center bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">
-            Mafia Handbook
+            {t("handbook.title")}
           </DialogTitle>
           <p className="text-center text-xs text-muted-foreground mt-1">
-            A complete guide for first-time players
+            {t("handbook.subtitle")}
           </p>
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full mt-4 relative z-10">
           <TabsList className="grid w-full grid-cols-4 bg-muted/40 p-1 rounded-xl border border-border">
             <TabsTrigger value="overview" className="rounded-lg gap-1 data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-[10px] sm:text-xs">
-              <Info className="w-3 h-3" /> Basics
+              <Info className="w-3 h-3" /> {t("handbook.tabs.basics")}
             </TabsTrigger>
             <TabsTrigger value="roles" className="rounded-lg gap-1 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 text-[10px] sm:text-xs">
-              <Users className="w-3 h-3" /> Roles
+              <Users className="w-3 h-3" /> {t("handbook.tabs.roles")}
             </TabsTrigger>
             <TabsTrigger value="flow" className="rounded-lg gap-1 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 text-[10px] sm:text-xs">
-              <Timer className="w-3 h-3" /> Phases
+              <Timer className="w-3 h-3" /> {t("handbook.tabs.phases")}
             </TabsTrigger>
             <TabsTrigger value="strategies" className="rounded-lg gap-1 data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 text-[10px] sm:text-xs">
-              <Lightbulb className="w-3 h-3" /> Tips
+              <Lightbulb className="w-3 h-3" /> {t("handbook.tabs.tips")}
             </TabsTrigger>
           </TabsList>
 
@@ -55,48 +65,48 @@ export function MafiaHandbook() {
 
                   <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4" /> What is Mafia?
+                      <AlertTriangle className="w-4 h-4" /> {t("handbook.overview.whatIsMafiaTitle")}
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Mafia is a social deduction game. Players are secretly divided into two teams: the <strong className="text-foreground">Town</strong> (the good guys) and the <strong className="text-red-400">Mafia</strong> (the bad guys). Nobody knows who is who at first. The Town must figure out who the Mafia are and vote them out. The Mafia must deceive the Town and secretly eliminate them at night.
+                      {t("handbook.overview.whatIsMafiaDescription")}
                     </p>
                   </div>
 
                   <div className="bg-card p-4 rounded-xl border border-border">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                      <Users className="w-4 h-4 text-blue-400" /> Teams at a Glance
+                      <Users className="w-4 h-4 text-blue-400" /> {t("handbook.overview.teamsAtAGlance")}
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                        <p className="text-xs font-bold text-blue-400 mb-1">THE TOWN</p>
-                        <p className="text-xs text-muted-foreground">Detectives, Doctors, and Civilians work together to find and eliminate all Mafia members.</p>
+                        <p className="text-xs font-bold text-blue-400 mb-1">{t("handbook.overview.theTown")}</p>
+                        <p className="text-xs text-muted-foreground">{t("handbook.overview.theTownDescription")}</p>
                       </div>
                       <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                        <p className="text-xs font-bold text-red-400 mb-1">THE MAFIA</p>
-                        <p className="text-xs text-muted-foreground">Hidden among the Town. They secretly choose someone to kill every night. They win when Mafia equals or outnumbers the Town.</p>
+                        <p className="text-xs font-bold text-red-400 mb-1">{t("handbook.overview.theMafia")}</p>
+                        <p className="text-xs text-muted-foreground">{t("handbook.overview.theMafiaDescription")}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-card p-4 rounded-xl border border-border">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                      <Trophy className="w-4 h-4 text-yellow-400" /> How to Win
+                      <Trophy className="w-4 h-4 text-yellow-400" /> {t("handbook.overview.howToWin")}
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <p><strong className="text-emerald-400">Town wins</strong> when every Mafia member is eliminated through daytime voting.</p>
-                      <p><strong className="text-red-400">Mafia wins</strong> when the number of living Mafia members equals or exceeds the number of living Town members.</p>
+                      <p><strong className="text-emerald-400">{t("handbook.overview.townWins")}</strong> {t("handbook.overview.townWinsDescription")}</p>
+                      <p><strong className="text-red-400">{t("handbook.overview.mafiaWins")}</strong> {t("handbook.overview.mafiaWinsDescription")}</p>
                     </div>
                   </div>
 
                   <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2 mb-2">
-                      <Eye className="w-4 h-4" /> What Makes This Different?
+                      <Eye className="w-4 h-4" /> {t("handbook.overview.whatMakesDifferentTitle")}
                     </h3>
                     <ul className="text-sm text-muted-foreground space-y-1.5">
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> Multiple Mafia can exist and <strong>they all know each other</strong>.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> Multiple Doctors can exist and <strong>they all know each other</strong>.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> Multiple Detectives can exist and <strong>they all know each other</strong>.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> Everyone else is a Civilian with no special powers except their vote.</li>
+                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference1")}</li>
+                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference2")}</li>
+                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference3")}</li>
+                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference4")}</li>
                     </ul>
                   </div>
                 </motion.div>
@@ -107,59 +117,39 @@ export function MafiaHandbook() {
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="grid gap-3">
 
                   <RoleSection
-                    title="The Mafia"
+                    title={t("handbook.roles.mafia.title")}
                     icon={<Skull className="w-5 h-5" />}
                     color="text-red-500"
                     glow="shadow-red-500/10"
-                    desc="You are a hidden killer. Your goal is to deceive the Town and eliminate them one by one at night."
-                    abilities={[
-                      "Each night, all living Mafia vote on who to kill. The target with the most votes dies (unless saved by a Doctor).",
-                      "You know who the other Mafia are. Use the chat at night to coordinate with your teammates.",
-                      "During the day, blend in. Act like a Civilian. Don't be too quiet, but don't be too loud either.",
-                      "If there are multiple Mafia, work together to split votes and avoid suspicion.",
-                    ]}
+                    desc={t("handbook.roles.mafia.desc")}
+                    abilities={mafiaAbilities}
                   />
 
                   <RoleSection
-                    title="The Detective"
+                    title={t("handbook.roles.detective.title")}
                     icon={<Shield className="w-5 h-5" />}
                     color="text-blue-500"
                     glow="shadow-blue-500/10"
-                    desc="You are the investigator. Each night you can check one player to see if they are Mafia."
-                    abilities={[
-                      "Each night, choose one player to investigate. The result tells you if they are Mafia or not.",
-                      "You know who the other Detectives are. Share findings with them, but be careful — Mafia could be listening if you're too obvious.",
-                      "Don't reveal yourself too early. Mafia will target you immediately if they know who you are.",
-                      "Build trust slowly. Share information with reliable players, but verify their behavior first.",
-                    ]}
+                    desc={t("handbook.roles.detective.desc")}
+                    abilities={detectiveAbilities}
                   />
 
                   <RoleSection
-                    title="The Doctor"
+                    title={t("handbook.roles.doctor.title")}
                     icon={<Heart className="w-5 h-5" />}
                     color="text-emerald-500"
                     glow="shadow-emerald-500/10"
-                    desc="You are the protector. Each night you choose one player to save from the Mafia's attack."
-                    abilities={[
-                      "Each night, choose one player to protect. If the Mafia tries to kill that player, they survive.",
-                      "You know who the other Doctors are. Coordinate to cover different targets and maximize protection.",
-                      "You can save yourself, but doing it every night is predictable. Save key players like Detectives when you suspect danger.",
-                      "Watch who dies. If someone you protected still dies, there might be multiple Mafia or the protected player was already targeted by something else.",
-                    ]}
+                    desc={t("handbook.roles.doctor.desc")}
+                    abilities={doctorAbilities}
                   />
 
                   <RoleSection
-                    title="The Civilian"
+                    title={t("handbook.roles.civilian.title")}
                     icon={<User className="w-5 h-5" />}
                     color="text-slate-400"
                     glow="shadow-slate-500/10"
-                    desc="You are the backbone of the Town. No special powers, but your vote and observations are the Town's greatest weapon."
-                    abilities={[
-                      "You vote during the day to eliminate suspicious players. Your vote counts just as much as anyone else's.",
-                      "Watch patterns carefully. Who changes their story? Who avoids answering questions? Who seems too eager to vote out specific people?",
-                      "Listen to Detectives and Doctors, but don't blindly trust anyone. Mafia can fake being helpful.",
-                      "Speak up. A quiet Civilian looks suspicious. Share your observations and theories during the day.",
-                    ]}
+                    desc={t("handbook.roles.civilian.desc")}
+                    abilities={civilianAbilities}
                   />
                 </motion.div>
               </TabsContent>
@@ -170,33 +160,33 @@ export function MafiaHandbook() {
 
                   <div className="bg-card p-4 rounded-xl border border-border">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                      <Sun className="w-4 h-4 text-amber-400" /> Day Phase (Discussion + Voting)
+                      <Sun className="w-4 h-4 text-amber-400" /> {t("handbook.flow.dayPhaseTitle")}
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <p><strong className="text-foreground">1. Discussion:</strong> Everyone talks in the chat. Share suspicions, defend yourself, ask questions. This is where the game is won or lost.</p>
-                      <p><strong className="text-foreground">2. Voting:</strong> When voting opens, click on a player's card to vote to eliminate them. The player with the most votes is removed from the game.</p>
-                      <p><strong className="text-foreground">3. Reveal:</strong> After voting, the eliminated player's role is revealed to everyone. Use this information to update your theories.</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.day1Label")}</strong> {t("handbook.flow.day1Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.day2Label")}</strong> {t("handbook.flow.day2Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.day3Label")}</strong> {t("handbook.flow.day3Description")}</p>
                     </div>
                   </div>
 
                   <div className="bg-card p-4 rounded-xl border border-border">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-                      <Moon className="w-4 h-4 text-indigo-400" /> Night Phase (Secret Actions)
+                      <Moon className="w-4 h-4 text-indigo-400" /> {t("handbook.flow.nightPhaseTitle")}
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <p><strong className="text-foreground">1. Mafia Turn:</strong> All Mafia members secretly vote on who to kill. The chosen player will die unless a Doctor saves them.</p>
-                      <p><strong className="text-foreground">2. Doctor Turn:</strong> All Doctors secretly choose one player to protect from the Mafia's attack.</p>
-                      <p><strong className="text-foreground">3. Detective Turn:</strong> All Detectives secretly investigate one player to learn if they are Mafia.</p>
-                      <p><strong className="text-foreground">4. Morning:</strong> Everyone wakes up. If someone died, their role is revealed. If a Detective found a Mafia, they now know — but proving it without revealing themselves is tricky.</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night1Label")}</strong> {t("handbook.flow.night1Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night2Label")}</strong> {t("handbook.flow.night2Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night3Label")}</strong> {t("handbook.flow.night3Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night4Label")}</strong> {t("handbook.flow.night4Description")}</p>
                     </div>
                   </div>
 
                   <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2 mb-2">
-                      <Vote className="w-4 h-4" /> Tie-Breaking
+                      <Vote className="w-4 h-4" /> {t("handbook.flow.tieBreakingTitle")}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      If two or more players receive the same highest number of votes, nobody is eliminated that round. The game moves straight to night. This is why coordination matters — splitting votes helps the Mafia survive.
+                      {t("handbook.flow.tieBreakingDescription")}
                     </p>
                   </div>
                 </motion.div>
@@ -207,39 +197,25 @@ export function MafiaHandbook() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
 
                   <StrategyCard
-                    title="For the Town (Civilians, Doctors, Detectives)"
+                    title={t("handbook.strategy.townTitle")}
                     accent="border-blue-500/20"
-                    tips={[
-                      "Watch for players who never change their story — or who change it too much. Both are suspicious.",
-                      "If a Detective reveals they found a Mafia, ask them to describe their investigation process. Fake Detectives often can't answer detailed questions.",
-                      "Doctors: Protect the most talkative and helpful players. Mafia usually targets players who are leading the Town.",
-                      "Civilians: Don't stay silent. Even if you have no special info, sharing observations helps the Town coordinate.",
-                      "If multiple players are accusing the same person from different angles, that person might actually be Mafia — or the accusers might be coordinated Mafia trying to frame someone.",
-                    ]}
+                    tips={townTips}
                   />
 
                   <StrategyCard
-                    title="For the Mafia"
+                    title={t("handbook.strategy.mafiaTitle")}
                     accent="border-red-500/20"
-                    tips={[
-                      "Don't all vote for the same person on Day 1. It looks coordinated. Spread your early votes to look like independent thinkers.",
-                      "Sacrifice a Mafia teammate if it builds long-term trust. A trusted Mafia is more dangerous than two suspicious ones.",
-                      "Defend a Civilian occasionally. If you save them from a bad vote, they might trust you later — and trust is the Mafia's best weapon.",
-                      "When a real Detective reveals findings, discredit them subtly. Ask 'how do we know you're really a Detective?'",
-                      "If there are multiple Mafia, have one play aggressive and one play quiet. Diverse strategies make the Town divide their suspicion.",
-                    ]}
+                    tips={mafiaTips}
                   />
 
                   <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
                     <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2 mb-2">
-                      <Crosshair className="w-4 h-4" /> Red Flags to Watch For
+                      <Crosshair className="w-4 h-4" /> {t("handbook.strategy.redFlagsTitle")}
                     </h3>
                     <ul className="text-sm text-muted-foreground space-y-1.5">
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> A player who never votes first — they always wait to see where the crowd goes.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> Someone who answers questions with questions instead of facts.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> Two or more players who always agree with each other from the start.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> A player who suddenly goes from silent to extremely defensive when accused.</li>
-                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> Someone who claims a special role too early with no proof to back it up.</li>
+                      {redFlags.map((flag, i) => (
+                        <li key={i} className="flex gap-2"><ChevronRight className="w-3 h-3 mt-0.5 text-purple-400 shrink-0" /> {flag}</li>
+                      ))}
                     </ul>
                   </div>
                 </motion.div>

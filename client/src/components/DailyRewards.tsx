@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Coins, Flame, Calendar, ChevronRight, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface RewardDay {
@@ -50,6 +51,7 @@ function saveStats(stats: any) {
 }
 
 export function DailyRewards({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [streak, setStreak] = useState(getStreakData);
   const [stats, setStats] = useState(getStats);
   const [claimedToday, setClaimedToday] = useState(false);
@@ -110,8 +112,8 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                 <Gift className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Daily Rewards</h2>
-                <p className="text-xs text-muted-foreground">Come back every day</p>
+                <h2 className="text-lg font-bold text-foreground">{t("dailyRewards.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("dailyRewards.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -124,15 +126,15 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
           <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
             <div className="flex items-center gap-2">
               <Flame className="w-4 h-4 text-orange-500" />
-              <span className="text-sm text-muted-foreground">Current Streak</span>
+              <span className="text-sm text-muted-foreground">{t("dailyRewards.currentStreak")}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-orange-500">{streak.current} day streak</span>
+              <span className="text-sm font-bold text-orange-500">{t("dailyRewards.dayStreak", { count: streak.current })}</span>
             </div>
             {streak.longest > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30">
                 <Flame className="w-3 h-3 text-primary" />
-                <span className="text-xs font-bold text-primary">Best: {streak.longest}</span>
+                <span className="text-xs font-bold text-primary">{t("dailyRewards.best", { count: streak.longest })}</span>
               </div>
             )}
           </div>
@@ -209,24 +211,24 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                 >
                   <div>
                     <p className="text-sm font-bold text-foreground">
-                      Day {reward.day}
-                      {reward.bonus && <span className="ml-2 text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">BONUS</span>}
+                      {t("dailyRewards.dayN", { day: reward.day })}
+                      {reward.bonus && <span className="ml-2 text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">{t("dailyRewards.bonus")}</span>}
                     </p>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-xs text-amber-500 flex items-center gap-1">
-                        <Coins className="w-3 h-3" /> +{reward.credits} Credits
+                        <Coins className="w-3 h-3" /> {t("dailyRewards.plusCredits", { count: reward.credits })}
                       </span>
                     </div>
                   </div>
 
                   {isClaimed ? (
-                    <span className="text-xs text-green-500 font-bold">Claimed</span>
+                    <span className="text-xs text-green-500 font-bold">{t("dailyRewards.claimed")}</span>
                   ) : isNext ? (
                     <button
                       onClick={() => handleClaim(reward.day)}
                       className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors"
                     >
-                      Claim
+                      {t("dailyRewards.claim")}
                     </button>
                   ) : (
                     <ChevronRight className="w-4 h-4 text-muted" />
@@ -252,9 +254,9 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                 className="bg-card border border-amber-500/30 rounded-2xl p-8 text-center"
               >
                 <Gift className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-                <p className="text-lg font-bold">Reward Claimed!</p>
+                <p className="text-lg font-bold">{t("dailyRewards.rewardClaimed")}</p>
                 <p className="text-sm text-muted-foreground">
-                  +{REWARDS[streak.current - 1]?.credits || 0} Credits
+                  {t("dailyRewards.plusCredits", { count: REWARDS[streak.current - 1]?.credits || 0 })}
                 </p>
               </motion.div>
             </motion.div>

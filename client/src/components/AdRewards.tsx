@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tv, Coins, Clock, CircleCheck as CheckCircle2, Sparkles, X, TriangleAlert as AlertTriangle, Timer } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,12 +9,10 @@ const MAX_ADS_PER_DAY = 5;
 const REWARD_PER_AD = 5;
 const COUNTDOWN_SECONDS = 15;
 
-const BILLBOARD_ADS = [
+const BILLBOARD_ADS_META = [
   {
     id: "item_shop",
     emoji: "🔥",
-    title: "GEAR UP IN THE SHOP!",
-    body: "Check out the Item Shop right now to unlock exclusive limited-edition mystery costumes and special rare items before they fly off the shelves!",
     gradient: "from-orange-500/20 via-amber-500/10 to-orange-600/20",
     border: "border-orange-500/30",
     accent: "text-orange-400",
@@ -22,8 +21,6 @@ const BILLBOARD_ADS = [
   {
     id: "buy_credits",
     emoji: "💼",
-    title: "NO MORE WAITING",
-    body: "Need credits right now for a rare item? Skip the daily limit and visit our store page to instantly buy bundles of credits securely powered by Stripe!",
     gradient: "from-emerald-500/20 via-teal-500/10 to-emerald-600/20",
     border: "border-emerald-500/30",
     accent: "text-emerald-400",
@@ -32,8 +29,6 @@ const BILLBOARD_ADS = [
   {
     id: "referral",
     emoji: "📣",
-    title: "GROW YOUR CREW",
-    body: "Want even more rewards? Use our Referral System to invite your friends! Share your unique invite link with your crew to earn a massive 25 bonus credits together when they join.",
     gradient: "from-blue-500/20 via-indigo-500/10 to-blue-600/20",
     border: "border-blue-500/30",
     accent: "text-blue-400",
@@ -42,8 +37,6 @@ const BILLBOARD_ADS = [
   {
     id: "security",
     emoji: "🔒",
-    title: "BACKUP SECURED",
-    body: "Your game profile is protected. Ensure your account is fully secure by linking your login profile with Google 2-Step Authentication via Supabase.",
     gradient: "from-red-500/20 via-rose-500/10 to-red-600/20",
     border: "border-red-500/30",
     accent: "text-red-400",
@@ -58,9 +51,15 @@ interface AdRewardsProps {
 }
 
 export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRewardsProps) {
+  const { t } = useTranslation();
   const sessionId = propSessionId || localStorage.getItem("mafia_session_current") || `anon_${Math.random().toString(36).slice(2, 10)}`;
 
-  const selectedAd = useMemo(() => BILLBOARD_ADS[Math.floor(Math.random() * BILLBOARD_ADS.length)], []);
+  const BILLBOARD_ADS = useMemo(() => BILLBOARD_ADS_META.map(ad => ({
+    ...ad,
+    title: t(`adRewards.billboards.${ad.id}.title`),
+    body: t(`adRewards.billboards.${ad.id}.body`),
+  })), [t]);
+  const selectedAd = useMemo(() => BILLBOARD_ADS[Math.floor(Math.random() * BILLBOARD_ADS.length)], [BILLBOARD_ADS]);
 
   const [claimsToday, setClaimsToday] = useState(0);
   const [remaining, setRemaining] = useState(MAX_ADS_PER_DAY);
@@ -118,17 +117,17 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
                 window.dispatchEvent(new Event("storage"));
               } catch {}
             } else {
-              setErrorMsg(data.message || "Could not award credits.");
+              setErrorMsg(data.message || t("adRewards.couldNotAward"));
             }
           })
-          .catch(() => setErrorMsg("Network error. Please try again."))
+          .catch(() => setErrorMsg(t("adRewards.networkError")))
           .finally(() => {
             setWatching(false);
             setLocked(false);
           });
       }
     }, 1000);
-  }, [locked, watching, remaining, sessionId, roomCode]);
+  }, [locked, watching, remaining, sessionId, roomCode, t]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
@@ -151,8 +150,8 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
                 <Tv className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Free Credits</h2>
-                <p className="text-xs text-muted-foreground">Watch & earn — 5 credits per stream</p>
+                <h2 className="text-lg font-bold text-foreground">{t("adRewards.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("adRewards.subtitle", { count: REWARD_PER_AD })}</p>
               </div>
             </div>
             {!watching && (
@@ -169,14 +168,14 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
             <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
               <div className="flex items-center gap-2">
                 <Coins className="w-4 h-4 text-amber-500" />
-                <span className="text-xs text-muted-foreground">Per stream</span>
+                <span className="text-xs text-muted-foreground">{t("adRewards.perStream")}</span>
               </div>
               <span className="text-sm font-bold text-amber-500">+{REWARD_PER_AD}</span>
             </div>
             <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-500" />
-                <span className="text-xs text-muted-foreground">Today</span>
+                <span className="text-xs text-muted-foreground">{t("adRewards.today")}</span>
               </div>
               <span className="text-sm font-bold">{loadingStatus ? "..." : `${claimsToday}/${MAX_ADS_PER_DAY}`}</span>
             </div>
@@ -189,7 +188,7 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
           )}>
             <Timer className={cn("w-4 h-4", watching ? "text-amber-500 animate-spin" : "text-muted-foreground")} />
             <span className="text-xs font-mono font-bold flex-1">
-              {watching ? `Streaming... ${countdown}s remaining` : "Ready to Stream"}
+              {watching ? t("adRewards.streamingRemaining", { count: countdown }) : t("adRewards.readyToStream")}
             </span>
             {watching && (
               <span className="text-xs font-black text-amber-500">{countdown}s</span>
@@ -206,7 +205,7 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
             {/* Billboard chrome */}
             <div className="flex items-center gap-2 px-4 pt-3 pb-1 border-b border-white/10">
               <div className={cn("w-2 h-2 rounded-full animate-pulse", selectedAd.dot)} />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Sponsored</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">{t("adRewards.sponsored")}</span>
               <div className="ml-auto flex gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
                 <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
@@ -251,11 +250,11 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
             {claimed ? (
               <motion.div key="claimed" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center py-2 space-y-2">
                 <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-                <p className="font-bold text-foreground">+{REWARD_PER_AD} Credits Earned!</p>
-                <p className="text-xs text-muted-foreground">{remaining} stream{remaining !== 1 ? "s" : ""} remaining today</p>
+                <p className="font-bold text-foreground">{t("adRewards.creditsEarned", { count: REWARD_PER_AD })}</p>
+                <p className="text-xs text-muted-foreground">{t("adRewards.streamsRemaining", { count: remaining })}</p>
                 {remaining > 0 && (
                   <Button size="sm" variant="outline" onClick={() => { setClaimed(false); setLocked(false); }} className="mt-1">
-                    Watch Another
+                    {t("adRewards.watchAnother")}
                   </Button>
                 )}
               </motion.div>
@@ -267,15 +266,15 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
                   onClick={startWatch}
                 >
                   {watching ? (
-                    <><Timer className="w-4 h-4 animate-spin" /> Streaming... ({countdown}s)</>
+                    <><Timer className="w-4 h-4 animate-spin" /> {t("adRewards.streamingCountdown", { count: countdown })}</>
                   ) : remaining <= 0 ? (
-                    <><AlertTriangle className="w-4 h-4" /> Daily Limit Reached</>
+                    <><AlertTriangle className="w-4 h-4" /> {t("adRewards.dailyLimitReached")}</>
                   ) : (
-                    <><Sparkles className="w-4 h-4" /> Activate Stream (+{REWARD_PER_AD} Credits)</>
+                    <><Sparkles className="w-4 h-4" /> {t("adRewards.activateStream", { count: REWARD_PER_AD })}</>
                   )}
                 </Button>
                 {remaining <= 0 && (
-                  <p className="text-[10px] text-center text-muted-foreground mt-2">Resets at midnight. Check back tomorrow.</p>
+                  <p className="text-[10px] text-center text-muted-foreground mt-2">{t("adRewards.resetsAtMidnight")}</p>
                 )}
               </motion.div>
             )}

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, X, Send, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -42,6 +43,7 @@ function clearHasRated() {
 }
 
 export function RatingSystem({ onClose }: { onClose: () => void }) {
+  const { t, i18n } = useTranslation();
   const [stars, setStars] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -78,6 +80,14 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
     setRatings(updated);
   };
 
+  const starLabels: Record<number, string> = {
+    5: t("rating.amazing"),
+    4: t("rating.great"),
+    3: t("rating.good"),
+    2: t("rating.okay"),
+    1: t("rating.needsWork"),
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -94,8 +104,8 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">Rate the Game</h2>
-                <p className="text-xs text-muted-foreground">Your feedback shapes the future</p>
+                <h2 className="text-lg font-bold text-foreground">{t("rating.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("rating.subtitle")}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -110,19 +120,19 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-4 bg-muted/30 rounded-xl p-3">
               <div className="text-center">
                 <p className="text-2xl font-black text-yellow-500">{average}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Average</p>
+                <p className="text-[10px] text-muted-foreground uppercase">{t("rating.average")}</p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div className="text-center">
                 <p className="text-2xl font-black text-foreground">{ratings.length}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">Reviews</p>
+                <p className="text-[10px] text-muted-foreground uppercase">{t("rating.reviews")}</p>
               </div>
               <div className="flex-1 flex justify-end">
                 <button
                   onClick={() => setShowHistory(!showHistory)}
                   className="text-xs text-yellow-500 font-bold hover:underline"
                 >
-                  {showHistory ? "Hide" : "See All"}
+                  {showHistory ? t("rating.hide") : t("rating.seeAll")}
                 </button>
               </div>
             </div>
@@ -136,15 +146,15 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center py-6 space-y-3"
               >
-                <p className="text-lg font-bold">Rating Cleared</p>
-                <p className="text-sm text-muted-foreground">Your rating has been reset. You can submit a new one now.</p>
+                <p className="text-lg font-bold">{t("rating.ratingCleared")}</p>
+                <p className="text-sm text-muted-foreground">{t("rating.ratingClearedDescription")}</p>
                 <Button size="sm" onClick={() => {
                   setCanRateAgain(false);
                   setStars(0);
                   setFeedback("");
                   setSubmitted(false);
                 }}>
-                  Rate Again
+                  {t("rating.rateAgain")}
                 </Button>
               </motion.div>
             ) : submitted ? (
@@ -160,11 +170,11 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                 >
                   <Star className="w-12 h-12 text-yellow-500 fill-yellow-500 mx-auto" />
                 </motion.div>
-                <p className="text-lg font-bold">Thanks for rating!</p>
-                <p className="text-sm text-muted-foreground">Your feedback helps us improve</p>
+                <p className="text-lg font-bold">{t("rating.thanksForRating")}</p>
+                <p className="text-sm text-muted-foreground">{t("rating.feedbackHelpsUs")}</p>
                 <div className="flex gap-2 justify-center">
                   <Button variant="outline" size="sm" onClick={onClose}>
-                    Close
+                    {t("common.close")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -175,7 +185,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                       setCanRateAgain(true);
                     }}
                   >
-                    Reset My Rating
+                    {t("rating.resetMyRating")}
                   </Button>
                 </div>
               </motion.div>
@@ -191,7 +201,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                   onClick={() => setShowHistory(false)}
                   className="text-xs text-muted-foreground hover:text-foreground mb-2"
                 >
-                  &larr; Back to rating
+                  &larr; {t("rating.backToRating")}
                 </button>
                 {ratings.slice(0, 10).map((r) => (
                   <div key={r.id} className="bg-muted/30 rounded-xl p-3 space-y-1">
@@ -203,7 +213,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                         />
                       ))}
                       <span className="text-[10px] text-muted-foreground ml-auto">
-                        {new Date(r.timestamp).toLocaleDateString()}
+                        {new Date(r.timestamp).toLocaleDateString(i18n.language)}
                       </span>
                     </div>
                     {r.feedback && (
@@ -214,13 +224,13 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                         onClick={() => markHelpful(r.id, true)}
                         className={`flex items-center gap-1 text-[10px] ${r.helpful === true ? "text-green-500 font-bold" : "text-muted-foreground"}`}
                       >
-                        <ThumbsUp className="w-3 h-3" /> Helpful
+                        <ThumbsUp className="w-3 h-3" /> {t("rating.helpful")}
                       </button>
                       <button
                         onClick={() => markHelpful(r.id, false)}
                         className={`flex items-center gap-1 text-[10px] ${r.helpful === false ? "text-red-500 font-bold" : "text-muted-foreground"}`}
                       >
-                        <ThumbsDown className="w-3 h-3" /> Not Helpful
+                        <ThumbsDown className="w-3 h-3" /> {t("rating.notHelpful")}
                       </button>
                     </div>
                   </div>
@@ -236,7 +246,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
               >
                 {/* Star Rating */}
                 <div className="text-center space-y-2">
-                  <p className="text-sm font-bold text-foreground">How would you rate your experience?</p>
+                  <p className="text-sm font-bold text-foreground">{t("rating.howWouldYouRate")}</p>
                   <div className="flex items-center justify-center gap-2">
                     {Array.from({ length: 5 }).map((_, i) => {
                       const filled = i < (hoveredStar || stars);
@@ -258,15 +268,15 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                     })}
                   </div>
                   <p className="text-xs text-muted-foreground h-4">
-                    {stars === 5 ? "Amazing!" : stars === 4 ? "Great!" : stars === 3 ? "Good" : stars === 2 ? "Okay" : stars === 1 ? "Needs work" : ""}
+                    {starLabels[stars] || ""}
                   </p>
                 </div>
 
                 {/* Feedback */}
                 <div className="space-y-2">
-                  <p className="text-sm font-bold text-foreground">What could we do better? (Optional)</p>
+                  <p className="text-sm font-bold text-foreground">{t("rating.whatCouldWeDoBetter")}</p>
                   <Textarea
-                    placeholder="Share your thoughts..."
+                    placeholder={t("rating.shareYourThoughts")}
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     className="min-h-[80px] resize-none"
@@ -281,7 +291,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                   onClick={handleSubmit}
                 >
                   <Send className="w-4 h-4" />
-                  Submit Rating
+                  {t("rating.submitRating")}
                 </Button>
               </motion.div>
             )}

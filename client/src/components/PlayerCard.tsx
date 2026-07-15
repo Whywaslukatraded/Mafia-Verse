@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Heart, Skull, Crown, Ghost, X, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Player } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,14 @@ interface PlayerCardProps {
   revealedRole?: string | null;
 }
 
-const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string; icon: any; iconColor: string; label: string }> = {
+const ROLE_COSMETICS_META: Record<string, { border: string; glow: string; bg: string; icon: any; iconColor: string; labelKey: string }> = {
   mafia: {
     border: "border-red-500/60",
     glow: "shadow-[0_0_20px_rgba(239,68,68,0.25)]",
     bg: "bg-red-950/30",
     icon: Skull,
     iconColor: "text-red-400",
-    label: "MAFIA"
+    labelKey: "mafia"
   },
   detective: {
     border: "border-blue-500/60",
@@ -30,7 +31,7 @@ const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string;
     bg: "bg-blue-950/30",
     icon: Shield,
     iconColor: "text-blue-400",
-    label: "DETECTIVE"
+    labelKey: "detective"
   },
   doctor: {
     border: "border-emerald-500/60",
@@ -38,7 +39,7 @@ const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string;
     bg: "bg-emerald-950/30",
     icon: Heart,
     iconColor: "text-emerald-400",
-    label: "DOCTOR"
+    labelKey: "doctor"
   },
   civilian: {
     border: "border-white/20",
@@ -46,7 +47,7 @@ const ROLE_COSMETICS: Record<string, { border: string; glow: string; bg: string;
     bg: "bg-card/50",
     icon: null,
     iconColor: "text-muted-foreground/40",
-    label: "CIVILIAN"
+    labelKey: "civilian"
   },
 };
 
@@ -60,12 +61,17 @@ export function PlayerCard({
   onRemove,
   revealedRole 
 }: PlayerCardProps) {
+  const { t } = useTranslation();
   // Determine which role cosmetic to apply
   // Server sends real roles for: self, teammates, dead players, ended games; 'unknown' for hidden roles
   const knownRole = revealedRole?.toLowerCase()
     || (player.role && player.role !== "unknown" ? player.role.toLowerCase() : null);
-  const cosmetic = knownRole && ROLE_COSMETICS[knownRole] ? ROLE_COSMETICS[knownRole] : null;
+  const cosmeticMeta = knownRole && ROLE_COSMETICS_META[knownRole] ? ROLE_COSMETICS_META[knownRole] : null;
+  const cosmetic = cosmeticMeta ? { ...cosmeticMeta, label: t(`playerCard.roleLabels.${cosmeticMeta.labelKey}`) } : null;
   const RoleIcon = cosmetic?.icon;
+
+  const displayRole = revealedRole || (player.role && player.role !== "unknown" ? player.role : null);
+  const displayRoleLabel = displayRole ? t(`playerCard.roleLabels.${displayRole.toLowerCase()}`, displayRole) : t("playerCard.unknown");
 
   return (
     <motion.div
@@ -96,7 +102,7 @@ export function PlayerCard({
       {/* Status Icons */}
       <div className="absolute top-2 right-2 flex flex-col gap-1">
         {player.isHost && (
-          <div className="p-1 bg-yellow-500/20 rounded-full text-yellow-500" title="Host">
+          <div className="p-1 bg-yellow-500/20 rounded-full text-yellow-500" title={t("playerCard.host")}>
             <Crown className="w-4 h-4" />
           </div>
         )}
@@ -134,15 +140,15 @@ export function PlayerCard({
           !player.isAlive && "line-through text-muted-foreground"
         )}>
           {player.name}
-          {player.isBot && <span className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-normal">BOT</span>}
-          {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">(You)</span>}
+          {player.isBot && <span className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
+          {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">{t("playerCard.you")}</span>}
         </h3>
         
         {/* Revealed Role or Status */}
         <div className="mt-2 min-h-[20px] text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {!player.isAlive
-            ? (player.role && player.role !== "unknown" ? `${player.role} — Eliminated` : "Eliminated")
-            : (revealedRole || (player.role && player.role !== "unknown" ? player.role : "Unknown"))}
+            ? (player.role && player.role !== "unknown" ? t("playerCard.roleEliminated", { role: t(`playerCard.roleLabels.${player.role.toLowerCase()}`, player.role) }) : t("playerCard.eliminated"))
+            : displayRoleLabel}
         </div>
       </div>
 

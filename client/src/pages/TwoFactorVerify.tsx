@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Shield, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 export default function TwoFactorVerify() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [code, setCode] = useState("");
@@ -16,11 +18,11 @@ export default function TwoFactorVerify() {
 
   const verifyCode = async () => {
     if (code.length !== 6) {
-      toast({ title: "Enter 6-digit code", variant: "destructive" });
+      toast({ title: t("twoFactor.enterSixDigit"), variant: "destructive" });
       return;
     }
     if (!isSupabaseReady()) {
-      toast({ title: "Auth service not ready. Please refresh.", variant: "destructive" });
+      toast({ title: t("twoFactor.authNotReady"), variant: "destructive" });
       return;
     }
     setVerifying(true);
@@ -35,16 +37,16 @@ export default function TwoFactorVerify() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: data.message || "Invalid code", variant: "destructive" });
+        toast({ title: data.message || t("twoFactor.invalidCode"), variant: "destructive" });
         setVerifying(false);
         return;
       }
       // Mark 2FA as passed
       localStorage.setItem("mafia_2fa_passed", "true");
-      toast({ title: "Welcome back!" });
+      toast({ title: t("twoFactor.welcomeBack") });
       setLocation("/");
     } catch (e) {
-      toast({ title: "Verification failed", variant: "destructive" });
+      toast({ title: t("twoFactor.verificationFailed"), variant: "destructive" });
       setVerifying(false);
     }
   };
@@ -65,13 +67,13 @@ export default function TwoFactorVerify() {
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full mb-4">
             <Lock className="w-8 h-8 text-emerald-500" />
           </div>
-          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">Two-Factor Authentication</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">Enter the code from your authenticator</p>
+          <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">{t("twoFactor.title")}</h1>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("twoFactor.verifySubtitle")}</p>
         </div>
 
         <div className="w-full bg-card border border-border rounded-xl p-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="code">6-digit code</Label>
+            <Label htmlFor="code">{t("twoFactor.sixDigitCode")}</Label>
             <Input
               id="code"
               type="text"
@@ -91,7 +93,7 @@ export default function TwoFactorVerify() {
             data-testid="button-verify-2fa"
           >
             <Shield className="w-4 h-4 mr-2" />
-            {verifying ? "Verifying..." : "Verify"}
+            {verifying ? t("twoFactor.verifying") : t("twoFactor.verify")}
           </Button>
         </div>
       </motion.div>

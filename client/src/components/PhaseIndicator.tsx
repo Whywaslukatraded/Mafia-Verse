@@ -1,4 +1,5 @@
 import { Moon, Sun, Clock, Crown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -10,6 +11,7 @@ interface PhaseIndicatorProps {
 }
 
 export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndicatorProps) {
+  const { t } = useTranslation();
   const isNight = status === "night";
   const isDay = status === "day";
   const isLobby = status === "lobby";
@@ -20,21 +22,24 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
   let Icon: any = isNight ? Moon : Sun;
 
   if (isLobby) {
-    title = "Waiting Lobby";
-    description = "Waiting for players to join...";
+    title = t("phaseIndicator.waitingLobby");
+    description = t("phaseIndicator.waitingForPlayers");
     Icon = Crown;
   } else if (isEnded) {
-    title = "Game Over";
-    description = "The game has ended.";
+    title = t("phaseIndicator.gameOver");
+    description = t("phaseIndicator.gameHasEnded");
     Icon = Crown;
   } else if (isDay) {
-    title = `Day ${turn}`;
-    if (phase === "discussion") description = "Discuss who the Mafia are.";
-    if (phase === "voting") description = "Vote to eliminate a suspect.";
+    title = t("room.dayN", { turn });
+    if (phase === "discussion") description = t("phaseIndicator.discussDescription");
+    if (phase === "voting") description = t("phaseIndicator.votingDescription");
   } else {
-    title = `Night ${turn}`;
-    description = "Mafia and roles are acting...";
+    title = t("room.nightN", { turn });
+    description = t("phaseIndicator.nightDescription");
   }
+
+  // Phase label translation (discussion/voting/mafia/doctor/detective)
+  const phaseLabel = t(`phaseIndicator.phases.${phase}`, phase.replace('_', ' '));
 
   function Crown(props: any) {
     return <Sun {...props} className={cn(props.className, "opacity-0")} />; // Placeholder for layout
@@ -83,7 +88,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
         {!isLobby && !isEnded && (
           <div className="ml-auto flex items-center gap-3">
             <div className="px-3 py-1 rounded-full bg-background/50 backdrop-blur border text-xs font-semibold uppercase tracking-wider">
-              {phase.replace('_', ' ')}
+              {phaseLabel}
             </div>
             {timeRemaining !== undefined && timeRemaining > 0 && (
               <motion.div

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { PhaseIndicator } from "@/components/PhaseIndicator";
@@ -43,34 +44,16 @@ function ConfettiEffect() {
   );
 }
 
-const DEATH_STORIES = [
-  "{name} was skiing down the mountain and fell into a crevasse never to be seen again.",
-  "As {name} was skydiving, his or her parachute didn't deploy and they were dead.",
-  "{name} went for a swim in shark-infested waters and became a midnight snack.",
-  "{name} tried to pet a stray 'cat' that turned out to be a very hungry mountain lion.",
-  "{name} accidentally joined a high-stakes underground drag race with a golf cart.",
-  "{name} mistook a high-voltage transformer for a public phone booth.",
-  "While hunting for ghosts, {name} tripped and fell into a deep, forgotten well.",
-  "{name} decided to challenge a professional wrestler to a 'friendly' match.",
-  "A giant grand piano fell from the third floor, landing exactly on {name}.",
-  "{name} tried to recreate a famous fire-breathing trick with high-proof rum.",
-  "During a safari, {name} forgot that windows should stay rolled up around lions.",
-  "{name} entered a pie-eating contest against a grizzly bear and lost spectacularly.",
-  "A freak bowling accident sent {name} sliding down the lane and into the machinery.",
-  "{name} thought they could outrun a swarm of angry hornets by jumping into a cactus.",
-  "While taking a selfie on a cliff edge, {name} lost their balance and their phone.",
-  "{name} tried to use a lawnmower to trim their hedges, with disastrous results.",
-  "A experimental weather balloon landed directly on {name}'s tent during the night.",
-  "{name} discovered that 'danger' signs on construction sites are not suggestions.",
-  "While exploring an old cave, {name} woke up a colony of very territorial bats.",
-  "{name} attempted to surf a tsunami on a piece of plywood."
-];
-
 export default function Room() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/room/:code");
   const [, setLocation] = useLocation();
   const code = params?.code || null;
   const { toast } = useToast();
+
+  // Death stories live in the translation files (room.deathStories, an array of 20
+  // templates each) so they read naturally in whichever language is active.
+  const DEATH_STORIES = t("room.deathStories", { returnObjects: true }) as string[];
 
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
@@ -132,7 +115,7 @@ export default function Room() {
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setLinkCopied(true);
-    toast({ title: "Link copied!", description: "Send it to your friends." });
+    toast({ title: t("room.linkCopied"), description: t("room.sendToFriends") });
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
@@ -140,8 +123,8 @@ export default function Room() {
   // Messages, and anything else installed), falls back to a QR code + copy link panel.
   const handleShare = async () => {
     const shareData = {
-      title: roomName ? `Join ${roomName} on Mafia Verse` : "Join my Mafia Verse game",
-      text: "Join my Mafia Verse game! Tap the link to jump in.",
+      title: roomName ? t("room.shareTitleNamed", { roomName }) : t("room.shareTitleDefault"),
+      text: t("room.shareText"),
       url: window.location.href,
     };
     if (typeof navigator !== "undefined" && (navigator as any).share) {
@@ -163,7 +146,7 @@ export default function Room() {
   // Session check
   useEffect(() => {
     if (gameState && !sessionId && gameState.room.status === "lobby") {
-      toast({ title: "Join the room", description: "Enter your name to join." });
+      toast({ title: t("room.joinTheRoom"), description: t("room.enterNameToJoin") });
       setLocation(`/?join=${code}`);
     }
   }, [sessionId, setLocation, toast, gameState, code]);
@@ -284,9 +267,9 @@ export default function Room() {
         shownEliminationsRef.current.add(p.id);
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
         const deathStory = story.replace("{name}", p.name);
-        
+
         toast({
-          title: `${p.name} has been eliminated`,
+          title: t("room.playerEliminated", { name: p.name }),
           description: deathStory,
           variant: "destructive",
         });
@@ -320,14 +303,14 @@ export default function Room() {
   }, [room?.phase, room?.status]);
 
   if (!gameState || !room || !me) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Connecting...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">{t("room.connecting")}</div>;
   }
 
   const getNightActionLabel = () => {
-    if (room?.phase === "mafia") return { verb: "Kill", action: "killing" };
-    if (room?.phase === "doctor") return { verb: "Protect", action: "protecting" };
-    if (room?.phase === "detective") return { verb: "Investigate", action: "investigating" };
-    return { verb: "Act", action: "acting" };
+    if (room?.phase === "mafia") return { verb: t("room.actions.kill"), action: "killing" };
+    if (room?.phase === "doctor") return { verb: t("room.actions.protect"), action: "protecting" };
+    if (room?.phase === "detective") return { verb: t("room.actions.investigate"), action: "investigating" };
+    return { verb: t("room.actions.act"), action: "acting" };
   };
 
   const isMyNightTurn = (room?.status === "night" && me.isAlive && (
@@ -340,7 +323,7 @@ export default function Room() {
     if (room?.status === "day" && room?.phase === "voting") {
       const isVoted = (gameState as any)?.me?.currentAction?.vote === targetId;
       return {
-        label: isVoted ? "Voted" : "Vote",
+        label: isVoted ? t("room.voted") : t("room.vote"),
         variant: isVoted ? "secondary" : "default",
         action: { type: "vote", targetId } as GameAction,
         isNight: false,
@@ -354,7 +337,7 @@ export default function Room() {
         if (target?.role === "mafia") return null;
         const isTargeted = pendingNightAction?.targetId === targetId;
         return {
-          label: isTargeted ? "Selected" : "Select",
+          label: isTargeted ? t("room.selected") : t("room.select"),
           variant: isTargeted ? "secondary" : "destructive",
           action: { type: "kill", targetId } as GameAction,
           isNight: true,
@@ -363,7 +346,7 @@ export default function Room() {
       if (room.phase === "doctor" && me.role === "doctor") {
         const isSelected = pendingNightAction?.targetId === targetId;
         return {
-          label: isSelected ? "Selected" : "Select",
+          label: isSelected ? t("room.selected") : t("room.select"),
           variant: isSelected ? "secondary" : "default",
           action: { type: "heal", targetId } as GameAction,
           isNight: true,
@@ -372,7 +355,7 @@ export default function Room() {
       if (room.phase === "detective" && me.role === "detective") {
         const isSelected = pendingNightAction?.targetId === targetId;
         return {
-          label: isSelected ? "Selected" : "Select",
+          label: isSelected ? t("room.selected") : t("room.select"),
           variant: isSelected ? "secondary" : "default",
           action: { type: "check", targetId } as GameAction,
           isNight: true,
@@ -389,7 +372,7 @@ export default function Room() {
     if (!type) return;
     sendAction({ type, targetId: pendingNightAction.targetId } as GameAction);
     setLockedIn(true);
-    toast({ title: "Action locked in!", description: `${getNightActionLabel().verb}ing ${pendingNightAction.targetName}...` });
+    toast({ title: t("room.actionLockedIn"), description: t("room.actionLockedInDescription", { verb: getNightActionLabel().verb, name: pendingNightAction.targetName }) });
   };
 
   const roomName = room.settings?.roomName;
@@ -429,21 +412,21 @@ export default function Room() {
                 const aliveMafia = players.filter(p => p.isAlive && p.role === "mafia").length;
                 const aliveCivilians = players.filter(p => p.isAlive && p.role !== "mafia").length;
                 const mafiaWon = aliveMafia > 0;
-                
+
                 return (
                   <>
                     <div className={`text-8xl font-black mb-2 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
-                      {mafiaWon ? "🔴 MAFIA" : "✨ CIVILIANS"}
+                      {mafiaWon ? `🔴 ${t("room.mafiaLabel")}` : `✨ ${t("room.civiliansLabel")}`}
                     </div>
-                    <div className="text-5xl font-black mb-6 text-foreground">WINS!</div>
+                    <div className="text-5xl font-black mb-6 text-foreground">{t("room.wins")}</div>
                     <div className="mb-8 text-muted-foreground text-lg font-semibold">
-                      {mafiaWon 
-                        ? `The Mafia took over with ${aliveMafia} member${aliveMafia !== 1 ? 's' : ''} remaining` 
-                        : `The town eliminated all mafia!`}
+                      {mafiaWon
+                        ? t("room.mafiaWonDescription", { count: aliveMafia })
+                        : t("room.civiliansWonDescription")}
                     </div>
-                    
+
                     <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
-                      <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">Final Roles Revealed</h3>
+                      <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {players.map((p) => (
                           <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
@@ -460,12 +443,12 @@ export default function Room() {
                       </div>
                     </div>
 
-                    <Button 
-                      onClick={() => sendAction({ type: "replay" } as any)} 
-                      className="gap-2 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
+                    <Button
+                      onClick={() => sendAction({ type: "replay" } as any)}
+                      className="gap-3 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
                     >
                       <RotateCcw className="w-6 h-6" />
-                      Play Again
+                      {t("room.playAgain")}
                     </Button>
                   </>
                 );
@@ -490,11 +473,11 @@ export default function Room() {
               className="text-center max-w-xl px-6"
             >
               <div className="text-8xl mb-4">{eliminationOverlay.avatar}</div>
-              <div className="text-sm font-black uppercase tracking-[0.4em] text-red-400 mb-2">Eliminated</div>
+              <div className="text-sm font-black uppercase tracking-[0.4em] text-red-400 mb-2">{t("room.eliminated")}</div>
               <h2 className="text-4xl font-black text-foreground mb-2">{eliminationOverlay.name}</h2>
               {eliminationOverlay.role && (
                 <div className="inline-block bg-muted/50 border border-border px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-muted-foreground capitalize mb-4">
-                  was {eliminationOverlay.role}
+                  {t("room.wasRole", { role: eliminationOverlay.role })}
                 </div>
               )}
               {eliminationOverlay.deathStory && (
@@ -522,7 +505,7 @@ export default function Room() {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-xl"
           >
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="text-center">
-              <div className="mb-4 text-sm font-bold uppercase tracking-[0.4em] text-muted-foreground/60">Your Secret Identity</div>
+              <div className="mb-4 text-sm font-bold uppercase tracking-[0.4em] text-muted-foreground/60">{t("room.yourSecretIdentity")}</div>
               <motion.div
                 animate={{ scale: [1, 1.1, 1], rotateY: [0, 360] }}
                 transition={{ duration: 1.5 }}
@@ -535,10 +518,10 @@ export default function Room() {
                 transition={{ delay: 1 }}
                 className="mt-8 text-xl font-serif text-muted-foreground max-w-xs mx-auto italic"
               >
-                {me?.role === "mafia" ? "Operate in the shadows. Eliminate everyone else." :
-                 me?.role === "detective" ? "Seek the truth. Find the Mafia." :
-                 me?.role === "doctor" ? "Protect the innocent. Save a life tonight." :
-                 "Stay vigilant. Survive the night."}
+                {me?.role === "mafia" ? t("room.roleFlavor.mafia") :
+                 me?.role === "detective" ? t("room.roleFlavor.detective") :
+                 me?.role === "doctor" ? t("room.roleFlavor.doctor") :
+                 t("room.roleFlavor.civilian")}
               </motion.p>
             </motion.div>
           </motion.div>
@@ -565,18 +548,18 @@ export default function Room() {
               <button
                 onClick={() => setShowShareModal(false)}
                 className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="font-serif font-bold text-xl text-primary mb-1">Invite Friends</h3>
-              <p className="text-xs text-muted-foreground mb-5">Scan the code or copy the link to Room {room.code}</p>
+              <h3 className="font-serif font-bold text-xl text-primary mb-1">{t("room.inviteFriends")}</h3>
+              <p className="text-xs text-muted-foreground mb-5">{t("room.scanOrCopy", { code: room.code })}</p>
 
               {qrCodeUrl && (
                 <div className="flex justify-center mb-5">
                   <div className="bg-white p-3 rounded-xl">
-                    <img src={qrCodeUrl} alt="Room QR code" width={180} height={180} className="rounded-lg" />
+                    <img src={qrCodeUrl} alt={t("room.roomQrCode")} width={180} height={180} className="rounded-lg" />
                   </div>
                 </div>
               )}
@@ -587,7 +570,7 @@ export default function Room() {
                 className="w-full gap-2"
               >
                 {linkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                {linkCopied ? "Copied!" : "Copy Link"}
+                {linkCopied ? t("common.copied") : t("room.copyLink")}
               </Button>
             </motion.div>
           </motion.div>
@@ -605,10 +588,10 @@ export default function Room() {
               {roomName ? (
                 <div>
                   <h1 className="font-serif font-bold text-lg tracking-wider text-primary leading-tight truncate">{roomName}</h1>
-                  <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">Room: {room.code}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{t("room.roomLabel")}: {room.code}</p>
                 </div>
               ) : (
-                <h1 className="font-serif font-bold text-2xl tracking-wider text-primary">ROOM: {room.code}</h1>
+                <h1 className="font-serif font-bold text-2xl tracking-wider text-primary">{t("room.roomLabel").toUpperCase()}: {room.code}</h1>
               )}
             </div>
             <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${isConnected ? "bg-green-500 shadow-green-500/50" : "bg-red-500 shadow-red-500/50"}`} />
@@ -627,7 +610,7 @@ export default function Room() {
             <MafiaHandbook />
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
               <Share2 className="w-3 h-3" />
-              Share
+              {t("room.share")}
             </Button>
             {isHost && room?.status === "lobby" && (
               <Button
@@ -636,7 +619,7 @@ export default function Room() {
                 className="gap-2"
               >
                 <Sparkles className="w-3 h-3" />
-                Start Game
+                {t("room.startGame")}
               </Button>
             )}
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="ml-auto">
@@ -656,17 +639,17 @@ export default function Room() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    Waiting for Players
+                    {t("room.waitingForPlayers")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">{players.length} / 6+ players</p>
+                  <p className="text-sm text-muted-foreground mb-4">{t("room.playerCount", { count: players.length })}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {players.map((p) => (
                       <div key={p.id} className="flex items-center gap-2 p-2 bg-muted/80 rounded-lg">
                         <span className="text-lg">{p.avatar}</span>
                         <span className="text-xs font-bold truncate">{p.name}</span>
-                        {p.isHost && <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">HOST</span>}
+                        {p.isHost && <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">{t("room.host")}</span>}
                       </div>
                     ))}
                   </div>
@@ -724,14 +707,14 @@ export default function Room() {
                         className="flex-1"
                         disabled={!pendingNightAction}
                       >
-                        Reset
+                        {t("room.reset")}
                       </Button>
                       <Button
                         onClick={handleLockIn}
                         disabled={!pendingNightAction}
                         className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                       >
-                        Lock In
+                        {t("room.lockIn")}
                       </Button>
                     </motion.div>
                   ) : isMyNightTurn && lockedIn ? (
@@ -749,8 +732,8 @@ export default function Room() {
                         <CheckCircle2 className="w-5 h-5" />
                       </motion.div>
                       <div>
-                        <p className="text-sm font-black text-emerald-400 uppercase tracking-wider">Action Locked In</p>
-                        <p className="text-xs text-muted-foreground">Waiting for other players...</p>
+                        <p className="text-sm font-black text-emerald-400 uppercase tracking-wider">{t("room.actionLockedInShort")}</p>
+                        <p className="text-xs text-muted-foreground">{t("room.waitingForOthers")}</p>
                       </div>
                     </motion.div>
                   ) : (
@@ -761,14 +744,14 @@ export default function Room() {
                       className="flex items-center justify-between"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="text-sm text-muted-foreground hidden sm:block">Your Role</div>
+                        <div className="text-sm text-muted-foreground hidden sm:block">{t("room.yourRole")}</div>
                         <RoleBadge role={me.role} className="text-lg px-4 py-1.5" />
                       </div>
                       <div className="text-sm font-medium text-right">
-                        {isSpectator && <span className="text-blue-400">Spectating...</span>}
-                        {!isSpectator && room.status === "day" && room.phase === "voting" && "Vote to eliminate!"}
-                        {!isSpectator && room.status === "night" && me.isAlive && "Night phase in progress..."}
-                        {!isSpectator && !me.isAlive && <span className="text-red-500">You have been eliminated.</span>}
+                        {isSpectator && <span className="text-blue-400">{t("room.spectating")}</span>}
+                        {!isSpectator && room.status === "day" && room.phase === "voting" && t("room.voteToEliminate")}
+                        {!isSpectator && room.status === "night" && me.isAlive && t("room.nightPhaseInProgress")}
+                        {!isSpectator && !me.isAlive && <span className="text-red-500">{t("room.youHaveBeenEliminated")}</span>}
                       </div>
                     </motion.div>
                   )}
@@ -780,12 +763,12 @@ export default function Room() {
               <>
                 {isHost && (
                   <div className="flex gap-3 mb-6 justify-center">
-                    <Button 
-                      onClick={() => sendAction({ type: "replay" } as any)} 
+                    <Button
+                      onClick={() => sendAction({ type: "replay" } as any)}
                       className="gap-3 px-8 py-6 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg hover:shadow-purple-500/50 animate-pulse"
                     >
                       <RotateCcw className="w-6 h-6" />
-                      Play Again
+                      {t("room.playAgain")}
                     </Button>
                   </div>
                 )}
@@ -794,10 +777,10 @@ export default function Room() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-xl font-serif">
                         <History className="w-5 h-5 text-primary" />
-                        Game Chronicle
+                        {t("room.gameChronicle")}
                       </CardTitle>
                       {(room.settings as any).showVoteResults !== false && (
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Vote Results visible</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("room.voteResultsVisible")}</div>
                       )}
                     </div>
                   </CardHeader>
@@ -809,14 +792,14 @@ export default function Room() {
                           {entry.type === "game_end" ? (
                             <>
                               <h4 className="text-sm font-black uppercase tracking-widest text-yellow-400">
-                                🎮 Game Ended - {entry.winner === 'mafia' ? '🔴 MAFIA WINS!' : '✨ CIVILIANS WIN!'}
+                                🎮 {t("room.gameEnded")} - {entry.winner === 'mafia' ? `🔴 ${t("room.mafiaWinsExclaim")}` : `✨ ${t("room.civiliansWinExclaim")}`}
                               </h4>
                               <div className="space-y-2 text-sm">
-                                <div className="text-muted-foreground italic">Final Roles:</div>
+                                <div className="text-muted-foreground italic">{t("room.finalRolesColon")}</div>
                                 {entry.roles?.map((role: any, j: number) => (
                                   <div key={j} className="flex items-center gap-2">
                                     <span className="font-bold text-foreground">{role.name}</span>
-                                    <span className="text-muted-foreground">was</span>
+                                    <span className="text-muted-foreground">{t("room.was")}</span>
                                     <span className={role.role === 'mafia' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
                                       {role.role}
                                     </span>
@@ -827,7 +810,7 @@ export default function Room() {
                           ) : (
                             <>
                               <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
-                                {entry.type === "night" ? `Night ${entry.turn}` : `Day ${entry.turn}`}
+                                {entry.type === "night" ? t("room.nightN", { turn: entry.turn }) : t("room.dayN", { turn: entry.turn })}
                               </h4>
                               <div className="space-y-2">
                                 {entry.type === "vote" ? (
@@ -836,12 +819,12 @@ export default function Room() {
                                       <div key={j} className="text-sm flex items-center gap-2">
                                         <User className="w-3 h-3 text-blue-400" />
                                         <span className="font-bold text-foreground">{res.voterName}</span>
-                                        <span className="text-muted-foreground italic">voted for</span>
+                                        <span className="text-muted-foreground italic">{t("room.votedFor")}</span>
                                         <span className="font-bold text-red-400">{res.targetName}</span>
                                       </div>
                                     ))
                                   ) : (
-                                    <div className="text-sm text-muted-foreground italic">Vote results hidden</div>
+                                    <div className="text-sm text-muted-foreground italic">{t("room.voteResultsHidden")}</div>
                                   )
                                 ) : (
                                   entry.events.map((ev: any, j: number) => (
@@ -850,9 +833,9 @@ export default function Room() {
                                        ev.type === "mafia_attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
                                        <History className="w-3 h-3 text-blue-400" />}
                                       <span>
-                                        {ev.type === "mafia_kill" ? `${ev.target} was eliminated.` :
-                                         ev.type === "mafia_attempt" && ev.saved ? `${ev.target} was protected.` :
-                                         ev.type === "detective_check" ? `The detective investigated ${ev.target}.` : ""}
+                                        {ev.type === "mafia_kill" ? t("room.wasEliminated", { target: ev.target }) :
+                                         ev.type === "mafia_attempt" && ev.saved ? t("room.wasProtected", { target: ev.target }) :
+                                         ev.type === "detective_check" ? t("room.detectiveInvestigated", { target: ev.target }) : ""}
                                       </span>
                                     </div>
                                   ))
