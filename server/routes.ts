@@ -291,9 +291,16 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
   return { category: "general" as const, targetName: undefined };
 }
 
-function buildBotReply(category: keyof typeof BOT_MESSAGES, targetName: string | undefined, botId: number): string {
+function buildBotReply(category: keyof typeof BOT_MESSAGES, targetName: string | undefined, botId: number, fallbackPlayers: Player[] = []): string {
   const line = pickUnique(BOT_MESSAGES[category], botId);
-  return targetName ? line.replace("{name}", targetName) : line;
+  if (!line.includes("{name}")) return line;
+  // Some pools (like "response") mostly don't need a name but have one or two
+  // lines that do — if no target was supplied, backfill with a random alive
+  // player instead of ever showing the literal "{name}" placeholder.
+  const name = targetName || (fallbackPlayers.length > 0
+    ? fallbackPlayers[Math.floor(Math.random() * fallbackPlayers.length)].name
+    : "someone");
+  return line.replace("{name}", name);
 }
 
 async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
@@ -309,8 +316,10 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   // If a bot was directly named in the message, that specific bot always replies —
   // being called out shouldn't have a chance of being ignored.
   const calledBot = bots.find((b: Player) => b.name && msgLower.includes(b.name.toLowerCase().split("_")[0].toLowerCase()));
-  // A direct question also deserves a guaranteed response, otherwise it's a coin flip.
-  const isDirectQuestion = msgLower.includes("?");
+  // A direct question also deserves a guaranteed response — catch both "?" and
+  // question-word phrasing without punctuation, like "who is it" or "whats going on".
+  const questionWords = ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"];
+  const isDirectQuestion = msgLower.includes("?") || questionWords.some(w => msgLower.includes(w));
 
   if (!calledBot && !isDirectQuestion && Math.random() > 0.8) return;
 
@@ -318,13 +327,13 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
 
   if (calledBot) {
-    const content = buildBotReply("calledOut", undefined, bot.id);
+    const content = buildBotReply("calledOut", undefined, bot.id, alivePlayers);
     await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
     return;
   }
 
   const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers);
-  const content = buildBotReply(category, targetName, bot.id);
+  const content = buildBotReply(category, targetName, bot.id, alivePlayers);
 
   if (content) {
     await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
@@ -386,26 +395,26 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         const msgText = lastHumanMsg.content.toLowerCase();
         const calledBot = msgText.includes(bot.name.toLowerCase().split("_")[0].toLowerCase());
         if (calledBot) {
-          content = buildBotReply("calledOut", undefined, bot.id);
+          content = buildBotReply("calledOut", undefined, bot.id, alivePlayers);
         } else {
           const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers);
-          content = buildBotReply(category, targetName, bot.id);
+          content = buildBotReply(category, targetName, bot.id, alivePlayers);
         }
       } else {
         const rand = Math.random();
         if (rand > 0.7 && alivePlayers.length > 0) {
           const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-          content = buildBotReply("accusation", victim.name, bot.id);
+          content = buildBotReply("accusation", victim.name, bot.id, alivePlayers);
         } else if (rand > 0.55) {
-          content = buildBotReply("defense", undefined, bot.id);
+          content = buildBotReply("defense", undefined, bot.id, alivePlayers);
         } else if (rand > 0.4) {
-          content = buildBotReply("suspicion", undefined, bot.id);
+          content = buildBotReply("suspicion", undefined, bot.id, alivePlayers);
         } else if (rand > 0.25) {
-          content = buildBotReply("response", undefined, bot.id);
+          content = buildBotReply("response", undefined, bot.id, alivePlayers);
         } else if (rand > 0.15) {
-          content = buildBotReply("agreement", undefined, bot.id);
+          content = buildBotReply("agreement", undefined, bot.id, alivePlayers);
         } else {
-          content = buildBotReply("general", undefined, bot.id);
+          content = buildBotReply("general", undefined, bot.id, alivePlayers);
         }
       }
       if (content) {
