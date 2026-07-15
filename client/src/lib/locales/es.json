@@ -1,0 +1,1009 @@
+{
+  "common": {
+    "back": "Atrás",
+    "backToHome": "Volver al inicio",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "sending": "Enviando...",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "copy": "Copiar",
+    "copied": "¡Copiado!"
+  },
+  "login": {
+    "subtitle": "Inicia sesión para continuar",
+    "resetFailedTitle": "Error al restablecer",
+    "resetSentTitle": "Enlace de restablecimiento enviado",
+    "resetSentDescription": "Revisa tu correo electrónico para ver el enlace de restablecimiento.",
+    "loginFailedTitle": "Error al iniciar sesión",
+    "resetPasswordTitle": "Restablecer contraseña",
+    "resetPasswordSubtitle": "Te enviaremos un enlace de recuperación",
+    "checkEmail": "¡Revisa tu correo!",
+    "resetLinkSentTo": "Se ha enviado un enlace de restablecimiento a {{email}}",
+    "sendResetLink": "Enviar enlace de restablecimiento",
+    "signingIn": "Iniciando sesión...",
+    "signIn": "Iniciar sesión",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tienes cuenta?",
+    "signUp": "Regístrate"
+  },
+  "signup": {
+    "subtitle": "Crea tu cuenta",
+    "passwordTooShortTitle": "Contraseña demasiado corta",
+    "passwordTooShortDescription": "La contraseña debe tener al menos 6 caracteres",
+    "inappropriateNameTitle": "Nombre de usuario inapropiado",
+    "inappropriateNameDescription": "Tu nombre de usuario contiene lenguaje inapropiado.",
+    "inappropriatePasswordTitle": "Contraseña inapropiada",
+    "inappropriatePasswordDescription": "Tu contraseña contiene lenguaje inapropiado. Elige una contraseña diferente.",
+    "signupFailedTitle": "Error al registrarse",
+    "accountCreatedTitle": "¡Cuenta creada!",
+    "accountCreatedDescription": "Revisa tu correo electrónico para confirmar y luego inicia sesión.",
+    "displayName": "Nombre de usuario",
+    "displayNamePlaceholder": "Tu alias de la mafia",
+    "passwordPlaceholder": "Al menos 6 caracteres",
+    "creating": "Creando...",
+    "createAccount": "Crear cuenta",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Inicia sesión"
+  },
+  "resetPassword": {
+    "title": "Restablecer contraseña",
+    "subtitle": "Elige una nueva contraseña",
+    "invalidLinkTitle": "Enlace inválido o vencido",
+    "expiredLinkDescription": "Este enlace de restablecimiento ha vencido. Solicita uno nuevo.",
+    "invalidLinkTitleShort": "Enlace inválido",
+    "missingTokensDescription": "A este enlace de restablecimiento le faltan datos necesarios.",
+    "mismatchTitle": "Las contraseñas no coinciden",
+    "mismatchDescription": "Asegúrate de que ambas contraseñas coincidan.",
+    "failedTitle": "No se pudo restablecer la contraseña",
+    "successTitle": "Contraseña restablecida con éxito",
+    "successDescription": "Ya puedes iniciar sesión con tu nueva contraseña.",
+    "invalidOrExpired": "Enlace inválido o vencido",
+    "invalidOrExpiredDescription": "Este enlace de restablecimiento ya no es válido. Solicita uno nuevo.",
+    "goToLogin": "Ir a iniciar sesión",
+    "updated": "¡Contraseña actualizada!",
+    "redirecting": "Te estamos redirigiendo al inicio de sesión...",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "retypePassword": "Vuelve a escribir tu contraseña",
+    "updating": "Actualizando...",
+    "backToLogin": "Volver a iniciar sesión"
+  },
+  "twoFactor": {
+    "title": "Autenticación de dos factores",
+    "verifySubtitle": "Ingresa el código de tu aplicación de autenticación",
+    "enterSixDigit": "Ingresa el código de 6 dígitos",
+    "authNotReady": "El servicio de autenticación no está listo. Actualiza la página.",
+    "invalidCode": "Código inválido",
+    "welcomeBack": "¡Bienvenido de nuevo!",
+    "verificationFailed": "Error al verificar",
+    "sixDigitCode": "Código de 6 dígitos",
+    "verifying": "Verificando...",
+    "verify": "Verificar",
+    "pleaseLogInFirst": "Inicia sesión primero",
+    "setupFailed": "Error en la configuración",
+    "setupFailedRetry": "Error en la configuración. Inténtalo de nuevo.",
+    "enabledSuccess": "¡2FA activado! Tu cuenta está protegida.",
+    "loadingSetup": "Cargando configuración de 2FA...",
+    "secureAccount": "Protege tu cuenta",
+    "required": "Se requiere autenticación de dos factores",
+    "scanQrCode": "Escanea este código QR con Google Authenticator",
+    "cantScan": "¿No puedes escanearlo? Ingresa este código manualmente:",
+    "scannedIt": "Ya lo escaneé",
+    "enterCodeLabel": "Ingresa el código de 6 dígitos de tu aplicación de autenticación",
+    "verifyAndEnable": "Verificar y activar",
+    "backToQr": "Volver al código QR"
+  },
+  "home": {
+    "referral": {
+      "title": "Invita a un amigo",
+      "subtitle": "Gana 25 créditos por cada referido",
+      "shareDescription1": "Comparte tu enlace de invitación único con tus amigos. Cuando se unan y jueguen su primera partida, ambos ganan",
+      "shareDescription2": "25 créditos de bono",
+      "yourInviteLink": "Tu enlace de invitación",
+      "yourCode": "Tu código",
+      "reward": "Recompensa",
+      "perFriend": "Por amigo",
+      "each": "Cada uno"
+    },
+    "inappropriateName": "Nombre inapropiado",
+    "inappropriateNameDescription": "Tu nombre contiene lenguaje inapropiado.",
+    "failedToJoin": "No se pudo unir",
+    "nameRequired": "Se requiere un nombre",
+    "nameRequiredDescription": "Ingresa tu nombre antes de crear una sala.",
+    "failedToCreate": "No se pudo crear la sala",
+    "somethingWentWrong": "Algo salió mal.",
+    "roles": {
+      "mafias": "Mafiosos",
+      "detectives": "Detectives",
+      "doctors": "Médicos",
+      "civilians": "Civiles",
+      "votingTime": "Tiempo de votación (seg)",
+      "mafiaNightTime": "Tiempo nocturno de la mafia (seg)",
+      "doctorNightTime": "Tiempo nocturno del médico (seg)",
+      "detectiveNightTime": "Tiempo nocturno del detective (seg)"
+    },
+    "logout": "Cerrar sesión",
+    "loginSignup": "Iniciar sesión / Registrarse",
+    "tagline": "No confíes en nadie • Encuentra la verdad • Sobrevive la noche",
+    "accessory": "Accesorio",
+    "clothing": "Ropa",
+    "background": "Fondo",
+    "mafiaHandle": "Tu alias de la mafia",
+    "chooseNamePlaceholder": "ELIGE UN NOMBRE...",
+    "pickPersona": "Elige tu personaje",
+    "wins": "Victorias",
+    "store": "Tienda",
+    "shop": "Comprar",
+    "daily": "Diario",
+    "free": "Gratis",
+    "rate": "Calificar",
+    "refer": "Invitar",
+    "settings": "Ajustes",
+    "joinDiscord": "Únete a nuestro Discord",
+    "systemCore": "Núcleo del sistema: más de 2900 líneas de código",
+    "achievementsLabel": "Logros",
+    "achievements": {
+      "first_win": {
+        "name": "Primera sangre",
+        "description": "Gana tu primera partida"
+      },
+      "mafia_master": {
+        "name": "Padrino de la ciudad",
+        "description": "Gana 5 partidas como Mafioso"
+      },
+      "savior": {
+        "name": "Salvavidas",
+        "description": "Salva a 3 jugadores como Médico"
+      },
+      "truth_seeker": {
+        "name": "Ojo de águila",
+        "description": "Encuentra a 3 mafiosos como Detective"
+      },
+      "survivor": {
+        "name": "Última resistencia",
+        "description": "Gana siendo el último civil con vida"
+      },
+      "quick_thinker": {
+        "name": "Pensador rápido",
+        "description": "Gana una partida con fases cortas"
+      },
+      "ghost_whisperer": {
+        "name": "Susurrador de fantasmas",
+        "description": "Chatea 50 veces en el chat de espectadores"
+      },
+      "night_owl": {
+        "name": "Ave nocturna",
+        "description": "Juega 10 partidas durante la fase nocturna"
+      },
+      "fashionista": {
+        "name": "Fashionista",
+        "description": "Desbloquea 10 trajes raros o skins limitadas."
+      }
+    },
+    "joinGameTab": "UNIRSE",
+    "createRoomTab": "CREAR SALA",
+    "roomCode": "Código de sala",
+    "roomCodePlaceholder": "EJ. A4X9",
+    "joining": "UNIÉNDOSE...",
+    "enterAbyss": "ENTRA AL ABISMO",
+    "roomNameOptional": "Nombre de la sala (opcional)",
+    "roomNamePlaceholder": "ej. La mesa del padrino",
+    "totalPlayers": "Total de jugadores",
+    "minPlayers": "Se requieren al menos 6 jugadores",
+    "voteResults": "Resultados de votación",
+    "roleReveal": "Revelar rol",
+    "preparing": "PREPARANDO...",
+    "createRoomButton": "CREAR SALA"
+  },
+  "room": {
+    "linkCopied": "¡Enlace copiado!",
+    "sendToFriends": "Envíaselo a tus amigos.",
+    "shareTitleNamed": "Únete a {{roomName}} en Mafia Verse",
+    "shareTitleDefault": "Únete a mi partida de Mafia Verse",
+    "shareText": "¡Únete a mi partida de Mafia Verse! Toca el enlace para entrar.",
+    "joinTheRoom": "Únete a la sala",
+    "enterNameToJoin": "Ingresa tu nombre para unirte.",
+    "connecting": "Conectando...",
+    "actions": {
+      "kill": "Matar",
+      "protect": "Proteger",
+      "investigate": "Investigar",
+      "act": "Actuar"
+    },
+    "voted": "Votado",
+    "vote": "Votar",
+    "selected": "Seleccionado",
+    "select": "Seleccionar",
+    "actionLockedIn": "¡Acción confirmada!",
+    "actionLockedInDescription": "{{verb}} a {{name}}...",
+    "mafiaLabel": "MAFIA",
+    "civiliansLabel": "CIVILES",
+    "wins": "¡GANA!",
+    "mafiaWonDescription_one": "La mafia tomó el control con {{count}} miembro restante",
+    "mafiaWonDescription_other": "La mafia tomó el control con {{count}} miembros restantes",
+    "civiliansWonDescription": "¡El pueblo eliminó a toda la mafia!",
+    "finalRolesRevealed": "Roles finales revelados",
+    "playAgain": "Jugar de nuevo",
+    "eliminated": "Eliminado",
+    "wasRole": "era {{role}}",
+    "yourSecretIdentity": "Tu identidad secreta",
+    "roleFlavor": {
+      "mafia": "Actúa en las sombras. Elimina a todos los demás.",
+      "detective": "Busca la verdad. Encuentra a la mafia.",
+      "doctor": "Protege a los inocentes. Salva una vida esta noche.",
+      "civilian": "Mantente alerta. Sobrevive la noche."
+    },
+    "inviteFriends": "Invitar amigos",
+    "scanOrCopy": "Escanea el código o copia el enlace a la Sala {{code}}",
+    "roomQrCode": "Código QR de la sala",
+    "copyLink": "Copiar enlace",
+    "roomLabel": "Sala",
+    "share": "Compartir",
+    "startGame": "Iniciar partida",
+    "waitingForPlayers": "Esperando jugadores",
+    "playerCount": "{{count}} / 6+ jugadores",
+    "host": "ANFITRIÓN",
+    "reset": "Reiniciar",
+    "lockIn": "Confirmar",
+    "actionLockedInShort": "Acción confirmada",
+    "waitingForOthers": "Esperando a los demás jugadores...",
+    "yourRole": "Tu rol",
+    "spectating": "Observando...",
+    "voteToEliminate": "¡Vota para eliminar!",
+    "nightPhaseInProgress": "Fase nocturna en curso...",
+    "youHaveBeenEliminated": "Has sido eliminado.",
+    "gameChronicle": "Crónica de la partida",
+    "voteResultsVisible": "Resultados de votación visibles",
+    "gameEnded": "Partida terminada",
+    "mafiaWinsExclaim": "¡GANA LA MAFIA!",
+    "civiliansWinExclaim": "¡GANAN LOS CIVILES!",
+    "finalRolesColon": "Roles finales:",
+    "was": "era",
+    "nightN": "Noche {{turn}}",
+    "dayN": "Día {{turn}}",
+    "votedFor": "votó por",
+    "voteResultsHidden": "Resultados de votación ocultos",
+    "wasEliminated": "{{target}} fue eliminado.",
+    "wasProtected": "{{target}} fue protegido.",
+    "detectiveInvestigated": "El detective investigó a {{target}}.",
+    "playerEliminated": "{{name}} ha sido eliminado",
+    "deathStories": [
+      "{name} esquiaba montaña abajo y cayó en una grieta, para no volver a ser visto jamás.",
+      "Mientras {name} practicaba paracaidismo, el paracaídas no se abrió y murió en el acto.",
+      "{name} fue a nadar en aguas infestadas de tiburones y se convirtió en un bocadillo de medianoche.",
+      "{name} intentó acariciar a un 'gato' callejero que resultó ser un puma muy hambriento.",
+      "{name} terminó, sin querer, en una carrera clandestina de alto riesgo manejando un carrito de golf.",
+      "{name} confundió un transformador de alto voltaje con una cabina telefónica pública.",
+      "Mientras cazaba fantasmas, {name} tropezó y cayó en un pozo profundo y olvidado.",
+      "{name} decidió retar a un luchador profesional a un combate 'amistoso'.",
+      "Un piano de cola gigante cayó del tercer piso, aterrizando justo sobre {name}.",
+      "{name} intentó recrear un famoso truco de escupir fuego usando ron de alta graduación.",
+      "Durante un safari, {name} olvidó que las ventanas deben permanecer cerradas cerca de los leones.",
+      "{name} entró en un concurso de comer pasteles contra un oso pardo y perdió estrepitosamente.",
+      "Un accidente insólito en la bolera hizo que {name} resbalara por la pista hacia la maquinaria.",
+      "{name} pensó que podía escapar de un enjambre de avispas furiosas saltando sobre un cactus.",
+      "Mientras se tomaba una selfie al borde de un acantilado, {name} perdió el equilibrio y el teléfono.",
+      "{name} intentó usar una cortadora de césped para podar los arbustos, con resultados desastrosos.",
+      "Un globo meteorológico experimental cayó directamente sobre la carpa de {name} durante la noche.",
+      "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
+      "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
+      "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada."
+    ]
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "display": "Pantalla",
+    "darkMode": "Modo oscuro",
+    "on": "Activado",
+    "off": "Desactivado",
+    "audio": "Audio",
+    "soundEffects": "Efectos de sonido",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "volume": "Volumen",
+    "playTestSound": "Reproducir sonido de prueba",
+    "notifications": "Notificaciones",
+    "chatAlerts": "Alertas de chat",
+    "notificationsDescription": "Recibe una notificación cuando alguien envíe un mensaje de chat durante la partida",
+    "security": "Seguridad",
+    "twoFAEnabled": "Autenticación de dos factores activada",
+    "twoFANotSetUp": "Autenticación de dos factores no configurada",
+    "accountProtected": "Tu cuenta está protegida con TOTP.",
+    "addExtraLayer": "Añade una capa extra de seguridad a tu cuenta.",
+    "enterPasswordToDisable": "Ingresa tu contraseña para confirmar la desactivación de 2FA.",
+    "yourPassword": "Tu contraseña",
+    "disabling": "Desactivando...",
+    "confirmDisable": "Confirmar desactivación",
+    "disable2FA": "Desactivar 2FA",
+    "setUp2FA": "Configurar autenticación de dos factores",
+    "forgotPassword": "Olvidé mi contraseña",
+    "generateResetToken": "Generar un token de restablecimiento",
+    "reset": "Restablecer",
+    "twoFADisabledTitle": "2FA desactivada",
+    "twoFADisabledDescription": "La autenticación de dos factores se ha desactivado.",
+    "errorTitle": "Error",
+    "couldNotDisable2FA": "No se pudo desactivar 2FA",
+    "somethingWentWrong": "Algo salió mal"
+  },
+  "leaderboard": {
+    "title": "Salón de la infamia",
+    "subtitle": "Clasificación global",
+    "second": "2.º",
+    "first": "1.º",
+    "third": "3.º",
+    "winsAbbrev": "{{count}}V",
+    "player": "Jugador",
+    "wins": "Victorias",
+    "rate": "Tasa",
+    "noGamesYet": "Aún no se han jugado partidas",
+    "playFirstGame": "¡Juega tu primera partida para aparecer aquí!",
+    "gamesCount_one": "{{count}} partida",
+    "gamesCount_other": "{{count}} partidas"
+  },
+  "profile": {
+    "unknownAgent": "Agente desconocido",
+    "title": "Perfil del agente",
+    "badgesCount": "{{earned}}/{{total}} insignias",
+    "elite": "Élite",
+    "veteran": "Veterano",
+    "collector": "Coleccionista",
+    "wins": "Victorias",
+    "losses": "Derrotas",
+    "games": "Partidas",
+    "winPercent": "% Victorias",
+    "credits": "Créditos",
+    "rolePerformance": "Rendimiento por rol",
+    "winsCount_one": "{{count}} victoria",
+    "winsCount_other": "{{count}} victorias",
+    "currentStreak": "Racha actual",
+    "bestStreak": "Mejor racha",
+    "achievementHall": "Salón de logros",
+    "notYetUnlocked": "Aún no desbloqueado"
+  },
+  "authCallback": {
+    "authFailed": "Error de autenticación",
+    "emailVerificationFailed": "Error al verificar el correo electrónico",
+    "emailVerified": "Correo electrónico verificado",
+    "welcomeMessage": "Tu correo electrónico ha sido confirmado. ¡Bienvenido a Mafia Verse!",
+    "emailChangeFailed": "Error al cambiar el correo electrónico",
+    "emailUpdated": "Correo electrónico actualizado",
+    "emailUpdatedDescription": "Tu correo electrónico se cambió correctamente.",
+    "redirecting": "Redirigiendo...",
+    "processingLogin": "Procesando tu inicio de sesión..."
+  },
+  "store": {
+    "title": "Tienda",
+    "subtitle": "Apoya el juego y desbloquea beneficios",
+    "creditsAdded": "¡+{{credits}} créditos añadidos!",
+    "syndicateActivated": "¡Pase Sindicato activado!",
+    "thankYouTip": "¡Gracias por la propina de ${{amount}}!",
+    "paymentCanceled": "Pago cancelado",
+    "noChargesMade": "No se realizó ningún cargo.",
+    "creditsLabel": "{{count}} créditos",
+    "syndicatePassName": "El Pase Sindicato",
+    "tipLabel": "Propina de ${{amount}}",
+    "creditPacks": "Paquetes de créditos",
+    "popular": "Popular",
+    "spendOnCrates": "Úsalos en cofres y cosméticos",
+    "syndicateActive": "Pase Sindicato activo",
+    "allPremiumUnlocked": "Tienes acceso a todos los cosméticos premium",
+    "perk1": "Desbloquea 16 cosméticos exclusivos + personajes legendarios",
+    "perk2": "Recibe al instante un paquete premium de kit callejero misterioso",
+    "perk3": "Obtén estatus prioritario permanente en salas y una insignia",
+    "supportTheDevs": "Apoya a los desarrolladores",
+    "tipTiers": {
+      "buyCoffee": "Invítanos a un café",
+      "powerServers": "Impulsa los servidores",
+      "majorSupporter": "Gran patrocinador",
+      "becomeLegend": "Conviértete en leyenda"
+    },
+    "customAmount": "O ingresa un monto personalizado (mínimo $1)",
+    "enterAmount": "Ingresa el monto",
+    "tipAmount": "Propina de ${{amount}}",
+    "capsuleStashDrops": "Cofres cápsula",
+    "underworldStash": "Alijo del bajo mundo",
+    "underworldStashDesc": "Contiene equipo callejero común a raro.",
+    "insufficientCredits": "Créditos insuficientes",
+    "stashUnlocked": "¡Alijo desbloqueado!",
+    "hot": "POPULAR",
+    "syndicateVault": "Bóveda del Sindicato",
+    "syndicateVaultDesc": "Alta probabilidad de trajes épicos.",
+    "vaultUnlocked": "¡Bóveda desbloqueada!",
+    "secureCheckout": "Pago seguro",
+    "cardNumber": "Número de tarjeta",
+    "expiry": "Vencimiento (MM/AA)",
+    "cvc": "CVC",
+    "processing": "Procesando...",
+    "payAmount": "Pagar ${{amount}}"
+  },
+  "cosmetics": {
+    "title": "Tienda de cosméticos",
+    "tiers": {
+      "legendary": "LEGENDARIO",
+      "gold": "ORO",
+      "silver": "PLATA"
+    },
+    "equipped": "Equipado",
+    "owned": "Adquirido",
+    "chatBorderPreview": "Oigan, creo que sé quién es de la mafia...",
+    "usernamePreview": "Vista previa del nombre",
+    "types": {
+      "accessory": "accesorio",
+      "clothing": "ropa",
+      "background": "Fondo de perfil",
+      "banner": "Estandarte de victoria",
+      "persona": "Personaje legendario"
+    },
+    "requiresPass": "Requiere el Pase Sindicato",
+    "unlockForWins_one": "Desbloquear por {{count}} victoria",
+    "unlockForWins_other": "Desbloquear por {{count}} victorias",
+    "equippedClickToUnequip": "Equipado — Haz clic para quitar",
+    "equipItem": "Equipar",
+    "sections": {
+      "personas": "Personajes",
+      "accessories": "Accesorios",
+      "clothing": "Ropa",
+      "backgrounds": "Fondos",
+      "banners": "Estandartes"
+    },
+    "availableWins": "Victorias disponibles",
+    "premium": "Premium",
+    "unlockPassTitle": "Desbloquea el Pase Sindicato",
+    "unlockPassDescription": "Obtén acceso a más de 20 cosméticos exclusivos, incluidos personajes legendarios, accesorios de nivel oro y fondos exclusivos del sindicato.",
+    "twoLegendaryPersonas": "2 personajes legendarios",
+    "eightGoldItems": "8 artículos dorados",
+    "tenSilverItems": "10 artículos plateados",
+    "unlockPassButton": "Desbloquear pase ($4.99)",
+    "passActiveAllUnlocked": "Pase Sindicato activo — Todos los artículos desbloqueados",
+    "winUnlockables": "Desbloqueables por victorias",
+    "items": {
+      "border_gold": {
+        "name": "Borde de chat dorado",
+        "description": "Borde dorado y lujoso para tus mensajes de chat"
+      },
+      "border_red": {
+        "name": "Borde de chat rojo",
+        "description": "Borde rojo amenazante, perfecto para el rol de Mafioso"
+      },
+      "border_blue": {
+        "name": "Borde de chat azul",
+        "description": "El azul distintivo del detective"
+      },
+      "name_color_gold": {
+        "name": "Nombre en color dorado",
+        "description": "Destaca con texto dorado"
+      },
+      "name_color_red": {
+        "name": "Nombre en color rojo",
+        "description": "Nombre de usuario rojo amenazante"
+      },
+      "name_color_cyan": {
+        "name": "Nombre en color cian",
+        "description": "Cian futurista"
+      },
+      "frame_diamond": {
+        "name": "Marco de avatar de diamante",
+        "description": "Marco de diamante premium para tu avatar"
+      },
+      "frame_fire": {
+        "name": "Marco de avatar de fuego",
+        "description": "Marco de avatar ardiente"
+      },
+      "frame_crown": {
+        "name": "Marco de avatar de corona",
+        "description": "Marco real con corona"
+      },
+      "synd_acc_mask": {
+        "name": "Máscara fantasma",
+        "description": "Una máscara misteriosa que solo usa el círculo íntimo"
+      },
+      "synd_acc_cigar": {
+        "name": "Puro del jefe",
+        "description": "Humo de autoridad"
+      },
+      "synd_acc_scar": {
+        "name": "Cicatriz de batalla",
+        "description": "Ganada en las calles"
+      },
+      "synd_acc_chain": {
+        "name": "Cadena de oro",
+        "description": "Oro sólido, sin dudas"
+      },
+      "synd_cloak": {
+        "name": "Capa de sombras",
+        "description": "Desvanécete en la noche"
+      },
+      "synd_suit": {
+        "name": "Traje de don",
+        "description": "Respeto de tres piezas"
+      },
+      "synd_trench": {
+        "name": "Gabardina",
+        "description": "Vibra noir de detective"
+      },
+      "synd_hoodie": {
+        "name": "Sudadera del sindicato",
+        "description": "Representa a la familia"
+      },
+      "synd_bg_smoke": {
+        "name": "Humo de puro",
+        "description": "Humo denso en un cuarto trasero"
+      },
+      "synd_bg_vault": {
+        "name": "Bóveda dorada",
+        "description": "Pilas de lingotes de oro"
+      },
+      "synd_bg_neon": {
+        "name": "Callejón de neón",
+        "description": "Calles de neón mojadas por la lluvia"
+      },
+      "synd_bg_cell": {
+        "name": "La celda",
+        "description": "Paredes de concreto, luz tenue"
+      },
+      "synd_banner_kingpin": {
+        "name": "Estandarte del capo",
+        "description": "Corona al rey de la ciudad"
+      },
+      "synd_banner_mercenary": {
+        "name": "Estandarte del mercenario",
+        "description": "Músculo a sueldo, temido por todos"
+      },
+      "synd_banner_informant": {
+        "name": "Estandarte del informante",
+        "description": "Susurros en la oscuridad"
+      },
+      "synd_banner_cleaner": {
+        "name": "Estandarte del limpiador",
+        "description": "Sin evidencia, sin problema"
+      },
+      "synd_persona_godfather": {
+        "name": "El Padrino",
+        "description": "El respeto lo es todo. El silencio es poder."
+      },
+      "synd_persona_fixer": {
+        "name": "El Arreglador",
+        "description": "Los problemas desaparecen. Las preguntas no."
+      },
+      "synd_persona_enforcer": {
+        "name": "El Ejecutor",
+        "description": "Lealtad a través de la fuerza."
+      },
+      "synd_persona_snitch": {
+        "name": "El Soplón",
+        "description": "La información es moneda de cambio."
+      }
+    }
+  },
+  "roleBadge": {
+    "mafia": "Mafioso",
+    "detective": "Detective",
+    "doctor": "Médico",
+    "civilian": "Civil"
+  },
+  "phaseIndicator": {
+    "waitingLobby": "Sala de espera",
+    "waitingForPlayers": "Esperando a que se unan jugadores...",
+    "gameOver": "Fin de la partida",
+    "gameHasEnded": "La partida ha terminado.",
+    "discussDescription": "Discutan quiénes son de la mafia.",
+    "votingDescription": "Vota para eliminar a un sospechoso.",
+    "nightDescription": "La mafia y los roles están actuando...",
+    "phases": {
+      "discussion": "discusión",
+      "voting": "votación",
+      "mafia": "mafia",
+      "doctor": "médico",
+      "detective": "detective"
+    }
+  },
+  "playerCard": {
+    "roleLabels": {
+      "mafia": "MAFIOSO",
+      "detective": "DETECTIVE",
+      "doctor": "MÉDICO",
+      "civilian": "CIVIL"
+    },
+    "unknown": "Desconocido",
+    "host": "Anfitrión",
+    "bot": "BOT",
+    "you": "(Tú)",
+    "roleEliminated": "{{role}} — Eliminado",
+    "eliminated": "Eliminado"
+  },
+  "chat": {
+    "quickMessages": [
+      "Creo que {name} es de la mafia",
+      "¡Soy inocente!",
+      "¿A quién mataron anoche?",
+      "Confío en {name}",
+      "¡No voten por mí!",
+      "{name} parece sospechoso",
+      "Tengo un mal presentimiento sobre {name}",
+      "{name} está actuando raro",
+      "Déjenme explicarme",
+      "Soy el médico y estoy protegiendo a {name}",
+      "Eso no tiene sentido",
+      "Espera, ¿{name} dijo qué?",
+      "Le creo a {name}",
+      "Algo anda mal con {name}",
+      "¿Por quién van a votar?"
+    ],
+    "messageBlocked": "Mensaje bloqueado",
+    "inappropriateLanguage": "No se permite lenguaje inapropiado.",
+    "spectatorChat": "Chat de espectadores",
+    "roomChat": "Chat de la sala",
+    "secret": "SECRETO",
+    "reactedBy_one": "Reacción de {{count}} jugador",
+    "reactedBy_other": "Reacción de {{count}} jugadores",
+    "deadCannotSpeak": "Los muertos no pueden hablar",
+    "tacticalComms": "Comunicaciones tácticas",
+    "someone": "alguien",
+    "deadPlayersCannotSpeak": "Los jugadores eliminados no pueden hablar...",
+    "typeAMessage": "Escribe un mensaje..."
+  },
+  "handbook": {
+    "title": "Manual de la Mafia",
+    "subtitle": "Una guía completa para nuevos jugadores",
+    "tabs": {
+      "basics": "Básicos",
+      "roles": "Roles",
+      "phases": "Fases",
+      "tips": "Consejos"
+    },
+    "overview": {
+      "whatIsMafiaTitle": "¿Qué es Mafia?",
+      "whatIsMafiaDescription": "Mafia es un juego de deducción social. Los jugadores se dividen en secreto en dos equipos: el Pueblo (los buenos) y la Mafia (los malos). Al principio nadie sabe quién es quién. El Pueblo debe descubrir quiénes son de la mafia y votar para eliminarlos. La Mafia debe engañar al Pueblo y eliminarlos en secreto durante la noche.",
+      "teamsAtAGlance": "Equipos de un vistazo",
+      "theTown": "EL PUEBLO",
+      "theTownDescription": "Detectives, médicos y civiles trabajan juntos para encontrar y eliminar a todos los mafiosos.",
+      "theMafia": "LA MAFIA",
+      "theMafiaDescription": "Oculta entre el Pueblo. Cada noche eligen en secreto a alguien para matar. Ganan cuando la cantidad de mafiosos iguala o supera a la del Pueblo.",
+      "howToWin": "Cómo ganar",
+      "townWins": "El Pueblo gana",
+      "townWinsDescription": "cuando todos los mafiosos han sido eliminados mediante la votación diurna.",
+      "mafiaWins": "La Mafia gana",
+      "mafiaWinsDescription": "cuando el número de mafiosos vivos iguala o supera al número de miembros del Pueblo vivos.",
+      "whatMakesDifferentTitle": "¿Qué hace esto diferente?",
+      "difference1": "Puede haber varios mafiosos y todos se conocen entre sí.",
+      "difference2": "Puede haber varios médicos y todos se conocen entre sí.",
+      "difference3": "Puede haber varios detectives y todos se conocen entre sí.",
+      "difference4": "Todos los demás son civiles sin poderes especiales, salvo su voto."
+    },
+    "roles": {
+      "mafia": {
+        "title": "La Mafia",
+        "desc": "Eres un asesino oculto. Tu objetivo es engañar al Pueblo y eliminarlos uno por uno durante la noche.",
+        "abilities": [
+          "Cada noche, todos los mafiosos vivos votan a quién matar. El objetivo con más votos muere (a menos que un médico lo salve).",
+          "Sabes quiénes son los demás mafiosos. Usa el chat nocturno para coordinarte con tu equipo.",
+          "Durante el día, mézclate. Actúa como un civil. No seas demasiado callado, pero tampoco demasiado ruidoso.",
+          "Si hay varios mafiosos, trabajen juntos para dividir votos y evitar sospechas."
+        ]
+      },
+      "detective": {
+        "title": "El Detective",
+        "desc": "Eres el investigador. Cada noche puedes revisar a un jugador para ver si es de la mafia.",
+        "abilities": [
+          "Cada noche, elige a un jugador para investigar. El resultado te dice si es mafioso o no.",
+          "Sabes quiénes son los demás detectives. Comparte hallazgos con ellos, pero con cuidado: la mafia podría estar escuchando si eres demasiado obvio.",
+          "No te reveles demasiado pronto. La mafia te apuntará de inmediato si sabe quién eres.",
+          "Genera confianza poco a poco. Comparte información con jugadores confiables, pero verifica su comportamiento primero."
+        ]
+      },
+      "doctor": {
+        "title": "El Médico",
+        "desc": "Eres el protector. Cada noche eliges a un jugador para salvarlo del ataque de la mafia.",
+        "abilities": [
+          "Cada noche, elige a un jugador para proteger. Si la mafia intenta matar a ese jugador, sobrevive.",
+          "Sabes quiénes son los demás médicos. Coordínense para cubrir diferentes objetivos y maximizar la protección.",
+          "Puedes protegerte a ti mismo, pero hacerlo cada noche es predecible. Protege a jugadores clave como los detectives cuando sospeches peligro.",
+          "Observa quién muere. Si alguien que protegiste muere de todas formas, podría haber varios mafiosos o el jugador ya era el objetivo de otra cosa."
+        ]
+      },
+      "civilian": {
+        "title": "El Civil",
+        "desc": "Eres el pilar del Pueblo. Sin poderes especiales, pero tu voto y tus observaciones son el arma más poderosa del Pueblo.",
+        "abilities": [
+          "Votas durante el día para eliminar a jugadores sospechosos. Tu voto cuenta tanto como el de cualquiera.",
+          "Observa los patrones con cuidado. ¿Quién cambia su versión? ¿Quién evita responder preguntas? ¿Quién parece demasiado ansioso por votar contra alguien en particular?",
+          "Escucha a los detectives y médicos, pero no confíes ciegamente en nadie. La mafia puede fingir ser útil.",
+          "Habla. Un civil callado parece sospechoso. Comparte tus observaciones y teorías durante el día."
+        ]
+      }
+    },
+    "flow": {
+      "dayPhaseTitle": "Fase diurna (Discusión + Votación)",
+      "day1Label": "1. Discusión:",
+      "day1Description": "Todos hablan en el chat. Comparte sospechas, defiéndete, haz preguntas. Aquí es donde se gana o se pierde la partida.",
+      "day2Label": "2. Votación:",
+      "day2Description": "Cuando se abre la votación, haz clic en la carta de un jugador para votar por su eliminación. El jugador con más votos es eliminado del juego.",
+      "day3Label": "3. Revelación:",
+      "day3Description": "Después de la votación, el rol del jugador eliminado se revela a todos. Usa esta información para actualizar tus teorías.",
+      "nightPhaseTitle": "Fase nocturna (Acciones secretas)",
+      "night1Label": "1. Turno de la mafia:",
+      "night1Description": "Todos los mafiosos votan en secreto a quién matar. El jugador elegido morirá a menos que un médico lo salve.",
+      "night2Label": "2. Turno del médico:",
+      "night2Description": "Todos los médicos eligen en secreto a un jugador para protegerlo del ataque de la mafia.",
+      "night3Label": "3. Turno del detective:",
+      "night3Description": "Todos los detectives investigan en secreto a un jugador para saber si es de la mafia.",
+      "night4Label": "4. Amanecer:",
+      "night4Description": "Todos despiertan. Si alguien murió, su rol se revela. Si un detective encontró a un mafioso, ahora lo sabe, pero probarlo sin revelarse es complicado.",
+      "tieBreakingTitle": "Desempate",
+      "tieBreakingDescription": "Si dos o más jugadores reciben la misma cantidad más alta de votos, nadie es eliminado esa ronda. El juego pasa directamente a la noche. Por eso la coordinación importa: dividir los votos ayuda a la mafia a sobrevivir."
+    },
+    "strategy": {
+      "townTitle": "Para el Pueblo (Civiles, Médicos, Detectives)",
+      "townTips": [
+        "Presta atención a los jugadores que nunca cambian su versión, o que la cambian demasiado. Ambos casos son sospechosos.",
+        "Si un detective revela que encontró a un mafioso, pídele que describa su proceso de investigación. Los detectives falsos suelen no poder responder preguntas detalladas.",
+        "Médicos: protejan a los jugadores más comunicativos y útiles. La mafia suele apuntar a quienes lideran al Pueblo.",
+        "Civiles: no se queden callados. Aunque no tengan información especial, compartir observaciones ayuda al Pueblo a coordinarse.",
+        "Si varios jugadores acusan a la misma persona desde ángulos distintos, esa persona podría realmente ser de la mafia, o los acusadores podrían ser mafiosos coordinados tratando de incriminar a alguien."
+      ],
+      "mafiaTitle": "Para la Mafia",
+      "mafiaTips": [
+        "No voten todos por la misma persona el Día 1. Se ve coordinado. Distribuyan sus primeros votos para parecer pensadores independientes.",
+        "Sacrifica a un compañero mafioso si eso genera confianza a largo plazo. Un mafioso de confianza es más peligroso que dos sospechosos.",
+        "Defiende a un civil de vez en cuando. Si lo salvas de un mal voto, podría confiar en ti después, y la confianza es el arma más poderosa de la mafia.",
+        "Cuando un detective real revele hallazgos, desacredítalo sutilmente. Pregunta: '¿cómo sabemos que en verdad eres detective?'",
+        "Si hay varios mafiosos, que uno juegue agresivo y otro calmado. Estrategias diversas hacen que el Pueblo divida sus sospechas."
+      ],
+      "redFlagsTitle": "Señales de alerta a vigilar",
+      "redFlags": [
+        "Un jugador que nunca vota primero: siempre espera a ver hacia dónde va la mayoría.",
+        "Alguien que responde preguntas con preguntas en lugar de hechos.",
+        "Dos o más jugadores que siempre están de acuerdo entre sí desde el principio.",
+        "Un jugador que de repente pasa de callado a extremadamente defensivo cuando lo acusan.",
+        "Alguien que reclama un rol especial demasiado pronto sin pruebas que lo respalden."
+      ]
+    }
+  },
+  "dailyRewards": {
+    "title": "Recompensas diarias",
+    "subtitle": "Vuelve todos los días",
+    "currentStreak": "Racha actual",
+    "dayStreak_one": "Racha de {{count}} día",
+    "dayStreak_other": "Racha de {{count}} días",
+    "best": "Mejor: {{count}}",
+    "dayN": "Día {{day}}",
+    "bonus": "BONO",
+    "plusCredits_one": "+{{count}} crédito",
+    "plusCredits_other": "+{{count}} créditos",
+    "claimed": "Reclamado",
+    "claim": "Reclamar",
+    "rewardClaimed": "¡Recompensa reclamada!"
+  },
+  "rating": {
+    "title": "Califica el juego",
+    "subtitle": "Tu opinión da forma al futuro",
+    "average": "Promedio",
+    "reviews": "Reseñas",
+    "hide": "Ocultar",
+    "seeAll": "Ver todas",
+    "ratingCleared": "Calificación restablecida",
+    "ratingClearedDescription": "Tu calificación se ha restablecido. Ya puedes enviar una nueva.",
+    "rateAgain": "Calificar de nuevo",
+    "thanksForRating": "¡Gracias por calificar!",
+    "feedbackHelpsUs": "Tu opinión nos ayuda a mejorar",
+    "resetMyRating": "Restablecer mi calificación",
+    "backToRating": "Volver a calificar",
+    "helpful": "Útil",
+    "notHelpful": "No útil",
+    "howWouldYouRate": "¿Cómo calificarías tu experiencia?",
+    "amazing": "¡Increíble!",
+    "great": "¡Genial!",
+    "good": "Buena",
+    "okay": "Regular",
+    "needsWork": "Necesita mejorar",
+    "whatCouldWeDoBetter": "¿Qué podríamos mejorar? (Opcional)",
+    "shareYourThoughts": "Comparte tu opinión...",
+    "submitRating": "Enviar calificación"
+  },
+  "referralSystem": {
+    "title": "Invitar amigos",
+    "subtitle": "Gana créditos por cada jugador",
+    "yourReferralLink": "Tu enlace de referido",
+    "invited": "Invitados",
+    "joined": "Se unieron",
+    "credits": "Créditos",
+    "creditsPerFriend": "{{count}} créditos por amigo",
+    "theyJoinYouGetRewarded": "Se unen a una partida y tú recibes la recompensa"
+  },
+  "tipJar": {
+    "title": "Apoya el juego",
+    "subtitle": "Las propinas mantienen los servidores en marcha",
+    "enterAmountMin": "Ingresa el monto (mínimo $1)",
+    "thankYou": "¡Gracias!",
+    "supportMeansEverything": "Tu apoyo lo significa todo",
+    "disclaimer": "La mayor parte de cada propina se destina a mejorar el juego y mantener los servidores en marcha. El resto cubre las comisiones de procesamiento. ¡Cada dólar ayuda, gracias!"
+  },
+  "feedback": {
+    "categories": {
+      "bug": "Error",
+      "feature": "Función",
+      "design": "Diseño",
+      "praise": "Elogio"
+    },
+    "feedback": "Comentarios",
+    "feedbackSent": "¡Comentarios enviados!",
+    "thankYouForHelping": "Gracias por ayudar a mejorar Mafia.",
+    "sendFeedback": "Enviar comentarios",
+    "tellUsWhatsOnYourMind": "Cuéntanos qué piensas...",
+    "sending": "Enviando..."
+  },
+  "adRewards": {
+    "title": "Créditos gratis",
+    "subtitle": "Mira y gana — {{count}} créditos por transmisión",
+    "perStream": "Por transmisión",
+    "today": "Hoy",
+    "streamingRemaining": "Transmitiendo... quedan {{count}}s",
+    "readyToStream": "Listo para transmitir",
+    "sponsored": "Patrocinado",
+    "couldNotAward": "No se pudieron otorgar los créditos.",
+    "networkError": "Error de red. Inténtalo de nuevo.",
+    "creditsEarned": "¡+{{count}} créditos ganados!",
+    "streamsRemaining_one": "Queda {{count}} transmisión hoy",
+    "streamsRemaining_other": "Quedan {{count}} transmisiones hoy",
+    "watchAnother": "Ver otra",
+    "streamingCountdown": "Transmitiendo... ({{count}}s)",
+    "dailyLimitReached": "Límite diario alcanzado",
+    "activateStream": "Activar transmisión (+{{count}} créditos)",
+    "resetsAtMidnight": "Se reinicia a medianoche. Vuelve mañana.",
+    "billboards": {
+      "item_shop": {
+        "title": "¡EQUÍPATE EN LA TIENDA!",
+        "body": "¡Visita la tienda de artículos ahora mismo para desbloquear trajes misteriosos exclusivos de edición limitada y artículos especiales raros antes de que se agoten!"
+      },
+      "buy_credits": {
+        "title": "SE ACABÓ LA ESPERA",
+        "body": "¿Necesitas créditos ahora mismo para un artículo raro? Salta el límite diario y visita nuestra tienda para comprar al instante paquetes de créditos de forma segura con Stripe."
+      },
+      "referral": {
+        "title": "HAZ CRECER TU EQUIPO",
+        "body": "¿Quieres aún más recompensas? Usa nuestro sistema de referidos para invitar a tus amigos. Comparte tu enlace de invitación único con tu equipo y ganen juntos 25 créditos de bono cuando se unan."
+      },
+      "security": {
+        "title": "RESPALDO ASEGURADO",
+        "body": "Tu perfil de juego está protegido. Asegúrate de que tu cuenta esté totalmente segura vinculando tu perfil de acceso con la verificación en dos pasos de Google a través de Supabase."
+      }
+    }
+  },
+  "lootCrate": {
+    "title": "Cofre de botín",
+    "subtitle": "Gasta créditos, recibe sorpresas",
+    "yourCredits": "Tus créditos",
+    "crateCost": "Costo del cofre",
+    "creditsAmount_one": "{{count}} crédito",
+    "creditsAmount_other": "{{count}} créditos",
+    "rare": "Raro",
+    "epic": "Épico",
+    "mythic": "Mítico",
+    "opening": "Abriendo...",
+    "addedToBalance": "¡{{name}} se agregó a tu saldo!",
+    "addedToCollection": "¡Agregado a tu colección!",
+    "feelingLucky": "¿Te sientes con suerte?",
+    "openForChance": "Ábrelo para tener la oportunidad de ganar cosméticos raros y créditos",
+    "openCrate": "Abrir cofre ({{count}} créditos)",
+    "notEnoughCredits": "Créditos insuficientes",
+    "earnMoreCredits": "Gana más créditos con las recompensas diarias, anuncios o referidos",
+    "items": {
+      "lc_border_grey": "Borde ceniza",
+      "lc_border_olive": "Borde oliva",
+      "lc_border_tan": "Borde arena",
+      "lc_border_navy": "Borde marino",
+      "lc_border_teal": "Borde turquesa",
+      "lc_border_mint": "Borde menta",
+      "lc_border_lav": "Borde lavanda",
+      "lc_border_coral": "Borde coral",
+      "lc_border_peach": "Borde durazno",
+      "lc_border_ink": "Borde tinta",
+      "lc_name_grey": "Nombre ceniza",
+      "lc_name_olive": "Nombre oliva",
+      "lc_name_tan": "Nombre arena",
+      "lc_name_navy": "Nombre marino",
+      "lc_name_teal": "Nombre turquesa",
+      "lc_name_mint": "Nombre menta",
+      "lc_name_lav": "Nombre lavanda",
+      "lc_name_coral": "Nombre coral",
+      "lc_name_peach": "Nombre durazno",
+      "lc_name_ink": "Nombre tinta",
+      "lc_border_gold": "Borde dorado",
+      "lc_border_silver": "Borde plateado",
+      "lc_border_bronze": "Borde bronce",
+      "lc_border_ruby": "Borde rubí",
+      "lc_border_sapphire": "Borde zafiro",
+      "lc_border_emerald": "Borde esmeralda",
+      "lc_border_amethyst": "Borde amatista",
+      "lc_border_amber": "Borde ámbar",
+      "lc_border_jade": "Borde jade",
+      "lc_border_onyx": "Borde ónix",
+      "lc_name_gold": "Nombre dorado",
+      "lc_name_silver": "Nombre plateado",
+      "lc_name_bronze": "Nombre bronce",
+      "lc_name_ruby": "Nombre rubí",
+      "lc_name_sapphire": "Nombre zafiro",
+      "lc_name_emerald": "Nombre esmeralda",
+      "lc_name_amethyst": "Nombre amatista",
+      "lc_name_amber": "Nombre ámbar",
+      "lc_name_jade": "Nombre jade",
+      "lc_name_onyx": "Nombre ónix",
+      "lc_frame_steel": "Marco de acero",
+      "lc_frame_bronze": "Marco de bronce",
+      "lc_frame_silver": "Marco de plata",
+      "lc_frame_wood": "Marco de caoba",
+      "lc_frame_ivy": "Marco de hiedra",
+      "lc_frame_diamond": "Marco de diamante",
+      "lc_frame_fire": "Marco de fuego",
+      "lc_frame_crown": "Marco de corona",
+      "lc_frame_ice": "Marco de hielo",
+      "lc_frame_shadow": "Marco de sombra",
+      "lc_frame_neon": "Marco neón",
+      "lc_frame_goldleaf": "Marco de pan de oro",
+      "lc_frame_cyber": "Marco cibernético",
+      "lc_emote_gun": "Pistola con los dedos",
+      "lc_emote_hood": "Bajo la capucha",
+      "lc_emote_cigar": "Puro",
+      "lc_emote_glass": "Vaso whisky",
+      "lc_emote_ring": "Anillo de jefe",
+      "lc_frame_dragon": "Marco de dragón",
+      "lc_frame_angel": "Marco de serafín",
+      "lc_frame_demon": "Marco de demonio",
+      "lc_frame_royal": "Marco real",
+      "lc_frame_thorn": "Marco de espinas",
+      "lc_frame_legend": "Marco de leyenda",
+      "lc_frame_ghost": "Marco fantasma",
+      "lc_frame_moon": "Marco de luz de luna",
+      "lc_frame_sun": "Marco de estallido solar",
+      "lc_frame_void": "Marco del vacío",
+      "lc_emote_kingpin": "Capo",
+      "lc_emote_enforcer": "El Ejecutor",
+      "lc_emote_mastermind": "Cerebro maestro",
+      "lc_emote_don": "El Don",
+      "lc_emote_silencer": "Silenciador",
+      "lc_emote_legend": "Leyenda viviente",
+      "lc_emote_myth": "Mito urbano",
+      "lc_emote_boss": "Jefe final",
+      "lc_emote_godfather": "Padrino",
+      "lc_emote_shadow": "Caminante de sombras",
+      "lc_title_made": "Título: Hombre de honor",
+      "lc_title_capo": "Título: Capo",
+      "lc_title_consigliere": "Título: Consejero",
+      "lc_title_underboss": "Título: Subjefe",
+      "lc_frame_godfather": "Marco del padrino",
+      "lc_frame_immortal": "Marco inmortal",
+      "lc_frame_celestial": "Marco celestial",
+      "lc_frame_doom": "Marco de perdición",
+      "lc_frame_phoenix": "Marco fénix",
+      "lc_frame_eclipse": "Marco de eclipse",
+      "lc_frame_nexus": "Marco nexo",
+      "lc_frame_overlord": "Marco de señor supremo",
+      "lc_frame_titan": "Marco titán",
+      "lc_frame_omega": "Marco omega",
+      "lc_emote_omega": "Omega",
+      "lc_emote_overlord": "Señor supremo",
+      "lc_emote_immortal": "Inmortal",
+      "lc_emote_celestial": "Celestial",
+      "lc_emote_doom": "Perdición",
+      "lc_title_don": "Título: El Don",
+      "lc_title_godfather": "Título: Padrino",
+      "lc_title_overlord": "Título: Señor supremo",
+      "lc_title_immortal": "Título: Inmortal"
+    }
+  },
+  "creditPacks": {
+    "title": "Tienda de créditos",
+    "subtitle": "Compra créditos, sáltate la espera",
+    "bonus10": "+10% de bono",
+    "bonus20": "+20% de bono",
+    "bonus30": "+30% de bono",
+    "mostPopular": "Más popular",
+    "disclaimer": "Los créditos desbloquean cosméticos, cofres de botín y funciones premium. Sin reembolsos.",
+    "creditsAdded": "¡Créditos agregados!",
+    "spendInShop": "Gástalos en la tienda"
+  }
+}
