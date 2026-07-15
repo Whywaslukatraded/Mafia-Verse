@@ -111,6 +111,27 @@ async function fillWithBots(roomId: number, storage: any) {
 // Tracks each bot's last message so they never repeat themselves back-to-back
 const botLastMessage = new Map<number, string>();
 
+// Pulls a short, natural-looking snippet of the player's own words so the bot
+// can quote it back — this is what actually sells "the bot is listening",
+// far more than picking the right category ever does on its own.
+function extractSnippet(original: string): string {
+  let s = original.trim().replace(/\s+/g, " ");
+  if (s.length > 45) {
+    const words = s.split(" ").slice(0, 7);
+    s = words.join(" ");
+  }
+  s = s.replace(/[.?!,]+$/, "");
+  return s;
+}
+
+const ECHO_PREFIXES = [
+  '"{snippet}"? Interesting take.',
+  'You said "{snippet}" — noted.',
+  'Wait, "{snippet}"? Let\'s unpack that.',
+  'Hold on — "{snippet}" is a bold thing to say right now.',
+  'So your take is "{snippet}"? Okay.',
+];
+
 function pickUnique(arr: string[], botId: number): string {
   if (arr.length <= 1) return arr[0] || "";
   const last = botLastMessage.get(botId);
@@ -257,6 +278,9 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
   const defenseWords = ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"];
   const agreementWords = ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"];
   const greetingWords = ["hey", "hi ", "hello", "morning", "good morning", "gm"];
+  const negations = ["don't ", "dont ", "not ", "n't ", "no "];
+  // "I don't agree" or "not true" should never be read as agreement
+  const isNegated = (word: string) => negations.some(n => msgLower.includes(n + word) || msgLower.includes(n.trim() + " " + word));
 
   if (mentionedPlayer) {
     if (accusationWords.some(w => msgLower.includes(w))) {
@@ -278,7 +302,7 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
     }
     return { category: "suspicion" as const, targetName: undefined };
   }
-  if (agreementWords.some(w => msgLower.includes(w))) {
+  if (agreementWords.some(w => msgLower.includes(w)) && !agreementWords.some(w => isNegated(w))) {
     return { category: "agreement" as const, targetName: undefined };
   }
   if (greetingWords.some(w => msgLower.startsWith(w) || msgLower.includes(w))) {
@@ -333,7 +357,15 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   }
 
   const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers);
-  const content = buildBotReply(category, targetName, bot.id, alivePlayers);
+  let content = buildBotReply(category, targetName, bot.id, alivePlayers);
+
+  // ~45% of the time, open with a direct quote of what the player said —
+  // this is what makes the bot feel like it's actually listening.
+  if (Math.random() < 0.45 && humanMessage.trim().length > 3) {
+    const snippet = extractSnippet(humanMessage);
+    const prefix = ECHO_PREFIXES[Math.floor(Math.random() * ECHO_PREFIXES.length)].replace("{snippet}", snippet);
+    content = `${prefix} ${content}`;
+  }
 
   if (content) {
     await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
