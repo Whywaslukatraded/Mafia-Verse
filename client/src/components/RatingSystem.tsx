@@ -1,84 +1,73 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, X, Send, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Star, X, Send, Coins, Clock, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
-interface Rating {
-  id: string;
+const REWARD_CREDITS = 5;
+const EDIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+interface RatingData {
   stars: number;
-  feedback: string;
-  timestamp: string;
-  helpful: boolean | null;
+  ratedAt: string;   // when they first rated (credit was awarded here)
+  lastEditAt: string; // when the star value was last changed
 }
 
-function getRatings(): Rating[] {
+function getRatingData(): RatingData | null {
   try {
-    const raw = localStorage.getItem("mafia_ratings");
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem("mafia_rating_data");
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-function saveRatings(ratings: Rating[]) {
-  localStorage.setItem("mafia_ratings", JSON.stringify(ratings));
+function saveRatingData(data: RatingData) {
+  localStorage.setItem("mafia_rating_data", JSON.stringify(data));
 }
 
-function getHasRated(): boolean {
+function addCredits(amount: number) {
   try {
-    return !!localStorage.getItem("mafia_has_rated");
-  } catch {
-    return false;
-  }
-}
-
-function setHasRated() {
-  localStorage.setItem("mafia_has_rated", "true");
-}
-
-function clearHasRated() {
-  localStorage.removeItem("mafia_has_rated");
+    const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+    s.credits = (s.credits || 0) + amount;
+    localStorage.setItem("mafia_stats", JSON.stringify(s));
+    window.dispatchEvent(new Event("storage"));
+  } catch {}
 }
 
 export function RatingSystem({ onClose }: { onClose: () => void }) {
-  const { t, i18n } = useTranslation();
-  const [stars, setStars] = useState(0);
+  const { t } = useTranslation();
+  const existing = getRatingData();
+  const [stars, setStars] = useState(existing?.stars || 0);
   const [hoveredStar, setHoveredStar] = useState(0);
-  const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [ratings, setRatings] = useState<Rating[]>(getRatings);
-  const [showHistory, setShowHistory] = useState(false);
-  const [canRateAgain, setCanRateAgain] = useState(false);
+  const [ratingData, setRatingData] = useState<RatingData | null>(existing);
+  const [editing, setEditing] = useState(!existing);
 
-  const average = ratings.length > 0
-    ? (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length).toFixed(1)
-    : "0.0";
+  const hasRatedBefore = !!ratingData;
+  const msSinceLastEdit = ratingData ? Date.now() - new Date(ratingData.lastEditAt).getTime() : Infinity;
+  const canEdit = !hasRatedBefore || msSinceLastEdit >= EDIT_COOLDOWN_MS;
+  const daysUntilEditable = canEdit ? 0 : Math.ceil((EDIT_COOLDOWN_MS - msSinceLastEdit) / (24 * 60 * 60 * 1000));
 
   const handleSubmit = useCallback(() => {
     if (stars === 0) return;
-    const newRating: Rating = {
-      id: Math.random().toString(36).substring(2, 8),
-      stars,
-      feedback,
-      timestamp: new Date().toISOString(),
-      helpful: null,
-    };
-    const updated = [newRating, ...ratings];
-    saveRatings(updated);
-    setRatings(updated);
-    setSubmitted(true);
-    setHasRated();
-  }, [stars, feedback, ratings]);
+    const now = new Date().toISOString();
+    const isFirstRating = !hasRatedBefore;
 
-  const markHelpful = (id: string, helpful: boolean) => {
-    const updated = ratings.map((r) =>
-      r.id === id ? { ...r, helpful } : r
-    );
-    saveRatings(updated);
-    setRatings(updated);
-  };
+    const newData: RatingData = {
+      stars,
+      ratedAt: ratingData?.ratedAt || now,
+      lastEditAt: now,
+    };
+    saveRatingData(newData);
+    setRatingData(newData);
+    setEditing(false);
+    setSubmitted(true);
+
+    if (isFirstRating) {
+      addCredits(REWARD_CREDITS);
+    }
+  }, [stars, hasRatedBefore, ratingData]);
 
   const starLabels: Record<number, string> = {
     5: t("rating.amazing"),
@@ -95,7 +84,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
-        className="relative bg-card border border-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="relative bg-card border border-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden"
       >
         <div className="bg-gradient-to-r from-yellow-500/20 via-amber-500/10 to-yellow-500/20 p-6 border-b border-border">
           <div className="flex items-center justify-between">
@@ -115,128 +104,42 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Stats */}
-          {ratings.length > 0 && (
-            <div className="flex items-center gap-4 bg-muted/30 rounded-xl p-3">
-              <div className="text-center">
-                <p className="text-2xl font-black text-yellow-500">{average}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">{t("rating.average")}</p>
-              </div>
-              <div className="h-8 w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl font-black text-foreground">{ratings.length}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">{t("rating.reviews")}</p>
-              </div>
-              <div className="flex-1 flex justify-end">
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="text-xs text-yellow-500 font-bold hover:underline"
-                >
-                  {showHistory ? t("rating.hide") : t("rating.seeAll")}
-                </button>
-              </div>
+          {/* Credit incentive banner — only shown before the first-ever rating */}
+          {!hasRatedBefore && (
+            <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+              <Coins className="w-5 h-5 text-amber-500 shrink-0" />
+              <p className="text-sm font-bold text-foreground">
+                {t("rating.earnCreditsBanner", { count: REWARD_CREDITS })}
+              </p>
             </div>
           )}
 
           <AnimatePresence mode="wait">
-            {canRateAgain ? (
-              <motion.div
-                key="again"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center py-6 space-y-3"
-              >
-                <p className="text-lg font-bold">{t("rating.ratingCleared")}</p>
-                <p className="text-sm text-muted-foreground">{t("rating.ratingClearedDescription")}</p>
-                <Button size="sm" onClick={() => {
-                  setCanRateAgain(false);
-                  setStars(0);
-                  setFeedback("");
-                  setSubmitted(false);
-                }}>
-                  {t("rating.rateAgain")}
-                </Button>
-              </motion.div>
-            ) : submitted ? (
+            {submitted && !editing ? (
               <motion.div
                 key="submitted"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center py-6 space-y-3"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Star className="w-12 h-12 text-yellow-500 fill-yellow-500 mx-auto" />
+                <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 0.5 }}>
+                  <div className="flex items-center justify-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-6 h-6 ${i < stars ? "text-yellow-500 fill-yellow-500" : "text-muted"}`} />
+                    ))}
+                  </div>
                 </motion.div>
                 <p className="text-lg font-bold">{t("rating.thanksForRating")}</p>
-                <p className="text-sm text-muted-foreground">{t("rating.feedbackHelpsUs")}</p>
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" size="sm" onClick={onClose}>
-                    {t("common.close")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground"
-                    onClick={() => {
-                      clearHasRated();
-                      setCanRateAgain(true);
-                    }}
-                  >
-                    {t("rating.resetMyRating")}
-                  </Button>
-                </div>
+                {ratingData && ratingData.ratedAt === ratingData.lastEditAt && (
+                  <p className="text-sm text-amber-500 font-bold flex items-center justify-center gap-1.5">
+                    <Coins className="w-4 h-4" /> {t("rating.creditsAwarded", { count: REWARD_CREDITS })}
+                  </p>
+                )}
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  {t("common.close")}
+                </Button>
               </motion.div>
-            ) : showHistory ? (
-              <motion.div
-                key="history"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-2"
-              >
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground mb-2"
-                >
-                  &larr; {t("rating.backToRating")}
-                </button>
-                {ratings.slice(0, 10).map((r) => (
-                  <div key={r.id} className="bg-muted/30 rounded-xl p-3 space-y-1">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${i < r.stars ? "text-yellow-500 fill-yellow-500" : "text-muted"}`}
-                        />
-                      ))}
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {new Date(r.timestamp).toLocaleDateString(i18n.language)}
-                      </span>
-                    </div>
-                    {r.feedback && (
-                      <p className="text-xs text-muted-foreground">{r.feedback}</p>
-                    )}
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => markHelpful(r.id, true)}
-                        className={`flex items-center gap-1 text-[10px] ${r.helpful === true ? "text-green-500 font-bold" : "text-muted-foreground"}`}
-                      >
-                        <ThumbsUp className="w-3 h-3" /> {t("rating.helpful")}
-                      </button>
-                      <button
-                        onClick={() => markHelpful(r.id, false)}
-                        className={`flex items-center gap-1 text-[10px] ${r.helpful === false ? "text-red-500 font-bold" : "text-muted-foreground"}`}
-                      >
-                        <ThumbsDown className="w-3 h-3" /> {t("rating.notHelpful")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </motion.div>
-            ) : (
+            ) : editing ? (
               <motion.div
                 key="form"
                 initial={{ opacity: 0 }}
@@ -244,7 +147,6 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                 exit={{ opacity: 0 }}
                 className="space-y-4"
               >
-                {/* Star Rating */}
                 <div className="text-center space-y-2">
                   <p className="text-sm font-bold text-foreground">{t("rating.howWouldYouRate")}</p>
                   <div className="flex items-center justify-center gap-2">
@@ -260,42 +162,51 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
                           onClick={() => setStars(i + 1)}
                           className="focus:outline-none"
                         >
-                          <Star
-                            className={`w-8 h-8 transition-colors ${filled ? "text-yellow-500 fill-yellow-500" : "text-muted"}`}
-                          />
+                          <Star className={`w-8 h-8 transition-colors ${filled ? "text-yellow-500 fill-yellow-500" : "text-muted"}`} />
                         </motion.button>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-muted-foreground h-4">
-                    {starLabels[stars] || ""}
-                  </p>
+                  <p className="text-xs text-muted-foreground h-4">{starLabels[stars] || ""}</p>
                 </div>
 
-                {/* Feedback */}
-                <div className="space-y-2">
-                  <p className="text-sm font-bold text-foreground">{t("rating.whatCouldWeDoBetter")}</p>
-                  <Textarea
-                    placeholder={t("rating.shareYourThoughts")}
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    className="min-h-[80px] resize-none"
-                    maxLength={500}
-                  />
-                  <p className="text-[10px] text-muted-foreground text-right">{feedback.length}/500</p>
-                </div>
-
-                <Button
-                  className="w-full gap-2"
-                  disabled={stars === 0}
-                  onClick={handleSubmit}
-                >
+                <Button className="w-full gap-2" disabled={stars === 0} onClick={handleSubmit}>
                   <Send className="w-4 h-4" />
-                  {t("rating.submitRating")}
+                  {hasRatedBefore ? t("rating.updateRating") : t("rating.submitAndEarn", { count: REWARD_CREDITS })}
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="locked"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-4 space-y-4"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`w-7 h-7 ${i < stars ? "text-yellow-500 fill-yellow-500" : "text-muted"}`} />
+                  ))}
+                </div>
+                <p className="text-sm font-bold text-foreground">{t("rating.alreadyRated")}</p>
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-xl p-3">
+                  <Clock className="w-4 h-4" />
+                  {daysUntilEditable === 1
+                    ? t("rating.editAvailableInOneDay")
+                    : t("rating.editAvailableIn", { count: daysUntilEditable })}
+                </div>
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  {t("common.close")}
                 </Button>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Lets an already-rated user open the edit form once their cooldown has passed */}
+          {!editing && !submitted && canEdit && hasRatedBefore && (
+            <Button variant="ghost" size="sm" className="w-full gap-2 text-muted-foreground" onClick={() => setEditing(true)}>
+              <Pencil className="w-4 h-4" /> {t("rating.updateRating")}
+            </Button>
+          )}
         </div>
       </motion.div>
     </div>
