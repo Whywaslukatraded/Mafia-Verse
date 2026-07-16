@@ -73,6 +73,11 @@ export async function runMigrations(): Promise<void> {
           created_at timestamp DEFAULT now()
         )
       `);
+      // Feature: Email 2FA option (in addition to Google Authenticator)
+      await client.query(`ALTER TABLE user_mfa ADD COLUMN IF NOT EXISTS mfa_method text DEFAULT 'totp'`);
+      await client.query(`ALTER TABLE user_mfa ADD COLUMN IF NOT EXISTS mfa_email text`);
+      await client.query(`ALTER TABLE user_mfa ADD COLUMN IF NOT EXISTS email_code text`);
+      await client.query(`ALTER TABLE user_mfa ADD COLUMN IF NOT EXISTS email_code_expires timestamp`);
       await client.query(`
         CREATE TABLE IF NOT EXISTS players (
           id serial PRIMARY KEY,

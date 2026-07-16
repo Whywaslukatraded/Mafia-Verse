@@ -94,7 +94,23 @@
     "scannedIt": "Ya lo escaneé",
     "enterCodeLabel": "Ingresa el código de 6 dígitos de tu aplicación de autenticación",
     "verifyAndEnable": "Verificar y activar",
-    "backToQr": "Volver al código QR"
+    "backToQr": "Volver al código QR",
+    "chooseMethod": "¿Cómo te gustaría recibir tus códigos de verificación?",
+    "authenticatorApp": "Aplicación de autenticación",
+    "authenticatorAppDescription": "Google Authenticator u otra app similar",
+    "emailCode": "Código por correo",
+    "emailCodeDescription": "Recibe un código en tu correo electrónico",
+    "chooseDifferentMethod": "Elegir otro método",
+    "sendCodeToEmail": "Enviar código a este correo",
+    "sendingCode": "Enviando código...",
+    "sendCode": "Enviar código",
+    "emailSendFailed": "No se pudo enviar el correo de verificación",
+    "codeSentTitle": "Código enviado",
+    "codeSentDescription": "Revisa {{email}} para ver tu código de verificación.",
+    "enterEmailCodeLabel": "Ingresa el código de 6 dígitos que te enviamos",
+    "resendCode": "Reenviar código",
+    "checkYourEmail": "Revisa tu correo para ver el código",
+    "codeSentCheckInbox": "Se ha enviado un código a tu correo electrónico."
   },
   "home": {
     "referral": {
@@ -327,7 +343,8 @@
     "twoFADisabledDescription": "La autenticación de dos factores se ha desactivado.",
     "errorTitle": "Error",
     "couldNotDisable2FA": "No se pudo desactivar 2FA",
-    "somethingWentWrong": "Algo salió mal"
+    "somethingWentWrong": "Algo salió mal",
+    "incorrectPassword": "Contraseña incorrecta"
   },
   "leaderboard": {
     "title": "Salón de la infamia",

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Shield, Lock } from "lucide-react";
+import { Shield, Lock, Mail } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,55 @@ export default function TwoFactorVerify() {
   const { toast } = useToast();
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [method, setMethod] = useState<"totp" | "email">("totp");
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const id = sessionData.session?.user?.id;
+      if (!id) return;
+      setSupabaseUserId(id);
+
+      try {
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`);
+        const status = await res.json();
+        const userMethod = status.method === "email" ? "email" : "totp";
+        setMethod(userMethod);
+        if (userMethod === "email") {
+          await sendLoginCode(id);
+        }
+      } catch {
+        // fall back to totp UI if status check fails
+      }
+    }
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sendLoginCode = async (id: string) => {
+    setSendingCode(true);
+    try {
+      const res = await fetch("/api/auth/2fa/send-login-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supabaseUserId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.message || t("twoFactor.emailSendFailed"), variant: "destructive" });
+      } else {
+        setCodeSent(true);
+      }
+    } catch {
+      toast({ title: t("twoFactor.emailSendFailed"), variant: "destructive" });
+    }
+    setSendingCode(false);
+  };
 
   const verifyCode = async () => {
     if (code.length !== 6) {
@@ -41,7 +90,6 @@ export default function TwoFactorVerify() {
         setVerifying(false);
         return;
       }
-      // Mark 2FA as passed
       localStorage.setItem("mafia_2fa_passed", "true");
       toast({ title: t("twoFactor.welcomeBack") });
       setLocation("/");
@@ -65,13 +113,20 @@ export default function TwoFactorVerify() {
       >
         <div className="text-center">
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full mb-4">
-            <Lock className="w-8 h-8 text-emerald-500" />
+            {method === "email" ? <Mail className="w-8 h-8 text-amber-500" /> : <Lock className="w-8 h-8 text-emerald-500" />}
           </div>
           <h1 className="text-3xl font-black font-serif uppercase tracking-tight text-foreground">{t("twoFactor.title")}</h1>
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{t("twoFactor.verifySubtitle")}</p>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">
+            {method === "email" ? t("twoFactor.checkYourEmail") : t("twoFactor.verifySubtitle")}
+          </p>
         </div>
 
         <div className="w-full bg-card border border-border rounded-xl p-6 space-y-4">
+          {method === "email" && (
+            <p className="text-xs text-muted-foreground text-center">
+              {sendingCode ? t("twoFactor.sendingCode") : codeSent ? t("twoFactor.codeSentCheckInbox") : ""}
+            </p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="code">{t("twoFactor.sixDigitCode")}</Label>
             <Input
@@ -95,6 +150,17 @@ export default function TwoFactorVerify() {
             <Shield className="w-4 h-4 mr-2" />
             {verifying ? t("twoFactor.verifying") : t("twoFactor.verify")}
           </Button>
+          {method === "email" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => supabaseUserId && sendLoginCode(supabaseUserId)}
+              disabled={sendingCode}
+            >
+              {t("twoFactor.resendCode")}
+            </Button>
+          )}
         </div>
       </motion.div>
     </div>

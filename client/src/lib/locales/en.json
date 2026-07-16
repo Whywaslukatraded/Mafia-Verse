@@ -94,7 +94,23 @@
     "scannedIt": "I've scanned it",
     "enterCodeLabel": "Enter the 6-digit code from your authenticator",
     "verifyAndEnable": "Verify & Enable",
-    "backToQr": "Back to QR code"
+    "backToQr": "Back to QR code",
+    "chooseMethod": "How would you like to receive your verification codes?",
+    "authenticatorApp": "Authenticator App",
+    "authenticatorAppDescription": "Google Authenticator or similar app",
+    "emailCode": "Email Code",
+    "emailCodeDescription": "Get a code sent to your email",
+    "chooseDifferentMethod": "Choose a different method",
+    "sendCodeToEmail": "Send code to this email",
+    "sendingCode": "Sending code...",
+    "sendCode": "Send Code",
+    "emailSendFailed": "Could not send verification email",
+    "codeSentTitle": "Code sent",
+    "codeSentDescription": "Check {{email}} for your verification code.",
+    "enterEmailCodeLabel": "Enter the 6-digit code we emailed you",
+    "resendCode": "Resend Code",
+    "checkYourEmail": "Check your email for a code",
+    "codeSentCheckInbox": "A code has been sent to your email."
   },
   "home": {
     "referral": {
@@ -327,7 +343,8 @@
     "twoFADisabledDescription": "Two-factor authentication has been turned off.",
     "errorTitle": "Error",
     "couldNotDisable2FA": "Could not disable 2FA",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "incorrectPassword": "Incorrect password"
   },
   "leaderboard": {
     "title": "Hall of Infamy",

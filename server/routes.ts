@@ -8,6 +8,7 @@ import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
+import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
 
 // Password hashing helpers
 function hashPassword(password: string): string {
@@ -931,10 +932,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const uri = `otpauth://totp/Mafia%20Game:${encodeURIComponent(supabaseUserId)}?secret=${secret}&issuer=Mafia%20Game&algorithm=SHA1&digits=6&period=30`;
 
       await db.insert(userMfa)
-        .values({ supabaseUserId, totpSecret: secret, isEnabled: false })
+        .values({ supabaseUserId, totpSecret: secret, isEnabled: false, mfaMethod: "totp" })
         .onConflictDoUpdate({
           target: userMfa.supabaseUserId,
-          set: { totpSecret: secret, isEnabled: false },
+          set: { totpSecret: secret, isEnabled: false, mfaMethod: "totp" },
         });
 
       res.json({ secret, qrCodeUri: uri });
@@ -945,16 +946,88 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Feature: Email 2FA option — sends a fresh 6-digit code to the user's email
+  // as an alternative to the Authenticator app. Used both for initial setup
+  // (to confirm the email) and for each subsequent login.
+  app.post("/api/auth/2fa/setup-email", async (req, res) => {
+    try {
+      const { supabaseUserId, email } = req.body;
+      if (!supabaseUserId || !email) return res.status(400).json({ message: "Missing user ID or email" });
+
+      const code = generateSixDigitCode();
+      const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      await db.insert(userMfa)
+        .values({ supabaseUserId, mfaMethod: "email", mfaEmail: email, emailCode: code, emailCodeExpires: expires, isEnabled: false })
+        .onConflictDoUpdate({
+          target: userMfa.supabaseUserId,
+          set: { mfaMethod: "email", mfaEmail: email, emailCode: code, emailCodeExpires: expires, isEnabled: false },
+        });
+
+      await sendEmail(email, "Your Mafia Verse verification code", build2FAEmailHtml(code));
+
+      res.json({ sent: true });
+    } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
+      res.status(400).json({ message: err?.message || "Could not send verification email" });
+    }
+  });
+
+  // Sends a fresh login-time code to an already-configured email-2FA user.
+  // TOTP users don't need this — their app generates codes on its own.
+  app.post("/api/auth/2fa/send-login-code", async (req, res) => {
+    try {
+      const { supabaseUserId } = req.body;
+      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+
+      const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
+      if (!mfa || mfa.mfaMethod !== "email" || !mfa.mfaEmail) {
+        return res.status(400).json({ message: "Email 2FA not set up for this account" });
+      }
+
+      const code = generateSixDigitCode();
+      const expires = new Date(Date.now() + 10 * 60 * 1000);
+      await db.update(userMfa).set({ emailCode: code, emailCodeExpires: expires }).where(eq(userMfa.supabaseUserId, supabaseUserId));
+
+      await sendEmail(mfa.mfaEmail, "Your Mafia Verse verification code", build2FAEmailHtml(code));
+      res.json({ sent: true });
+    } catch (err: any) {
+      const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
+      if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
+      res.status(400).json({ message: err?.message || "Could not send verification email" });
+    }
+  });
+
   app.post("/api/auth/2fa/verify", async (req, res) => {
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
 
       const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
-      if (!mfa || !mfa.totpSecret) {
+      if (!mfa) {
         return res.status(400).json({ message: "2FA not set up" });
       }
 
+      if (mfa.mfaMethod === "email") {
+        if (!mfa.emailCode || !mfa.emailCodeExpires) {
+          return res.status(400).json({ message: "No pending verification code. Request a new one." });
+        }
+        if (new Date() > new Date(mfa.emailCodeExpires)) {
+          return res.status(400).json({ message: "Code expired. Request a new one." });
+        }
+        if (mfa.emailCode !== code) {
+          return res.status(400).json({ message: "Invalid code" });
+        }
+        // Clear the used code so it can't be replayed, then mark enabled
+        await db.update(userMfa).set({ isEnabled: true, emailCode: null, emailCodeExpires: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
+        return res.json({ enabled: true });
+      }
+
+      // Default / "totp" path
+      if (!mfa.totpSecret) {
+        return res.status(400).json({ message: "2FA not set up" });
+      }
       const { TOTP } = await import("otpauth");
       const totp = new TOTP({ secret: mfa.totpSecret });
       const isValid = totp.validate({ token: code, window: 1 }) !== null;
@@ -975,7 +1048,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const supabaseUserId = req.query.supabaseUserId as string;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
       const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
-      res.json({ isEnabled: mfa?.isEnabled ?? false });
+      res.json({ isEnabled: mfa?.isEnabled ?? false, method: mfa?.mfaMethod ?? "totp" });
     } catch (err: any) {
       res.status(400).json({ message: err?.message || "Status check failed" });
     }
@@ -986,7 +1059,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
 
-      await db.update(userMfa).set({ isEnabled: false, totpSecret: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
+      await db.update(userMfa).set({ isEnabled: false, totpSecret: null, mfaMethod: "totp", mfaEmail: null, emailCode: null, emailCodeExpires: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ disabled: true });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";

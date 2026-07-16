@@ -62,11 +62,14 @@ export const api = {
         400: z.object({ message: z.string() }),
       },
     },
+    // Corrected: the real endpoint keys 2FA off the Supabase auth user (a
+    // string UUID), not the local numeric userId — this previously didn't
+    // match server/routes.ts, which always read supabaseUserId from req.body.
     setup2FA: {
       method: 'POST' as const,
       path: '/api/auth/2fa/setup',
       input: z.object({
-        userId: z.number(),
+        supabaseUserId: z.string(),
       }),
       responses: {
         200: z.object({
@@ -76,11 +79,39 @@ export const api = {
         400: z.object({ message: z.string() }),
       },
     },
+    // Feature: Email 2FA option — sends a first verification code to confirm
+    // the chosen email and switches the account's mfaMethod to "email".
+    setup2FAEmail: {
+      method: 'POST' as const,
+      path: '/api/auth/2fa/setup-email',
+      input: z.object({
+        supabaseUserId: z.string(),
+        email: z.string().email(),
+      }),
+      responses: {
+        200: z.object({ sent: z.boolean() }),
+        400: z.object({ message: z.string() }),
+        503: z.object({ message: z.string() }),
+      },
+    },
+    // Sends a fresh login-time code to an account already using email 2FA.
+    sendLoginCode2FA: {
+      method: 'POST' as const,
+      path: '/api/auth/2fa/send-login-code',
+      input: z.object({
+        supabaseUserId: z.string(),
+      }),
+      responses: {
+        200: z.object({ sent: z.boolean() }),
+        400: z.object({ message: z.string() }),
+        503: z.object({ message: z.string() }),
+      },
+    },
     verify2FA: {
       method: 'POST' as const,
       path: '/api/auth/2fa/verify',
       input: z.object({
-        userId: z.number(),
+        supabaseUserId: z.string(),
         code: z.string().length(6),
       }),
       responses: {
@@ -88,12 +119,22 @@ export const api = {
         400: z.object({ message: z.string() }),
       },
     },
+    status2FA: {
+      method: 'GET' as const,
+      path: '/api/auth/2fa/status',
+      responses: {
+        200: z.object({
+          isEnabled: z.boolean(),
+          method: z.enum(['totp', 'email']),
+        }),
+        400: z.object({ message: z.string() }),
+      },
+    },
     disable2FA: {
       method: 'POST' as const,
       path: '/api/auth/2fa/disable',
       input: z.object({
-        userId: z.number(),
-        password: z.string(),
+        supabaseUserId: z.string(),
       }),
       responses: {
         200: z.object({ disabled: z.boolean() }),
@@ -176,4 +217,3 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
   }
   return url;
 }
-

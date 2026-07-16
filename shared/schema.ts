@@ -8,6 +8,12 @@ export const userMfa = pgTable("user_mfa", {
   supabaseUserId: text("supabase_user_id").primaryKey(),
   totpSecret: text("totp_secret"),
   isEnabled: boolean("is_enabled").default(false),
+  // Feature: Email 2FA option (in addition to Google Authenticator)
+  // "totp" = Authenticator app, "email" = code sent to Gmail/email. User picks one.
+  mfaMethod: text("mfa_method").default("totp"),
+  mfaEmail: text("mfa_email"),
+  emailCode: text("email_code"),
+  emailCodeExpires: timestamp("email_code_expires"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

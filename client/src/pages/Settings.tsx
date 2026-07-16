@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play, Languages } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play, Languages, Mail, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { engine } from "@/components/GameAudio";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 const LANGUAGES = [
   { code: "en", label: "English", flag: "🇺🇸" },
@@ -35,33 +36,74 @@ export default function Settings() {
     const saved = localStorage.getItem("mafia_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
-  const userId = localStorage.getItem("mafia_userId");
-  const isLoggedIn = !!userId;
+  // Feature fix: 2FA status/disable now checks the Supabase-based system
+  // (userMfa table) that TwoFactorSetup/TwoFactorVerify actually use, instead
+  // of a disconnected local-account flag that never got set.
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const isLoggedIn = !!supabaseUserId;
   const [has2FA, setHas2FA] = useState(false);
+  const [mfaMethod, setMfaMethod] = useState<"totp" | "email">("totp");
   const [checking2FA, setChecking2FA] = useState(false);
   const [disabling2FA, setDisabling2FA] = useState(false);
   const [disablePassword, setDisablePassword] = useState("");
   const [showDisableForm, setShowDisableForm] = useState(false);
 
-  // Check if user has 2FA enabled
+  // Resolve the Supabase session, then check 2FA status against the real system
   useEffect(() => {
-    if (!userId) return;
-    setChecking2FA(true);
-    fetch(`/api/auth/me?userId=${userId}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setHas2FA(!!d.is2FAEnabled); })
-      .catch(() => {})
-      .finally(() => setChecking2FA(false));
-  }, [userId]);
+    async function loadSession() {
+      let attempts = 0;
+      while (!isSupabaseReady() && attempts < 30) {
+        await new Promise((r) => setTimeout(r, 100));
+        attempts++;
+      }
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const id = data.session?.user?.id;
+      if (!id) return;
+      setSupabaseUserId(id);
+      setUserEmail(data.session?.user?.email || null);
+
+      setChecking2FA(true);
+      try {
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`);
+        if (res.ok) {
+          const d = await res.json();
+          setHas2FA(!!d.isEnabled);
+          setMfaMethod(d.method === "email" ? "email" : "totp");
+        }
+      } catch {
+        // leave defaults
+      } finally {
+        setChecking2FA(false);
+      }
+    }
+    loadSession();
+  }, []);
 
   const handleDisable2FA = async () => {
-    if (!userId || !disablePassword.trim()) return;
+    if (!supabaseUserId || !disablePassword.trim() || !userEmail) return;
     setDisabling2FA(true);
     try {
+      // Real re-authentication: confirm the password is actually correct via
+      // Supabase before disabling, since the server endpoint itself doesn't
+      // (and can't, without knowing the password) verify it.
+      const supabase = getSupabase();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: disablePassword,
+      });
+      if (authError) {
+        toast({ title: t("settings.errorTitle"), description: t("settings.incorrectPassword"), variant: "destructive" });
+        setDisabling2FA(false);
+        return;
+      }
+
       const res = await fetch("/api/auth/2fa/disable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: Number(userId), password: disablePassword }),
+        body: JSON.stringify({ supabaseUserId }),
       });
       const data = await res.json();
       if (res.ok && data.disabled) {
@@ -310,8 +352,15 @@ export default function Settings() {
                     <p className="text-sm font-bold text-foreground">
                       {has2FA ? t("settings.twoFAEnabled") : t("settings.twoFANotSetUp")}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {has2FA ? t("settings.accountProtected") : t("settings.addExtraLayer")}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      {has2FA ? (
+                        <>
+                          {mfaMethod === "email" ? <Mail className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
+                          {mfaMethod === "email" ? t("twoFactor.emailCode") : t("twoFactor.authenticatorApp")}
+                        </>
+                      ) : (
+                        t("settings.addExtraLayer")
+                      )}
                     </p>
                   </div>
                 </div>
