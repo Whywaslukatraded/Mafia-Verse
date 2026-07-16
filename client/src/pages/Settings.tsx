@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, KeyRound, CheckCircle2, AlertTriangle, Loader2, Play, Languages, Mail, Smartphone } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, CheckCircle2, AlertTriangle, Loader2, Play, Languages, Mail, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -408,22 +408,6 @@ export default function Settings() {
                   </Button>
                 )}
               </div>
-
-              {/* Forgot / Reset Password */}
-              <button
-                onClick={() => setLocation("/forgot-password")}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                data-testid="button-forgot-password"
-              >
-                <div className="flex items-center gap-3">
-                  <KeyRound className="w-5 h-5 text-amber-500" />
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-foreground">{t("settings.forgotPassword")}</p>
-                    <p className="text-xs text-muted-foreground">{t("settings.generateResetToken")}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-primary font-bold">{t("settings.reset")}</span>
-              </button>
             </div>
           )}
 
