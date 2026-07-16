@@ -124,7 +124,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const createRoom = useCreateRoom();
@@ -246,6 +246,7 @@ export default function Home() {
           phaseDuration: counts.phaseDuration, mafiaDuration: counts.mafiaDuration,
           doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
           roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
+          language: i18n.language?.startsWith("es") ? "es" : "en",
         }
       } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);

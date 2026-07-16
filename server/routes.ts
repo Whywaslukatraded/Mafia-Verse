@@ -80,6 +80,8 @@ function getRandomDeathStory(name: string) {
 
 const phaseTimers = new Map<number, NodeJS.Timeout>();
 const PHASE_DURATION = 15000;
+// Must match the setTimeout duration of the role-reveal overlay in client/src/pages/Room.tsx
+const ROLE_REVEAL_MS = 4000;
 const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsilon", "Bot_Zeta", "Bot_Eta", "Bot_Theta"];
 
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
@@ -125,12 +127,20 @@ function extractSnippet(original: string): string {
   return s;
 }
 
-const ECHO_PREFIXES = [
+const ECHO_PREFIXES_EN = [
   '"{snippet}"? Interesting take.',
   'You said "{snippet}" — noted.',
   'Wait, "{snippet}"? Let\'s unpack that.',
   'Hold on — "{snippet}" is a bold thing to say right now.',
   'So your take is "{snippet}"? Okay.',
+];
+
+const ECHO_PREFIXES_ES = [
+  '¿"{snippet}"? Interesante.',
+  'Dijiste "{snippet}" — anotado.',
+  'Espera, ¿"{snippet}"? Analicemos eso.',
+  'Un momento — "{snippet}" es algo arriesgado de decir ahora mismo.',
+  '¿Entonces tu idea es "{snippet}"? Está bien.',
 ];
 
 function pickUnique(arr: string[], botId: number): string {
@@ -146,7 +156,7 @@ function pickUnique(arr: string[], botId: number): string {
   return choice;
 }
 
-const BOT_MESSAGES = {
+const BOT_MESSAGES_EN = {
   general: [
     "I watched everyone last night. Someone's story doesn't line up.",
     "I've played enough rounds to know when someone's faking calm.",
@@ -260,26 +270,162 @@ const BOT_MESSAGES = {
   ],
 };
 
+const BOT_MESSAGES_ES = {
+  general: [
+    "Observé a todos anoche. La historia de alguien no cuadra.",
+    "He jugado suficientes rondas para saber cuándo alguien finge calma.",
+    "¿Por qué está tan callada la sala? La gente culpable se queda callada.",
+    "Llámenme paranoico, pero siempre reviso las coartadas dos veces.",
+    "Si muero esta noche, revisen a quien acaba de cambiar de tema.",
+    "He estado tomando notas. Tres personas cambiaron su historia.",
+    "El silencio ahora mismo dice más que cualquier acusación.",
+    "Alguien aquí es demasiado bueno para evadir preguntas. Eso es sospechoso.",
+    "Estoy viendo qué tan rápido escribe la gente cuando la acorralan.",
+    "La ronda pasada confié en la persona equivocada. Nunca más.",
+  ],
+  accusation: [
+    "Observé a {name} con cuidado. Su tiempo de reacción fue sospechoso.",
+    "{name} solo habla cuando la presión está sobre otra persona. Distracción clásica.",
+    "¿Alguien notó que {name} nunca vota primero? Siempre espera a ver hacia dónde sopla el viento.",
+    "{name} dijo que era civil, pero su lógica suena a mafia cubriendo sus huellas.",
+    "Le hice una pregunta directa a {name} y respondió con otra pregunta. Sospechoso.",
+    "{name} pasó de callado a extremadamente a la defensiva en dos mensajes. ¿Sobrecompensando?",
+    "Si eliminan a {name} y resulta ser civil, asumo la culpa. Pero no lo creo.",
+    "{name} sigue diciendo 'confíen en mí' — quien exige confianza normalmente no la merece.",
+    "Ya he jugado contra {name} antes. Usa las mismas excusas cada vez que es mafia.",
+    "{name} se contradijo entre la primera ronda y ahora. Se le nota.",
+  ],
+  defense: [
+    "He sido completamente transparente desde la primera ronda. Revisen mis mensajes.",
+    "¿Por qué arriesgaría tanta atención si fuera mafia? Piénsenlo.",
+    "Voté para eliminar a un bot la ronda pasada. ¿Por qué la mafia desperdiciaría un voto en un bot?",
+    "Mi historia no ha cambiado ni una vez. ¿Puede decir lo mismo quien me acusa?",
+    "Si yo fuera mafia, estaría mucho más callado. Estoy discutiendo porque soy inocente y estoy frustrado.",
+    "Miren quién se beneficia si me eliminan. Esa es la verdadera mafia.",
+    "Literalmente sugerí una estrategia que perjudicó a la mafia la ronda pasada. Usen la cabeza.",
+    "Elimínenme y perderán a un civil. Entonces la mafia gana más rápido.",
+    "He estado tratando de coordinar a todo el equipo. ¿Eso suena a comportamiento de mafia?",
+    "La persona que me acusa no ha dado ni una sola prueba. Solo intuición.",
+  ],
+  agreement: [
+    "Buena lectura. Estaba pensando lo mismo pero no lo sabía expresar.",
+    "Ese análisis es sólido. Me sumo a esa idea.",
+    "Acabas de conectar puntos que se me pasaron. Buen trabajo de detective.",
+    "Estoy convencido. Votemos y pasemos a la siguiente ronda.",
+    "Por fin alguien habla con lógica en lugar de pánico.",
+    "Tu razonamiento tiene sentido. Ajustaré mi teoría en consecuencia.",
+  ],
+  suspicion: [
+    "Algo se siente fabricado en esta discusión. Como si alguien la estuviera dirigiendo.",
+    "Dos personas están empujando la misma narrativa desde ángulos distintos. ¿Coordinado?",
+    "La mafia seguro está leyendo este chat. Vigilen a quien se mantiene invisible.",
+    "No me gusta lo rápido que la conversación se alejó de los resultados de la noche.",
+    "Alguien aquí nos está manipulando como quiere. Necesitamos despertar.",
+    "El jugador más callado suele ser el más peligroso. Recuérdenlo.",
+    "Cada ronda que la mafia sobrevive, se vuelve más audaz. Debemos actuar ahora.",
+    "Ya he visto este patrón antes: confianza falsa, redirigir, eliminar a un civil.",
+  ],
+  response: [
+    "Ángulo interesante, pero te falta la línea de tiempo de la fase nocturna.",
+    "Eso tendría sentido si tuviéramos más jugadores vivos. Ahora mismo es muy arriesgado.",
+    "Entiendo tu punto, pero los datos no respaldan esa conclusión.",
+    "Puede que tengas razón, pero ¿puedes explicar por qué el doctor no lo curó?",
+    "Esa es una interpretación. Aquí va otra: ¿y si la mafia quería que pensáramos eso?",
+    "Tu teoría depende de demasiadas suposiciones. Quedémonos con lo que sabemos.",
+    "Respeto tu punto de vista, pero he estado observando otras señales.",
+    "Argumento convincente, pero ya me han engañado con lógica similar antes. Cautela, sí.",
+    "Casi me convences, pero {name} tiene una coartada sólida desde la primera ronda.",
+    "Crédito parcial — la primera mitad tiene razón, la segunda necesita más pruebas.",
+  ],
+  nightMafia: [
+    "¿A quién eliminamos? ¿Al escandaloso o al inteligente?",
+    "Ataquemos al jugador que hace demasiadas preguntas. Es peligroso.",
+    "Si eliminamos a {name}, los civiles pierden a su mejor analista.",
+    "Dividamos el voto si es necesario, pero no dejemos evidencia.",
+    "El doctor podría estar vigilando. Elijamos a alguien inesperado.",
+  ],
+  nightDoctor: [
+    "Tengo un presentimiento sobre esta noche. Alguien va a necesitar esta cura.",
+    "¿Quién ha sido más útil? A esa persona quiere matar la mafia.",
+    "Mi instinto dice que proteja a la voz más fuerte — está poniendo nerviosa a la mafia.",
+  ],
+  nightDetective: [
+    "Hora de conseguir información. Investigaré al jugador que ha sido demasiado convincente.",
+    "¿Quién se esconde a plena vista? Vamos a averiguarlo.",
+    "Los más callados siempre valen la pena investigarlos primero.",
+  ],
+  // Alguien mencionó el nombre del bot directamente
+  calledOut: [
+    "¿Yo? No he dicho más que la verdad en todo el juego. Revisen los mensajes.",
+    "Vaya, está bien. Señalarme a mí no cambia nada — nunca he sido sospechoso.",
+    "Pueden acusarme todo lo que quieran, no se va a sostener. Solo estoy jugando con lógica.",
+    "Honestamente soy el menos sospechoso aquí. Miren quién realmente está callado.",
+    "Qué curioso que en cuanto alguien se siente acorralado, me ataca a mí.",
+    "Adelante, elimínenme. Cuando resulte que soy inocente, se van a arrepentir.",
+  ],
+  roleClaim: [
+    "Cualquiera puede escribir 'soy el detective'. ¿Dónde está tu prueba?",
+    "Reclamar un rol tan pronto es valiente o imprudente. Ya veremos cuál de las dos.",
+    "Si eso es cierto, ¿por qué esperaste hasta ahora para decirlo?",
+    "Qué momento tan interesante para esa afirmación. ¿Qué te hizo hablar justo ahora?",
+    "Lo creeré cuando los resultados lo respalden, no antes.",
+  ],
+  deathTalk: [
+    "Esa muerte lo cambia todo. Necesitamos repensar en quién confiamos ahora.",
+    "Descanse en paz. No desperdiciemos eso. ¿Qué dijo justo antes de morir?",
+    "Alguien se benefició de esa muerte. ¿A quién apunta eso?",
+    "Es una gran pérdida para el pueblo si decía la verdad.",
+    "Qué conveniente que muriera justo después de hablar, ¿no creen?",
+  ],
+  greeting: [
+    "Hola. Averigüemos esto juntos.",
+    "Bien, ¿todos listos? Manos a la obra.",
+    "Buenos días. ¿Quién tiene teorías?",
+  ],
+};
+
+function getBotMessages(lang: string | undefined) {
+  return lang === "es" ? BOT_MESSAGES_ES : BOT_MESSAGES_EN;
+}
+
+function getEchoPrefixes(lang: string | undefined) {
+  return lang === "es" ? ECHO_PREFIXES_ES : ECHO_PREFIXES_EN;
+}
+
 // Reads an actual human message and picks the bot response category that best
 // matches what was said, instead of only checking a couple of keywords.
-function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[]) {
+function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[], lang: string | undefined) {
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
 
-  const roleWords = ["i'm the detective", "i am the detective", "i'm the doctor", "i am the doctor", "i'm detective", "i'm doctor", "claim detective", "claim doctor", "i am detective", "i am doctor"];
+  const roleWords = lang === "es"
+    ? ["soy el detective", "soy detective", "soy la doctora", "soy el doctor", "soy doctor", "digo que soy detective", "digo que soy doctor"]
+    : ["i'm the detective", "i am the detective", "i'm the doctor", "i am the doctor", "i'm detective", "i'm doctor", "claim detective", "claim doctor", "i am detective", "i am doctor"];
   if (roleWords.some(w => msgLower.includes(w))) {
     return { category: "roleClaim" as const, targetName: undefined };
   }
 
-  const deathWords = ["died", "dead", "killed last night", "who died", "rip", "eliminated"];
+  const deathWords = lang === "es"
+    ? ["murió", "muerto", "muerta", "mataron anoche", "quién murió", "quien murio", "qepd", "descanse en paz", "eliminado", "eliminada"]
+    : ["died", "dead", "killed last night", "who died", "rip", "eliminated"];
   if (deathWords.some(w => msgLower.includes(w))) {
     return { category: "deathTalk" as const, targetName: undefined };
   }
 
-  const accusationWords = ["mafia", "sus", "vote", "kill", "suspicious", "guilty", "lying"];
-  const defenseWords = ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"];
-  const agreementWords = ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"];
-  const greetingWords = ["hey", "hi ", "hello", "morning", "good morning", "gm"];
-  const negations = ["don't ", "dont ", "not ", "n't ", "no "];
+  const accusationWords = lang === "es"
+    ? ["mafia", "sospechoso", "sospechosa", "vota", "votar", "matar", "culpable", "mintiendo", "miente"]
+    : ["mafia", "sus", "vote", "kill", "suspicious", "guilty", "lying"];
+  const defenseWords = lang === "es"
+    ? ["inocente", "no fui yo", "confía en mí", "confia en mi", "yo no", "lo juro"]
+    : ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"];
+  const agreementWords = lang === "es"
+    ? ["de acuerdo", "sí", "si", "tienes razón", "tienes razon", "exacto", "verdad", "igual"]
+    : ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"];
+  const greetingWords = lang === "es"
+    ? ["hola", "buenos días", "buenos dias", "buen día", "buen dia"]
+    : ["hey", "hi ", "hello", "morning", "good morning", "gm"];
+  const negations = lang === "es"
+    ? ["no ", "nunca ", "jamás ", "jamas "]
+    : ["don't ", "dont ", "not ", "n't ", "no "];
   // "I don't agree" or "not true" should never be read as agreement
   const isNegated = (word: string) => negations.some(n => msgLower.includes(n + word) || msgLower.includes(n.trim() + " " + word));
 
@@ -293,7 +439,7 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
     return { category: "response" as const, targetName: mentionedPlayer.name };
   }
 
-  if (msgLower.includes("?")) {
+  if (msgLower.includes("?") || msgLower.includes("¿")) {
     return { category: "response" as const, targetName: undefined };
   }
   if (accusationWords.some(w => msgLower.includes(w))) {
@@ -316,15 +462,15 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
   return { category: "general" as const, targetName: undefined };
 }
 
-function buildBotReply(category: keyof typeof BOT_MESSAGES, targetName: string | undefined, botId: number, fallbackPlayers: Player[] = []): string {
-  const line = pickUnique(BOT_MESSAGES[category], botId);
+function buildBotReply(category: keyof typeof BOT_MESSAGES_EN, targetName: string | undefined, botId: number, fallbackPlayers: Player[] = [], lang: string | undefined = "en"): string {
+  const line = pickUnique(getBotMessages(lang)[category], botId);
   if (!line.includes("{name}")) return line;
   // Some pools (like "response") mostly don't need a name but have one or two
   // lines that do — if no target was supplied, backfill with a random alive
   // player instead of ever showing the literal "{name}" placeholder.
   const name = targetName || (fallbackPlayers.length > 0
     ? fallbackPlayers[Math.floor(Math.random() * fallbackPlayers.length)].name
-    : "someone");
+    : (lang === "es" ? "alguien" : "someone"));
   return line.replace("{name}", name);
 }
 
@@ -332,6 +478,7 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
+  const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
@@ -343,8 +490,10 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const calledBot = bots.find((b: Player) => b.name && msgLower.includes(b.name.toLowerCase().split("_")[0].toLowerCase()));
   // A direct question also deserves a guaranteed response — catch both "?" and
   // question-word phrasing without punctuation, like "who is it" or "whats going on".
-  const questionWords = ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"];
-  const isDirectQuestion = msgLower.includes("?") || questionWords.some(w => msgLower.includes(w));
+  const questionWords = lang === "es"
+    ? ["quién ", "quien ", "qué ", "que ", "por qué", "por que", "cómo ", "como ", "cuál ", "cual ", "es él", "es ella", "eres tú", "eres tu", "tú crees", "tu crees"]
+    : ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"];
+  const isDirectQuestion = msgLower.includes("?") || msgLower.includes("¿") || questionWords.some(w => msgLower.includes(w));
 
   if (!calledBot && !isDirectQuestion && Math.random() > 0.8) return;
 
@@ -352,19 +501,20 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
 
   if (calledBot) {
-    const content = buildBotReply("calledOut", undefined, bot.id, alivePlayers);
+    const content = buildBotReply("calledOut", undefined, bot.id, alivePlayers, lang);
     await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
     return;
   }
 
-  const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers);
-  let content = buildBotReply(category, targetName, bot.id, alivePlayers);
+  const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers, lang);
+  let content = buildBotReply(category, targetName, bot.id, alivePlayers, lang);
 
   // ~45% of the time, open with a direct quote of what the player said —
   // this is what makes the bot feel like it's actually listening.
   if (Math.random() < 0.45 && humanMessage.trim().length > 3) {
     const snippet = extractSnippet(humanMessage);
-    const prefix = ECHO_PREFIXES[Math.floor(Math.random() * ECHO_PREFIXES.length)].replace("{snippet}", snippet);
+    const echoPrefixes = getEchoPrefixes(lang);
+    const prefix = echoPrefixes[Math.floor(Math.random() * echoPrefixes.length)].replace("{snippet}", snippet);
     content = `${prefix} ${content}`;
   }
 
@@ -377,6 +527,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
+  const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
@@ -428,26 +579,26 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         const msgText = lastHumanMsg.content.toLowerCase();
         const calledBot = msgText.includes(bot.name.toLowerCase().split("_")[0].toLowerCase());
         if (calledBot) {
-          content = buildBotReply("calledOut", undefined, bot.id, alivePlayers);
+          content = buildBotReply("calledOut", undefined, bot.id, alivePlayers, lang);
         } else {
-          const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers);
-          content = buildBotReply(category, targetName, bot.id, alivePlayers);
+          const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers, lang);
+          content = buildBotReply(category, targetName, bot.id, alivePlayers, lang);
         }
       } else {
         const rand = Math.random();
         if (rand > 0.7 && alivePlayers.length > 0) {
           const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-          content = buildBotReply("accusation", victim.name, bot.id, alivePlayers);
+          content = buildBotReply("accusation", victim.name, bot.id, alivePlayers, lang);
         } else if (rand > 0.55) {
-          content = buildBotReply("defense", undefined, bot.id, alivePlayers);
+          content = buildBotReply("defense", undefined, bot.id, alivePlayers, lang);
         } else if (rand > 0.4) {
-          content = buildBotReply("suspicion", undefined, bot.id, alivePlayers);
+          content = buildBotReply("suspicion", undefined, bot.id, alivePlayers, lang);
         } else if (rand > 0.25) {
-          content = buildBotReply("response", undefined, bot.id, alivePlayers);
+          content = buildBotReply("response", undefined, bot.id, alivePlayers, lang);
         } else if (rand > 0.15) {
-          content = buildBotReply("agreement", undefined, bot.id, alivePlayers);
+          content = buildBotReply("agreement", undefined, bot.id, alivePlayers, lang);
         } else {
-          content = buildBotReply("general", undefined, bot.id, alivePlayers);
+          content = buildBotReply("general", undefined, bot.id, alivePlayers, lang);
         }
       }
       if (content) {
@@ -1244,7 +1395,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             await storage.updatePlayer(p.id, { role: p.role });
           }
 
-          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1, lastUpdated: new Date() });
+          // Every client shows a ~4s "your role is..." overlay on the first night, during
+          // which they can't act. Push lastUpdated (and the matching phase timer) out by
+          // that same amount so the mafia's actual night timer only starts once the reveal
+          // animation ends, instead of quietly eating into their real decision time.
+          const revealEnabled = (room.settings as any).showRoleReveal !== false;
+          const revealDelayMs = revealEnabled ? ROLE_REVEAL_MS : 0;
+
+          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
           gameActions.set(myRoomId, {
             votes: new Map(),
             mafiaKills: new Map(),
@@ -1254,7 +1412,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           gameHistory.set(myRoomId, []);
 
           const duration = (room.settings as any).mafiaDuration * 1000 || 15000;
-          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration);
+          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
           phaseTimers.set(myRoomId, timer);
           broadcastState(myRoomId);
         }
@@ -1311,6 +1469,44 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            if (action.type === 'remove_bot' && me.isHost) {
              const bot = players.find((p: Player) => p.id === action.playerId && p.isBot);
              if (bot) { await storage.deletePlayer(bot.id); broadcastState(myRoomId); }
+             return;
+           }
+
+           if (action.type === 'update_settings' && me.isHost) {
+             if (room.status !== 'lobby') {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Settings can only be changed in the lobby." } }));
+               return;
+             }
+             const incoming = (action as any).settings || {};
+             const clampInt = (val: any, fallback: number) => {
+               const n = parseInt(val, 10);
+               return Number.isFinite(n) && n >= 0 ? n : fallback;
+             };
+             const current = room.settings as any;
+             const mafiaCount = clampInt(incoming.mafiaCount, current.mafiaCount);
+             const detectiveCount = clampInt(incoming.detectiveCount, current.detectiveCount);
+             const doctorCount = clampInt(incoming.doctorCount, current.doctorCount);
+             const civilianCount = clampInt(incoming.civilianCount, current.civilianCount);
+
+             // Leave room for at least one civilian so the special roles don't outnumber
+             // everyone else and break voting.
+             if (mafiaCount < 1 || (mafiaCount + detectiveCount + doctorCount) >= players.length) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Too many special roles for the current player count." } }));
+               return;
+             }
+
+             const newSettings = {
+               ...current,
+               mafiaCount, detectiveCount, doctorCount, civilianCount,
+               phaseDuration: clampInt(incoming.phaseDuration, current.phaseDuration),
+               mafiaDuration: clampInt(incoming.mafiaDuration, current.mafiaDuration),
+               doctorDuration: clampInt(incoming.doctorDuration, current.doctorDuration),
+               detectiveDuration: clampInt(incoming.detectiveDuration, current.detectiveDuration),
+               showVoteResults: incoming.showVoteResults ?? current.showVoteResults,
+               showRoleReveal: incoming.showRoleReveal ?? current.showRoleReveal,
+             };
+             await storage.updateRoom(myRoomId, { settings: newSettings } as any);
+             broadcastState(myRoomId);
              return;
            }
 

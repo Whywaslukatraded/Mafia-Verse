@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, History, Ghost, Shield, User, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,14 @@ export default function Room() {
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // Feature: Edit game settings from the lobby (e.g. after a replay, once more
+  // players have joined) instead of being locked to whatever was picked at creation.
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState({
+    mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
+    phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+  });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
   const prevWinsRef = useRef<number | null>(null);
@@ -195,6 +203,41 @@ export default function Room() {
     }
   }, [gameState?.room.status]);
 
+  // Keep the draft in sync with the server's settings while the panel is closed,
+  // so it reflects the latest saved values. Once the host opens the panel to edit,
+  // stop overwriting it out from under them until they close it again.
+  useEffect(() => {
+    if (room?.status === "lobby" && room.settings && !showSettingsPanel) {
+      const s = room.settings as any;
+      setSettingsDraft({
+        mafiaCount: s.mafiaCount ?? 1, detectiveCount: s.detectiveCount ?? 1,
+        doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
+        phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
+        doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
+      });
+    }
+  }, [room?.status, room?.settings, showSettingsPanel]);
+
+  const adjustSetting = (key: keyof typeof settingsDraft, delta: number) => {
+    setSettingsDraft(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
+  };
+
+  const specialRoleTotal = settingsDraft.mafiaCount + settingsDraft.detectiveCount + settingsDraft.doctorCount;
+
+  const handleSaveSettings = () => {
+    if (settingsDraft.mafiaCount < 1 || specialRoleTotal >= players.length) {
+      toast({
+        title: "Too many special roles",
+        description: "Leave room for at least one civilian, based on the current number of players.",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendAction({ type: "update_settings", settings: settingsDraft } as any);
+    setShowSettingsPanel(false);
+    toast({ title: "Settings updated" });
+  };
+
   // Reset role reveal flag whenever the room goes back to lobby (fresh game or replay)
   useEffect(() => {
     if (room?.status === "lobby" && hasRevealed) {
@@ -244,7 +287,7 @@ export default function Room() {
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - serverPhaseStart) / 1000);
-      const remaining = Math.max(0, duration - elapsed);
+      const remaining = Math.min(duration, Math.max(0, duration - elapsed));
       setTimeRemaining(remaining);
     }, 100);
 
@@ -434,7 +477,7 @@ export default function Room() {
                             <div className="text-left flex-1">
                               <div className="text-foreground font-bold text-sm">{p.name}</div>
                               <div className={`text-xs font-bold uppercase tracking-wider ${p.role === "mafia" ? "text-red-400" : p.role === "detective" ? "text-blue-400" : p.role === "doctor" ? "text-yellow-400" : "text-muted-foreground"}`}>
-                                {p.role || "civilian"}
+                                {t(`roleBadge.${p.role || "civilian"}`)}
                               </div>
                             </div>
                             {!p.isAlive && <span className="text-red-500 font-black">✕</span>}
@@ -637,10 +680,18 @@ export default function Room() {
             {room.status === "lobby" && (
               <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    {t("room.waitingForPlayers")}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      {t("room.waitingForPlayers")}
+                    </CardTitle>
+                    {isHost && (
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowSettingsPanel(v => !v)}>
+                        <Settings2 className="w-3.5 h-3.5" />
+                        {showSettingsPanel ? "Close Settings" : "Game Settings"}
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">{t("room.playerCount", { count: players.length })}</p>
@@ -653,6 +704,49 @@ export default function Room() {
                       </div>
                     ))}
                   </div>
+
+                  {isHost && showSettingsPanel && (
+                    <div className="mt-6 pt-6 border-t border-border space-y-3">
+                      {([
+                        { key: "mafiaCount", label: "Mafias", icon: Skull, color: "text-red-500" },
+                        { key: "detectiveCount", label: "Detectives", icon: Shield, color: "text-blue-500" },
+                        { key: "doctorCount", label: "Doctors", icon: Heart, color: "text-emerald-500" },
+                        { key: "civilianCount", label: "Civilians", icon: User, color: "text-slate-400" },
+                        { key: "phaseDuration", label: "Voting Time (s)", icon: Timer, color: "text-amber-500" },
+                        { key: "mafiaDuration", label: "Mafia Night Time (s)", icon: Skull, color: "text-red-400" },
+                        { key: "doctorDuration", label: "Doctor Night Time (s)", icon: Heart, color: "text-emerald-400" },
+                        { key: "detectiveDuration", label: "Detective Night Time (s)", icon: Shield, color: "text-blue-400" },
+                      ] as const).map(row => (
+                        <div key={row.key} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
+                          <div className="flex items-center gap-3">
+                            <row.icon className={cn("w-4 h-4", row.color)} />
+                            <span className="text-sm font-semibold">{row.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, -1)}>
+                              <Minus className="w-3.5 h-3.5" />
+                            </Button>
+                            <span className="w-8 text-center font-mono font-bold">{settingsDraft[row.key]}</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, 1)}>
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="flex items-center justify-between px-1 pt-1 text-xs text-muted-foreground">
+                        <span>Special roles: {specialRoleTotal} / {players.length} players</span>
+                        {specialRoleTotal >= players.length && (
+                          <span className="text-red-400 font-bold">Leave room for at least 1 civilian</span>
+                        )}
+                      </div>
+
+                      <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Save Settings
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -801,7 +895,7 @@ export default function Room() {
                                     <span className="font-bold text-foreground">{role.name}</span>
                                     <span className="text-muted-foreground">{t("room.was")}</span>
                                     <span className={role.role === 'mafia' ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
-                                      {role.role}
+                                      {t(`roleBadge.${role.role || "civilian"}`)}
                                     </span>
                                   </div>
                                 ))}
