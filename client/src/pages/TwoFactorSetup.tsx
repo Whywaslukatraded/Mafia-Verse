@@ -169,7 +169,7 @@ export default function TwoFactorSetup() {
                 <Smartphone className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm font-bold text-foreground">{t("twoFactor.authenticatorApp")}</p>
+                <p className="text-base font-black text-foreground">{t("twoFactor.authenticatorApp")}</p>
                 <p className="text-xs text-muted-foreground">{t("twoFactor.authenticatorAppDescription")}</p>
               </div>
             </button>
