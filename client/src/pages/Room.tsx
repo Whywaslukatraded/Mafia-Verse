@@ -88,7 +88,7 @@ export default function Room() {
   const [settingsDraft, setSettingsDraft] = useState({
     mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
-    showVoteResults: true, showRoleReveal: true,
+    showVoteResults: false, showRoleReveal: true,
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
@@ -215,7 +215,7 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
-        showVoteResults: s.showVoteResults !== false, showRoleReveal: s.showRoleReveal !== false,
+        showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
       });
     }
   }, [room?.status, room?.settings, showSettingsPanel]);
@@ -764,6 +764,9 @@ export default function Room() {
                           {settingsDraft.showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
                         </button>
                       </div>
+                      <p className="text-[10px] text-muted-foreground/70">
+                        Voting is anonymous by default (you'll still see who died and who got voted out). Turn on Vote Results to reveal who voted for whom.
+                      </p>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />
@@ -897,7 +900,7 @@ export default function Room() {
                         <History className="w-5 h-5 text-primary" />
                         {t("room.gameChronicle")}
                       </CardTitle>
-                      {(room.settings as any).showVoteResults !== false && (
+                      {(room.settings as any).showVoteResults === true && (
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("room.voteResultsVisible")}</div>
                       )}
                     </div>
@@ -932,7 +935,7 @@ export default function Room() {
                               </h4>
                               <div className="space-y-2">
                                 {entry.type === "vote" ? (
-                                  (room.settings as any).showVoteResults !== false ? (
+                                  (room.settings as any).showVoteResults === true ? (
                                     entry.results.map((res: any, j: number) => (
                                       <div key={j} className="text-sm flex items-center gap-2">
                                         <User className="w-3 h-3 text-blue-400" />

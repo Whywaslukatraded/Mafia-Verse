@@ -663,7 +663,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         }
       });
       
-      if (voteResults.length > 0 && (room.settings as any).showVoteResults !== false) {
+      if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
         let voteSummary = "Voting Results: ";
         voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
@@ -751,7 +751,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         }
       });
 
-      if (voteResults.length > 0 && (room.settings as any).showVoteResults !== false) {
+      if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
         let voteSummary = "Voting Results: ";
         voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });

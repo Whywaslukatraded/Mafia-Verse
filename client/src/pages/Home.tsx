@@ -197,7 +197,7 @@ export default function Home() {
   }, []);
 
   const [roomName, setRoomName] = useState("");
-  const [showVoteResults, setShowVoteResults] = useState(true);
+  const [showVoteResults, setShowVoteResults] = useState(false);
   const [showRoleReveal, setShowRoleReveal] = useState(true);
 
   const [counts, setCounts] = useState({
@@ -562,6 +562,9 @@ export default function Home() {
                       {showRoleReveal ? `✓ ${t("home.roleReveal")}` : t("home.roleReveal")}
                     </button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground/70 px-2 leading-relaxed">
+                    Voting is anonymous by default — everyone sees who died and who got voted out, but not who voted for whom. Turn on "{t("home.voteResults")}" to reveal each vote.
+                  </p>
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
