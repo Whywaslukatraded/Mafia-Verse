@@ -66,7 +66,17 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
     title: t(`adRewards.billboards.${ad.id}.title`),
     body: t(`adRewards.billboards.${ad.id}.body`),
   })), [t]);
-  const selectedAd = useMemo(() => BILLBOARD_ADS[Math.floor(Math.random() * BILLBOARD_ADS.length)], [BILLBOARD_ADS]);
+  const pickAdIndex = useCallback((excludeIndex?: number) => {
+    if (BILLBOARD_ADS.length <= 1) return 0;
+    let next = Math.floor(Math.random() * BILLBOARD_ADS.length);
+    while (next === excludeIndex) {
+      next = Math.floor(Math.random() * BILLBOARD_ADS.length);
+    }
+    return next;
+  }, [BILLBOARD_ADS.length]);
+
+  const [adIndex, setAdIndex] = useState(() => Math.floor(Math.random() * BILLBOARD_ADS.length));
+  const selectedAd = BILLBOARD_ADS[adIndex];
 
   const [claimsToday, setClaimsToday] = useState(0);
   const [remaining, setRemaining] = useState(MAX_ADS_PER_DAY);
@@ -114,6 +124,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
 
   const startWatch = useCallback(() => {
     if (locked || watching || remaining <= 0 || !supabaseUserId) return;
+    setAdIndex((prev) => pickAdIndex(prev));
     setLocked(true);
     setWatching(true);
     setCountdown(COUNTDOWN_SECONDS);
@@ -156,7 +167,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
           });
       }
     }, 1000);
-  }, [locked, watching, remaining, supabaseUserId, roomCode, t]);
+  }, [locked, watching, remaining, supabaseUserId, roomCode, t, pickAdIndex]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 

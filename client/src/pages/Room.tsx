@@ -807,6 +807,17 @@ export default function Room() {
                     );
                   })}
                 </div>
+
+                {isMyNightTurn && !lockedIn && pendingNightAction && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, y: [0, 4, 0] }}
+                    transition={{ y: { repeat: Infinity, duration: 1.2 } }}
+                    className="text-center text-xs font-bold text-emerald-400 uppercase tracking-wider"
+                  >
+                    ↓ Scroll down to lock in your answer
+                  </motion.p>
+                )}
               </div>
             )}
 
