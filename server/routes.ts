@@ -612,6 +612,33 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   return false;
 }
 
+// Persists the game chronicle (votes, nights, and this final result) onto every
+// player's row so the end screen can show what actually happened, and updates
+// win/loss stats. Must be called on every path that can end the game — a couple
+// of "shortcut" paths used to skip this, which is why the end screen sometimes
+// looked blank/incomplete.
+async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians' | 'mafia', gameActionsMap: Map<number, any>) {
+  const history = gameHistory.get(roomId) || [];
+  const playersInRoom = await storage.getPlayersInRoom(roomId);
+
+  history.push({
+    type: 'game_end',
+    winner,
+    roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
+  });
+  gameHistory.set(roomId, history);
+
+  for (const p of playersInRoom) {
+    await storage.updatePlayer(p.id, {
+      gameHistory: history,
+      gamesPlayed: (p.gamesPlayed || 0) + 1,
+      wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
+    });
+  }
+  if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+  gameActionsMap.delete(roomId);
+}
+
 async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   // Whenever a player is actually eliminated in this call, the client shows a
   // ~5s elimination overlay that blocks interaction. Delay the next phase's
@@ -667,12 +694,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has taken over! Mafia wins!" });
+            await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
             gameEnded = true;
           }
         }
@@ -782,8 +811,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
         await storage.updateRoom(roomId, { status: 'ended' });
-        if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
-        gameActions.delete(roomId);
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+        await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
         broadcastState(roomId);
         return;
       } else {
@@ -1734,7 +1763,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`, isSpectator: false });
-                  if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
+                  const instantWinHistory = gameHistory.get(myRoomId) || [];
+                  instantWinHistory.push({ type: 'night', turn: room.turn, events: [{ type: 'detective_check', target: target.name, isMafia: true, detectiveId: me.id }] });
+                  gameHistory.set(myRoomId, instantWinHistory);
+                  await finalizeGameEnd(myRoomId, storage, 'civilians', gameActions);
                   broadcastState(myRoomId);
                 } else {
                   if (phaseTimers.has(myRoomId)) { 

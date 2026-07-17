@@ -143,6 +143,9 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
                   <p className="text-xs text-muted-foreground">{t("referralSystem.theyJoinYouGetRewarded")}</p>
                 </div>
               </div>
+              <p className="text-[10px] text-center text-muted-foreground px-2">
+                Your friend needs to create an account using your link — credits go to both of you once they sign up.
+              </p>
             </>
           )}
         </div>
