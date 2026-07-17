@@ -252,14 +252,16 @@ export default function Room() {
     }
   }, [room?.status, hasRevealed]);
 
-  // Role reveal on first night (if enabled)
+  // Role reveal on first night (always shows the player their OWN role —
+  // the showRoleReveal setting only controls whether OTHER players' roles
+  // are shown when they're eliminated, not your own reveal)
   useEffect(() => {
-    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
+    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role) {
       setShowRoleReveal(true);
       setHasRevealed(true);
       setTimeout(() => setShowRoleReveal(false), 5000);
     }
-  }, [room?.status, room?.turn, me?.role, hasRevealed, room?.settings]);
+  }, [room?.status, room?.turn, me?.role, hasRevealed]);
 
   // Reset night action state when phase changes
   useEffect(() => {
@@ -525,7 +527,7 @@ export default function Room() {
               <div className="text-8xl mb-4">{eliminationOverlay.avatar}</div>
               <div className="text-sm font-black uppercase tracking-[0.4em] text-red-400 mb-2">{t("room.eliminated")}</div>
               <h2 className="text-4xl font-black text-foreground mb-2">{eliminationOverlay.name}</h2>
-              {eliminationOverlay.role && (
+              {eliminationOverlay.role && (room?.settings as any)?.showRoleReveal !== false && (
                 <div className="inline-block bg-muted/50 border border-border px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-muted-foreground capitalize mb-4">
                   {t("room.wasRole", { role: eliminationOverlay.role })}
                 </div>
