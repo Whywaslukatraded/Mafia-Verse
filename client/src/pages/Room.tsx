@@ -88,6 +88,7 @@ export default function Room() {
   const [settingsDraft, setSettingsDraft] = useState({
     mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    showVoteResults: true, showRoleReveal: true,
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
@@ -214,12 +215,18 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
+        showVoteResults: s.showVoteResults !== false, showRoleReveal: s.showRoleReveal !== false,
       });
     }
   }, [room?.status, room?.settings, showSettingsPanel]);
 
-  const adjustSetting = (key: keyof typeof settingsDraft, delta: number) => {
+  type NumericSettingKey = "mafiaCount" | "detectiveCount" | "doctorCount" | "civilianCount" | "phaseDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration";
+  const adjustSetting = (key: NumericSettingKey, delta: number) => {
     setSettingsDraft(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
+  };
+
+  const toggleSetting = (key: "showVoteResults" | "showRoleReveal") => {
+    setSettingsDraft(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const specialRoleTotal = settingsDraft.mafiaCount + settingsDraft.detectiveCount + settingsDraft.doctorCount;
@@ -250,7 +257,7 @@ export default function Room() {
     if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
       setShowRoleReveal(true);
       setHasRevealed(true);
-      setTimeout(() => setShowRoleReveal(false), 4000);
+      setTimeout(() => setShowRoleReveal(false), 5000);
     }
   }, [room?.status, room?.turn, me?.role, hasRevealed, room?.settings]);
 
@@ -739,6 +746,23 @@ export default function Room() {
                         {specialRoleTotal >= players.length && (
                           <span className="text-red-400 font-bold">Leave room for at least 1 civilian</span>
                         )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => toggleSetting("showVoteResults")}
+                          className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                            settingsDraft.showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                        >
+                          {settingsDraft.showVoteResults ? "✓ Vote Results" : "Vote Results"}
+                        </button>
+                        <button
+                          onClick={() => toggleSetting("showRoleReveal")}
+                          className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
+                            settingsDraft.showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                        >
+                          {settingsDraft.showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
+                        </button>
                       </div>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">

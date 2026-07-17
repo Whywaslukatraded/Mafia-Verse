@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tv, Coins, Clock, CircleCheck as CheckCircle2, Sparkles, X, TriangleAlert as AlertTriangle, Timer } from "lucide-react";
+import { Tv, Coins, Clock, CircleCheck as CheckCircle2, Sparkles, X, TriangleAlert as AlertTriangle, Timer, Loader2, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 const MAX_ADS_PER_DAY = 5;
 const REWARD_PER_AD = 5;
@@ -46,13 +48,18 @@ const BILLBOARD_ADS_META = [
 
 interface AdRewardsProps {
   onClose: () => void;
-  sessionId?: string;
   roomCode?: string;
 }
 
-export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRewardsProps) {
+export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
   const { t } = useTranslation();
-  const sessionId = propSessionId || localStorage.getItem("mafia_session_current") || `anon_${Math.random().toString(36).slice(2, 10)}`;
+  const [, setLocation] = useLocation();
+
+  // The 5/day limit is enforced server-side against the signed-in account, not
+  // a client-generated sessionId — a sessionId resets the moment someone clears
+  // localStorage or opens a new incognito tab, which was the actual loophole.
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const BILLBOARD_ADS = useMemo(() => BILLBOARD_ADS_META.map(ad => ({
     ...ad,
@@ -71,20 +78,42 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
   const [errorMsg, setErrorMsg] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load status from server
   useEffect(() => {
-    fetch(`/api/ad-claim/status?sessionId=${encodeURIComponent(sessionId)}`)
-      .then(r => r.json())
-      .then(data => {
-        setClaimsToday(data.claimsToday ?? 0);
-        setRemaining(data.remaining ?? MAX_ADS_PER_DAY);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingStatus(false));
-  }, [sessionId]);
+    let cancelled = false;
+    async function loadSession() {
+      let attempts = 0;
+      while (!isSupabaseReady() && attempts < 30) {
+        await new Promise((r) => setTimeout(r, 100));
+        attempts++;
+      }
+      if (!isSupabaseReady() || cancelled) { setCheckingAuth(false); setLoadingStatus(false); return; }
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const id = data.session?.user?.id || null;
+      if (cancelled) return;
+      setSupabaseUserId(id);
+      setCheckingAuth(false);
+
+      if (id) {
+        fetch(`/api/ad-claim/status?supabaseUserId=${encodeURIComponent(id)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (cancelled) return;
+            setClaimsToday(data.claimsToday ?? 0);
+            setRemaining(data.remaining ?? MAX_ADS_PER_DAY);
+          })
+          .catch(() => {})
+          .finally(() => { if (!cancelled) setLoadingStatus(false); });
+      } else {
+        setLoadingStatus(false);
+      }
+    }
+    loadSession();
+    return () => { cancelled = true; };
+  }, []);
 
   const startWatch = useCallback(() => {
-    if (locked || watching || remaining <= 0) return;
+    if (locked || watching || remaining <= 0 || !supabaseUserId) return;
     setLocked(true);
     setWatching(true);
     setCountdown(COUNTDOWN_SECONDS);
@@ -97,11 +126,10 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
       setCountdown(secs);
       if (secs <= 0) {
         clearInterval(intervalRef.current!);
-        // Award via server
         fetch("/api/ad-claim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, roomCode }),
+          body: JSON.stringify({ supabaseUserId, roomCode }),
         })
           .then(r => r.json())
           .then(data => {
@@ -109,13 +137,14 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
               setClaimed(true);
               setClaimsToday(data.claimsToday);
               setRemaining(data.remaining);
-              // Mirror to localStorage for UI reactivity
-              try {
-                const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-                s.credits = (s.credits || 0) + REWARD_PER_AD;
-                localStorage.setItem("mafia_stats", JSON.stringify(s));
-                window.dispatchEvent(new Event("storage"));
-              } catch {}
+              if (data.totalCredits !== undefined) {
+                try {
+                  const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+                  s.credits = data.totalCredits;
+                  localStorage.setItem("mafia_stats", JSON.stringify(s));
+                  window.dispatchEvent(new Event("storage"));
+                } catch {}
+              }
             } else {
               setErrorMsg(data.message || t("adRewards.couldNotAward"));
             }
@@ -127,7 +156,7 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
           });
       }
     }, 1000);
-  }, [locked, watching, remaining, sessionId, roomCode, t]);
+  }, [locked, watching, remaining, supabaseUserId, roomCode, t]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
@@ -163,122 +192,139 @@ export function AdRewards({ onClose, sessionId: propSessionId, roomCode }: AdRew
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Stats row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
-              <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-amber-500" />
-                <span className="text-xs text-muted-foreground">{t("adRewards.perStream")}</span>
-              </div>
-              <span className="text-sm font-bold text-amber-500">+{REWARD_PER_AD}</span>
+          {checkingAuth || loadingStatus ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
             </div>
-            <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-500" />
-                <span className="text-xs text-muted-foreground">{t("adRewards.today")}</span>
-              </div>
-              <span className="text-sm font-bold">{loadingStatus ? "..." : `${claimsToday}/${MAX_ADS_PER_DAY}`}</span>
+          ) : !supabaseUserId ? (
+            <div className="text-center py-6 space-y-4">
+              <UserPlus className="w-10 h-10 text-muted-foreground mx-auto" />
+              <p className="text-sm font-bold text-foreground">Sign up to watch and claim</p>
+              <p className="text-xs text-muted-foreground">The daily limit is tied to your account so it can't be reset by clearing your browser.</p>
+              <Button className="w-full" onClick={() => setLocation("/signup")}>
+                Sign Up
+              </Button>
             </div>
-          </div>
-
-          {/* Countdown timer bar above billboard */}
-          <div className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all",
-            watching ? "bg-amber-500/10 border-amber-500/30" : "bg-muted/30 border-border"
-          )}>
-            <Timer className={cn("w-4 h-4", watching ? "text-amber-500 animate-spin" : "text-muted-foreground")} />
-            <span className="text-xs font-mono font-bold flex-1">
-              {watching ? t("adRewards.streamingRemaining", { count: countdown }) : t("adRewards.readyToStream")}
-            </span>
-            {watching && (
-              <span className="text-xs font-black text-amber-500">{countdown}s</span>
-            )}
-          </div>
-
-          {/* Premium Billboard */}
-          <div className={cn(
-            "relative rounded-2xl overflow-hidden border shadow-lg transition-all duration-300",
-            selectedAd.border,
-            `bg-gradient-to-br ${selectedAd.gradient}`,
-            watching && "ring-2 ring-amber-500/40 shadow-amber-500/10"
-          )}>
-            {/* Billboard chrome */}
-            <div className="flex items-center gap-2 px-4 pt-3 pb-1 border-b border-white/10">
-              <div className={cn("w-2 h-2 rounded-full animate-pulse", selectedAd.dot)} />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">{t("adRewards.sponsored")}</span>
-              <div className="ml-auto flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-              </div>
-            </div>
-            <div className="p-4 space-y-2">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl leading-none mt-0.5">{selectedAd.emoji}</span>
-                <div>
-                  <h3 className={cn("text-sm font-black uppercase tracking-tight", selectedAd.accent)}>
-                    {selectedAd.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                    {selectedAd.body}
-                  </p>
+          ) : (
+            <>
+              {/* Stats row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs text-muted-foreground">{t("adRewards.perStream")}</span>
+                  </div>
+                  <span className="text-sm font-bold text-amber-500">+{REWARD_PER_AD}</span>
+                </div>
+                <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    <span className="text-xs text-muted-foreground">{t("adRewards.today")}</span>
+                  </div>
+                  <span className="text-sm font-bold">{`${claimsToday}/${MAX_ADS_PER_DAY}`}</span>
                 </div>
               </div>
-            </div>
-            {/* Progress bar */}
-            {watching && (
-              <div className="h-1 bg-white/10 mx-4 mb-3 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-amber-500 rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progressPct}%` }}
-                  transition={{ duration: 0.5 }}
-                />
+
+              {/* Countdown timer bar above billboard */}
+              <div className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all",
+                watching ? "bg-amber-500/10 border-amber-500/30" : "bg-muted/30 border-border"
+              )}>
+                <Timer className={cn("w-4 h-4", watching ? "text-amber-500 animate-spin" : "text-muted-foreground")} />
+                <span className="text-xs font-mono font-bold flex-1">
+                  {watching ? t("adRewards.streamingRemaining", { count: countdown }) : t("adRewards.readyToStream")}
+                </span>
+                {watching && (
+                  <span className="text-xs font-black text-amber-500">{countdown}s</span>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Error */}
-          {errorMsg && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-              <p className="text-xs text-red-400">{errorMsg}</p>
-            </div>
+              {/* Premium Billboard */}
+              <div className={cn(
+                "relative rounded-2xl overflow-hidden border shadow-lg transition-all duration-300",
+                selectedAd.border,
+                `bg-gradient-to-br ${selectedAd.gradient}`,
+                watching && "ring-2 ring-amber-500/40 shadow-amber-500/10"
+              )}>
+                {/* Billboard chrome */}
+                <div className="flex items-center gap-2 px-4 pt-3 pb-1 border-b border-white/10">
+                  <div className={cn("w-2 h-2 rounded-full animate-pulse", selectedAd.dot)} />
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">{t("adRewards.sponsored")}</span>
+                  <div className="ml-auto flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                  </div>
+                </div>
+                <div className="p-4 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl leading-none mt-0.5">{selectedAd.emoji}</span>
+                    <div>
+                      <h3 className={cn("text-sm font-black uppercase tracking-tight", selectedAd.accent)}>
+                        {selectedAd.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                        {selectedAd.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                {watching && (
+                  <div className="h-1 bg-white/10 mx-4 mb-3 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-amber-500 rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${progressPct}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Error */}
+              {errorMsg && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                  <p className="text-xs text-red-400">{errorMsg}</p>
+                </div>
+              )}
+
+              <AnimatePresence mode="wait">
+                {claimed ? (
+                  <motion.div key="claimed" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center py-2 space-y-2">
+                    <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
+                    <p className="font-bold text-foreground">{t("adRewards.creditsEarned", { count: REWARD_PER_AD })}</p>
+                    <p className="text-xs text-muted-foreground">{t("adRewards.streamsRemaining", { count: remaining })}</p>
+                    {remaining > 0 && (
+                      <Button size="sm" variant="outline" onClick={() => { setClaimed(false); setLocked(false); }} className="mt-1">
+                        {t("adRewards.watchAnother")}
+                      </Button>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Button
+                      className="w-full gap-2 font-bold"
+                      disabled={locked || remaining <= 0 || loadingStatus}
+                      onClick={startWatch}
+                    >
+                      {watching ? (
+                        <><Timer className="w-4 h-4 animate-spin" /> {t("adRewards.streamingCountdown", { count: countdown })}</>
+                      ) : remaining <= 0 ? (
+                        <><AlertTriangle className="w-4 h-4" /> {t("adRewards.dailyLimitReached")}</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4" /> {t("adRewards.activateStream", { count: REWARD_PER_AD })}</>
+                      )}
+                    </Button>
+                    {remaining <= 0 && (
+                      <p className="text-[10px] text-center text-muted-foreground mt-2">{t("adRewards.resetsAtMidnight")}</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           )}
-
-          <AnimatePresence mode="wait">
-            {claimed ? (
-              <motion.div key="claimed" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center py-2 space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-                <p className="font-bold text-foreground">{t("adRewards.creditsEarned", { count: REWARD_PER_AD })}</p>
-                <p className="text-xs text-muted-foreground">{t("adRewards.streamsRemaining", { count: remaining })}</p>
-                {remaining > 0 && (
-                  <Button size="sm" variant="outline" onClick={() => { setClaimed(false); setLocked(false); }} className="mt-1">
-                    {t("adRewards.watchAnother")}
-                  </Button>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Button
-                  className="w-full gap-2 font-bold"
-                  disabled={locked || remaining <= 0 || loadingStatus}
-                  onClick={startWatch}
-                >
-                  {watching ? (
-                    <><Timer className="w-4 h-4 animate-spin" /> {t("adRewards.streamingCountdown", { count: countdown })}</>
-                  ) : remaining <= 0 ? (
-                    <><AlertTriangle className="w-4 h-4" /> {t("adRewards.dailyLimitReached")}</>
-                  ) : (
-                    <><Sparkles className="w-4 h-4" /> {t("adRewards.activateStream", { count: REWARD_PER_AD })}</>
-                  )}
-                </Button>
-                {remaining <= 0 && (
-                  <p className="text-[10px] text-center text-muted-foreground mt-2">{t("adRewards.resetsAtMidnight")}</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </motion.div>
     </div>

@@ -15,28 +15,33 @@ function getReferralCodeFromURL() {
   return params.get("ref") || "";
 }
 
-function claimReferralReward(refCode: string) {
-  if (!refCode) return;
-  const stats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
-  // Only process once per referral code
-  const processed = new Set(JSON.parse(localStorage.getItem("mafia_referrals_processed") || "[]"));
-  if (processed.has(refCode)) return;
-  processed.add(refCode);
-  localStorage.setItem("mafia_referrals_processed", JSON.stringify(Array.from(processed)));
-  // Award 25 credits to the referrer
-  const referrerId = localStorage.getItem(`mafia_referral_owner_${refCode}`);
-  if (referrerId) {
-    // Award credits to referrer
-    const referrerStats = JSON.parse(localStorage.getItem("mafia_referral_stats") || "{}");
-    referrerStats.claimed = (referrerStats.claimed || 0) + 1;
-    referrerStats.totalCredits = (referrerStats.totalCredits || 0) + 25;
-    localStorage.setItem("mafia_referral_stats", JSON.stringify(referrerStats));
+// Calls the server to credit both the referrer and the new account. This runs
+// once, right after signup succeeds, using the new account's real Supabase
+// user id — not localStorage — so it can't be replayed by clearing storage.
+async function claimReferralReward(refCode: string, newSupabaseUserId: string) {
+  if (!refCode || !newSupabaseUserId) return;
+  try {
+    const res = await fetch("/api/rewards/referral/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: refCode, newSupabaseUserId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.totalCredits !== undefined) {
+        try {
+          const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+          s.credits = data.totalCredits;
+          localStorage.setItem("mafia_stats", JSON.stringify(s));
+          window.dispatchEvent(new Event("storage"));
+        } catch {}
+      }
+    }
+    // A non-OK response (already claimed, invalid code, etc.) is fine to ignore here —
+    // it just means no bonus applies, not a signup failure.
+  } catch {
+    // Non-fatal — referral crediting shouldn't block account creation.
   }
-  // Also give 25 credits to the new user
-  const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-  s.credits = (s.credits || 0) + 25;
-  localStorage.setItem("mafia_stats", JSON.stringify(s));
-  window.dispatchEvent(new Event("storage"));
 }
 
 export default function Signup() {
@@ -95,8 +100,8 @@ export default function Signup() {
       return;
     }
     if (data.user) {
-      // Claim referral bonus if applicable
-      claimReferralReward(refCode);
+      // Claim referral bonus if applicable — tied to the new account's real id
+      await claimReferralReward(refCode, data.user.id);
       toast({
         title: t("signup.accountCreatedTitle"),
         description: t("signup.accountCreatedDescription"),

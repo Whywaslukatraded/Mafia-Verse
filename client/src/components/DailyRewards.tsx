@@ -1,100 +1,118 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Coins, Flame, Calendar, ChevronRight, Sparkles } from "lucide-react";
+import { Gift, Coins, Flame, Calendar, ChevronRight, Sparkles, Loader2, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 interface RewardDay {
   day: number;
-  wins: number;
   credits: number;
   bonus?: boolean;
 }
 
 const REWARDS: RewardDay[] = [
-  { day: 1, wins: 0, credits: 5 },
-  { day: 2, wins: 0, credits: 7 },
-  { day: 3, wins: 0, credits: 10 },
-  { day: 4, wins: 0, credits: 5 },
-  { day: 5, wins: 0, credits: 7 },
-  { day: 6, wins: 0, credits: 10 },
-  { day: 7, wins: 0, credits: 15, bonus: true },
+  { day: 1, credits: 5 },
+  { day: 2, credits: 7 },
+  { day: 3, credits: 10 },
+  { day: 4, credits: 5 },
+  { day: 5, credits: 7 },
+  { day: 6, credits: 10 },
+  { day: 7, credits: 15, bonus: true },
 ];
 
-function getStreakData() {
+function mirrorCreditsLocally(totalCredits: number | undefined) {
+  if (totalCredits === undefined) return;
   try {
-    const raw = localStorage.getItem("mafia_streak");
-    if (!raw) return { current: 0, lastClaim: null, longest: 0 };
-    return JSON.parse(raw);
-  } catch {
-    return { current: 0, lastClaim: null, longest: 0 };
-  }
-}
-
-function saveStreak(data: any) {
-  localStorage.setItem("mafia_streak", JSON.stringify(data));
-}
-
-function getStats() {
-  try {
-    const raw = localStorage.getItem("mafia_stats");
-    if (!raw) return { wins: 0, gamesPlayed: 0, achievements: [], credits: 0 };
-    return JSON.parse(raw);
-  } catch {
-    return { wins: 0, gamesPlayed: 0, achievements: [], credits: 0 };
-  }
-}
-
-function saveStats(stats: any) {
-  localStorage.setItem("mafia_stats", JSON.stringify(stats));
-  window.dispatchEvent(new Event("storage"));
+    const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
+    s.credits = totalCredits;
+    localStorage.setItem("mafia_stats", JSON.stringify(s));
+    window.dispatchEvent(new Event("storage"));
+  } catch {}
 }
 
 export function DailyRewards({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const [streak, setStreak] = useState(getStreakData);
-  const [stats, setStats] = useState(getStats);
-  const [claimedToday, setClaimedToday] = useState(false);
-  const [showClaimAnim, setShowClaimAnim] = useState(false);
+  const [, setLocation] = useLocation();
+
+  // The streak and "already claimed today" state live on the server, keyed to
+  // the signed-in account — not localStorage — so clearing the browser (or
+  // faking the system clock) can't be used to re-claim the same day.
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [streak, setStreak] = useState({ current: 0, longest: 0, canClaim: false });
   const [claimingDay, setClaimingDay] = useState<number | null>(null);
+  const [showClaimAnim, setShowClaimAnim] = useState(false);
+  const [lastClaimedReward, setLastClaimedReward] = useState<number>(0);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  // Use UTC date to prevent timezone exploit
-  const today = new Date().toISOString().split("T")[0]; // e.g., "2026-06-23"
-  const canClaim = streak.lastClaim !== today;
-
-  const handleClaim = useCallback((dayNum: number) => {
-    if (!canClaim || dayNum !== streak.current + 1) return;
-
-    const reward = REWARDS[dayNum - 1];
-    if (!reward) return;
-
-    setClaimingDay(dayNum);
-
-    setTimeout(() => {
-      const newStats = {
-        ...stats,
-        credits: (stats.credits || 0) + reward.credits,
-      };
-      saveStats(newStats);
-      setStats(newStats);
-
-      const newStreak = {
-        current: dayNum,
-        lastClaim: today,
-        longest: Math.max(streak.longest || 0, dayNum),
-      };
-      if (dayNum >= 7) {
-        newStreak.current = 0; // reset after week
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSession() {
+      let attempts = 0;
+      while (!isSupabaseReady() && attempts < 30) {
+        await new Promise((r) => setTimeout(r, 100));
+        attempts++;
       }
-      saveStreak(newStreak);
-      setStreak(newStreak);
-      setClaimedToday(true);
-      setShowClaimAnim(true);
-      setClaimingDay(null);
+      if (!isSupabaseReady() || cancelled) { setCheckingAuth(false); return; }
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const id = data.session?.user?.id || null;
+      if (cancelled) return;
+      setSupabaseUserId(id);
+      setCheckingAuth(false);
+      if (id) await refreshStatus(id);
+    }
+    loadSession();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  const refreshStatus = async (id: string) => {
+    setLoadingStatus(true);
+    try {
+      const res = await fetch(`/api/rewards/daily/status?supabaseUserId=${encodeURIComponent(id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStreak({ current: data.current, longest: data.longest, canClaim: data.canClaim });
+      }
+    } catch {
+      // leave defaults
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
+  const handleClaim = useCallback(async (dayNum: number) => {
+    if (!supabaseUserId || !streak.canClaim || dayNum !== streak.current + 1 || claimingDay) return;
+    setClaimingDay(dayNum);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/rewards/daily/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supabaseUserId, day: dayNum }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.message || "Could not claim reward.");
+        setClaimingDay(null);
+        return;
+      }
+      setStreak({ current: data.current, longest: data.longest, canClaim: false });
+      setLastClaimedReward(data.creditsAwarded);
+      mirrorCreditsLocally(data.totalCredits);
+      setShowClaimAnim(true);
       setTimeout(() => setShowClaimAnim(false), 2000);
-    }, 600);
-  }, [canClaim, streak, stats, today]);
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setClaimingDay(null);
+    }
+  }, [supabaseUserId, streak, claimingDay]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -123,120 +141,139 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-500" />
-              <span className="text-sm text-muted-foreground">{t("dailyRewards.currentStreak")}</span>
+          {checkingAuth || loadingStatus ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-orange-500">{t("dailyRewards.dayStreak", { count: streak.current })}</span>
+          ) : !supabaseUserId ? (
+            <div className="text-center py-6 space-y-4">
+              <UserPlus className="w-10 h-10 text-muted-foreground mx-auto" />
+              <p className="text-sm font-bold text-foreground">Sign up to claim daily rewards</p>
+              <p className="text-xs text-muted-foreground">Your streak is tied to your account so it can't be reset by clearing your browser.</p>
+              <Button className="w-full" onClick={() => setLocation("/signup")}>
+                Sign Up
+              </Button>
             </div>
-            {streak.longest > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30">
-                <Flame className="w-3 h-3 text-primary" />
-                <span className="text-xs font-bold text-primary">{t("dailyRewards.best", { count: streak.longest })}</span>
-              </div>
-            )}
-          </div>
+          ) : (
+            <>
+              {errorMsg && <p className="text-xs text-red-400 text-center">{errorMsg}</p>}
 
-          <div className="grid grid-cols-7 gap-1">
-            {REWARDS.map((reward) => {
-              const isClaimed = streak.current >= reward.day && streak.lastClaim === today;
-              const isNext = canClaim && reward.day === streak.current + 1;
-              const isFuture = reward.day > streak.current + 1;
-
-              return (
-                <motion.button
-                  key={reward.day}
-                  whileHover={isNext ? { scale: 1.05 } : {}}
-                  whileTap={isNext ? { scale: 0.95 } : {}}
-                  onClick={() => handleClaim(reward.day)}
-                  disabled={!isNext}
-                  className={cn(
-                    "relative flex flex-col items-center gap-1 p-2 rounded-xl border transition-all",
-                    isClaimed
-                      ? "bg-green-500/10 border-green-500/30 opacity-60"
-                      : isNext
-                        ? "bg-amber-500/10 border-amber-500/50 cursor-pointer hover:bg-amber-500/20"
-                        : isFuture
-                          ? "bg-muted/30 border-border opacity-50"
-                          : "bg-primary/10 border-primary/30 opacity-60"
-                  )}
-                >
-                  <span className={cn(
-                    "text-xs font-bold",
-                    isClaimed ? "text-green-500" : isNext ? "text-amber-500" : "text-muted-foreground"
-                  )}>
-                    {reward.day}
-                  </span>
-                  <Calendar className={cn(
-                    "w-4 h-4",
-                    isClaimed ? "text-green-500" : isNext ? "text-amber-500" : "text-muted"
-                  )} />
-                  {isClaimed && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"
-                    >
-                      <span className="text-[8px] text-white font-bold">✓</span>
-                    </motion.div>
-                  )}
-                  {claimingDay === reward.day && (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 0.8 }}
-                      className="absolute inset-0 flex items-center justify-center bg-card/80 rounded-xl"
-                    >
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                    </motion.div>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <div className="space-y-2">
-            {REWARDS.map((reward) => {
-              const isNext = canClaim && reward.day === streak.current + 1;
-              const isClaimed = streak.current >= reward.day && streak.lastClaim === today;
-
-              return (
-                <div
-                  key={reward.day}
-                  className={cn(
-                    "flex items-center justify-between p-3 rounded-xl border transition-all",
-                    isNext ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
-                  )}
-                >
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
-                      {t("dailyRewards.dayN", { day: reward.day })}
-                      {reward.bonus && <span className="ml-2 text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">{t("dailyRewards.bonus")}</span>}
-                    </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-amber-500 flex items-center gap-1">
-                        <Coins className="w-3 h-3" /> {t("dailyRewards.plusCredits", { count: reward.credits })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isClaimed ? (
-                    <span className="text-xs text-green-500 font-bold">{t("dailyRewards.claimed")}</span>
-                  ) : isNext ? (
-                    <button
-                      onClick={() => handleClaim(reward.day)}
-                      className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors"
-                    >
-                      {t("dailyRewards.claim")}
-                    </button>
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted" />
-                  )}
+              <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm text-muted-foreground">{t("dailyRewards.currentStreak")}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-orange-500">{t("dailyRewards.dayStreak", { count: streak.current })}</span>
+                </div>
+                {streak.longest > 0 && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30">
+                    <Flame className="w-3 h-3 text-primary" />
+                    <span className="text-xs font-bold text-primary">{t("dailyRewards.best", { count: streak.longest })}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {REWARDS.map((reward) => {
+                  const isClaimed = streak.current >= reward.day && !streak.canClaim;
+                  const isNext = streak.canClaim && reward.day === streak.current + 1;
+                  const isFuture = reward.day > streak.current + 1;
+
+                  return (
+                    <motion.button
+                      key={reward.day}
+                      whileHover={isNext ? { scale: 1.05 } : {}}
+                      whileTap={isNext ? { scale: 0.95 } : {}}
+                      onClick={() => handleClaim(reward.day)}
+                      disabled={!isNext}
+                      className={cn(
+                        "relative flex flex-col items-center gap-1 p-2 rounded-xl border transition-all",
+                        isClaimed
+                          ? "bg-green-500/10 border-green-500/30 opacity-60"
+                          : isNext
+                            ? "bg-amber-500/10 border-amber-500/50 cursor-pointer hover:bg-amber-500/20"
+                            : isFuture
+                              ? "bg-muted/30 border-border opacity-50"
+                              : "bg-primary/10 border-primary/30 opacity-60"
+                      )}
+                    >
+                      <span className={cn(
+                        "text-xs font-bold",
+                        isClaimed ? "text-green-500" : isNext ? "text-amber-500" : "text-muted-foreground"
+                      )}>
+                        {reward.day}
+                      </span>
+                      <Calendar className={cn(
+                        "w-4 h-4",
+                        isClaimed ? "text-green-500" : isNext ? "text-amber-500" : "text-muted"
+                      )} />
+                      {isClaimed && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"
+                        >
+                          <span className="text-[8px] text-white font-bold">✓</span>
+                        </motion.div>
+                      )}
+                      {claimingDay === reward.day && (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 0.8 }}
+                          className="absolute inset-0 flex items-center justify-center bg-card/80 rounded-xl"
+                        >
+                          <Sparkles className="w-4 h-4 text-amber-500" />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2">
+                {REWARDS.map((reward) => {
+                  const isNext = streak.canClaim && reward.day === streak.current + 1;
+                  const isClaimed = streak.current >= reward.day && !streak.canClaim;
+
+                  return (
+                    <div
+                      key={reward.day}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-xl border transition-all",
+                        isNext ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
+                      )}
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-foreground">
+                          {t("dailyRewards.dayN", { day: reward.day })}
+                          {reward.bonus && <span className="ml-2 text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded">{t("dailyRewards.bonus")}</span>}
+                        </p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-amber-500 flex items-center gap-1">
+                            <Coins className="w-3 h-3" /> {t("dailyRewards.plusCredits", { count: reward.credits })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {isClaimed ? (
+                        <span className="text-xs text-green-500 font-bold">{t("dailyRewards.claimed")}</span>
+                      ) : isNext ? (
+                        <button
+                          onClick={() => handleClaim(reward.day)}
+                          className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors"
+                        >
+                          {t("dailyRewards.claim")}
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-muted" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         <AnimatePresence>
@@ -256,7 +293,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                 <Gift className="w-12 h-12 text-amber-500 mx-auto mb-3" />
                 <p className="text-lg font-bold">{t("dailyRewards.rewardClaimed")}</p>
                 <p className="text-sm text-muted-foreground">
-                  {t("dailyRewards.plusCredits", { count: REWARDS[streak.current - 1]?.credits || 0 })}
+                  {t("dailyRewards.plusCredits", { count: lastClaimedReward })}
                 </p>
               </motion.div>
             </motion.div>

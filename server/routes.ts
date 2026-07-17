@@ -81,7 +81,9 @@ function getRandomDeathStory(name: string) {
 const phaseTimers = new Map<number, NodeJS.Timeout>();
 const PHASE_DURATION = 15000;
 // Must match the setTimeout duration of the role-reveal overlay in client/src/pages/Room.tsx
-const ROLE_REVEAL_MS = 4000;
+const ROLE_REVEAL_MS = 5000;
+// Must match the setTimeout duration of the elimination overlay in client/src/pages/Room.tsx
+const ELIMINATION_REVEAL_MS = 5000;
 const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsilon", "Bot_Zeta", "Bot_Eta", "Bot_Theta"];
 
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
@@ -611,6 +613,11 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 }
 
 async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  // Whenever a player is actually eliminated in this call, the client shows a
+  // ~5s elimination overlay that blocks interaction. Delay the next phase's
+  // lastUpdated (and its timer) by that same amount so the overlay doesn't
+  // quietly eat into the next phase's real time, same fix as the role reveal.
+  let revealDelayMs = 0;
   const shouldAdvanceImmediately = await handleBotActions(roomId, wss, storage, roomClients, clients, gameActions);
   if (shouldAdvanceImmediately) {
     const room = await storage.getRoom(roomId);
@@ -653,6 +660,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+          revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
@@ -677,7 +685,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         return;
       }
       
-      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date() });
+      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
       actions.mafiaKill = null;
       actions.doctorSave = null;
@@ -685,7 +693,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       gameActions.set(roomId, actions);
       broadcastState(roomId);
       const mafiaSettings = room.settings as any;
-      const mafiaTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), mafiaSettings.mafiaDuration * 1000 || 15000);
+      const mafiaTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), (mafiaSettings.mafiaDuration * 1000 || 15000) + revealDelayMs);
       phaseTimers.set(roomId, mafiaTimer);
       return;
     }
@@ -738,6 +746,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+          revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
@@ -758,7 +767,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
 
       if (!gameEnded) {
-        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date() });
+        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       }
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
@@ -813,6 +822,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
               await storage.updatePlayer(topTarget, { isAlive: false });
               nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
               nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
+              // A kill actually happened, so the client will show the ~5s elimination
+              // overlay going into discussion — delay the discussion timer to match.
+              revealDelayMs = ELIMINATION_REVEAL_MS;
             }
           }
         }
@@ -831,7 +843,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       gameHistory.set(roomId, history);
 
       await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
-      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date() });
+      await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
@@ -877,7 +889,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (currentRoom.phase === 'doctor') duration = (currentRoom.settings as any).doctorDuration * 1000 || 15000;
         if (currentRoom.phase === 'detective') duration = (currentRoom.settings as any).detectiveDuration * 1000 || 15000;
       }
-      const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration);
+      // revealDelayMs is only ever nonzero here when this phase's lastUpdated was
+      // itself pushed into the future above (an elimination just happened) — keep
+      // the real timer in sync with that so the phase doesn't get cut short.
+      const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
       phaseTimers.set(roomId, timer);
     }
   }
@@ -939,6 +954,85 @@ async function broadcastState(roomId: number) {
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Reward-system tables. All keyed on supabase_user_id (a real signed-in account)
+  // rather than a client-generated sessionId/localStorage token, which is what
+  // made the old client-only versions of these features exploitable — clearing
+  // localStorage or opening a new incognito tab reset the "identity" the limits
+  // were tracked against. Requiring an account closes that off. Dates are always
+  // computed server-side (UTC), so the device's clock/timezone can't be gamed either.
+  try {
+    const bootstrapClient = await pool.connect();
+    try {
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS ad_claims (
+          session_id TEXT NOT NULL,
+          claim_date TEXT NOT NULL,
+          claim_count INT NOT NULL DEFAULT 0,
+          last_claim_at TIMESTAMPTZ,
+          PRIMARY KEY (session_id, claim_date)
+        );
+      `);
+      await bootstrapClient.query(`ALTER TABLE ad_claims ADD COLUMN IF NOT EXISTS supabase_user_id TEXT;`);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS daily_streaks (
+          supabase_user_id TEXT PRIMARY KEY,
+          current_streak INT NOT NULL DEFAULT 0,
+          longest_streak INT NOT NULL DEFAULT 0,
+          last_claim_date TEXT
+        );
+      `);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS ratings (
+          supabase_user_id TEXT PRIMARY KEY,
+          stars INT NOT NULL,
+          rated_at TIMESTAMPTZ NOT NULL,
+          last_edit_at TIMESTAMPTZ NOT NULL
+        );
+      `);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS referral_links (
+          supabase_user_id TEXT PRIMARY KEY,
+          code TEXT UNIQUE NOT NULL
+        );
+      `);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS referral_claims (
+          id SERIAL PRIMARY KEY,
+          referrer_user_id TEXT NOT NULL,
+          referred_user_id TEXT UNIQUE NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS account_credits (
+          supabase_user_id TEXT PRIMARY KEY,
+          credits INT NOT NULL DEFAULT 0
+        );
+      `);
+    } finally {
+      bootstrapClient.release();
+    }
+  } catch (e: any) {
+    console.error("Reward table bootstrap failed:", e.message);
+  }
+
+  // Adds credits to a user's server-side balance and returns the new total.
+  // This is the one authoritative wallet all four reward systems pay into.
+  async function addAccountCredits(supabaseUserId: string, amount: number): Promise<number> {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
+         ON CONFLICT (supabase_user_id) DO UPDATE SET credits = account_credits.credits + $2
+         RETURNING credits`,
+        [supabaseUserId, amount]
+      );
+      return result.rows[0].credits;
+    } finally {
+      client.release();
+    }
+  }
+
   // Auth endpoints
   app.post(api.auth.signup.path, async (req, res) => {
     try {
@@ -1794,18 +1888,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Check ad claim status for today (server-side rate limit check)
+  // Check ad claim status for today (server-side rate limit check, tied to account)
   app.get("/api/ad-claim/status", async (req, res) => {
     try {
-      const sessionId = req.query.sessionId as string;
-      if (!sessionId) return res.json({ claimsToday: 0, remaining: 5 });
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim.", claimsToday: 0, remaining: 0 });
 
       const today = new Date().toISOString().split("T")[0];
       const client = await pool.connect();
       try {
         const result = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
-          [sessionId, today]
+          "SELECT claim_count FROM ad_claims WHERE supabase_user_id = $1 AND claim_date = $2",
+          [supabaseUserId, today]
         );
         const count = result.rows[0]?.claim_count ?? 0;
         res.json({ claimsToday: count, remaining: Math.max(0, 5 - count) });
@@ -1817,11 +1911,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Claim free ad credits — enforced server-side 5/day limit
+  // Claim free ad credits — enforced server-side 5/day limit, tied to the signed-in account
   app.post("/api/ad-claim", async (req, res) => {
     try {
-      const { sessionId, roomCode } = req.body;
-      if (!sessionId) return res.status(400).json({ message: "Missing sessionId" });
+      const { supabaseUserId, roomCode } = req.body;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim." });
 
       const today = new Date().toISOString().split("T")[0];
       const MAX_DAILY = 5;
@@ -1830,8 +1924,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const client = await pool.connect();
       try {
         const check = await client.query(
-          "SELECT claim_count FROM ad_claims WHERE session_id = $1 AND claim_date = $2",
-          [sessionId, today]
+          "SELECT claim_count FROM ad_claims WHERE supabase_user_id = $1 AND claim_date = $2",
+          [supabaseUserId, today]
         );
         const currentCount = check.rows[0]?.claim_count ?? 0;
 
@@ -1840,25 +1934,27 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
 
         await client.query(
-          `INSERT INTO ad_claims (session_id, claim_date, claim_count, last_claim_at)
-           VALUES ($1, $2, 1, now())
+          `INSERT INTO ad_claims (session_id, supabase_user_id, claim_date, claim_count, last_claim_at)
+           VALUES ($1, $1, $2, 1, now())
            ON CONFLICT (session_id, claim_date)
            DO UPDATE SET claim_count = ad_claims.claim_count + 1, last_claim_at = now()`,
-          [sessionId, today]
+          [supabaseUserId, today]
         );
 
         const newCount = currentCount + 1;
+        const totalCredits = await addAccountCredits(supabaseUserId, REWARD);
 
-        // Award credits to player in DB if room context available
+        // Also award to the in-room player row if room context available, so the
+        // room's own credit display stays consistent with the account wallet.
         if (roomCode) {
           try {
             const room = await storage.getRoomByCode(roomCode as string);
             if (room) {
               const players = await storage.getPlayersInRoom(room.id);
-              const player = players.find((p) => p.sessionId === sessionId);
+              const player = players.find((p) => (p as any).supabaseUserId === supabaseUserId);
               if (player) {
-                const currentCredits = (player as any).credits ?? 0;
-                await storage.updatePlayer(player.id, { credits: currentCredits + REWARD } as any);
+                const currentPlayerCredits = (player as any).credits ?? 0;
+                await storage.updatePlayer(player.id, { credits: currentPlayerCredits + REWARD } as any);
               }
             }
           } catch {
@@ -1866,13 +1962,252 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           }
         }
 
-        res.json({ success: true, creditsAwarded: REWARD, claimsToday: newCount, remaining: Math.max(0, MAX_DAILY - newCount) });
+        res.json({ success: true, creditsAwarded: REWARD, claimsToday: newCount, remaining: Math.max(0, MAX_DAILY - newCount), totalCredits });
       } finally {
         client.release();
       }
     } catch (e: any) {
       console.error("Ad claim error:", e.message);
       res.status(500).json({ message: "Failed to process claim" });
+    }
+  });
+
+  // --- Daily login-streak rewards, tied to the signed-in account ---
+  app.get("/api/rewards/daily/status", async (req, res) => {
+    try {
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
+
+      const today = new Date().toISOString().split("T")[0];
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          "SELECT current_streak, longest_streak, last_claim_date FROM daily_streaks WHERE supabase_user_id = $1",
+          [supabaseUserId]
+        );
+        const row = result.rows[0] || { current_streak: 0, longest_streak: 0, last_claim_date: null };
+        res.json({
+          current: row.current_streak,
+          longest: row.longest_streak,
+          canClaim: row.last_claim_date !== today,
+        });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Daily status error:", e.message);
+      res.status(500).json({ message: "Failed to load streak status" });
+    }
+  });
+
+  app.post("/api/rewards/daily/claim", async (req, res) => {
+    try {
+      const { supabaseUserId, day } = req.body;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
+
+      const DAILY_CREDITS = [5, 7, 10, 5, 7, 10, 15];
+      const dayNum = parseInt(day, 10);
+      if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 7) {
+        return res.status(400).json({ message: "Invalid day" });
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          "SELECT current_streak, longest_streak, last_claim_date FROM daily_streaks WHERE supabase_user_id = $1",
+          [supabaseUserId]
+        );
+        const row = result.rows[0] || { current_streak: 0, longest_streak: 0, last_claim_date: null };
+
+        if (row.last_claim_date === today) {
+          return res.status(429).json({ message: "Already claimed today." });
+        }
+        if (dayNum !== row.current_streak + 1) {
+          return res.status(400).json({ message: "Out of sequence claim." });
+        }
+
+        const reward = DAILY_CREDITS[dayNum - 1];
+        const newStreak = dayNum >= 7 ? 0 : dayNum;
+        const newLongest = Math.max(row.longest_streak, dayNum);
+
+        await client.query(
+          `INSERT INTO daily_streaks (supabase_user_id, current_streak, longest_streak, last_claim_date)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (supabase_user_id) DO UPDATE SET current_streak = $2, longest_streak = $3, last_claim_date = $4`,
+          [supabaseUserId, newStreak, newLongest, today]
+        );
+
+        const totalCredits = await addAccountCredits(supabaseUserId, reward);
+        res.json({ success: true, creditsAwarded: reward, current: newStreak, longest: newLongest, totalCredits });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Daily claim error:", e.message);
+      res.status(500).json({ message: "Failed to process claim" });
+    }
+  });
+
+  // --- Rating, tied to the signed-in account (credits only awarded once, ever) ---
+  app.get("/api/rewards/rating", async (req, res) => {
+    try {
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
+
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          "SELECT stars, rated_at, last_edit_at FROM ratings WHERE supabase_user_id = $1",
+          [supabaseUserId]
+        );
+        const row = result.rows[0];
+        res.json(row ? { stars: row.stars, ratedAt: row.rated_at, lastEditAt: row.last_edit_at } : null);
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Rating status error:", e.message);
+      res.status(500).json({ message: "Failed to load rating" });
+    }
+  });
+
+  app.post("/api/rewards/rating", async (req, res) => {
+    try {
+      const { supabaseUserId, stars } = req.body;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
+      const starsNum = parseInt(stars, 10);
+      if (!Number.isInteger(starsNum) || starsNum < 1 || starsNum > 5) {
+        return res.status(400).json({ message: "Invalid rating" });
+      }
+
+      const EDIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+      const REWARD_CREDITS = 5;
+      const now = new Date();
+
+      const client = await pool.connect();
+      try {
+        const existing = await client.query(
+          "SELECT rated_at, last_edit_at FROM ratings WHERE supabase_user_id = $1",
+          [supabaseUserId]
+        );
+        const row = existing.rows[0];
+        const isFirstRating = !row;
+
+        if (row) {
+          const msSinceEdit = now.getTime() - new Date(row.last_edit_at).getTime();
+          if (msSinceEdit < EDIT_COOLDOWN_MS) {
+            const daysLeft = Math.ceil((EDIT_COOLDOWN_MS - msSinceEdit) / (24 * 60 * 60 * 1000));
+            return res.status(429).json({ message: `You can update your rating in ${daysLeft} day(s).` });
+          }
+        }
+
+        await client.query(
+          `INSERT INTO ratings (supabase_user_id, stars, rated_at, last_edit_at)
+           VALUES ($1, $2, $3, $3)
+           ON CONFLICT (supabase_user_id) DO UPDATE SET stars = $2, last_edit_at = $3`,
+          [supabaseUserId, starsNum, now.toISOString()]
+        );
+
+        let totalCredits: number | undefined;
+        if (isFirstRating) {
+          totalCredits = await addAccountCredits(supabaseUserId, REWARD_CREDITS);
+        }
+
+        res.json({ success: true, isFirstRating, creditsAwarded: isFirstRating ? REWARD_CREDITS : 0, totalCredits });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Rating submit error:", e.message);
+      res.status(500).json({ message: "Failed to submit rating" });
+    }
+  });
+
+  // --- Referrals, tied to signed-in accounts on both ends ---
+  app.get("/api/rewards/referral", async (req, res) => {
+    try {
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to get your referral link." });
+
+      const client = await pool.connect();
+      try {
+        let codeResult = await client.query("SELECT code FROM referral_links WHERE supabase_user_id = $1", [supabaseUserId]);
+        let code = codeResult.rows[0]?.code;
+        if (!code) {
+          code = Math.random().toString(36).substring(2, 8).toUpperCase();
+          await client.query(
+            `INSERT INTO referral_links (supabase_user_id, code) VALUES ($1, $2) ON CONFLICT (supabase_user_id) DO NOTHING`,
+            [supabaseUserId, code]
+          );
+          const recheck = await client.query("SELECT code FROM referral_links WHERE supabase_user_id = $1", [supabaseUserId]);
+          code = recheck.rows[0]?.code || code;
+        }
+
+        const claims = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1", [supabaseUserId]);
+        const joined = claims.rows[0]?.n ?? 0;
+
+        res.json({ code, invited: joined, joined, totalCredits: joined * 25 });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Referral status error:", e.message);
+      res.status(500).json({ message: "Failed to load referral info" });
+    }
+  });
+
+  // Called once, right after a NEW account finishes signing up with a referral code.
+  app.post("/api/rewards/referral/claim", async (req, res) => {
+    try {
+      const { code, newSupabaseUserId } = req.body;
+      if (!code || !newSupabaseUserId) return res.status(400).json({ message: "Missing code or new user id" });
+
+      const REFERRAL_CREDITS = 25;
+      const client = await pool.connect();
+      try {
+        const linkResult = await client.query("SELECT supabase_user_id FROM referral_links WHERE code = $1", [code]);
+        const referrerId = linkResult.rows[0]?.supabase_user_id;
+        if (!referrerId) return res.status(404).json({ message: "Invalid referral code" });
+        if (referrerId === newSupabaseUserId) return res.status(400).json({ message: "Can't refer yourself" });
+
+        try {
+          await client.query(
+            `INSERT INTO referral_claims (referrer_user_id, referred_user_id) VALUES ($1, $2)`,
+            [referrerId, newSupabaseUserId]
+          );
+        } catch {
+          // Unique constraint on referred_user_id — this account already claimed a referral before.
+          return res.status(429).json({ message: "Referral already claimed" });
+        }
+
+        await addAccountCredits(referrerId, REFERRAL_CREDITS);
+        await addAccountCredits(newSupabaseUserId, REFERRAL_CREDITS);
+
+        res.json({ success: true, creditsAwarded: REFERRAL_CREDITS });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      console.error("Referral claim error:", e.message);
+      res.status(500).json({ message: "Failed to process referral" });
+    }
+  });
+
+  // Authoritative account credit balance
+  app.get("/api/account/credits", async (req, res) => {
+    try {
+      const supabaseUserId = req.query.supabaseUserId as string;
+      if (!supabaseUserId) return res.json({ credits: 0 });
+      const client = await pool.connect();
+      try {
+        const result = await client.query("SELECT credits FROM account_credits WHERE supabase_user_id = $1", [supabaseUserId]);
+        res.json({ credits: result.rows[0]?.credits ?? 0 });
+      } finally {
+        client.release();
+      }
+    } catch {
+      res.json({ credits: 0 });
     }
   });
 
