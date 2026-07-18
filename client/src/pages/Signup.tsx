@@ -12,7 +12,13 @@ import { containsProfanity } from "@/lib/profanity";
 
 function getReferralCodeFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("ref") || "";
+  const fromUrl = params.get("ref");
+  if (fromUrl) return fromUrl;
+  // The invite link points to the home page, and neither the header's
+  // Login button nor the Login page's own "Sign Up" link preserve the
+  // query string across those navigations — fall back to what Home.tsx
+  // stashed in sessionStorage when the link was first opened.
+  return sessionStorage.getItem("mafia_pending_ref") || "";
 }
 
 // Calls the server to credit both the referrer and the new account. This runs
@@ -28,6 +34,7 @@ async function claimReferralReward(refCode: string, newSupabaseUserId: string) {
     });
     if (res.ok) {
       const data = await res.json();
+      sessionStorage.removeItem("mafia_pending_ref");
       if (data.totalCredits !== undefined) {
         try {
           const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");

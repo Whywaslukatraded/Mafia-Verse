@@ -223,6 +223,19 @@ export default function Home() {
     }
   }, []);
 
+  // The referral link points here (/?ref=CODE), but a new visitor has to
+  // click through to Login and then Signup before an account actually
+  // exists — and neither of those page navigations preserves the query
+  // string. Stash the code the moment it shows up so Signup.tsx can still
+  // find it once the user finally reaches the signup form.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      sessionStorage.setItem("mafia_pending_ref", ref);
+    }
+  }, []);
+
   const safeParse = (key: string, fallback: any) => {
     try {
       const raw = localStorage.getItem(key);

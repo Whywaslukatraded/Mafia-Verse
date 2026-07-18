@@ -876,12 +876,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+            await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaTookOverMafiaWins", lang) });
+            await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
             gameEnded = true;
           }
         }
@@ -2314,9 +2316,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
 
         await addAccountCredits(referrerId, REFERRAL_CREDITS);
-        await addAccountCredits(newSupabaseUserId, REFERRAL_CREDITS);
+        const totalCredits = await addAccountCredits(newSupabaseUserId, REFERRAL_CREDITS);
 
-        res.json({ success: true, creditsAwarded: REFERRAL_CREDITS });
+        res.json({ success: true, creditsAwarded: REFERRAL_CREDITS, totalCredits });
       } finally {
         client.release();
       }

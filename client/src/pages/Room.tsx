@@ -463,7 +463,14 @@ export default function Room() {
               {(() => {
                 const aliveMafia = players.filter(p => p.isAlive && p.role === "mafia").length;
                 const aliveCivilians = players.filter(p => p.isAlive && p.role !== "mafia").length;
-                const mafiaWon = aliveMafia > 0;
+                // Alive-mafia-count is a guess and breaks for instant-win cases
+                // (e.g. the detective catching a mafia member ends the game
+                // immediately, before that mafia player is eliminated — they're
+                // still "alive" but civilians actually won). The server already
+                // computed the real winner in finalizeGameEnd and stored it on
+                // each player's gameHistory — use that when it's there.
+                const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
+                const mafiaWon = latestGameEnd ? latestGameEnd.winner === "mafia" : aliveMafia > 0;
 
                 return (
                   <>
@@ -782,6 +789,17 @@ export default function Room() {
 
             {room?.status !== "lobby" && room?.status !== "ended" && (
               <div className="space-y-4">
+                {isMyNightTurn && !lockedIn && pendingNightAction && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, y: [0, 4, 0] }}
+                    transition={{ y: { repeat: Infinity, duration: 1.2 } }}
+                    className="text-center text-xs font-bold text-emerald-400 uppercase tracking-wider"
+                  >
+                    ↓ Scroll down to lock in your answer
+                  </motion.p>
+                )}
+
                 <div className="grid grid-cols-auto gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
@@ -809,17 +827,6 @@ export default function Room() {
                     );
                   })}
                 </div>
-
-                {isMyNightTurn && !lockedIn && pendingNightAction && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, y: [0, 4, 0] }}
-                    transition={{ y: { repeat: Infinity, duration: 1.2 } }}
-                    className="text-center text-xs font-bold text-emerald-400 uppercase tracking-wider"
-                  >
-                    ↓ Scroll down to lock in your answer
-                  </motion.p>
-                )}
               </div>
             )}
 
