@@ -166,6 +166,12 @@ export const api = {
           roomName: z.string().optional(),
           showVoteResults: z.boolean().optional(),
           showRoleReveal: z.boolean().optional(),
+          // Feature: bot dialogue and server-generated system messages (kill/
+          // vote-out reveals, win announcements, notifications) are localized
+          // server-side based on this — sent from the client's current i18n
+          // language at room-creation time so bots/system text matches the
+          // language the room is actually being played in.
+          language: z.enum(['en', 'es']).optional(),
         }),
       }),
       responses: {

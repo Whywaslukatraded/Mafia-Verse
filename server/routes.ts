@@ -39,7 +39,64 @@ function assignRoles(players: Player[], settings: any) {
   return players.map((p, i) => ({ ...p, role: roles[i] }));
 }
 
+// Builds "X was voted out/killed. They were {article} {role}." with the right
+// article/language. "the" (definite) only when this game has exactly one
+// player with that role; otherwise "a"/"an" (indefinite), since e.g. "the
+// civilian" is wrong when several players are civilians.
+function buildRoleRevealSentence(victimName: string, role: string, allPlayers: Player[], lang: string, action: "voted" | "killed" = "voted"): string {
+  const roleCount = allPlayers.filter(p => p.role === role).length;
+  const isUnique = roleCount <= 1;
+
+  if (lang === "es") {
+    const esRole: Record<string, string> = { mafia: "mafioso", detective: "detective", doctor: "médico", civilian: "civil" };
+    const name = esRole[role] || role;
+    const article = isUnique ? "el" : "un";
+    const verb = action === "killed" ? "fue asesinado" : "fue eliminado por votación";
+    return `${victimName} ${verb}. Era ${article} ${name}.`;
+  }
+
+  const enRole: Record<string, string> = { mafia: "mafia", detective: "detective", doctor: "doctor", civilian: "civilian" };
+  const name = enRole[role] || role;
+  const article = isUnique ? "the" : (/^[aeiou]/i.test(name) ? "an" : "a");
+  const verb = action === "killed" ? "was killed" : "was voted out";
+  return `${victimName} ${verb}. They were ${article} ${name}.`;
+}
+
 const gameHistory = new Map<number, any[]>();
+
+// Small dictionary for the recurring system/chat messages that aren't part
+// of the bot dialogue pools (game-end announcements, night summary, etc.)
+const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
+  votingResultsHeader: { en: "Voting Results: ", es: "Resultados de la votación: " },
+  votedForLine: { en: "{voter} voted for {target}. ", es: "{voter} votó por {target}. " },
+  noOneVotedOut: { en: "No one was voted out today.", es: "Nadie fue eliminado por votación hoy." },
+  mafiaEliminatedCiviliansWin: { en: "The Mafia has been eliminated! Civilians win!", es: "¡La mafia ha sido eliminada! ¡Ganan los civiles!" },
+  mafiaTookOverMafiaWins: { en: "The Mafia has taken over! Mafia wins!", es: "¡La mafia ha tomado el control! ¡Gana la mafia!" },
+  detectiveDiscoveredMafia: { en: "The detective discovered the Mafia! {name} was the killer. Civilians win!", es: "¡El detective descubrió a la mafia! {name} era el asesino. ¡Ganan los civiles!" },
+  mafiaFailedDoctorSaved: { en: "The mafia tried to kill someone, but the doctor saved them!", es: "La mafia intentó matar a alguien, ¡pero el médico lo salvó!" },
+  nothingHappenedNight: { en: "Nothing happened during the night.", es: "No pasó nada durante la noche." },
+  nightHasEnded: { en: "The night has ended. ", es: "La noche ha terminado. " },
+  targetLockedTitle: { en: "Target Locked", es: "Objetivo bloqueado" },
+  targetLockedBody: { en: "You have targeted {name} for elimination.", es: "Has marcado a {name} para la eliminación." },
+  chatErrorTitle: { en: "Error", es: "Error" },
+  chatErrorBody: { en: "Failed to send message", es: "No se pudo enviar el mensaje" },
+  deadCantSpeakTitle: { en: "🪦 Silence from Beyond", es: "🪦 Silencio desde el más allá" },
+  deadCantSpeakBody: { en: "The dead cannot speak and risk snitching...", es: "Los muertos no pueden hablar ni arriesgarse a delatar..." },
+  voteRegisteredTitle: { en: "Vote Registered", es: "Voto registrado" },
+  voteRegisteredBody: { en: "Your vote has been recorded.", es: "Tu voto ha sido registrado." },
+  protectionAppliedTitle: { en: "Protection Applied", es: "Protección aplicada" },
+  protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche." },
+};
+
+function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<string, string>): string {
+  const entry = SYSTEM_MESSAGES[key];
+  let text = lang === "es" ? entry.es : entry.en;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) text = text.split(`{${k}}`).join(v);
+  }
+  return text;
+}
+
 
 const DEATH_STORIES = [
   "{name} was skiing down the mountain and fell into a crevasse never to be seen again.",
@@ -73,8 +130,41 @@ const DEATH_STORIES = [
   "A experimental jet engine test went awry, and {name} was in the wrong zip code."
 ];
 
-function getRandomDeathStory(name: string) {
-  const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
+const DEATH_STORIES_ES = [
+  "{name} esquiaba montaña abajo y cayó en una grieta, para no volver a ser visto jamás.",
+  "Mientras {name} practicaba paracaidismo, el paracaídas no se abrió y murió en el acto.",
+  "{name} fue a nadar en aguas infestadas de tiburones y se convirtió en un bocadillo de medianoche.",
+  "{name} intentó acariciar a un 'gato' callejero que resultó ser un puma muy hambriento.",
+  "{name} terminó, sin querer, en una carrera clandestina de alto riesgo manejando un carrito de golf.",
+  "{name} confundió un transformador de alto voltaje con una cabina telefónica pública.",
+  "Mientras cazaba fantasmas, {name} tropezó y cayó en un pozo profundo y olvidado.",
+  "{name} decidió retar a un luchador profesional a un combate 'amistoso'.",
+  "Un piano de cola gigante cayó del tercer piso, aterrizando justo sobre {name}.",
+  "{name} intentó recrear un famoso truco de escupir fuego usando ron de alta graduación.",
+  "Durante un safari, {name} olvidó que las ventanas deben permanecer cerradas cerca de los leones.",
+  "{name} entró en un concurso de comer pasteles contra un oso pardo y perdió estrepitosamente.",
+  "Un accidente insólito en la bolera hizo que {name} resbalara por la pista hacia la maquinaria.",
+  "{name} pensó que podía escapar de un enjambre de avispas furiosas saltando sobre un cactus.",
+  "Mientras se tomaba una selfie al borde de un acantilado, {name} perdió el equilibrio y el teléfono.",
+  "{name} intentó usar una cortadora de césped para podar los arbustos, con resultados desastrosos.",
+  "Un globo meteorológico experimental cayó directamente sobre la carpa de {name} durante la noche.",
+  "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
+  "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
+  "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada.",
+  "Una cáscara de plátano fuera de lugar hizo que {name} cayera en un tanque de pegamento industrial.",
+  "{name} olvidó que se necesita oxígeno para el buceo en cuevas submarinas de larga distancia.",
+  "Durante un show de magia, el truco de 'serruchar a una persona por la mitad' salió terriblemente mal para {name}.",
+  "{name} intentó saltar el Gran Cañón en un pogo stick.",
+  "Una pelota de golf perdida golpeó a {name} con la precisión de un misil termodirigido.",
+  "{name} decidió investigar por qué el volcán local hacía ruidos retumbantes.",
+  "Mientras limpiaba las canaletas, {name} descubrió que la gravedad es una amante muy cruel.",
+  "{name} intentó usar un paraguas como paracaídas durante una tormenta particularmente ventosa.",
+  "Una prueba experimental de motor a reacción salió mal, y {name} estaba en el código postal equivocado."
+];
+
+function getRandomDeathStory(name: string, lang: string = "en") {
+  const pool = lang === "es" ? DEATH_STORIES_ES : DEATH_STORIES;
+  const story = pool[Math.floor(Math.random() * pool.length)];
   return story.replace("{name}", name);
 }
 
@@ -664,8 +754,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
       
       if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
-        let voteSummary = "Voting Results: ";
-        voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
+        const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
+        let voteSummary = sysMsg("votingResultsHeader", lang);
+        voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
       }
       
@@ -686,27 +777,29 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+          const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
+          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
             await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has taken over! Mafia wins!" });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
             await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
             gameEnded = true;
           }
         }
       } else {
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
+        const noVoteLang: string = (room.settings as any)?.language === "es" ? "es" : "en";
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("noOneVotedOut", noVoteLang) });
       }
       
       if (gameEnded) {
@@ -730,6 +823,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   const room = await storage.getRoom(roomId);
   if (!room) return;
 
+  const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
   const players = await storage.getPlayersInRoom(roomId);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
 
@@ -752,8 +846,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
 
       if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
-        let voteSummary = "Voting Results: ";
-        voteResults.forEach(res => { voteSummary += `${res.voterName} voted for ${res.targetName}. `; });
+        let voteSummary = sysMsg("votingResultsHeader", lang);
+        voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
         await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
       }
       
@@ -774,25 +868,25 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `${victim.name} was voted out. They were the ${victim.role}.` });
+          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has taken over! Mafia wins!" });
+            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaTookOverMafiaWins", lang) });
             gameEnded = true;
           }
         }
       } else {
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: `No one was voted out today.` });
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("noOneVotedOut", lang) });
       }
 
       if (!gameEnded) {
@@ -811,7 +905,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
         await storage.updateRoom(roomId, { status: 'ended' });
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: "The Mafia has been eliminated! Civilians win!" });
+        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
         await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
         broadcastState(roomId);
         return;
@@ -828,7 +922,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const history = gameHistory.get(roomId) || [];
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
 
-      let nightSummary = "The night has ended. ";
+      let nightSummary = sysMsg("nightHasEnded", lang);
       
       if (actions.mafiaKills.size > 0) {
         const killVotes = new Map<number, number>();
@@ -845,11 +939,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           if (victim) {
             const isSaved = actions.doctorSaves.size > 0 && Array.from(actions.doctorSaves.values()).includes(topTarget);
             if (isSaved) {
-              nightSummary += "The mafia tried to kill someone, but the doctor saved them!";
+              nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
               nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
             } else {
               await storage.updatePlayer(topTarget, { isAlive: false });
-              nightSummary += `${victim.name} was killed. They were the ${victim.role}. ${getRandomDeathStory(victim.name)}`;
+              nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
               nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
               // A kill actually happened, so the client will show the ~5s elimination
               // overlay going into discussion — delay the discussion timer to match.
@@ -858,7 +952,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           }
         }
       } else {
-        nightSummary += "Nothing happened during the night.";
+        nightSummary += sysMsg("nothingHappenedNight", lang);
       }
       
       actions.detectiveChecks.forEach((targetId: number, detectiveId: number) => {
@@ -1575,10 +1669,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
-                 ws.send(JSON.stringify({ type: 'notification', payload: { title: "Error", body: "Failed to send message" } }));
+                 const chatLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                 ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("chatErrorTitle", chatLang), body: sysMsg("chatErrorBody", chatLang) } }));
                }
              } else if (!me?.isAlive) {
-               ws.send(JSON.stringify({ type: 'notification', payload: { title: "🪦 Silence from Beyond", body: "The dead cannot speak and risk snitching..." } }));
+               const deadLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("deadCantSpeakTitle", deadLang), body: sysMsg("deadCantSpeakBody", deadLang) } }));
              }
              return;
            }
@@ -1701,7 +1797,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                gameActions.set(myRoomId, actions);
                
                broadcastState(myRoomId);
-               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Vote Registered", body: "Your vote has been recorded." } }));
+               const voteLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("voteRegisteredTitle", voteLang), body: sysMsg("voteRegisteredBody", voteLang) } }));
                
                const allAlivePlayers = players.filter((p: Player) => p.isAlive);
                const votedPlayers = Array.from(actions.votes.keys());
@@ -1725,7 +1822,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.mafiaKills.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
-               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Target Locked", body: `You have targeted ${target.name} for elimination.` } }));
+               const killLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", killLang), body: sysMsg("targetLockedBody", killLang, { name: target.name }) } }));
                
                if (phaseTimers.has(myRoomId)) { 
                  clearTimeout(phaseTimers.get(myRoomId)); 
@@ -1742,7 +1840,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.doctorSaves.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
-               ws.send(JSON.stringify({ type: 'notification', payload: { title: "Protection Applied", body: `You are protecting ${target.name} tonight.` } }));
+               const healLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", healLang), body: sysMsg("protectionAppliedBody", healLang, { name: target.name }) } }));
                
                if (phaseTimers.has(myRoomId)) { 
                  clearTimeout(phaseTimers.get(myRoomId)); 
@@ -1762,7 +1861,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
-                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: `The detective discovered the Mafia! ${target.name} was the killer. Civilians win!`, isSpectator: false });
+                  const detectiveLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
                   const instantWinHistory = gameHistory.get(myRoomId) || [];
                   instantWinHistory.push({ type: 'night', turn: room.turn, events: [{ type: 'detective_check', target: target.name, isMafia: true, detectiveId: me.id }] });
                   gameHistory.set(myRoomId, instantWinHistory);

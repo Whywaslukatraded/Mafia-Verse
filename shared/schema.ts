@@ -61,6 +61,7 @@ export const rooms = pgTable("rooms", {
     roomName?: string;
     showVoteResults?: boolean;
     showRoleReveal?: boolean;
+    language?: string;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
@@ -155,6 +156,10 @@ export type CreateRoomRequest = {
     mafiaDuration: number;
     doctorDuration: number;
     detectiveDuration: number;
+    roomName?: string;
+    showVoteResults?: boolean;
+    showRoleReveal?: boolean;
+    language?: string;
   };
 };
 

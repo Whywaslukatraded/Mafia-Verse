@@ -529,7 +529,7 @@ export default function Room() {
               <h2 className="text-4xl font-black text-foreground mb-2">{eliminationOverlay.name}</h2>
               {eliminationOverlay.role && (room?.settings as any)?.showRoleReveal !== false && (
                 <div className="inline-block bg-muted/50 border border-border px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-muted-foreground capitalize mb-4">
-                  {t("room.wasRole", { role: eliminationOverlay.role })}
+                  {t("room.wasRole", { role: t(`roleBadge.${eliminationOverlay.role}`) })}
                 </div>
               )}
               {eliminationOverlay.deathStory && (
@@ -756,23 +756,23 @@ export default function Room() {
                           className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
                             settingsDraft.showVoteResults ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
                         >
-                          {settingsDraft.showVoteResults ? "✓ Vote Results" : "Vote Results"}
+                          {settingsDraft.showVoteResults ? `✓ ${t("room.voteResultsLabel")}` : t("room.voteResultsLabel")}
                         </button>
                         <button
                           onClick={() => toggleSetting("showRoleReveal")}
                           className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all",
                             settingsDraft.showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
                         >
-                          {settingsDraft.showRoleReveal ? "✓ Role Reveal" : "Role Reveal"}
+                          {settingsDraft.showRoleReveal ? `✓ ${t("room.roleRevealLabel")}` : t("room.roleRevealLabel")}
                         </button>
                       </div>
                       <p className="text-[10px] text-muted-foreground/70">
-                        Voting is anonymous by default (you'll still see who died and who got voted out). Turn on Vote Results to reveal who voted for whom.
+                        {t("room.voteAnonymityExplainer")}
                       </p>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />
-                        Save Settings
+                        {t("room.saveSettings")}
                       </Button>
                     </div>
                   )}
