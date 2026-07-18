@@ -9,6 +9,37 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
+import rateLimit from "express-rate-limit";
+
+// Room creation: no more than 10 rooms per IP every 10 minutes — enough for
+// normal use (replays, multiple friend groups) but stops one person from
+// scripting hundreds of rooms.
+const roomCreateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many rooms created from this network. Please wait a few minutes and try again." },
+});
+
+// 2FA code verification: a 6-digit code only has 1,000,000 possibilities, so
+// this needs to be tight — 5 attempts per 15 minutes per IP.
+const twoFaVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many verification attempts. Please wait 15 minutes and try again." },
+});
+
+// Login (password + the 2FA-gated login step): also brute-forceable, same treatment.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please wait 15 minutes and try again." },
+});
 
 // Password hashing helpers
 function hashPassword(password: string): string {
@@ -1219,7 +1250,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/login-2fa", async (req, res) => {
+  app.post("/api/auth/login-2fa", loginLimiter, async (req, res) => {
     try {
       const { username, password, totpCode } = req.body;
       const user = await storage.getUserByUsername(username);
@@ -1346,7 +1377,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Sends a fresh login-time code to an already-configured email-2FA user.
   // TOTP users don't need this — their app generates codes on its own.
-  app.post("/api/auth/2fa/send-login-code", async (req, res) => {
+  app.post("/api/auth/2fa/send-login-code", twoFaVerifyLimiter, async (req, res) => {
     try {
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
@@ -1369,7 +1400,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/2fa/verify", async (req, res) => {
+  app.post("/api/auth/2fa/verify", twoFaVerifyLimiter, async (req, res) => {
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
@@ -1452,7 +1483,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post(api.rooms.create.path, async (req, res) => {
+  app.post(api.rooms.create.path, roomCreateLimiter, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
       const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
@@ -1912,8 +1943,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/reset-leaderboard", async (_req, res) => {
+  app.post("/api/reset-leaderboard", async (req, res) => {
     try {
+      const providedSecret = req.headers["x-admin-secret"];
+      const expectedSecret = process.env.ADMIN_SECRET;
+      if (!expectedSecret) {
+        return res.status(503).json({ error: "Admin actions are disabled: ADMIN_SECRET is not configured." });
+      }
+      if (providedSecret !== expectedSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       await storage.resetLeaderboard();
       res.json({ success: true });
     } catch (e: any) {
