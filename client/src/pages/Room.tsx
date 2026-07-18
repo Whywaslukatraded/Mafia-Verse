@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,7 @@ export default function Room() {
   const [hasRevealed, setHasRevealed] = useState(false);
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);
   const [lockedIn, setLockedIn] = useState(false);
+  const [reportedAfk, setReportedAfk] = useState<Set<number>>(new Set());
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
@@ -776,6 +777,12 @@ export default function Room() {
                       <p className="text-[10px] text-muted-foreground/70">
                         {t("room.voteAnonymityExplainer")}
                       </p>
+                      <p className="text-[10px] text-muted-foreground/70">
+                        {t("room.roleRevealExplainer")}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/70">
+                        {t("room.roleRevealExplainer")}
+                      </p>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />
@@ -803,27 +810,48 @@ export default function Room() {
                 <div className="grid grid-cols-auto gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
+                    const canReportAfk = room?.status === "day" && me?.isAlive && p.id !== me?.id && p.isAlive && !isSpectator;
                     return (
-                      <PlayerCard
-                        key={p.id}
-                        player={p}
-                        isMe={p.id === me?.id}
-                        canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
-                        interactionLabel={buttonState?.label}
-                        interactionVariant={buttonState?.variant}
-                        onInteract={() => {
-                          if (buttonState?.isNight) {
-                            setPendingNightAction({
-                              targetId: p.id,
-                              targetName: p.name,
-                              actionType: room?.phase || "",
-                            });
-                          } else if (buttonState?.action) {
-                            sendAction(buttonState.action);
-                          }
-                        }}
-                        revealedRole={room?.status === "ended" ? p.role : undefined}
-                      />
+                      <div key={p.id} className="relative">
+                        <PlayerCard
+                          player={p}
+                          isMe={p.id === me?.id}
+                          canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
+                          interactionLabel={buttonState?.label}
+                          interactionVariant={buttonState?.variant}
+                          onInteract={() => {
+                            if (buttonState?.isNight) {
+                              setPendingNightAction({
+                                targetId: p.id,
+                                targetName: p.name,
+                                actionType: room?.phase || "",
+                              });
+                            } else if (buttonState?.action) {
+                              sendAction(buttonState.action);
+                            }
+                          }}
+                          revealedRole={room?.status === "ended" ? p.role : undefined}
+                        />
+                        {canReportAfk && (
+                          <button
+                            title={reportedAfk.has(p.id) ? t("room.afkReported") : t("room.reportAfk")}
+                            disabled={reportedAfk.has(p.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sendAction({ type: "report_afk", targetId: p.id } as any);
+                              setReportedAfk((prev) => new Set(prev).add(p.id));
+                            }}
+                            className={cn(
+                              "absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full border flex items-center justify-center transition-colors z-10",
+                              reportedAfk.has(p.id)
+                                ? "bg-amber-500/30 border-amber-500/50 text-amber-400 cursor-default"
+                                : "bg-muted/80 border-border text-muted-foreground hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-amber-400"
+                            )}
+                          >
+                            <Flag className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

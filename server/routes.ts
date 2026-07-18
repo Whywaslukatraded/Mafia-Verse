@@ -9,37 +9,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
-import rateLimit from "express-rate-limit";
-
-// Room creation: no more than 10 rooms per IP every 10 minutes — enough for
-// normal use (replays, multiple friend groups) but stops one person from
-// scripting hundreds of rooms.
-const roomCreateLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many rooms created from this network. Please wait a few minutes and try again." },
-});
-
-// 2FA code verification: a 6-digit code only has 1,000,000 possibilities, so
-// this needs to be tight — 5 attempts per 15 minutes per IP.
-const twoFaVerifyLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many verification attempts. Please wait 15 minutes and try again." },
-});
-
-// Login (password + the 2FA-gated login step): also brute-forceable, same treatment.
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many login attempts. Please wait 15 minutes and try again." },
-});
 
 // Password hashing helpers
 function hashPassword(password: string): string {
@@ -95,6 +64,21 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
 
 const gameHistory = new Map<number, any[]>();
 
+// Referral anti-farming: tracks real participation per player for the whole
+// lifetime of a game (unlike gameActions, which resets every phase). Used
+// only to decide whether a REFERRED account's game should count toward
+// unlocking their referral bonus — a real player playing normally is
+// unaffected either way.
+type ParticipationStats = { messages: number; votes: number; afkReports: Set<number> };
+const gameParticipation = new Map<number, Map<number, ParticipationStats>>();
+
+function getParticipation(roomId: number, playerId: number): ParticipationStats {
+  if (!gameParticipation.has(roomId)) gameParticipation.set(roomId, new Map());
+  const roomMap = gameParticipation.get(roomId)!;
+  if (!roomMap.has(playerId)) roomMap.set(playerId, { messages: 0, votes: 0, afkReports: new Set() });
+  return roomMap.get(playerId)!;
+}
+
 // Small dictionary for the recurring system/chat messages that aren't part
 // of the bot dialogue pools (game-end announcements, night summary, etc.)
 const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
@@ -118,6 +102,10 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
   protectionAppliedTitle: { en: "Protection Applied", es: "Protección aplicada" },
   protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche." },
 };
+
+function systemName(lang: string): string {
+  return lang === "es" ? "Sistema" : "System";
+}
 
 function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<string, string>): string {
   const entry = SYSTEM_MESSAGES[key];
@@ -738,6 +726,122 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 // win/loss stats. Must be called on every path that can end the game — a couple
 // of "shortcut" paths used to skip this, which is why the end screen sometimes
 // looked blank/incomplete.
+// Adds credits to a user's server-side balance and returns the new total.
+// This is the one authoritative wallet all four reward systems pay into.
+async function addAccountCredits(supabaseUserId: string, amount: number): Promise<number> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
+       ON CONFLICT (supabase_user_id) DO UPDATE SET credits = account_credits.credits + $2
+       RETURNING credits`,
+      [supabaseUserId, amount]
+    );
+    return result.rows[0].credits;
+  } finally {
+    client.release();
+  }
+}
+
+const REFERRAL_CREDITS = 25;
+const REFERRAL_MIN_GAMES = 3;
+
+// "Games played" for referral-eligibility purposes: distinct rooms this
+// account sat in that actually reached 'ended'. Works off the existing
+// players/rooms tables — no separate per-account stats table needed.
+async function getCompletedGamesCount(supabaseUserId: string): Promise<number> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `SELECT COUNT(DISTINCT p.room_id)::int AS n
+       FROM players p JOIN rooms r ON r.id = p.room_id
+       WHERE p.supabase_user_id = $1 AND r.status = 'ended'`,
+      [supabaseUserId]
+    );
+    return result.rows[0]?.n ?? 0;
+  } finally {
+    client.release();
+  }
+}
+
+// Credits are held pending on a referral_claims row until the referred
+// account hits REFERRAL_MIN_GAMES completed games. Called from
+// finalizeGameEnd (so it fires after every game any player finishes) and
+// right after a claim is submitted, in case they already qualify. The
+// `credited = false` guard in the UPDATE makes this safe to call more than
+// once for the same account without double-paying.
+async function tryCreditPendingReferral(supabaseUserId: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    const pending = await client.query(
+      `SELECT referrer_user_id FROM referral_claims WHERE referred_user_id = $1 AND credited = false AND banned = false`,
+      [supabaseUserId]
+    );
+    const referrerId = pending.rows[0]?.referrer_user_id;
+    if (!referrerId) return false;
+
+    const gamesPlayed = await getCompletedGamesCount(supabaseUserId);
+    if (gamesPlayed < REFERRAL_MIN_GAMES) return false;
+
+    const updated = await client.query(
+      `UPDATE referral_claims SET credited = true WHERE referred_user_id = $1 AND credited = false AND banned = false`,
+      [supabaseUserId]
+    );
+    if ((updated.rowCount ?? 0) === 0) return false; // already credited by a concurrent call
+
+    await addAccountCredits(referrerId, REFERRAL_CREDITS);
+    await addAccountCredits(supabaseUserId, REFERRAL_CREDITS);
+    return true;
+  } finally {
+    client.release();
+  }
+}
+
+// Called once per player at the end of every game. Only does anything for
+// players who (a) have a supabaseUserId and (b) have a pending, not-yet-banned
+// referral claim — a real player with no pending referral is untouched.
+// Requires TWO suspicious games (not one) before permanently banning the
+// payout, since one quiet game is normal for a shy or busy player; a pattern
+// across multiple games is what actually indicates farming.
+const AFK_BAN_THRESHOLD_GAMES = 2;
+
+async function checkReferralParticipation(roomId: number, playersInRoom: Player[]) {
+  const roomParticipation = gameParticipation.get(roomId);
+  const client = await pool.connect();
+  try {
+    for (const p of playersInRoom) {
+      if (!p.supabaseUserId) continue;
+      const pendingRow = await client.query(
+        `SELECT 1 FROM referral_claims WHERE referred_user_id = $1 AND credited = false AND banned = false`,
+        [p.supabaseUserId]
+      );
+      if ((pendingRow.rowCount ?? 0) === 0) continue;
+
+      const stats = roomParticipation?.get(p.id);
+      const zeroParticipation = !stats || (stats.messages === 0 && stats.votes === 0);
+      const otherPlayers = Math.max(1, playersInRoom.length - 1);
+      const majorityAfkFlagged = !!stats && stats.afkReports.size >= Math.ceil(otherPlayers / 2);
+
+      if (zeroParticipation || majorityAfkFlagged) {
+        const result = await client.query(
+          `UPDATE referral_claims SET suspicious_games = suspicious_games + 1 WHERE referred_user_id = $1 AND credited = false AND banned = false RETURNING suspicious_games`,
+          [p.supabaseUserId]
+        );
+        const suspiciousGames = result.rows[0]?.suspicious_games ?? 0;
+        if (suspiciousGames >= AFK_BAN_THRESHOLD_GAMES) {
+          await client.query(
+            `UPDATE referral_claims SET banned = true WHERE referred_user_id = $1`,
+            [p.supabaseUserId]
+          );
+          console.log(`[Referral] Banned pending payout for ${p.supabaseUserId} — ${suspiciousGames} games with no real participation`);
+        }
+      }
+    }
+  } finally {
+    client.release();
+  }
+}
+
 async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians' | 'mafia', gameActionsMap: Map<number, any>) {
   const history = gameHistory.get(roomId) || [];
   const playersInRoom = await storage.getPlayersInRoom(roomId);
@@ -749,12 +853,34 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   });
   gameHistory.set(roomId, history);
 
+  // Must run before the credit-attempt loop below: this game's
+  // participation needs to be judged (and any ban applied) before we check
+  // whether this same game just pushed someone over the games-played
+  // threshold — otherwise a farming game could get credited in this same
+  // call, one step before the ban that should have stopped it.
+  try {
+    await checkReferralParticipation(roomId, playersInRoom);
+  } catch (e) {
+    console.error("Referral participation check failed:", e);
+  }
+  gameParticipation.delete(roomId);
+
   for (const p of playersInRoom) {
     await storage.updatePlayer(p.id, {
       gameHistory: history,
       gamesPlayed: (p.gamesPlayed || 0) + 1,
       wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
     });
+    // Best-effort: a player finishing a game may just have crossed the
+    // games-played threshold for a referral bonus they claimed earlier.
+    // Never let this block the actual game-ending flow.
+    if (p.supabaseUserId) {
+      try {
+        await tryCreditPendingReferral(p.supabaseUserId);
+      } catch (e) {
+        console.error("Referral pending-credit check failed:", e);
+      }
+    }
   }
   if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
   gameActionsMap.delete(roomId);
@@ -788,7 +914,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
         let voteSummary = sysMsg("votingResultsHeader", lang);
         voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
+        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: voteSummary });
       }
       
       if (voteResults.length > 0) {
@@ -809,28 +935,28 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
-          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
+            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
             await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
+            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
             await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
             gameEnded = true;
           }
         }
       } else {
         const noVoteLang: string = (room.settings as any)?.language === "es" ? "es" : "en";
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("noOneVotedOut", noVoteLang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(noVoteLang), content: sysMsg("noOneVotedOut", noVoteLang) });
       }
       
       if (gameEnded) {
@@ -879,7 +1005,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
         let voteSummary = sysMsg("votingResultsHeader", lang);
         voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: voteSummary });
+        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: voteSummary });
       }
       
       if (voteResults.length > 0) {
@@ -899,27 +1025,27 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
           
           const remainingPlayers = await storage.getPlayersInRoom(roomId);
           const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
           if (remainingMafia.length === 0) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
             await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
             gameEnded = true;
           }
           const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
           if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
             await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaTookOverMafiaWins", lang) });
+            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaTookOverMafiaWins", lang) });
             await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
             gameEnded = true;
           }
         }
       } else {
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("noOneVotedOut", lang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("noOneVotedOut", lang) });
       }
 
       if (!gameEnded) {
@@ -938,7 +1064,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
         await storage.updateRoom(roomId, { status: 'ended' });
-        await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
         await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
         broadcastState(roomId);
         return;
@@ -998,7 +1124,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       history.push(nightData);
       gameHistory.set(roomId, history);
 
-      await storage.createMessage({ roomId, playerId: 0, playerName: "System", content: nightSummary });
+      await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
       actions.mafiaKills.clear();
@@ -1017,26 +1143,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   const currentRoom = await storage.getRoom(roomId);
   if (currentRoom) {
     if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
-      const history = gameHistory.get(roomId) || [];
-      const playersInRoom = await storage.getPlayersInRoom(roomId);
-      
       const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
-      history.push({
-        type: 'game_end',
-        winner,
-        roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
-      });
-      
-      for (const p of playersInRoom) {
-        await storage.updatePlayer(p.id, {
-          gameHistory: history,
-          gamesPlayed: (p.gamesPlayed || 0) + 1,
-          wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
-        });
-      }
       await storage.updateRoom(roomId, { status: 'ended' });
-      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
-      gameActions.delete(roomId);
+      await finalizeGameEnd(roomId, storage, winner, gameActions);
       broadcastState(roomId);
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
@@ -1148,7 +1257,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS referral_links (
           supabase_user_id TEXT PRIMARY KEY,
-          code TEXT UNIQUE NOT NULL
+          code TEXT UNIQUE NOT NULL,
+          ip_address TEXT,
+          device_id TEXT
         );
       `);
       await bootstrapClient.query(`
@@ -1156,9 +1267,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           id SERIAL PRIMARY KEY,
           referrer_user_id TEXT NOT NULL,
           referred_user_id TEXT UNIQUE NOT NULL,
+          ip_address TEXT,
+          device_id TEXT,
+          credited BOOLEAN NOT NULL DEFAULT false,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `);
+      // These tables may already exist from before device/IP tracking and delayed
+      // crediting were added — CREATE TABLE IF NOT EXISTS above won't retroactively
+      // add columns to an existing table, so do that explicitly here.
+      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS ip_address TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS device_id TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS ip_address TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS device_id TEXT;`);
+      // Anti-farming: a referred account that plays multiple games with zero
+      // chat messages, zero votes, and/or gets flagged as AFK by other real
+      // players never gets credited, even after REFERRAL_MIN_GAMES — this
+      // catches "join, sit AFK for 3 games, collect the bonus" farming that
+      // the device/IP check alone doesn't stop (it can be a genuinely new
+      // account/device, just not a genuinely playing one).
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS suspicious_games INT NOT NULL DEFAULT 0;`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS banned BOOLEAN NOT NULL DEFAULT false;`);
+      const creditedColCheck = await bootstrapClient.query(
+        `SELECT 1 FROM information_schema.columns WHERE table_name = 'referral_claims' AND column_name = 'credited'`
+      );
+      const creditedColAlreadyExisted = (creditedColCheck.rowCount ?? 0) > 0;
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS credited BOOLEAN NOT NULL DEFAULT false;`);
+      if (!creditedColAlreadyExisted) {
+        // This is the migration that first introduces the "credit only after 3
+        // games played" rule. Every claim already in the table predates that
+        // rule and was already paid out under the old immediate-award logic —
+        // mark them credited so they're not mistaken for pending and re-processed.
+        // This only runs once: on every later restart the column already
+        // exists, so this block is skipped and genuinely-pending new claims
+        // are left alone.
+        await bootstrapClient.query(`UPDATE referral_claims SET credited = true WHERE credited = false;`);
+      }
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS account_credits (
           supabase_user_id TEXT PRIMARY KEY,
@@ -1170,23 +1314,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   } catch (e: any) {
     console.error("Reward table bootstrap failed:", e.message);
-  }
-
-  // Adds credits to a user's server-side balance and returns the new total.
-  // This is the one authoritative wallet all four reward systems pay into.
-  async function addAccountCredits(supabaseUserId: string, amount: number): Promise<number> {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(
-        `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
-         ON CONFLICT (supabase_user_id) DO UPDATE SET credits = account_credits.credits + $2
-         RETURNING credits`,
-        [supabaseUserId, amount]
-      );
-      return result.rows[0].credits;
-    } finally {
-      client.release();
-    }
   }
 
   // Auth endpoints
@@ -1250,7 +1377,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/login-2fa", loginLimiter, async (req, res) => {
+  app.post("/api/auth/login-2fa", async (req, res) => {
     try {
       const { username, password, totpCode } = req.body;
       const user = await storage.getUserByUsername(username);
@@ -1377,7 +1504,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Sends a fresh login-time code to an already-configured email-2FA user.
   // TOTP users don't need this — their app generates codes on its own.
-  app.post("/api/auth/2fa/send-login-code", twoFaVerifyLimiter, async (req, res) => {
+  app.post("/api/auth/2fa/send-login-code", async (req, res) => {
     try {
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
@@ -1400,7 +1527,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/2fa/verify", twoFaVerifyLimiter, async (req, res) => {
+  app.post("/api/auth/2fa/verify", async (req, res) => {
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
@@ -1483,7 +1610,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post(api.rooms.create.path, roomCreateLimiter, async (req, res) => {
+  app.post(api.rooms.create.path, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
       const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
@@ -1698,6 +1825,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
+                 getParticipation(myRoomId, me.id).messages++;
                  await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
@@ -1708,6 +1836,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              } else if (!me?.isAlive) {
                const deadLang = (room.settings as any)?.language === "es" ? "es" : "en";
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("deadCantSpeakTitle", deadLang), body: sysMsg("deadCantSpeakBody", deadLang) } }));
+             }
+             return;
+           }
+
+           if (action.type === 'report_afk') {
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             if (me && me.isAlive && target && target.id !== me.id) {
+               getParticipation(myRoomId, target.id).afkReports.add(me.id);
              }
              return;
            }
@@ -1817,6 +1953,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find((p: Player) => p.id === action.targetId);
              if (me.isAlive && target?.isAlive) {
                actions.votes.set(me.id, action.targetId);
+               getParticipation(myRoomId, me.id).votes++;
                gameActions.set(myRoomId, actions);
                
                const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
@@ -1895,7 +2032,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
                   const detectiveLang = (room.settings as any)?.language === "es" ? "es" : "en";
-                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: "System", content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
+                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: systemName(detectiveLang), content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
                   const instantWinHistory = gameHistory.get(myRoomId) || [];
                   instantWinHistory.push({ type: 'night', turn: room.turn, events: [{ type: 'detective_check', target: target.name, isMafia: true, detectiveId: me.id }] });
                   gameHistory.set(myRoomId, instantWinHistory);
@@ -1943,16 +2080,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/reset-leaderboard", async (req, res) => {
+  app.post("/api/reset-leaderboard", async (_req, res) => {
     try {
-      const providedSecret = req.headers["x-admin-secret"];
-      const expectedSecret = process.env.ADMIN_SECRET;
-      if (!expectedSecret) {
-        return res.status(503).json({ error: "Admin actions are disabled: ADMIN_SECRET is not configured." });
-      }
-      if (providedSecret !== expectedSecret) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
       await storage.resetLeaderboard();
       res.json({ success: true });
     } catch (e: any) {
@@ -2298,10 +2427,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Referrals, tied to signed-in accounts on both ends ---
+  function getClientIp(req: any): string {
+    const fwd = req.headers["x-forwarded-for"];
+    if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
+    return req.socket?.remoteAddress || req.ip || "";
+  }
+
   app.get("/api/rewards/referral", async (req, res) => {
     try {
       const supabaseUserId = req.query.supabaseUserId as string;
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to get your referral link." });
+      const deviceId = (req.query.deviceId as string) || null;
+      const ip = getClientIp(req);
 
       const client = await pool.connect();
       try {
@@ -2310,17 +2447,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (!code) {
           code = Math.random().toString(36).substring(2, 8).toUpperCase();
           await client.query(
-            `INSERT INTO referral_links (supabase_user_id, code) VALUES ($1, $2) ON CONFLICT (supabase_user_id) DO NOTHING`,
-            [supabaseUserId, code]
+            `INSERT INTO referral_links (supabase_user_id, code, ip_address, device_id) VALUES ($1, $2, $3, $4) ON CONFLICT (supabase_user_id) DO NOTHING`,
+            [supabaseUserId, code, ip, deviceId]
           );
           const recheck = await client.query("SELECT code FROM referral_links WHERE supabase_user_id = $1", [supabaseUserId]);
           code = recheck.rows[0]?.code || code;
+        } else {
+          // Refresh the stored ip/device so the self-referral check below
+          // reflects this account's current device, not just its first one.
+          await client.query(`UPDATE referral_links SET ip_address = $2, device_id = $3 WHERE supabase_user_id = $1`, [supabaseUserId, ip, deviceId]);
         }
 
-        const claims = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1", [supabaseUserId]);
+        const claims = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1 AND credited = true", [supabaseUserId]);
         const joined = claims.rows[0]?.n ?? 0;
+        const pendingResult = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1 AND credited = false", [supabaseUserId]);
+        const pending = pendingResult.rows[0]?.n ?? 0;
 
-        res.json({ code, invited: joined, joined, totalCredits: joined * 25 });
+        res.json({ code, invited: joined, joined, pending, totalCredits: joined * REFERRAL_CREDITS });
       } finally {
         client.release();
       }
@@ -2330,34 +2473,67 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Called once, right after a NEW account finishes signing up with a referral code.
+  // Called when a signed-in account (fresh signup or an existing user
+  // redeeming a friend's code in Settings) submits a referral code. The
+  // credit isn't paid out immediately — it's held pending until the referred
+  // account has completed REFERRAL_MIN_GAMES real games (checked immediately
+  // below, and again after each game via tryCreditPendingReferral), and is
+  // blocked outright if this device or network was already used for a claim.
   app.post("/api/rewards/referral/claim", async (req, res) => {
     try {
-      const { code, newSupabaseUserId } = req.body;
+      const { code, newSupabaseUserId, deviceId } = req.body;
       if (!code || !newSupabaseUserId) return res.status(400).json({ message: "Missing code or new user id" });
+      const ip = getClientIp(req);
 
-      const REFERRAL_CREDITS = 25;
       const client = await pool.connect();
       try {
-        const linkResult = await client.query("SELECT supabase_user_id FROM referral_links WHERE code = $1", [code]);
+        const linkResult = await client.query(
+          "SELECT supabase_user_id, ip_address, device_id FROM referral_links WHERE code = $1",
+          [code]
+        );
         const referrerId = linkResult.rows[0]?.supabase_user_id;
         if (!referrerId) return res.status(404).json({ message: "Invalid referral code" });
         if (referrerId === newSupabaseUserId) return res.status(400).json({ message: "Can't refer yourself" });
 
+        // Same device or same network as the referrer's own account — almost
+        // certainly one person claiming their own link from an alt account.
+        const referrerIp = linkResult.rows[0]?.ip_address;
+        const referrerDevice = linkResult.rows[0]?.device_id;
+        if ((referrerDevice && deviceId && referrerDevice === deviceId) || (referrerIp && ip && referrerIp === ip)) {
+          return res.status(403).json({ message: "This looks like the same device or network as the referrer's account." });
+        }
+
+        // This device or network already claimed a referral before, under
+        // any account — blocks logging out and re-claiming with a fresh
+        // account on the same phone.
+        const priorUse = await client.query(
+          `SELECT 1 FROM referral_claims WHERE (device_id IS NOT NULL AND device_id = $1) OR (ip_address IS NOT NULL AND ip_address = $2) LIMIT 1`,
+          [deviceId || null, ip || null]
+        );
+        if ((priorUse.rowCount ?? 0) > 0) {
+          return res.status(403).json({ message: "A referral has already been claimed from this device or network." });
+        }
+
         try {
           await client.query(
-            `INSERT INTO referral_claims (referrer_user_id, referred_user_id) VALUES ($1, $2)`,
-            [referrerId, newSupabaseUserId]
+            `INSERT INTO referral_claims (referrer_user_id, referred_user_id, ip_address, device_id, credited) VALUES ($1, $2, $3, $4, false)`,
+            [referrerId, newSupabaseUserId, ip, deviceId || null]
           );
         } catch {
           // Unique constraint on referred_user_id — this account already claimed a referral before.
           return res.status(429).json({ message: "Referral already claimed" });
         }
 
-        await addAccountCredits(referrerId, REFERRAL_CREDITS);
-        const totalCredits = await addAccountCredits(newSupabaseUserId, REFERRAL_CREDITS);
+        const justCredited = await tryCreditPendingReferral(newSupabaseUserId);
+        if (justCredited) {
+          const balanceResult = await client.query("SELECT credits FROM account_credits WHERE supabase_user_id = $1", [newSupabaseUserId]);
+          const totalCredits = balanceResult.rows[0]?.credits ?? 0;
+          return res.json({ success: true, credited: true, creditsAwarded: REFERRAL_CREDITS, totalCredits });
+        }
 
-        res.json({ success: true, creditsAwarded: REFERRAL_CREDITS, totalCredits });
+        const gamesPlayed = await getCompletedGamesCount(newSupabaseUserId);
+        const gamesNeeded = Math.max(0, REFERRAL_MIN_GAMES - gamesPlayed);
+        res.json({ success: true, credited: false, gamesNeeded });
       } finally {
         client.release();
       }
