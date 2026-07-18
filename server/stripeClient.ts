@@ -6,8 +6,9 @@ async function getStripeCredentials(): Promise<{ secretKey: string; publishableK
   // 1. Use explicit keys from secrets if available
   const envSecret = process.env.STRIPE_SECRET_KEY;
   const envPublishable = process.env.STRIPE_PUBLISHABLE_KEY;
+  const envWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (envSecret && envPublishable) {
-    return { secretKey: envSecret, publishableKey: envPublishable };
+    return { secretKey: envSecret, publishableKey: envPublishable, webhookSecret: envWebhookSecret };
   }
 
   // 2. Fall back to the Replit Stripe connector
@@ -84,13 +85,21 @@ let stripeSync: StripeSync | null = null;
 export async function getStripeSync(): Promise<StripeSync> {
   if (!stripeSync) {
     const { StripeSync } = await import("stripe-replit-sync");
-    const secretKey = await getStripeSecretKey();
+    const { secretKey, webhookSecret } = await getStripeCredentials();
+    if (!webhookSecret) {
+      throw new Error(
+        "STRIPE_WEBHOOK_SECRET is not set. Webhook signature verification " +
+        "cannot run without it — set it in your environment variables " +
+        "(copy the signing secret from your Stripe webhook/event destination)."
+      );
+    }
     stripeSync = new StripeSync({
       poolConfig: {
         connectionString: process.env.DATABASE_URL!,
         max: 2,
       },
       stripeSecretKey: secretKey,
+      stripeWebhookSecret: webhookSecret,
     });
   }
   return stripeSync;
