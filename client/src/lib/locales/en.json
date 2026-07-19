@@ -243,7 +243,8 @@
       "kill": "Kill",
       "protect": "Protect",
       "investigate": "Investigate",
-      "act": "Act"
+      "act": "Act",
+      "shoot": "Shoot"
     },
     "voted": "Voted",
     "vote": "Vote",
@@ -330,7 +331,19 @@
       "{name} discovered that 'danger' signs on construction sites are not suggestions.",
       "While exploring an old cave, {name} woke up a colony of very territorial bats.",
       "{name} attempted to surf a tsunami on a piece of plywood."
-    ]
+    ],
+    "bodyguardNightTime": "Bodyguard Night Time (sec)",
+    "vigilanteNightTime": "Vigilante Night Time (sec)",
+    "jesterGoalTitle": "Goal: Get Executed",
+    "jesterGoalBody": "You win the moment the town votes you out — you don't need to survive to the end.",
+    "mayorRevealButton": "Reveal Identity (doubles your vote)",
+    "tooManySpecialRoles": "Too many special roles",
+    "tooManySpecialRolesDescription": "Leave room for at least one civilian, based on the current number of players.",
+    "settingsUpdated": "Settings updated",
+    "specialRolesCount": "Special roles: {{count}} / {{total}} players",
+    "leaveRoomForCivilian": "Leave room for at least 1 civilian",
+    "gameSettings": "Game Settings",
+    "closeSettings": "Close Settings"
   },
   "settings": {
     "title": "Settings",
@@ -623,7 +636,11 @@
     "mafia": "Mafia",
     "detective": "Detective",
     "doctor": "Doctor",
-    "civilian": "Civilian"
+    "civilian": "Civilian",
+    "bodyguard": "Bodyguard",
+    "vigilante": "Vigilante",
+    "mayor": "Mayor",
+    "jester": "Jester"
   },
   "phaseIndicator": {
     "waitingLobby": "Waiting Lobby",
@@ -646,14 +663,19 @@
       "mafia": "MAFIA",
       "detective": "DETECTIVE",
       "doctor": "DOCTOR",
-      "civilian": "CIVILIAN"
+      "civilian": "CIVILIAN",
+      "bodyguard": "Bodyguard",
+      "vigilante": "Vigilante",
+      "mayor": "Mayor",
+      "jester": "Jester"
     },
     "unknown": "Unknown",
     "host": "Host",
     "bot": "BOT",
     "you": "(You)",
     "roleEliminated": "{{role}} — Eliminated",
-    "eliminated": "Eliminated"
+    "eliminated": "Eliminated",
+    "revealed": "Revealed"
   },
   "chat": {
     "quickMessages": [

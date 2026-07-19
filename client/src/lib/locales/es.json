@@ -243,7 +243,8 @@
       "kill": "Matar",
       "protect": "Proteger",
       "investigate": "Investigar",
-      "act": "Actuar"
+      "act": "Actuar",
+      "shoot": "Disparar"
     },
     "voted": "Votado",
     "vote": "Votar",
@@ -330,7 +331,19 @@
       "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
       "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
       "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada."
-    ]
+    ],
+    "bodyguardNightTime": "Tiempo nocturno del guardaespaldas (seg)",
+    "vigilanteNightTime": "Tiempo nocturno del vigilante (seg)",
+    "jesterGoalTitle": "Objetivo: Ser ejecutado",
+    "jesterGoalBody": "Ganas en el momento en que el pueblo te elimine por votación — no necesitas sobrevivir hasta el final.",
+    "mayorRevealButton": "Revelar identidad (duplica tu voto)",
+    "tooManySpecialRoles": "Demasiados roles especiales",
+    "tooManySpecialRolesDescription": "Deja espacio para al menos un civil, según el número actual de jugadores.",
+    "settingsUpdated": "Ajustes actualizados",
+    "specialRolesCount": "Roles especiales: {{count}} / {{total}} jugadores",
+    "leaveRoomForCivilian": "Deja espacio para al menos 1 civil",
+    "gameSettings": "Ajustes de partida",
+    "closeSettings": "Cerrar ajustes"
   },
   "settings": {
     "title": "Ajustes",
@@ -623,7 +636,11 @@
     "mafia": "Mafioso",
     "detective": "Detective",
     "doctor": "Médico",
-    "civilian": "Civil"
+    "civilian": "Civil",
+    "bodyguard": "Guardaespaldas",
+    "vigilante": "Vigilante",
+    "mayor": "Alcalde",
+    "jester": "Bufón"
   },
   "phaseIndicator": {
     "waitingLobby": "Sala de espera",
@@ -646,14 +663,19 @@
       "mafia": "MAFIOSO",
       "detective": "DETECTIVE",
       "doctor": "MÉDICO",
-      "civilian": "CIVIL"
+      "civilian": "CIVIL",
+      "bodyguard": "Guardaespaldas",
+      "vigilante": "Vigilante",
+      "mayor": "Alcalde",
+      "jester": "Bufón"
     },
     "unknown": "Desconocido",
     "host": "Anfitrión",
     "bot": "BOT",
     "you": "(Tú)",
     "roleEliminated": "{{role}} — Eliminado",
-    "eliminated": "Eliminado"
+    "eliminated": "Eliminado",
+    "revealed": "Revelado"
   },
   "chat": {
     "quickMessages": [

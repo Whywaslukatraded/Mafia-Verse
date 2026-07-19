@@ -243,4 +243,6 @@ export type GameState = {
   players: Player[];
   messages: Message[];
   me?: Player;
+  revealedMayorIds?: number[];
+  myBullets?: number;
 };

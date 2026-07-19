@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Skull, Crown, Ghost, X, Shield } from "lucide-react";
+import { Heart, Skull, Crown, Ghost, X, Shield, ShieldCheck, Crosshair, Landmark, Drama } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Player } from "@shared/schema";
@@ -14,6 +14,9 @@ interface PlayerCardProps {
   onInteract?: () => void;
   onRemove?: () => void;
   revealedRole?: string | null;
+  // Shown only on the current player's own card, when relevant to their role.
+  myBulletsLeft?: number;
+  myMayorRevealed?: boolean;
 }
 
 const ROLE_COSMETICS_META: Record<string, { border: string; glow: string; bg: string; icon: any; iconColor: string; labelKey: string }> = {
@@ -49,6 +52,38 @@ const ROLE_COSMETICS_META: Record<string, { border: string; glow: string; bg: st
     iconColor: "text-muted-foreground/40",
     labelKey: "civilian"
   },
+  bodyguard: {
+    border: "border-slate-400/60",
+    glow: "shadow-[0_0_20px_rgba(148,163,184,0.25)]",
+    bg: "bg-slate-800/30",
+    icon: ShieldCheck,
+    iconColor: "text-slate-300",
+    labelKey: "bodyguard"
+  },
+  vigilante: {
+    border: "border-orange-500/60",
+    glow: "shadow-[0_0_20px_rgba(249,115,22,0.25)]",
+    bg: "bg-orange-950/30",
+    icon: Crosshair,
+    iconColor: "text-orange-400",
+    labelKey: "vigilante"
+  },
+  mayor: {
+    border: "border-purple-500/60",
+    glow: "shadow-[0_0_20px_rgba(168,85,247,0.25)]",
+    bg: "bg-purple-950/30",
+    icon: Landmark,
+    iconColor: "text-purple-400",
+    labelKey: "mayor"
+  },
+  jester: {
+    border: "border-pink-500/60",
+    glow: "shadow-[0_0_20px_rgba(236,72,153,0.25)]",
+    bg: "bg-pink-950/30",
+    icon: Drama,
+    iconColor: "text-pink-400",
+    labelKey: "jester"
+  },
 };
 
 export function PlayerCard({ 
@@ -59,7 +94,9 @@ export function PlayerCard({
   interactionVariant = "default",
   onInteract,
   onRemove,
-  revealedRole 
+  revealedRole,
+  myBulletsLeft,
+  myMayorRevealed,
 }: PlayerCardProps) {
   const { t } = useTranslation();
   // Determine which role cosmetic to apply
@@ -142,6 +179,16 @@ export function PlayerCard({
           {player.name}
           {player.isBot && <span className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
           {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">{t("playerCard.you")}</span>}
+          {isMe && typeof myBulletsLeft === "number" && (
+            <span className="ml-1 text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-bold">
+              🔫 {myBulletsLeft}/2
+            </span>
+          )}
+          {isMe && myMayorRevealed && (
+            <span className="ml-1 text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold">
+              {t("playerCard.revealed")}
+            </span>
+          )}
         </h3>
         
         {/* Revealed Role or Status */}

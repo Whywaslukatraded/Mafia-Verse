@@ -9,6 +9,37 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
+import rateLimit from "express-rate-limit";
+
+// Room creation: no more than 10 rooms per IP every 10 minutes — enough for
+// normal use (replays, multiple friend groups) but stops one person from
+// scripting hundreds of rooms.
+const roomCreateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many rooms created from this network. Please wait a few minutes and try again." },
+});
+
+// 2FA code verification: a 6-digit code only has 1,000,000 possibilities, so
+// this needs to be tight — 5 attempts per 15 minutes per IP.
+const twoFaVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many verification attempts. Please wait 15 minutes and try again." },
+});
+
+// Login (password + the 2FA-gated login step): also brute-forceable, same treatment.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please wait 15 minutes and try again." },
+});
 
 // Password hashing helpers
 function hashPassword(password: string): string {
@@ -29,6 +60,10 @@ function assignRoles(players: Player[], settings: any) {
   for (let i = 0; i < settings.mafiaCount; i++) roles.push("mafia");
   for (let i = 0; i < settings.detectiveCount; i++) roles.push("detective");
   for (let i = 0; i < settings.doctorCount; i++) roles.push("doctor");
+  for (let i = 0; i < (settings.bodyguardCount || 0); i++) roles.push("bodyguard");
+  for (let i = 0; i < (settings.vigilanteCount || 0); i++) roles.push("vigilante");
+  for (let i = 0; i < (settings.mayorCount || 0); i++) roles.push("mayor");
+  for (let i = 0; i < (settings.jesterCount || 0); i++) roles.push("jester");
   while (roles.length < players.length) roles.push("civilian");
 
   for (let i = roles.length - 1; i > 0; i--) {
@@ -48,14 +83,14 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
   const isUnique = roleCount <= 1;
 
   if (lang === "es") {
-    const esRole: Record<string, string> = { mafia: "mafioso", detective: "detective", doctor: "médico", civilian: "civil" };
+    const esRole: Record<string, string> = { mafia: "mafioso", detective: "detective", doctor: "médico", civilian: "civil", bodyguard: "guardaespaldas", vigilante: "vigilante", mayor: "alcalde", jester: "bufón" };
     const name = esRole[role] || role;
     const article = isUnique ? "el" : "un";
     const verb = action === "killed" ? "fue asesinado" : "fue eliminado por votación";
     return `${victimName} ${verb}. Era ${article} ${name}.`;
   }
 
-  const enRole: Record<string, string> = { mafia: "mafia", detective: "detective", doctor: "doctor", civilian: "civilian" };
+  const enRole: Record<string, string> = { mafia: "mafia", detective: "detective", doctor: "doctor", civilian: "civilian", bodyguard: "bodyguard", vigilante: "vigilante", mayor: "mayor", jester: "jester" };
   const name = enRole[role] || role;
   const article = isUnique ? "the" : (/^[aeiou]/i.test(name) ? "an" : "a");
   const verb = action === "killed" ? "was killed" : "was voted out";
@@ -64,20 +99,25 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
 
 const gameHistory = new Map<number, any[]>();
 
-// Referral anti-farming: tracks real participation per player for the whole
-// lifetime of a game (unlike gameActions, which resets every phase). Used
-// only to decide whether a REFERRED account's game should count toward
-// unlocking their referral bonus — a real player playing normally is
-// unaffected either way.
-type ParticipationStats = { messages: number; votes: number; afkReports: Set<number> };
-const gameParticipation = new Map<number, Map<number, ParticipationStats>>();
-
-function getParticipation(roomId: number, playerId: number): ParticipationStats {
-  if (!gameParticipation.has(roomId)) gameParticipation.set(roomId, new Map());
-  const roomMap = gameParticipation.get(roomId)!;
-  if (!roomMap.has(playerId)) roomMap.set(playerId, { messages: 0, votes: 0, afkReports: new Set() });
-  return roomMap.get(playerId)!;
+// Per-game activity, used only to gate referral payouts (see "Referral
+// fraud prevention" below). Cleared in finalizeGameEnd alongside gameActions.
+const gameActivity = new Map<number, Map<number, { messages: number; votes: number }>>();
+function bumpActivity(roomId: number, playerId: number, field: "messages" | "votes") {
+  if (!gameActivity.has(roomId)) gameActivity.set(roomId, new Map());
+  const roomMap = gameActivity.get(roomId)!;
+  if (!roomMap.has(playerId)) roomMap.set(playerId, { messages: 0, votes: 0 });
+  roomMap.get(playerId)![field]++;
 }
+
+// Distinct reporters per (room, target) this game. 2+ different reporters in
+// the same game counts as one confirmed AFK incident on that account.
+const afkReports = new Map<number, Map<number, Set<number>>>();
+
+// New-role state (Vigilante/Mayor/Bodyguard), all per-room, reset when a
+// fresh game starts and cleared when it ends.
+const vigilanteBullets = new Map<number, Map<number, number>>();       // roomId -> playerId -> bullets left (starts at 2)
+const mayorRevealed = new Map<number, Set<number>>();                  // roomId -> set of playerIds who've revealed
+const vigilanteGuiltPending = new Map<number, number>();               // roomId -> vigilante playerId who must die from guilt next night
 
 // Small dictionary for the recurring system/chat messages that aren't part
 // of the bot dialogue pools (game-end announcements, night summary, etc.)
@@ -91,6 +131,15 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
   mafiaFailedDoctorSaved: { en: "The mafia tried to kill someone, but the doctor saved them!", es: "La mafia intentó matar a alguien, ¡pero el médico lo salvó!" },
   nothingHappenedNight: { en: "Nothing happened during the night.", es: "No pasó nada durante la noche." },
   nightHasEnded: { en: "The night has ended. ", es: "La noche ha terminado. " },
+  bodyguardDied: { en: "{name} threw themselves in front of an attack protecting someone — and died a hero. ", es: "{name} se interpuso en un ataque para proteger a alguien y murió como un héroe. " },
+  attackerRetaliated: { en: "The attacker didn't survive the counterattack. ", es: "El atacante no sobrevivió al contraataque. " },
+  vigilanteGuiltDied: { en: "{name} couldn't live with shooting an innocent person and died of guilt.", es: "{name} no pudo vivir con haber disparado a un inocente y murió de culpa." },
+  jesterWinsTitle: { en: "The Jester Wins!", es: "¡El bufón gana!" },
+  jesterWinsBody: { en: "{name} wanted to be voted out, and it worked! The Jester wins on their own — the game continues for everyone else.", es: "¡{name} quería ser eliminado por votación, y funcionó! El bufón gana por su cuenta — el juego continúa para los demás." },
+  mayorRevealedTitle: { en: "The Mayor Has Revealed!", es: "¡El alcalde se ha revelado!" },
+  mayorRevealedBody: { en: "{name} publicly revealed as the Mayor! Their vote now counts double — but they can no longer be healed or protected.", es: "¡{name} se reveló públicamente como el alcalde! Su voto ahora cuenta doble, pero ya no puede ser curado ni protegido." },
+  cannotTargetRevealedMayor: { en: "The Mayor has revealed and can no longer be healed or protected.", es: "El alcalde se ha revelado y ya no puede ser curado ni protegido." },
+  noBulletsLeft: { en: "You're out of bullets.", es: "Te quedaste sin balas." },
   targetLockedTitle: { en: "Target Locked", es: "Objetivo bloqueado" },
   targetLockedBody: { en: "You have targeted {name} for elimination.", es: "Has marcado a {name} para la eliminación." },
   chatErrorTitle: { en: "Error", es: "Error" },
@@ -103,10 +152,6 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
   protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche." },
 };
 
-function systemName(lang: string): string {
-  return lang === "es" ? "Sistema" : "System";
-}
-
 function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<string, string>): string {
   const entry = SYSTEM_MESSAGES[key];
   let text = lang === "es" ? entry.es : entry.en;
@@ -114,6 +159,12 @@ function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<s
     for (const [k, v] of Object.entries(vars)) text = text.split(`{${k}}`).join(v);
   }
   return text;
+}
+
+// Matches common.systemName in en.json/es.json — the display name shown on
+// system chat messages (deaths, vote results, etc.), localized per room.
+function sysName(lang: string | undefined): string {
+  return lang === "es" ? "Sistema" : "System";
 }
 
 
@@ -641,7 +692,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
-  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
 
   for (const bot of bots) {
     const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
@@ -678,6 +729,17 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       actions.mafiaKills.set(bot.id, target.id);
     } else if (room.phase === 'doctor' && bot.role === 'doctor') {
       actions.doctorSaves.set(bot.id, target.id);
+    } else if (room.phase === 'bodyguard' && bot.role === 'bodyguard') {
+      actions.guards.set(bot.id, target.id); // target already excludes bot itself
+    } else if (room.phase === 'vigilante' && bot.role === 'vigilante') {
+      const bulletsLeft = vigilanteBullets.get(roomId)?.get(bot.id) ?? 0;
+      // Bots are conservative with their 2 bullets — only shoot about a third of the time.
+      if (bulletsLeft > 0 && Math.random() > 0.65) {
+        actions.shots.set(bot.id, target.id);
+        const bulletsMap = vigilanteBullets.get(roomId) || new Map<number, number>();
+        bulletsMap.set(bot.id, bulletsLeft - 1);
+        vigilanteBullets.set(roomId, bulletsMap);
+      }
     }
 
     if (Math.random() > 0.35) {
@@ -744,99 +806,76 @@ async function addAccountCredits(supabaseUserId: string, amount: number): Promis
 }
 
 const REFERRAL_CREDITS = 25;
-const REFERRAL_MIN_GAMES = 3;
+// A referred account needs this many games with real participation (at least
+// one chat message AND one vote) before its referral can pay out.
+const REFERRAL_MIN_ACTIVE_GAMES = 2;
 
-// "Games played" for referral-eligibility purposes: distinct rooms this
-// account sat in that actually reached 'ended'. Works off the existing
-// players/rooms tables — no separate per-account stats table needed.
-async function getCompletedGamesCount(supabaseUserId: string): Promise<number> {
+// Called once per game per signed-in player. Records whether they actually
+// participated (vs. sitting AFK the whole game) and whether anyone flagged
+// them as AFK, onto their persistent account record.
+async function updateAccountActivity(supabaseUserId: string, hadRealActivity: boolean, afkIncident: boolean): Promise<void> {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      `SELECT COUNT(DISTINCT p.room_id)::int AS n
-       FROM players p JOIN rooms r ON r.id = p.room_id
-       WHERE p.supabase_user_id = $1 AND r.status = 'ended'`,
-      [supabaseUserId]
+    await client.query(
+      `INSERT INTO account_activity (supabase_user_id, games_completed, games_with_activity, afk_reports)
+       VALUES ($1, 1, $2, $3)
+       ON CONFLICT (supabase_user_id) DO UPDATE SET
+         games_completed = account_activity.games_completed + 1,
+         games_with_activity = account_activity.games_with_activity + $2,
+         afk_reports = account_activity.afk_reports + $3`,
+      [supabaseUserId, hadRealActivity ? 1 : 0, afkIncident ? 1 : 0]
     );
-    return result.rows[0]?.n ?? 0;
   } finally {
     client.release();
   }
 }
 
-// Credits are held pending on a referral_claims row until the referred
-// account hits REFERRAL_MIN_GAMES completed games. Called from
-// finalizeGameEnd (so it fires after every game any player finishes) and
-// right after a claim is submitted, in case they already qualify. The
-// `credited = false` guard in the UPDATE makes this safe to call more than
-// once for the same account without double-paying.
-async function tryCreditPendingReferral(supabaseUserId: string): Promise<boolean> {
+// Checks whether a pending referral claim for this (newly-referred) account
+// can now be resolved, and pays out both sides if so. Safe to call after
+// every game — it's a no-op unless there's a pending claim for this account.
+async function tryResolveReferralClaim(referredUserId: string): Promise<void> {
   const client = await pool.connect();
   try {
-    const pending = await client.query(
-      `SELECT referrer_user_id FROM referral_claims WHERE referred_user_id = $1 AND credited = false AND banned = false`,
-      [supabaseUserId]
+    const claimResult = await client.query(
+      `SELECT id, referrer_user_id, signup_ip, signup_device_id, status FROM referral_claims WHERE referred_user_id = $1`,
+      [referredUserId]
     );
-    const referrerId = pending.rows[0]?.referrer_user_id;
-    if (!referrerId) return false;
+    const claim = claimResult.rows[0];
+    if (!claim || claim.status !== 'pending') return;
 
-    const gamesPlayed = await getCompletedGamesCount(supabaseUserId);
-    if (gamesPlayed < REFERRAL_MIN_GAMES) return false;
-
-    const updated = await client.query(
-      `UPDATE referral_claims SET credited = true WHERE referred_user_id = $1 AND credited = false AND banned = false`,
-      [supabaseUserId]
+    const activityResult = await client.query(
+      `SELECT games_with_activity, afk_reports FROM account_activity WHERE supabase_user_id = $1`,
+      [referredUserId]
     );
-    if ((updated.rowCount ?? 0) === 0) return false; // already credited by a concurrent call
+    const activity = activityResult.rows[0] || { games_with_activity: 0, afk_reports: 0 };
 
-    await addAccountCredits(referrerId, REFERRAL_CREDITS);
-    await addAccountCredits(supabaseUserId, REFERRAL_CREDITS);
-    return true;
-  } finally {
-    client.release();
-  }
-}
-
-// Called once per player at the end of every game. Only does anything for
-// players who (a) have a supabaseUserId and (b) have a pending, not-yet-banned
-// referral claim — a real player with no pending referral is untouched.
-// Requires TWO suspicious games (not one) before permanently banning the
-// payout, since one quiet game is normal for a shy or busy player; a pattern
-// across multiple games is what actually indicates farming.
-const AFK_BAN_THRESHOLD_GAMES = 2;
-
-async function checkReferralParticipation(roomId: number, playersInRoom: Player[]) {
-  const roomParticipation = gameParticipation.get(roomId);
-  const client = await pool.connect();
-  try {
-    for (const p of playersInRoom) {
-      if (!p.supabaseUserId) continue;
-      const pendingRow = await client.query(
-        `SELECT 1 FROM referral_claims WHERE referred_user_id = $1 AND credited = false AND banned = false`,
-        [p.supabaseUserId]
-      );
-      if ((pendingRow.rowCount ?? 0) === 0) continue;
-
-      const stats = roomParticipation?.get(p.id);
-      const zeroParticipation = !stats || (stats.messages === 0 && stats.votes === 0);
-      const otherPlayers = Math.max(1, playersInRoom.length - 1);
-      const majorityAfkFlagged = !!stats && stats.afkReports.size >= Math.ceil(otherPlayers / 2);
-
-      if (zeroParticipation || majorityAfkFlagged) {
-        const result = await client.query(
-          `UPDATE referral_claims SET suspicious_games = suspicious_games + 1 WHERE referred_user_id = $1 AND credited = false AND banned = false RETURNING suspicious_games`,
-          [p.supabaseUserId]
-        );
-        const suspiciousGames = result.rows[0]?.suspicious_games ?? 0;
-        if (suspiciousGames >= AFK_BAN_THRESHOLD_GAMES) {
-          await client.query(
-            `UPDATE referral_claims SET banned = true WHERE referred_user_id = $1`,
-            [p.supabaseUserId]
-          );
-          console.log(`[Referral] Banned pending payout for ${p.supabaseUserId} — ${suspiciousGames} games with no real participation`);
-        }
-      }
+    if (activity.afk_reports > 0) {
+      await client.query(`UPDATE referral_claims SET status = 'flagged', resolved_at = now() WHERE id = $1`, [claim.id]);
+      return;
     }
+    if (activity.games_with_activity < REFERRAL_MIN_ACTIVE_GAMES) {
+      return; // not enough real activity yet — check again after their next game
+    }
+
+    // Same-IP or same-device as the referrer strongly suggests one person
+    // referring themselves for free credits — deny instead of paying out.
+    const linkResult = await client.query(
+      `SELECT signup_ip, signup_device_id FROM referral_links WHERE supabase_user_id = $1`,
+      [claim.referrer_user_id]
+    );
+    const referrerLink = linkResult.rows[0];
+    const sameIp = referrerLink?.signup_ip && claim.signup_ip && referrerLink.signup_ip === claim.signup_ip;
+    const sameDevice = referrerLink?.signup_device_id && claim.signup_device_id && referrerLink.signup_device_id === claim.signup_device_id;
+    if (sameIp || sameDevice) {
+      await client.query(`UPDATE referral_claims SET status = 'denied', resolved_at = now() WHERE id = $1`, [claim.id]);
+      return;
+    }
+
+    await client.query(`UPDATE referral_claims SET status = 'approved', resolved_at = now() WHERE id = $1`, [claim.id]);
+    await addAccountCredits(claim.referrer_user_id, REFERRAL_CREDITS);
+    await addAccountCredits(referredUserId, REFERRAL_CREDITS);
+  } catch (err: any) {
+    console.error("tryResolveReferralClaim error:", err.message);
   } finally {
     client.release();
   }
@@ -853,35 +892,38 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   });
   gameHistory.set(roomId, history);
 
-  // Must run before the credit-attempt loop below: this game's
-  // participation needs to be judged (and any ban applied) before we check
-  // whether this same game just pushed someone over the games-played
-  // threshold — otherwise a farming game could get credited in this same
-  // call, one step before the ban that should have stopped it.
-  try {
-    await checkReferralParticipation(roomId, playersInRoom);
-  } catch (e) {
-    console.error("Referral participation check failed:", e);
-  }
-  gameParticipation.delete(roomId);
-
   for (const p of playersInRoom) {
     await storage.updatePlayer(p.id, {
       gameHistory: history,
       gamesPlayed: (p.gamesPlayed || 0) + 1,
       wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
     });
-    // Best-effort: a player finishing a game may just have crossed the
-    // games-played threshold for a referral bonus they claimed earlier.
-    // Never let this block the actual game-ending flow.
-    if (p.supabaseUserId) {
-      try {
-        await tryCreditPendingReferral(p.supabaseUserId);
-      } catch (e) {
-        console.error("Referral pending-credit check failed:", e);
-      }
-    }
   }
+
+  // Referral fraud prevention: update each signed-in player's account activity
+  // record and, if they have a pending referral, see whether it can now be
+  // resolved. Guest/bot players (no supabaseUserId) are skipped — they're not
+  // tied to any account and can't be part of a referral either way.
+  try {
+    const activity = gameActivity.get(roomId);
+    const roomAfk = afkReports.get(roomId);
+    for (const p of playersInRoom) {
+      if (!p.supabaseUserId || p.isBot) continue;
+      const a = activity?.get(p.id);
+      const hadRealActivity = !!a && a.messages > 0 && a.votes > 0;
+      const afkIncident = (roomAfk?.get(p.id)?.size || 0) >= 2;
+      await updateAccountActivity(p.supabaseUserId, hadRealActivity, afkIncident);
+      await tryResolveReferralClaim(p.supabaseUserId);
+    }
+  } catch (err) {
+    console.error("Referral activity tracking error:", err);
+  }
+  gameActivity.delete(roomId);
+  afkReports.delete(roomId);
+  vigilanteBullets.delete(roomId);
+  mayorRevealed.delete(roomId);
+  vigilanteGuiltPending.delete(roomId);
+
   if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
   gameActionsMap.delete(roomId);
 }
@@ -902,8 +944,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const voteResults: { voterName: string, targetName: string }[] = [];
       
       actions.votes.forEach((targetId: number, voterId: number) => {
-        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
         const voter = players.find((p: Player) => p.id === voterId);
+        // A revealed Mayor's vote counts double.
+        const voteWeight = voter && mayorRevealed.get(roomId)?.has(voter.id) ? 2 : 1;
+        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + voteWeight);
         const target = players.find((p: Player) => p.id === targetId);
         if (voter && target) {
           voteResults.push({ voterName: voter.name, targetName: target.name });
@@ -914,7 +958,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
         let voteSummary = sysMsg("votingResultsHeader", lang);
         voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
-        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: voteSummary });
+        await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: voteSummary });
       }
       
       if (voteResults.length > 0) {
@@ -935,28 +979,35 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
-          await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
-          
-          const remainingPlayers = await storage.getPlayersInRoom(roomId);
-          const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
-          if (remainingMafia.length === 0) {
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
-            await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
-            gameEnded = true;
-          }
-          const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
-          if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(revealLang), content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
-            await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
-            gameEnded = true;
+
+          if (victim.role === 'jester') {
+            // The Jester wins on their own by getting voted out. Their win is
+            // recorded, but the game keeps going for everyone else.
+            await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("jesterWinsBody", revealLang, { name: victim.name }) });
+            await storage.updatePlayer(victim.id, { wins: (victim.wins || 0) + 1 });
+          } else {
+            const remainingPlayers = await storage.getPlayersInRoom(roomId);
+            const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
+            if (remainingMafia.length === 0) {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
+              await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
+              gameEnded = true;
+            }
+            const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
+            if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
+              await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+              gameEnded = true;
+            }
           }
         }
       } else {
         const noVoteLang: string = (room.settings as any)?.language === "es" ? "es" : "en";
-        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(noVoteLang), content: sysMsg("noOneVotedOut", noVoteLang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: sysName(noVoteLang), content: sysMsg("noOneVotedOut", noVoteLang) });
       }
       
       if (gameEnded) {
@@ -964,16 +1015,23 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         return;
       }
       
-      await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
+      const nextPlayers = await storage.getPlayersInRoom(roomId);
+      const nextPhase = nextPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+      await storage.updateRoom(roomId, { status: 'night', phase: nextPhase, turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
-      actions.mafiaKill = null;
-      actions.doctorSave = null;
-      actions.detectiveCheck = null;
+      actions.mafiaKills.clear();
+      actions.doctorSaves.clear();
+      actions.detectiveChecks.clear();
+      actions.guards.clear();
+      actions.shots.clear();
       gameActions.set(roomId, actions);
       broadcastState(roomId);
-      const mafiaSettings = room.settings as any;
-      const mafiaTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), (mafiaSettings.mafiaDuration * 1000 || 15000) + revealDelayMs);
-      phaseTimers.set(roomId, mafiaTimer);
+      const nextSettings = room.settings as any;
+      const nextDuration = nextPhase === 'bodyguard'
+        ? (nextSettings.bodyguardDuration * 1000 || 15000)
+        : (nextSettings.mafiaDuration * 1000 || 15000);
+      const nextTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), nextDuration + revealDelayMs);
+      phaseTimers.set(roomId, nextTimer);
       return;
     }
   }
@@ -982,7 +1040,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
   const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
   const players = await storage.getPlayersInRoom(roomId);
-  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
+  const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
 
   if (room.status === 'day') {
     if (room.phase === 'discussion') {
@@ -994,8 +1052,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const voteResults: { voterName: string, targetName: string }[] = [];
       
       actions.votes.forEach((targetId: number, voterId: number) => {
-        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + 1);
         const voter = players.find((p: Player) => p.id === voterId);
+        // A revealed Mayor's vote counts double.
+        const voteWeight = voter && mayorRevealed.get(roomId)?.has(voter.id) ? 2 : 1;
+        voteCounts.set(targetId, (voteCounts.get(targetId) || 0) + voteWeight);
         const target = players.find((p: Player) => p.id === targetId);
         if (voter && target) {
           voteResults.push({ voterName: voter.name, targetName: target.name });
@@ -1005,7 +1065,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
         let voteSummary = sysMsg("votingResultsHeader", lang);
         voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
-        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: voteSummary });
+        await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: voteSummary });
       }
       
       if (voteResults.length > 0) {
@@ -1025,52 +1085,69 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS;
-          
-          const remainingPlayers = await storage.getPlayersInRoom(roomId);
-          const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
-          if (remainingMafia.length === 0) {
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
-            await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
-            gameEnded = true;
-          }
-          const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
-          if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaTookOverMafiaWins", lang) });
-            await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
-            gameEnded = true;
+
+          if (victim.role === 'jester') {
+            await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("jesterWinsBody", lang, { name: victim.name }) });
+            await storage.updatePlayer(victim.id, { wins: (victim.wins || 0) + 1 });
+          } else {
+            const remainingPlayers = await storage.getPlayersInRoom(roomId);
+            const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
+            if (remainingMafia.length === 0) {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+              await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
+              gameEnded = true;
+            }
+            const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
+            if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaTookOverMafiaWins", lang) });
+              await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+              gameEnded = true;
+            }
           }
         }
       } else {
-        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("noOneVotedOut", lang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("noOneVotedOut", lang) });
       }
 
       if (!gameEnded) {
-        await storage.updateRoom(roomId, { status: 'night', phase: 'mafia', turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
+        const nextPlayers = await storage.getPlayersInRoom(roomId);
+        const nextPhase = nextPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+        await storage.updateRoom(roomId, { status: 'night', phase: nextPhase, turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       }
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
       actions.votes.clear();
+      actions.guards.clear();
+      actions.shots.clear();
       gameActions.set(roomId, actions);
     }
   } else if (room.status === 'night') {
-    if (room.phase === 'mafia') {
-      console.log(`[Room ${roomId}] Night Phase: Mafia -> Doctor`);
+    if (room.phase === 'bodyguard') {
+      console.log(`[Room ${roomId}] Night Phase: Bodyguard -> Mafia`);
+      await storage.updateRoom(roomId, { phase: 'mafia', lastUpdated: new Date() });
+      broadcastState(roomId);
+    } else if (room.phase === 'mafia') {
+      console.log(`[Room ${roomId}] Night Phase: Mafia -> Vigilante`);
       const aliveMafia = players.filter((p: Player) => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
         await storage.updateRoom(roomId, { status: 'ended' });
-        await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+        await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
         await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
         broadcastState(roomId);
         return;
       } else {
-        await storage.updateRoom(roomId, { phase: 'doctor', lastUpdated: new Date() });
+        await storage.updateRoom(roomId, { phase: 'vigilante', lastUpdated: new Date() });
       }
+      broadcastState(roomId);
+    } else if (room.phase === 'vigilante') {
+      console.log(`[Room ${roomId}] Night Phase: Vigilante -> Doctor`);
+      await storage.updateRoom(roomId, { phase: 'doctor', lastUpdated: new Date() });
       broadcastState(roomId);
     } else if (room.phase === 'doctor') {
       console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
@@ -1082,38 +1159,139 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
 
       let nightSummary = sysMsg("nightHasEnded", lang);
-      
+      const deadTonight = new Set<number>();
+      let anyoneDied = false;
+
+      // Step 1-2: figure out this night's targets, then map every attacker onto their target.
+      let mafiaTargetId: number | null = null;
       if (actions.mafiaKills.size > 0) {
         const killVotes = new Map<number, number>();
         actions.mafiaKills.forEach((targetId: number) => {
           killVotes.set(targetId, (killVotes.get(targetId) || 0) + 1);
         });
         let topTarget = -1, maxVotes = 0;
-        killVotes.forEach((count, id) => {
-          if (count > maxVotes) { maxVotes = count; topTarget = id; }
-        });
-        
-        if (topTarget !== -1) {
-          const victim = players.find((p: Player) => p.id === topTarget);
-          if (victim) {
-            const isSaved = actions.doctorSaves.size > 0 && Array.from(actions.doctorSaves.values()).includes(topTarget);
-            if (isSaved) {
-              nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
-              nightData.events.push({ type: 'mafia_attempt', target: victim.name, saved: true });
-            } else {
-              await storage.updatePlayer(topTarget, { isAlive: false });
-              nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
-              nightData.events.push({ type: 'mafia_kill', target: victim.name, role: victim.role });
-              // A kill actually happened, so the client will show the ~5s elimination
-              // overlay going into discussion — delay the discussion timer to match.
-              revealDelayMs = ELIMINATION_REVEAL_MS;
-            }
-          }
-        }
-      } else {
+        killVotes.forEach((count, id) => { if (count > maxVotes) { maxVotes = count; topTarget = id; } });
+        if (topTarget !== -1) mafiaTargetId = topTarget;
+      }
+      // Only one Bodyguard's guard matters for resolution purposes — if several
+      // are alive, each acted independently, but we resolve per attacked target below.
+      const guardEntries = Array.from(actions.guards.entries()); // [bodyguardId, targetId][]
+      const healedIds = new Set(Array.from(actions.doctorSaves.values()));
+
+      type AttackerRef = { type: 'mafia' | 'vigilante'; id?: number };
+      const targetAttackedBy = new Map<number, AttackerRef[]>();
+      if (mafiaTargetId !== null) {
+        if (!targetAttackedBy.has(mafiaTargetId)) targetAttackedBy.set(mafiaTargetId, []);
+        targetAttackedBy.get(mafiaTargetId)!.push({ type: 'mafia' });
+      }
+      actions.shots.forEach((targetId: number, vigilanteId: number) => {
+        if (!targetAttackedBy.has(targetId)) targetAttackedBy.set(targetId, []);
+        targetAttackedBy.get(targetId)!.push({ type: 'vigilante', id: vigilanteId });
+      });
+
+      let newGuiltVigilanteId: number | null = null;
+
+      if (targetAttackedBy.size === 0) {
         nightSummary += sysMsg("nothingHappenedNight", lang);
       }
-      
+
+      // Step 3: resolve each attacked target once.
+      for (const [targetId, attackers] of Array.from(targetAttackedBy.entries())) {
+        if (attackers.length === 0) continue;
+        const victim = players.find((p: Player) => p.id === targetId);
+        if (!victim) continue;
+
+        const guardedBy = guardEntries.find(([, guardTargetId]) => guardTargetId === targetId)?.[0];
+
+        if (guardedBy !== undefined) {
+          // Bodyguard protection: they sacrifice themselves and block exactly ONE attacker.
+          const guardian = players.find((p: Player) => p.id === guardedBy);
+          if (guardian && guardian.isAlive) {
+            deadTonight.add(guardian.id);
+            anyoneDied = true;
+            nightSummary += sysMsg("bodyguardDied", lang, { name: guardian.name });
+            nightData.events.push({ type: 'bodyguard_death', target: guardian.name, role: 'bodyguard' });
+
+            // Retaliation: the first attacker dies too.
+            const blocked = attackers[0];
+            if (blocked.type === 'mafia') {
+              const aliveMafiaNow = players.filter((p: Player) => p.role === 'mafia' && p.isAlive && !deadTonight.has(p.id));
+              if (aliveMafiaNow.length > 0) {
+                const fallenMafia = aliveMafiaNow[Math.floor(Math.random() * aliveMafiaNow.length)];
+                deadTonight.add(fallenMafia.id);
+                nightSummary += sysMsg("attackerRetaliated", lang);
+                nightData.events.push({ type: 'retaliation_death', target: fallenMafia.name, role: 'mafia' });
+              }
+            } else if (blocked.type === 'vigilante' && blocked.id) {
+              const vigi = players.find((p: Player) => p.id === blocked.id);
+              if (vigi && vigi.isAlive && !deadTonight.has(vigi.id)) {
+                deadTonight.add(vigi.id);
+                nightSummary += sysMsg("attackerRetaliated", lang);
+                nightData.events.push({ type: 'retaliation_death', target: vigi.name, role: 'vigilante' });
+              }
+            }
+
+            // The Bodyguard only blocks ONE attacker — if a second attacker also
+            // hit this same target tonight, and the Doctor didn't heal them, the
+            // target still dies.
+            if (attackers.length > 1 && !healedIds.has(targetId)) {
+              deadTonight.add(targetId);
+              anyoneDied = true;
+              nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
+              nightData.events.push({ type: 'combined_kill', target: victim.name, role: victim.role });
+              const secondAttacker = attackers[1];
+              if (secondAttacker.type === 'vigilante' && victim.role !== 'mafia') newGuiltVigilanteId = secondAttacker.id || null;
+            } else if (attackers.length > 1 && healedIds.has(targetId)) {
+              nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
+              nightData.events.push({ type: 'attempt', target: victim.name, saved: true });
+            }
+            continue;
+          }
+        }
+
+        // No living Bodyguard covering this target — does the Doctor's heal cover them?
+        if (healedIds.has(targetId)) {
+          nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
+          nightData.events.push({ type: 'attempt', target: victim.name, saved: true });
+          continue;
+        }
+
+        // No protection at all — the target dies.
+        deadTonight.add(targetId);
+        anyoneDied = true;
+        nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
+        nightData.events.push({ type: 'kill', target: victim.name, role: victim.role });
+
+        // Guilt: any Vigilante who shot this target dies of guilt if the target wasn't Mafia.
+        const vigiAttacker = attackers.find(a => a.type === 'vigilante');
+        if (vigiAttacker && victim.role !== 'mafia') newGuiltVigilanteId = vigiAttacker.id || null;
+      }
+
+      // Apply all deaths from tonight in one pass.
+      for (const deadId of Array.from(deadTonight)) {
+        await storage.updatePlayer(deadId, { isAlive: false });
+      }
+
+      if (anyoneDied) revealDelayMs = ELIMINATION_REVEAL_MS;
+
+      // Guilt catches up: if a Vigilante shot an innocent last night, they die now.
+      const pendingGuiltId = vigilanteGuiltPending.get(roomId);
+      if (pendingGuiltId && !deadTonight.has(pendingGuiltId)) {
+        const guiltyVigi = players.find((p: Player) => p.id === pendingGuiltId);
+        if (guiltyVigi && guiltyVigi.isAlive) {
+          await storage.updatePlayer(guiltyVigi.id, { isAlive: false });
+          deadTonight.add(guiltyVigi.id);
+          revealDelayMs = ELIMINATION_REVEAL_MS;
+          nightSummary += sysMsg("vigilanteGuiltDied", lang, { name: guiltyVigi.name });
+          nightData.events.push({ type: 'guilt_death', target: guiltyVigi.name, role: 'vigilante' });
+        }
+      }
+      if (newGuiltVigilanteId) {
+        vigilanteGuiltPending.set(roomId, newGuiltVigilanteId);
+      } else {
+        vigilanteGuiltPending.delete(roomId);
+      }
+
       actions.detectiveChecks.forEach((targetId: number, detectiveId: number) => {
         const target = players.find((p: Player) => p.id === targetId);
         if (target) {
@@ -1124,12 +1302,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       history.push(nightData);
       gameHistory.set(roomId, history);
 
-      await storage.createMessage({ roomId, playerId: 0, playerName: systemName(lang), content: nightSummary });
+      await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
+      actions.guards.clear();
+      actions.shots.clear();
       broadcastState(roomId);
     }
   }
@@ -1143,14 +1323,33 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
   const currentRoom = await storage.getRoom(roomId);
   if (currentRoom) {
     if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
+      const history = gameHistory.get(roomId) || [];
+      const playersInRoom = await storage.getPlayersInRoom(roomId);
+      
       const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
+      history.push({
+        type: 'game_end',
+        winner,
+        roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
+      });
+      
+      for (const p of playersInRoom) {
+        await storage.updatePlayer(p.id, {
+          gameHistory: history,
+          gamesPlayed: (p.gamesPlayed || 0) + 1,
+          wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
+        });
+      }
       await storage.updateRoom(roomId, { status: 'ended' });
-      await finalizeGameEnd(roomId, storage, winner, gameActions);
+      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+      gameActions.delete(roomId);
       broadcastState(roomId);
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
+        if (currentRoom.phase === 'bodyguard') duration = (currentRoom.settings as any).bodyguardDuration * 1000 || 15000;
         if (currentRoom.phase === 'mafia') duration = (currentRoom.settings as any).mafiaDuration * 1000 || 15000;
+        if (currentRoom.phase === 'vigilante') duration = (currentRoom.settings as any).vigilanteDuration * 1000 || 15000;
         if (currentRoom.phase === 'doctor') duration = (currentRoom.settings as any).doctorDuration * 1000 || 15000;
         if (currentRoom.phase === 'detective') duration = (currentRoom.settings as any).detectiveDuration * 1000 || 15000;
       }
@@ -1170,7 +1369,9 @@ const gameActions = new Map<number, {
   votes: Map<number, number>,
   mafiaKills: Map<number, number>,
   doctorSaves: Map<number, number>,
-  detectiveChecks: Map<number, number>
+  detectiveChecks: Map<number, number>,
+  guards: Map<number, number>,
+  shots: Map<number, number>
 }>();
 
 async function broadcastState(roomId: number) {
@@ -1197,28 +1398,39 @@ async function broadcastState(roomId: number) {
         vote: actions?.votes.get(me.id),
         kill: me.role === 'mafia' ? actions?.mafiaKills.get(me.id) || null : null,
         heal: me.role === 'doctor' ? actions?.doctorSaves.get(me.id) || null : null,
-        check: me.role === 'detective' ? actions?.detectiveChecks.get(me.id) || null : null
+        check: me.role === 'detective' ? actions?.detectiveChecks.get(me.id) || null : null,
+        guard: me.role === 'bodyguard' ? actions?.guards.get(me.id) || null : null,
+        shoot: me.role === 'vigilante' ? actions?.shots.get(me.id) || null : null,
       } : null;
 
       const sanitizedPlayers = players.map((p: Player) => {
-         if (room.status === 'lobby' || room.status === 'ended' || !p.isAlive) return p; 
-         if (me?.id === p.id) return p; 
-         if (me && !me.isAlive) return p; 
+         if (room.status === 'lobby' || room.status === 'ended') return p;
+         if (me?.id === p.id) return p;
+         if (me && !me.isAlive) return p;
+         // A dead player's role is only shown to the rest of the room if the host
+         // has role-reveal-on-elimination turned on; otherwise it stays hidden
+         // like any other living player's role would be.
+         if (!p.isAlive) {
+           return (room.settings as any).showRoleReveal !== false ? p : { ...p, role: 'unknown' };
+         }
          if (me?.role === 'mafia' && p.role === 'mafia') return p; 
          if (me?.role === 'detective' && p.role === 'detective') return p;
          if (me?.role === 'doctor' && p.role === 'doctor') return p;
          return { ...p, role: 'unknown' }; 
       });
 
-      // Graveyard chat is only visible to the dead/spectators who can post
-      // there — a living player never receives those messages in their own
-      // payload, so there's nothing to leak via devtools either.
-      const canSeeGraveyard = !!me && (!me.isAlive || !!me.isSpectator);
-      const visibleMessages = canSeeGraveyard ? messages : messages.filter(m => !m.isSpectator);
+      const revealedMayorIds = Array.from(mayorRevealed.get(roomId) || []);
+      const myBullets = me?.role === 'vigilante' ? (vigilanteBullets.get(roomId)?.get(me.id) ?? 0) : undefined;
 
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
-        payload: { room, players: sanitizedPlayers, me: me ? { ...me, currentAction: myAction } : me, messages: visibleMessages }
+        payload: {
+          room, players: sanitizedPlayers,
+          me: me ? { ...me, currentAction: myAction } : me,
+          messages,
+          revealedMayorIds,
+          myBullets,
+        }
       }));
     }
   });
@@ -1263,52 +1475,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS referral_links (
           supabase_user_id TEXT PRIMARY KEY,
-          code TEXT UNIQUE NOT NULL,
-          ip_address TEXT,
-          device_id TEXT
+          code TEXT UNIQUE NOT NULL
         );
       `);
+      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS signup_ip TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS signup_device_id TEXT;`);
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS referral_claims (
           id SERIAL PRIMARY KEY,
           referrer_user_id TEXT NOT NULL,
           referred_user_id TEXT UNIQUE NOT NULL,
-          ip_address TEXT,
-          device_id TEXT,
-          credited BOOLEAN NOT NULL DEFAULT false,
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `);
-      // These tables may already exist from before device/IP tracking and delayed
-      // crediting were added — CREATE TABLE IF NOT EXISTS above won't retroactively
-      // add columns to an existing table, so do that explicitly here.
-      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS ip_address TEXT;`);
-      await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS device_id TEXT;`);
-      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS ip_address TEXT;`);
-      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS device_id TEXT;`);
-      // Anti-farming: a referred account that plays multiple games with zero
-      // chat messages, zero votes, and/or gets flagged as AFK by other real
-      // players never gets credited, even after REFERRAL_MIN_GAMES — this
-      // catches "join, sit AFK for 3 games, collect the bonus" farming that
-      // the device/IP check alone doesn't stop (it can be a genuinely new
-      // account/device, just not a genuinely playing one).
-      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS suspicious_games INT NOT NULL DEFAULT 0;`);
-      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS banned BOOLEAN NOT NULL DEFAULT false;`);
-      const creditedColCheck = await bootstrapClient.query(
-        `SELECT 1 FROM information_schema.columns WHERE table_name = 'referral_claims' AND column_name = 'credited'`
-      );
-      const creditedColAlreadyExisted = (creditedColCheck.rowCount ?? 0) > 0;
-      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS credited BOOLEAN NOT NULL DEFAULT false;`);
-      if (!creditedColAlreadyExisted) {
-        // This is the migration that first introduces the "credit only after 3
-        // games played" rule. Every claim already in the table predates that
-        // rule and was already paid out under the old immediate-award logic —
-        // mark them credited so they're not mistaken for pending and re-processed.
-        // This only runs once: on every later restart the column already
-        // exists, so this block is skipped and genuinely-pending new claims
-        // are left alone.
-        await bootstrapClient.query(`UPDATE referral_claims SET credited = true WHERE credited = false;`);
-      }
+      // Referral fraud prevention: claims start 'pending' and only pay out once
+      // the referred account has genuinely played (see tryResolveReferralClaim),
+      // or get 'denied'/'flagged' instead of ever being paid.
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS signup_ip TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS signup_device_id TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE referral_claims ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;`);
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS account_activity (
+          supabase_user_id TEXT PRIMARY KEY,
+          games_completed INT NOT NULL DEFAULT 0,
+          games_with_activity INT NOT NULL DEFAULT 0,
+          afk_reports INT NOT NULL DEFAULT 0
+        );
+      `);
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS account_credits (
           supabase_user_id TEXT PRIMARY KEY,
@@ -1321,6 +1515,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   } catch (e: any) {
     console.error("Reward table bootstrap failed:", e.message);
   }
+
+  // Adds credits to a user's server-side balance and returns the new total.
+  // This is the one authoritative wallet all four reward systems pay into.
+  // (Defined at module level below, alongside the referral fraud-check helpers.)
 
   // Auth endpoints
   app.post(api.auth.signup.path, async (req, res) => {
@@ -1383,7 +1581,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/login-2fa", async (req, res) => {
+  app.post("/api/auth/login-2fa", loginLimiter, async (req, res) => {
     try {
       const { username, password, totpCode } = req.body;
       const user = await storage.getUserByUsername(username);
@@ -1510,7 +1708,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Sends a fresh login-time code to an already-configured email-2FA user.
   // TOTP users don't need this — their app generates codes on its own.
-  app.post("/api/auth/2fa/send-login-code", async (req, res) => {
+  app.post("/api/auth/2fa/send-login-code", twoFaVerifyLimiter, async (req, res) => {
     try {
       const { supabaseUserId } = req.body;
       if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
@@ -1533,7 +1731,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/2fa/verify", async (req, res) => {
+  app.post("/api/auth/2fa/verify", twoFaVerifyLimiter, async (req, res) => {
     try {
       const { supabaseUserId, code } = req.body;
       if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
@@ -1616,7 +1814,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post(api.rooms.create.path, async (req, res) => {
+  app.post(api.rooms.create.path, roomCreateLimiter, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
       const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
@@ -1723,12 +1921,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!room) return res.status(404).json({ message: "Room not found" });
 
       const players = await storage.getPlayersInRoom(room.id);
-      const allMessages = await storage.getMessagesByRoom(room.id);
-      // This request can't identify who's asking (no session yet — that
-      // happens over the websocket right after), so it can never safely
-      // include graveyard messages. The websocket connection that follows
-      // immediately after will deliver the correctly personalized set.
-      const messages = allMessages.filter((m: Message) => !m.isSpectator);
+      const messages = await storage.getMessagesByRoom(room.id);
 
       res.json({ room, players, messages, me: null });
     } catch (err) {
@@ -1787,19 +1980,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           // which they can't act. Push lastUpdated (and the matching phase timer) out by
           // that same amount so the mafia's actual night timer only starts once the reveal
           // animation ends, instead of quietly eating into their real decision time.
-          const revealEnabled = (room.settings as any).showRoleReveal !== false;
-          const revealDelayMs = revealEnabled ? ROLE_REVEAL_MS : 0;
+          // This animation always plays — it's not gated by a setting (showRoleReveal
+          // controls whether a role gets announced on elimination, a separate thing).
+          const revealDelayMs = ROLE_REVEAL_MS;
 
-          await storage.updateRoom(myRoomId, { status: 'night', phase: 'mafia', turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
+          const firstNightPlayers = await storage.getPlayersInRoom(myRoomId);
+          const firstPhase = firstNightPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+          await storage.updateRoom(myRoomId, { status: 'night', phase: firstPhase, turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
           gameActions.set(myRoomId, {
             votes: new Map(),
             mafiaKills: new Map(),
             doctorSaves: new Map(),
-            detectiveChecks: new Map()
+            detectiveChecks: new Map(),
+            guards: new Map(),
+            shots: new Map()
           });
           gameHistory.set(myRoomId, []);
+          // Vigilante starts with exactly 2 bullets for the whole game.
+          const bulletsMap = new Map<number, number>();
+          for (const p of firstNightPlayers) {
+            if (p.role === 'vigilante') bulletsMap.set(p.id, 2);
+          }
+          vigilanteBullets.set(myRoomId, bulletsMap);
+          mayorRevealed.set(myRoomId, new Set());
 
-          const duration = (room.settings as any).mafiaDuration * 1000 || 15000;
+          const startSettings = room.settings as any;
+          const duration = firstPhase === 'bodyguard'
+            ? (startSettings.bodyguardDuration * 1000 || 15000)
+            : (startSettings.mafiaDuration * 1000 || 15000);
           const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
           phaseTimers.set(myRoomId, timer);
           broadcastState(myRoomId);
@@ -1821,18 +2029,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
-           const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map() };
+           const actions = gameActions.get(myRoomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
 
            if (action.type === 'chat') {
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
-             // Graveyard chat: dead players and true spectators (joined after
-             // the game started) can talk among themselves without living
-             // players seeing it — they still see the living chat (read-only),
-             // it's just one-way. isGraveyard is filtered server-side in
-             // broadcastState/GET room, not just hidden client-side, so a
-             // living player can't peek at it via devtools either.
-             const isGraveyardSender = !!me && (!me.isAlive || !!me.isSpectator);
-             if ((action as any).content && (action as any).content.trim() && myRoomId && me) {
+             if ((action as any).content && (action as any).content.trim() && myRoomId && me && me.isAlive) {
                try {
                  console.log("CREATING MESSAGE:", { roomId: myRoomId, playerId: me.id, content: (action as any).content });
                  await storage.createMessage({ 
@@ -1840,27 +2041,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    playerId: me.id, 
                    playerName: me.name, 
                    content: (action as any).content.trim(),
-                   isSpectator: isGraveyardSender
+                   isSpectator: false
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
-                 if (!isGraveyardSender) {
-                   getParticipation(myRoomId, me.id).messages++;
-                   await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
-                 }
+                 bumpActivity(myRoomId, me.id, "messages");
+                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
                  const chatLang = (room.settings as any)?.language === "es" ? "es" : "en";
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("chatErrorTitle", chatLang), body: sysMsg("chatErrorBody", chatLang) } }));
                }
-             }
-             return;
-           }
-
-           if (action.type === 'report_afk') {
-             const target = players.find((p: Player) => p.id === (action as any).targetId);
-             if (me && me.isAlive && target && target.id !== me.id) {
-               getParticipation(myRoomId, target.id).afkReports.add(me.id);
+             } else if (!me?.isAlive) {
+               const deadLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("deadCantSpeakTitle", deadLang), body: sysMsg("deadCantSpeakBody", deadLang) } }));
              }
              return;
            }
@@ -1892,10 +2086,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const detectiveCount = clampInt(incoming.detectiveCount, current.detectiveCount);
              const doctorCount = clampInt(incoming.doctorCount, current.doctorCount);
              const civilianCount = clampInt(incoming.civilianCount, current.civilianCount);
+             const bodyguardCount = clampInt(incoming.bodyguardCount, current.bodyguardCount || 0);
+             const vigilanteCount = clampInt(incoming.vigilanteCount, current.vigilanteCount || 0);
+             const mayorCount = clampInt(incoming.mayorCount, current.mayorCount || 0);
+             const jesterCount = clampInt(incoming.jesterCount, current.jesterCount || 0);
 
              // Leave room for at least one civilian so the special roles don't outnumber
              // everyone else and break voting.
-             if (mafiaCount < 1 || (mafiaCount + detectiveCount + doctorCount) >= players.length) {
+             const totalSpecialRoles = mafiaCount + detectiveCount + doctorCount + bodyguardCount + vigilanteCount + mayorCount + jesterCount;
+             if (mafiaCount < 1 || totalSpecialRoles >= players.length) {
                ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Too many special roles for the current player count." } }));
                return;
              }
@@ -1903,10 +2102,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const newSettings = {
                ...current,
                mafiaCount, detectiveCount, doctorCount, civilianCount,
+               bodyguardCount, vigilanteCount, mayorCount, jesterCount,
                phaseDuration: clampInt(incoming.phaseDuration, current.phaseDuration),
                mafiaDuration: clampInt(incoming.mafiaDuration, current.mafiaDuration),
                doctorDuration: clampInt(incoming.doctorDuration, current.doctorDuration),
                detectiveDuration: clampInt(incoming.detectiveDuration, current.detectiveDuration),
+               bodyguardDuration: clampInt(incoming.bodyguardDuration, current.bodyguardDuration || 15),
+               vigilanteDuration: clampInt(incoming.vigilanteDuration, current.vigilanteDuration || 15),
                showVoteResults: incoming.showVoteResults ?? current.showVoteResults,
                showRoleReveal: incoming.showRoleReveal ?? current.showRoleReveal,
              };
@@ -1970,8 +2172,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const target = players.find((p: Player) => p.id === action.targetId);
              if (me.isAlive && target?.isAlive) {
                actions.votes.set(me.id, action.targetId);
-               getParticipation(myRoomId, me.id).votes++;
                gameActions.set(myRoomId, actions);
+               bumpActivity(myRoomId, me.id, "votes");
                
                const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
                for (const bot of bots) {
@@ -2023,11 +2225,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
              const target = players.find((p: Player) => p.id === action.targetId);
+             const healLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             if (target?.isAlive && mayorRevealed.get(myRoomId)?.has(target.id)) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("cannotTargetRevealedMayor", healLang) } }));
+               return;
+             }
              if (target?.isAlive) {
                actions.doctorSaves.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
-               const healLang = (room.settings as any)?.language === "es" ? "es" : "en";
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", healLang), body: sysMsg("protectionAppliedBody", healLang, { name: target.name }) } }));
                
                if (phaseTimers.has(myRoomId)) { 
@@ -2049,7 +2255,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
                   const detectiveLang = (room.settings as any)?.language === "es" ? "es" : "en";
-                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: systemName(detectiveLang), content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
+                  await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: sysName(detectiveLang), content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
                   const instantWinHistory = gameHistory.get(myRoomId) || [];
                   instantWinHistory.push({ type: 'night', turn: room.turn, events: [{ type: 'detective_check', target: target.name, isMafia: true, detectiveId: me.id }] });
                   gameHistory.set(myRoomId, instantWinHistory);
@@ -2062,6 +2268,82 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   }
                   await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                 }
+             }
+             return;
+           }
+
+           if (room.phase === 'bodyguard' && me.role === 'bodyguard' && (action as any).type === 'bodyguard_protect') {
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             const bgLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             if (target?.id === me.id) return; // can't protect self
+             if (target?.isAlive && mayorRevealed.get(myRoomId)?.has(target.id)) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("cannotTargetRevealedMayor", bgLang) } }));
+               return;
+             }
+             if (target?.isAlive) {
+               actions.guards.set(me.id, target.id);
+               gameActions.set(myRoomId, actions);
+               broadcastState(myRoomId);
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", bgLang), body: sysMsg("protectionAppliedBody", bgLang, { name: target.name }) } }));
+               if (phaseTimers.has(myRoomId)) {
+                 clearTimeout(phaseTimers.get(myRoomId));
+                 phaseTimers.delete(myRoomId);
+               }
+               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+             }
+             return;
+           }
+
+           if (room.phase === 'vigilante' && me.role === 'vigilante' && (action as any).type === 'vigilante_shoot') {
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             const vigiLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             const bullets = vigilanteBullets.get(myRoomId)?.get(me.id) ?? 0;
+             if (bullets <= 0) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("noBulletsLeft", vigiLang) } }));
+               return;
+             }
+             if (target?.isAlive && target.id !== me.id) {
+               actions.shots.set(me.id, target.id);
+               gameActions.set(myRoomId, actions);
+               const bulletsMap = vigilanteBullets.get(myRoomId) || new Map<number, number>();
+               bulletsMap.set(me.id, bullets - 1);
+               vigilanteBullets.set(myRoomId, bulletsMap);
+               broadcastState(myRoomId);
+               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", vigiLang), body: sysMsg("targetLockedBody", vigiLang, { name: target.name }) } }));
+               if (phaseTimers.has(myRoomId)) {
+                 clearTimeout(phaseTimers.get(myRoomId));
+                 phaseTimers.delete(myRoomId);
+               }
+               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+             }
+             return;
+           }
+
+           // Mayor can reveal once, any time during the day, to double their vote
+           // weight — at the cost of becoming unhealable/unguardable from then on.
+           if (me.role === 'mayor' && (action as any).type === 'mayor_reveal') {
+             if (room.status !== 'day' || !me.isAlive) return;
+             if (!mayorRevealed.has(myRoomId)) mayorRevealed.set(myRoomId, new Set());
+             const revealedSet = mayorRevealed.get(myRoomId)!;
+             if (revealedSet.has(me.id)) return; // already revealed
+             revealedSet.add(me.id);
+             const mayorLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: sysName(mayorLang), content: sysMsg("mayorRevealedBody", mayorLang, { name: me.name }) });
+             broadcastState(myRoomId);
+             return;
+           }
+
+           // Referral fraud prevention: other players can flag someone as AFK.
+           // 2+ distinct reporters in one game counts as a confirmed incident
+           // against that account (see finalizeGameEnd), which blocks any
+           // pending referral payout tied to it.
+           if (action.type === 'report_afk') {
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             if (myRoomId && me?.isAlive && target && target.id !== me.id) {
+               if (!afkReports.has(myRoomId)) afkReports.set(myRoomId, new Map());
+               const roomReports = afkReports.get(myRoomId)!;
+               if (!roomReports.has(target.id)) roomReports.set(target.id, new Set());
+               roomReports.get(target.id)!.add(me.id);
              }
              return;
            }
@@ -2097,8 +2379,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/reset-leaderboard", async (_req, res) => {
+  app.post("/api/reset-leaderboard", async (req, res) => {
     try {
+      const providedSecret = req.headers["x-admin-secret"];
+      const expectedSecret = process.env.ADMIN_SECRET;
+      if (!expectedSecret) {
+        return res.status(503).json({ error: "Admin actions are disabled: ADMIN_SECRET is not configured." });
+      }
+      if (providedSecret !== expectedSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
       await storage.resetLeaderboard();
       res.json({ success: true });
     } catch (e: any) {
@@ -2444,16 +2734,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Referrals, tied to signed-in accounts on both ends ---
-  function getClientIp(req: any): string {
-    const fwd = req.headers["x-forwarded-for"];
-    if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
-    return req.socket?.remoteAddress || req.ip || "";
-  }
-
-  // Recent Players: who this account has actually played a finished game
-  // with recently, most recent first — powers a quick "invite them again"
-  // list on the home screen. Derived entirely from existing players/rooms
-  // data; no separate friends table needed for this simple version.
+  // Shows who this account has recently finished games with — a lightweight
+  // building block toward a friends list, without a real friends system yet.
   app.get("/api/rewards/recent-players", async (req, res) => {
     try {
       const supabaseUserId = req.query.supabaseUserId as string;
@@ -2489,8 +2771,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const supabaseUserId = req.query.supabaseUserId as string;
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to get your referral link." });
-      const deviceId = (req.query.deviceId as string) || null;
-      const ip = getClientIp(req);
 
       const client = await pool.connect();
       try {
@@ -2498,24 +2778,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         let code = codeResult.rows[0]?.code;
         if (!code) {
           code = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const deviceId = (req.query.deviceId as string) || null;
           await client.query(
-            `INSERT INTO referral_links (supabase_user_id, code, ip_address, device_id) VALUES ($1, $2, $3, $4) ON CONFLICT (supabase_user_id) DO NOTHING`,
-            [supabaseUserId, code, ip, deviceId]
+            `INSERT INTO referral_links (supabase_user_id, code, signup_ip, signup_device_id) VALUES ($1, $2, $3, $4) ON CONFLICT (supabase_user_id) DO NOTHING`,
+            [supabaseUserId, code, req.ip, deviceId]
           );
           const recheck = await client.query("SELECT code FROM referral_links WHERE supabase_user_id = $1", [supabaseUserId]);
           code = recheck.rows[0]?.code || code;
-        } else {
-          // Refresh the stored ip/device so the self-referral check below
-          // reflects this account's current device, not just its first one.
-          await client.query(`UPDATE referral_links SET ip_address = $2, device_id = $3 WHERE supabase_user_id = $1`, [supabaseUserId, ip, deviceId]);
         }
 
-        const claims = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1 AND credited = true", [supabaseUserId]);
-        const joined = claims.rows[0]?.n ?? 0;
-        const pendingResult = await client.query("SELECT COUNT(*)::int AS n FROM referral_claims WHERE referrer_user_id = $1 AND credited = false", [supabaseUserId]);
-        const pending = pendingResult.rows[0]?.n ?? 0;
+        const claims = await client.query(
+          "SELECT COUNT(*) FILTER (WHERE status = 'approved')::int AS approved, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending FROM referral_claims WHERE referrer_user_id = $1",
+          [supabaseUserId]
+        );
+        const approved = claims.rows[0]?.approved ?? 0;
+        const pending = claims.rows[0]?.pending ?? 0;
 
-        res.json({ code, invited: joined, joined, pending, totalCredits: joined * REFERRAL_CREDITS });
+        res.json({ code, invited: approved + pending, joined: approved, pending, totalCredits: approved * REFERRAL_CREDITS });
       } finally {
         client.release();
       }
@@ -2525,67 +2804,51 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Called when a signed-in account (fresh signup or an existing user
-  // redeeming a friend's code in Settings) submits a referral code. The
-  // credit isn't paid out immediately — it's held pending until the referred
-  // account has completed REFERRAL_MIN_GAMES real games (checked immediately
-  // below, and again after each game via tryCreditPendingReferral), and is
-  // blocked outright if this device or network was already used for a claim.
+  // Called once, right after a NEW account finishes signing up with a referral code.
+  // Credits are NOT paid out here anymore — see the fraud-prevention note below.
   app.post("/api/rewards/referral/claim", async (req, res) => {
     try {
       const { code, newSupabaseUserId, deviceId } = req.body;
       if (!code || !newSupabaseUserId) return res.status(400).json({ message: "Missing code or new user id" });
-      const ip = getClientIp(req);
 
       const client = await pool.connect();
       try {
-        const linkResult = await client.query(
-          "SELECT supabase_user_id, ip_address, device_id FROM referral_links WHERE code = $1",
-          [code]
-        );
-        const referrerId = linkResult.rows[0]?.supabase_user_id;
+        const linkResult = await client.query("SELECT supabase_user_id, signup_ip, signup_device_id FROM referral_links WHERE code = $1", [code]);
+        const referrerLink = linkResult.rows[0];
+        const referrerId = referrerLink?.supabase_user_id;
         if (!referrerId) return res.status(404).json({ message: "Invalid referral code" });
         if (referrerId === newSupabaseUserId) return res.status(400).json({ message: "Can't refer yourself" });
 
-        // Same device or same network as the referrer's own account — almost
-        // certainly one person claiming their own link from an alt account.
-        const referrerIp = linkResult.rows[0]?.ip_address;
-        const referrerDevice = linkResult.rows[0]?.device_id;
-        if ((referrerDevice && deviceId && referrerDevice === deviceId) || (referrerIp && ip && referrerIp === ip)) {
-          return res.status(403).json({ message: "This looks like the same device or network as the referrer's account." });
-        }
-
-        // This device or network already claimed a referral before, under
-        // any account — blocks logging out and re-claiming with a fresh
-        // account on the same phone.
-        const priorUse = await client.query(
-          `SELECT 1 FROM referral_claims WHERE (device_id IS NOT NULL AND device_id = $1) OR (ip_address IS NOT NULL AND ip_address = $2) LIMIT 1`,
-          [deviceId || null, ip || null]
-        );
-        if ((priorUse.rowCount ?? 0) > 0) {
-          return res.status(403).json({ message: "A referral has already been claimed from this device or network." });
-        }
+        // Referral fraud prevention: the referred account only actually gets
+        // credited once it's played REFERRAL_MIN_ACTIVE_GAMES games with real
+        // participation (chat + votes) and nobody's flagged it as AFK — see
+        // tryResolveReferralClaim, called after every game finishes. If this
+        // signup is obviously the same person as the referrer (same IP or
+        // same device), deny it outright right now instead of waiting.
+        const sameIp = referrerLink.signup_ip && req.ip && referrerLink.signup_ip === req.ip;
+        const sameDevice = referrerLink.signup_device_id && deviceId && referrerLink.signup_device_id === deviceId;
+        const initialStatus = (sameIp || sameDevice) ? 'denied' : 'pending';
 
         try {
           await client.query(
-            `INSERT INTO referral_claims (referrer_user_id, referred_user_id, ip_address, device_id, credited) VALUES ($1, $2, $3, $4, false)`,
-            [referrerId, newSupabaseUserId, ip, deviceId || null]
+            `INSERT INTO referral_claims (referrer_user_id, referred_user_id, status, signup_ip, signup_device_id)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [referrerId, newSupabaseUserId, initialStatus, req.ip, deviceId || null]
           );
         } catch {
           // Unique constraint on referred_user_id — this account already claimed a referral before.
           return res.status(429).json({ message: "Referral already claimed" });
         }
 
-        const justCredited = await tryCreditPendingReferral(newSupabaseUserId);
-        if (justCredited) {
-          const balanceResult = await client.query("SELECT credits FROM account_credits WHERE supabase_user_id = $1", [newSupabaseUserId]);
-          const totalCredits = balanceResult.rows[0]?.credits ?? 0;
-          return res.json({ success: true, credited: true, creditsAwarded: REFERRAL_CREDITS, totalCredits });
+        if (initialStatus === 'denied') {
+          return res.json({ success: false, pending: false, message: "Referral could not be verified." });
         }
 
-        const gamesPlayed = await getCompletedGamesCount(newSupabaseUserId);
-        const gamesNeeded = Math.max(0, REFERRAL_MIN_GAMES - gamesPlayed);
-        res.json({ success: true, credited: false, gamesNeeded });
+        res.json({
+          success: true,
+          pending: true,
+          message: `Referral recorded — credits are awarded once you've played ${REFERRAL_MIN_ACTIVE_GAMES} games.`,
+        });
       } finally {
         client.release();
       }

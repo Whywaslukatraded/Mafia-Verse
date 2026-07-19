@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,9 @@ export default function Room() {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState({
     mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
+    bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    bodyguardDuration: 15, vigilanteDuration: 15,
     showVoteResults: false, showRoleReveal: true,
   });
 
@@ -214,14 +216,20 @@ export default function Room() {
       setSettingsDraft({
         mafiaCount: s.mafiaCount ?? 1, detectiveCount: s.detectiveCount ?? 1,
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
+        bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
+        mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
         phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
+        bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
       });
     }
   }, [room?.status, room?.settings, showSettingsPanel]);
 
-  type NumericSettingKey = "mafiaCount" | "detectiveCount" | "doctorCount" | "civilianCount" | "phaseDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration";
+  type NumericSettingKey = "mafiaCount" | "detectiveCount" | "doctorCount" | "civilianCount"
+    | "bodyguardCount" | "vigilanteCount" | "mayorCount" | "jesterCount"
+    | "phaseDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration"
+    | "bodyguardDuration" | "vigilanteDuration";
   const adjustSetting = (key: NumericSettingKey, delta: number) => {
     setSettingsDraft(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
   };
@@ -230,20 +238,21 @@ export default function Room() {
     setSettingsDraft(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const specialRoleTotal = settingsDraft.mafiaCount + settingsDraft.detectiveCount + settingsDraft.doctorCount;
+  const specialRoleTotal = settingsDraft.mafiaCount + settingsDraft.detectiveCount + settingsDraft.doctorCount
+    + settingsDraft.bodyguardCount + settingsDraft.vigilanteCount + settingsDraft.mayorCount + settingsDraft.jesterCount;
 
   const handleSaveSettings = () => {
     if (settingsDraft.mafiaCount < 1 || specialRoleTotal >= players.length) {
       toast({
-        title: "Too many special roles",
-        description: "Leave room for at least one civilian, based on the current number of players.",
+        title: t("room.tooManySpecialRoles"),
+        description: t("room.tooManySpecialRolesDescription"),
         variant: "destructive",
       });
       return;
     }
     sendAction({ type: "update_settings", settings: settingsDraft } as any);
     setShowSettingsPanel(false);
-    toast({ title: "Settings updated" });
+    toast({ title: t("room.settingsUpdated") });
   };
 
   // Reset role reveal flag whenever the room goes back to lobby (fresh game or replay)
@@ -360,14 +369,22 @@ export default function Room() {
   }
 
   const getNightActionLabel = () => {
+    if (room?.phase === "bodyguard") return { verb: t("room.actions.protect"), action: "protecting" };
     if (room?.phase === "mafia") return { verb: t("room.actions.kill"), action: "killing" };
+    if (room?.phase === "vigilante") return { verb: t("room.actions.shoot"), action: "shooting" };
     if (room?.phase === "doctor") return { verb: t("room.actions.protect"), action: "protecting" };
     if (room?.phase === "detective") return { verb: t("room.actions.investigate"), action: "investigating" };
     return { verb: t("room.actions.act"), action: "acting" };
   };
 
+  const myBullets: number | undefined = (gameState as any)?.myBullets;
+  const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];
+  const iAmRevealedMayor = !!(me && revealedMayorIds.includes(me.id));
+
   const isMyNightTurn = (room?.status === "night" && me.isAlive && (
+    (room?.phase === "bodyguard" && me.role === "bodyguard") ||
     (room?.phase === "mafia" && me.role === "mafia") ||
+    (room?.phase === "vigilante" && me.role === "vigilante" && (myBullets ?? 0) > 0) ||
     (room?.phase === "doctor" && me.role === "doctor") ||
     (room?.phase === "detective" && me.role === "detective")
   )) || false;
@@ -384,6 +401,16 @@ export default function Room() {
     }
 
     if (room?.status === "night") {
+      if (room?.phase === "bodyguard" && me?.role === "bodyguard") {
+        if (targetId === me.id) return null; // can't protect self
+        const isSelected = pendingNightAction?.targetId === targetId;
+        return {
+          label: isSelected ? t("room.selected") : t("room.select"),
+          variant: isSelected ? "secondary" : "default",
+          action: { type: "bodyguard_protect", targetId } as GameAction,
+          isNight: true,
+        };
+      }
       if (room?.phase === "mafia" && me?.role === "mafia") {
         // Cannot kill fellow mafia members
         const target = players.find(p => p.id === targetId);
@@ -405,6 +432,16 @@ export default function Room() {
           isNight: true,
         };
       }
+      if (room.phase === "vigilante" && me.role === "vigilante" && (myBullets ?? 0) > 0) {
+        if (targetId === me.id) return null; // can't shoot self
+        const isSelected = pendingNightAction?.targetId === targetId;
+        return {
+          label: isSelected ? t("room.selected") : t("room.actions.shoot"),
+          variant: isSelected ? "secondary" : "destructive",
+          action: { type: "vigilante_shoot", targetId } as GameAction,
+          isNight: true,
+        };
+      }
       if (room.phase === "detective" && me.role === "detective") {
         const isSelected = pendingNightAction?.targetId === targetId;
         return {
@@ -420,7 +457,7 @@ export default function Room() {
 
   const handleLockIn = () => {
     if (!pendingNightAction) return;
-    const actionTypeMap: Record<string, GameAction["type"]> = { mafia: "kill", doctor: "heal", detective: "check" };
+    const actionTypeMap: Record<string, GameAction["type"]> = { bodyguard: "bodyguard_protect", mafia: "kill", vigilante: "vigilante_shoot", doctor: "heal", detective: "check" };
     const type = actionTypeMap[room.phase || ""] as GameAction["type"];
     if (!type) return;
     sendAction({ type, targetId: pendingNightAction.targetId } as GameAction);
@@ -705,7 +742,7 @@ export default function Room() {
                     {isHost && (
                       <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowSettingsPanel(v => !v)}>
                         <Settings2 className="w-3.5 h-3.5" />
-                        {showSettingsPanel ? "Close Settings" : "Game Settings"}
+                        {showSettingsPanel ? t("room.closeSettings") : t("room.gameSettings")}
                       </Button>
                     )}
                   </div>
@@ -725,14 +762,20 @@ export default function Room() {
                   {isHost && showSettingsPanel && (
                     <div className="mt-6 pt-6 border-t border-border space-y-3">
                       {([
-                        { key: "mafiaCount", label: "Mafias", icon: Skull, color: "text-red-500" },
-                        { key: "detectiveCount", label: "Detectives", icon: Shield, color: "text-blue-500" },
-                        { key: "doctorCount", label: "Doctors", icon: Heart, color: "text-emerald-500" },
-                        { key: "civilianCount", label: "Civilians", icon: User, color: "text-slate-400" },
-                        { key: "phaseDuration", label: "Voting Time (s)", icon: Timer, color: "text-amber-500" },
-                        { key: "mafiaDuration", label: "Mafia Night Time (s)", icon: Skull, color: "text-red-400" },
-                        { key: "doctorDuration", label: "Doctor Night Time (s)", icon: Heart, color: "text-emerald-400" },
-                        { key: "detectiveDuration", label: "Detective Night Time (s)", icon: Shield, color: "text-blue-400" },
+                        { key: "mafiaCount", label: t("home.roles.mafias"), icon: Skull, color: "text-red-500" },
+                        { key: "detectiveCount", label: t("home.roles.detectives"), icon: Shield, color: "text-blue-500" },
+                        { key: "doctorCount", label: t("home.roles.doctors"), icon: Heart, color: "text-emerald-500" },
+                        { key: "civilianCount", label: t("home.roles.civilians"), icon: User, color: "text-slate-400" },
+                        { key: "bodyguardCount", label: t("roleBadge.bodyguard"), icon: ShieldCheck, color: "text-slate-300" },
+                        { key: "vigilanteCount", label: t("roleBadge.vigilante"), icon: Crosshair, color: "text-orange-400" },
+                        { key: "mayorCount", label: t("roleBadge.mayor"), icon: Landmark, color: "text-purple-400" },
+                        { key: "jesterCount", label: t("roleBadge.jester"), icon: Drama, color: "text-pink-400" },
+                        { key: "phaseDuration", label: t("home.roles.votingTime"), icon: Timer, color: "text-amber-500" },
+                        { key: "mafiaDuration", label: t("home.roles.mafiaNightTime"), icon: Skull, color: "text-red-400" },
+                        { key: "bodyguardDuration", label: t("room.bodyguardNightTime"), icon: ShieldCheck, color: "text-slate-300" },
+                        { key: "vigilanteDuration", label: t("room.vigilanteNightTime"), icon: Crosshair, color: "text-orange-400" },
+                        { key: "doctorDuration", label: t("home.roles.doctorNightTime"), icon: Heart, color: "text-emerald-400" },
+                        { key: "detectiveDuration", label: t("home.roles.detectiveNightTime"), icon: Shield, color: "text-blue-400" },
                       ] as const).map(row => (
                         <div key={row.key} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
                           <div className="flex items-center gap-3">
@@ -752,9 +795,9 @@ export default function Room() {
                       ))}
 
                       <div className="flex items-center justify-between px-1 pt-1 text-xs text-muted-foreground">
-                        <span>Special roles: {specialRoleTotal} / {players.length} players</span>
+                        <span>{t("room.specialRolesCount", { count: specialRoleTotal, total: players.length })}</span>
                         {specialRoleTotal >= players.length && (
-                          <span className="text-red-400 font-bold">Leave room for at least 1 civilian</span>
+                          <span className="text-red-400 font-bold">{t("room.leaveRoomForCivilian")}</span>
                         )}
                       </div>
 
@@ -807,6 +850,25 @@ export default function Room() {
                   </motion.p>
                 )}
 
+                {me?.role === "jester" && me?.isAlive && room?.status !== "ended" && (
+                  <div className="mb-3 p-3 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center gap-3">
+                    <span className="text-2xl">🎭</span>
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-pink-400">{t("room.jesterGoalTitle")}</p>
+                      <p className="text-xs text-muted-foreground">{t("room.jesterGoalBody")}</p>
+                    </div>
+                  </div>
+                )}
+
+                {me?.role === "mayor" && me?.isAlive && room?.status === "day" && !iAmRevealedMayor && (
+                  <Button
+                    onClick={() => sendAction({ type: "mayor_reveal" } as any)}
+                    className="w-full mb-3 gap-2 bg-purple-600 hover:bg-purple-700"
+                  >
+                    🏛️ {t("room.mayorRevealButton")}
+                  </Button>
+                )}
+
                 <div className="grid grid-cols-auto gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
@@ -831,6 +893,8 @@ export default function Room() {
                             }
                           }}
                           revealedRole={room?.status === "ended" ? p.role : undefined}
+                          myBulletsLeft={p.id === me?.id && me?.role === "vigilante" ? myBullets : undefined}
+                          myMayorRevealed={p.id === me?.id && me?.role === "mayor" ? iAmRevealedMayor : undefined}
                         />
                         {canReportAfk && (
                           <button
