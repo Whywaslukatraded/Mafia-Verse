@@ -172,6 +172,13 @@ export const api = {
           // language at room-creation time so bots/system text matches the
           // language the room is actually being played in.
           language: z.enum(['en', 'es']).optional(),
+          // New roles — all optional, default to 0/unused if omitted.
+          bodyguardCount: z.number().min(0).optional(),
+          vigilanteCount: z.number().min(0).optional(),
+          mayorCount: z.number().min(0).optional(),
+          jesterCount: z.number().min(0).optional(),
+          bodyguardDuration: z.number().min(5).optional(),
+          vigilanteDuration: z.number().min(5).optional(),
         }),
         // Ties this player record to a real signed-in account (if any) so
         // server-side activity tracking — used to gate referral payouts —

@@ -62,6 +62,13 @@ export const rooms = pgTable("rooms", {
     showVoteResults?: boolean;
     showRoleReveal?: boolean;
     language?: string;
+    // New roles (all optional, default 0 if unset)
+    bodyguardCount?: number;
+    vigilanteCount?: number;
+    mayorCount?: number;
+    jesterCount?: number;
+    bodyguardDuration?: number;
+    vigilanteDuration?: number;
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
@@ -160,6 +167,13 @@ export type CreateRoomRequest = {
     showVoteResults?: boolean;
     showRoleReveal?: boolean;
     language?: string;
+    // New roles (all optional, default 0 if unset)
+    bodyguardCount?: number;
+    vigilanteCount?: number;
+    mayorCount?: number;
+    jesterCount?: number;
+    bodyguardDuration?: number;
+    vigilanteDuration?: number;
   };
 };
 
@@ -209,6 +223,9 @@ export type GameAction =
   | { type: 'replay' }
   | { type: 'chat'; content: string }
   | { type: 'report_afk'; targetId: number }
+  | { type: 'bodyguard_protect'; targetId: number }
+  | { type: 'vigilante_shoot'; targetId: number }
+  | { type: 'mayor_reveal' }
   | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any };
 
 // WebSocket Message Types
