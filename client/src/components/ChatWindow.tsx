@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, Smile } from "lucide-react";
+import { Send, MessageSquare, Smile, Ghost } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Message } from "@shared/schema";
@@ -35,11 +35,16 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastSentRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
+    // isSpectator here means "in the graveyard" (dead OR joined as a true
+    // spectator) — Room.tsx passes true for both. They see the living
+    // chat read-only plus their own private graveyard chat they can post to.
+    const [activeTab, setActiveTab] = useState<"game" | "graveyard">("game");
 
-    const filteredMessages = messages.filter(msg => {
-        if (isSpectator) return true;
-        return !msg.isSpectator;
-    });
+    const gameMessages = messages.filter(msg => !msg.isSpectator);
+    const graveyardMessages = messages.filter(msg => msg.isSpectator);
+    const filteredMessages = isSpectator
+        ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
+        : gameMessages;
 
     // Persist reactions in localStorage to survive state updates
     useEffect(() => {
@@ -174,9 +179,38 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
 
     return (
         <div className="flex flex-col h-[400px] border rounded-lg bg-card overflow-hidden">
-            <div className="p-3 border-b bg-muted/50 font-semibold text-sm uppercase tracking-wider flex justify-between items-center">
-                <span>{isSpectator ? t("chat.spectatorChat") : t("chat.roomChat")}</span>
-                {isSpectator && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>}
+            <div className="border-b bg-muted/50">
+                {isSpectator ? (
+                    <div className="flex">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("game")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "game" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {t("chat.roomChat")}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("graveyard")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "graveyard" ? "border-blue-400 text-blue-400" : "border-transparent text-muted-foreground hover:text-blue-400"
+                            )}
+                        >
+                            <Ghost className="w-3.5 h-3.5" />
+                            {t("chat.graveyardChat")}
+                            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="p-3 font-semibold text-sm uppercase tracking-wider flex justify-between items-center">
+                        <span>{t("chat.roomChat")}</span>
+                    </div>
+                )}
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 <div className="space-y-4">
@@ -268,10 +302,13 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 </div>
             </ScrollArea>
       <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
-        <form onSubmit={handleSubmit} className="flex gap-2" title={isSpectator || !currentPlayerId ? t("chat.deadCannotSpeak") : ""}>
+        {isSpectator && activeTab === "game" && (
+            <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">{t("chat.gameChatReadOnly")}</p>
+        )}
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={isSpectator || !currentPlayerId}>
+              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={(isSpectator && activeTab === "game") || !currentPlayerId}>
                 <MessageSquare className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
@@ -303,11 +340,15 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isSpectator || !currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage")}
+            placeholder={
+                isSpectator
+                    ? (activeTab === "game" ? t("chat.gameChatReadOnly") : t("chat.typeAMessage"))
+                    : (!currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage"))
+            }
             className="bg-background h-10"
-            disabled={isSpectator || !currentPlayerId}
+            disabled={(isSpectator && activeTab === "game") || !currentPlayerId}
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || isSpectator || !currentPlayerId} className="shrink-0 h-10 w-10">
+          <Button type="submit" size="icon" disabled={!input.trim() || (isSpectator && activeTab === "game") || !currentPlayerId} className="shrink-0 h-10 w-10">
             <Send className="w-4 h-4" />
           </Button>
         </form>
