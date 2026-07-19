@@ -9,43 +9,29 @@ import { Label } from "@/components/ui/label";
 import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { containsProfanity } from "@/lib/profanity";
+import { getDeviceId } from "@/lib/deviceId";
 
 function getReferralCodeFromURL() {
   const params = new URLSearchParams(window.location.search);
-  const fromUrl = params.get("ref");
-  if (fromUrl) return fromUrl;
-  // The invite link points to the home page, and neither the header's
-  // Login button nor the Login page's own "Sign Up" link preserve the
-  // query string across those navigations — fall back to what Home.tsx
-  // stashed in sessionStorage when the link was first opened.
-  return sessionStorage.getItem("mafia_pending_ref") || "";
+  return params.get("ref") || "";
 }
 
-// Calls the server to credit both the referrer and the new account. This runs
-// once, right after signup succeeds, using the new account's real Supabase
-// user id — not localStorage — so it can't be replayed by clearing storage.
+// Calls the server to record the referral, tied to the new account's real
+// Supabase user id (not localStorage, so it can't be replayed by clearing
+// storage). Credits are NOT awarded immediately anymore — see
+// tryResolveReferralClaim on the server: they're only paid out once this
+// account has actually played a couple of real games, to stop people from
+// farming credits with throwaway accounts that never play.
 async function claimReferralReward(refCode: string, newSupabaseUserId: string) {
   if (!refCode || !newSupabaseUserId) return;
   try {
-    const res = await fetch("/api/rewards/referral/claim", {
+    await fetch("/api/rewards/referral/claim", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: refCode, newSupabaseUserId }),
+      body: JSON.stringify({ code: refCode, newSupabaseUserId, deviceId: getDeviceId() }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      sessionStorage.removeItem("mafia_pending_ref");
-      if (data.totalCredits !== undefined) {
-        try {
-          const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-          s.credits = data.totalCredits;
-          localStorage.setItem("mafia_stats", JSON.stringify(s));
-          window.dispatchEvent(new Event("storage"));
-        } catch {}
-      }
-    }
-    // A non-OK response (already claimed, invalid code, etc.) is fine to ignore here —
-    // it just means no bonus applies, not a signup failure.
+    // A non-OK response (already claimed, invalid code, denied, etc.) is fine to
+    // ignore here — it just means no bonus applies, not a signup failure.
   } catch {
     // Non-fatal — referral crediting shouldn't block account creation.
   }

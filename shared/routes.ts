@@ -173,6 +173,10 @@ export const api = {
           // language the room is actually being played in.
           language: z.enum(['en', 'es']).optional(),
         }),
+        // Ties this player record to a real signed-in account (if any) so
+        // server-side activity tracking — used to gate referral payouts —
+        // actually has an account to attach to. Omitted for guest play.
+        supabaseUserId: z.string().optional(),
       }),
       responses: {
         201: z.object({
@@ -190,6 +194,7 @@ export const api = {
         code: z.string().min(4),
         name: z.string().min(1),
         avatar: z.string().min(1),
+        supabaseUserId: z.string().optional(),
       }),
       responses: {
         200: z.object({

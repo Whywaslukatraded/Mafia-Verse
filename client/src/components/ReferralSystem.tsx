@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { getDeviceId } from "@/lib/deviceId";
 
 const REWARD_PER_INVITE = 25;
 
@@ -15,7 +16,7 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [code, setCode] = useState<string | null>(null);
-  const [stats, setStats] = useState({ invited: 0, totalCredits: 0 });
+  const [stats, setStats] = useState({ invited: 0, totalCredits: 0, pending: 0 });
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -40,12 +41,12 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
       setCheckingAuth(false);
 
       if (id) {
-        fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}`)
+        fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`)
           .then(r => r.json())
           .then(data => {
             if (cancelled) return;
             setCode(data.code ?? null);
-            setStats({ invited: data.joined ?? data.invited ?? 0, totalCredits: data.totalCredits ?? 0 });
+            setStats({ invited: data.joined ?? data.invited ?? 0, totalCredits: data.totalCredits ?? 0, pending: data.pending ?? 0 });
           })
           .catch(() => { if (!cancelled) setErrorMsg(t("referralSystem.loadFailed")); })
           .finally(() => { if (!cancelled) setLoadingStats(false); });
@@ -134,6 +135,11 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{t("referralSystem.credits")}</p>
                 </div>
               </div>
+              {stats.pending > 0 && (
+                <p className="text-[10px] text-center text-amber-500">
+                  {stats.pending} friend{stats.pending === 1 ? "" : "s"} pending — credits unlock once they've played a couple of real games.
+                </p>
+              )}
 
               <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
                 <Gift className="w-5 h-5 text-emerald-500" />
@@ -143,7 +149,7 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
               <p className="text-[10px] text-center text-muted-foreground px-2">
-                Both you and your friend need to be signed up to earn the credits — they have to create an account using your link, not just play as a guest.
+                Both you and your friend need to be signed up to earn the credits — and your friend needs to actually play a couple of real games (chatting and voting) before the credits unlock. This stops people from farming free credits with accounts that never play.
               </p>
             </>
           )}

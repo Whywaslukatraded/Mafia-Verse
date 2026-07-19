@@ -80,6 +80,7 @@ export default function Room() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [afkReportedIds, setAfkReportedIds] = useState<Set<number>>(new Set());
   const [linkCopied, setLinkCopied] = useState(false);
 
   // Feature: Edit game settings from the lobby (e.g. after a replay, once more
@@ -234,15 +235,15 @@ export default function Room() {
   const handleSaveSettings = () => {
     if (settingsDraft.mafiaCount < 1 || specialRoleTotal >= players.length) {
       toast({
-        title: "Too many special roles",
-        description: "Leave room for at least one civilian, based on the current number of players.",
+        title: t("room.tooManySpecialRoles"),
+        description: t("room.tooManySpecialRolesDescription"),
         variant: "destructive",
       });
       return;
     }
     sendAction({ type: "update_settings", settings: settingsDraft } as any);
     setShowSettingsPanel(false);
-    toast({ title: "Settings updated" });
+    toast({ title: t("room.settingsUpdated") });
   };
 
   // Reset role reveal flag whenever the room goes back to lobby (fresh game or replay)
@@ -250,18 +251,19 @@ export default function Room() {
     if (room?.status === "lobby" && hasRevealed) {
       setHasRevealed(false);
     }
-  }, [room?.status, hasRevealed]);
+    if (room?.status === "lobby" && afkReportedIds.size > 0) {
+      setAfkReportedIds(new Set());
+    }
+  }, [room?.status, hasRevealed, afkReportedIds.size]);
 
-  // Role reveal on first night (always shows the player their OWN role —
-  // the showRoleReveal setting only controls whether OTHER players' roles
-  // are shown when they're eliminated, not your own reveal)
+  // Role reveal on first night (if enabled)
   useEffect(() => {
-    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role) {
+    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && (room.settings as any).showRoleReveal !== false) {
       setShowRoleReveal(true);
       setHasRevealed(true);
       setTimeout(() => setShowRoleReveal(false), 5000);
     }
-  }, [room?.status, room?.turn, me?.role, hasRevealed]);
+  }, [room?.status, room?.turn, me?.role, hasRevealed, room?.settings]);
 
   // Reset night action state when phase changes
   useEffect(() => {
@@ -463,14 +465,7 @@ export default function Room() {
               {(() => {
                 const aliveMafia = players.filter(p => p.isAlive && p.role === "mafia").length;
                 const aliveCivilians = players.filter(p => p.isAlive && p.role !== "mafia").length;
-                // Alive-mafia-count is a guess and breaks for instant-win cases
-                // (e.g. the detective catching a mafia member ends the game
-                // immediately, before that mafia player is eliminated — they're
-                // still "alive" but civilians actually won). The server already
-                // computed the real winner in finalizeGameEnd and stored it on
-                // each player's gameHistory — use that when it's there.
-                const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
-                const mafiaWon = latestGameEnd ? latestGameEnd.winner === "mafia" : aliveMafia > 0;
+                const mafiaWon = aliveMafia > 0;
 
                 return (
                   <>
@@ -534,9 +529,9 @@ export default function Room() {
               <div className="text-8xl mb-4">{eliminationOverlay.avatar}</div>
               <div className="text-sm font-black uppercase tracking-[0.4em] text-red-400 mb-2">{t("room.eliminated")}</div>
               <h2 className="text-4xl font-black text-foreground mb-2">{eliminationOverlay.name}</h2>
-              {eliminationOverlay.role && (room?.settings as any)?.showRoleReveal !== false && (
+              {eliminationOverlay.role && eliminationOverlay.role !== "unknown" && (
                 <div className="inline-block bg-muted/50 border border-border px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider text-muted-foreground capitalize mb-4">
-                  {t("room.wasRole", { role: t(`roleBadge.${eliminationOverlay.role}`) })}
+                  {t("room.wasRole", { role: eliminationOverlay.role })}
                 </div>
               )}
               {eliminationOverlay.deathStory && (
@@ -704,7 +699,7 @@ export default function Room() {
                     {isHost && (
                       <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowSettingsPanel(v => !v)}>
                         <Settings2 className="w-3.5 h-3.5" />
-                        {showSettingsPanel ? "Close Settings" : "Game Settings"}
+                        {showSettingsPanel ? t("room.closeSettings") : t("room.gameSettings")}
                       </Button>
                     )}
                   </div>
@@ -724,19 +719,19 @@ export default function Room() {
                   {isHost && showSettingsPanel && (
                     <div className="mt-6 pt-6 border-t border-border space-y-3">
                       {([
-                        { key: "mafiaCount", label: "Mafias", icon: Skull, color: "text-red-500" },
-                        { key: "detectiveCount", label: "Detectives", icon: Shield, color: "text-blue-500" },
-                        { key: "doctorCount", label: "Doctors", icon: Heart, color: "text-emerald-500" },
-                        { key: "civilianCount", label: "Civilians", icon: User, color: "text-slate-400" },
-                        { key: "phaseDuration", label: "Voting Time (s)", icon: Timer, color: "text-amber-500" },
-                        { key: "mafiaDuration", label: "Mafia Night Time (s)", icon: Skull, color: "text-red-400" },
-                        { key: "doctorDuration", label: "Doctor Night Time (s)", icon: Heart, color: "text-emerald-400" },
-                        { key: "detectiveDuration", label: "Detective Night Time (s)", icon: Shield, color: "text-blue-400" },
+                        { key: "mafiaCount", labelKey: "home.roles.mafias", icon: Skull, color: "text-red-500" },
+                        { key: "detectiveCount", labelKey: "home.roles.detectives", icon: Shield, color: "text-blue-500" },
+                        { key: "doctorCount", labelKey: "home.roles.doctors", icon: Heart, color: "text-emerald-500" },
+                        { key: "civilianCount", labelKey: "home.roles.civilians", icon: User, color: "text-slate-400" },
+                        { key: "phaseDuration", labelKey: "home.roles.votingTime", icon: Timer, color: "text-amber-500" },
+                        { key: "mafiaDuration", labelKey: "home.roles.mafiaNightTime", icon: Skull, color: "text-red-400" },
+                        { key: "doctorDuration", labelKey: "home.roles.doctorNightTime", icon: Heart, color: "text-emerald-400" },
+                        { key: "detectiveDuration", labelKey: "home.roles.detectiveNightTime", icon: Shield, color: "text-blue-400" },
                       ] as const).map(row => (
                         <div key={row.key} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
                           <div className="flex items-center gap-3">
                             <row.icon className={cn("w-4 h-4", row.color)} />
-                            <span className="text-sm font-semibold">{row.label}</span>
+                            <span className="text-sm font-semibold">{t(row.labelKey)}</span>
                           </div>
                           <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, -1)}>
@@ -751,9 +746,9 @@ export default function Room() {
                       ))}
 
                       <div className="flex items-center justify-between px-1 pt-1 text-xs text-muted-foreground">
-                        <span>Special roles: {specialRoleTotal} / {players.length} players</span>
+                        <span>{t("room.specialRolesCount", { count: specialRoleTotal, total: players.length })}</span>
                         {specialRoleTotal >= players.length && (
-                          <span className="text-red-400 font-bold">Leave room for at least 1 civilian</span>
+                          <span className="text-red-400 font-bold">{t("room.leaveRoomForCivilian")}</span>
                         )}
                       </div>
 
@@ -776,6 +771,9 @@ export default function Room() {
                       <p className="text-[10px] text-muted-foreground/70">
                         {t("room.voteAnonymityExplainer")}
                       </p>
+                      <p className="text-[10px] text-muted-foreground/70">
+                        {t("room.roleRevealExplainer")}
+                      </p>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />
@@ -789,41 +787,47 @@ export default function Room() {
 
             {room?.status !== "lobby" && room?.status !== "ended" && (
               <div className="space-y-4">
-                {isMyNightTurn && !lockedIn && pendingNightAction && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, y: [0, 4, 0] }}
-                    transition={{ y: { repeat: Infinity, duration: 1.2 } }}
-                    className="text-center text-xs font-bold text-emerald-400 uppercase tracking-wider"
-                  >
-                    ↓ Scroll down to lock in your answer
-                  </motion.p>
-                )}
-
                 <div className="grid grid-cols-auto gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
+                    const canReportAfk = me?.isAlive && p.isAlive && p.id !== me?.id && !p.isBot;
                     return (
-                      <PlayerCard
-                        key={p.id}
-                        player={p}
-                        isMe={p.id === me?.id}
-                        canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
-                        interactionLabel={buttonState?.label}
-                        interactionVariant={buttonState?.variant}
-                        onInteract={() => {
-                          if (buttonState?.isNight) {
-                            setPendingNightAction({
-                              targetId: p.id,
-                              targetName: p.name,
-                              actionType: room?.phase || "",
-                            });
-                          } else if (buttonState?.action) {
-                            sendAction(buttonState.action);
-                          }
-                        }}
-                        revealedRole={room?.status === "ended" ? p.role : undefined}
-                      />
+                      <div key={p.id} className="relative">
+                        <PlayerCard
+                          player={p}
+                          isMe={p.id === me?.id}
+                          canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
+                          interactionLabel={buttonState?.label}
+                          interactionVariant={buttonState?.variant}
+                          onInteract={() => {
+                            if (buttonState?.isNight) {
+                              setPendingNightAction({
+                                targetId: p.id,
+                                targetName: p.name,
+                                actionType: room?.phase || "",
+                              });
+                            } else if (buttonState?.action) {
+                              sendAction(buttonState.action);
+                            }
+                          }}
+                          revealedRole={room?.status === "ended" ? p.role : undefined}
+                        />
+                        {canReportAfk && (
+                          <button
+                            title={t("room.reportAfk")}
+                            onClick={() => {
+                              if (afkReportedIds.has(p.id)) return;
+                              sendAction({ type: "report_afk", targetId: p.id } as any);
+                              setAfkReportedIds(prev => new Set(prev).add(p.id));
+                              toast({ title: t("room.afkReported") });
+                            }}
+                            disabled={afkReportedIds.has(p.id)}
+                            className="absolute top-1 right-1 text-[9px] px-1.5 py-0.5 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white disabled:opacity-40 disabled:hover:bg-black/40 transition-all"
+                          >
+                            {afkReportedIds.has(p.id) ? "✓" : "AFK?"}
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

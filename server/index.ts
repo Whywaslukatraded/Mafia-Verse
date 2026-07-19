@@ -5,6 +5,9 @@ import { createServer } from "http";
 import { testConnection, runMigrations } from "./db";
 
 const app = express();
+// Render sits behind a proxy — without this, req.ip would always be Render's
+// internal address instead of the actual visitor's IP.
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 // Global crash protection: don't let unhandled errors kill the dev server

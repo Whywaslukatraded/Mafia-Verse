@@ -208,6 +208,7 @@ export type GameAction =
   | { type: 'remove_bot'; playerId: number }
   | { type: 'replay' }
   | { type: 'chat'; content: string }
+  | { type: 'report_afk'; targetId: number }
   | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any };
 
 // WebSocket Message Types

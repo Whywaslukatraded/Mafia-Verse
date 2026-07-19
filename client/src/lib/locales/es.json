@@ -10,7 +10,8 @@
     "close": "Cerrar",
     "loading": "Cargando...",
     "copy": "Copiar",
-    "copied": "¡Copiado!"
+    "copied": "¡Copiado!",
+    "systemName": "Sistema"
   },
   "login": {
     "subtitle": "Inicia sesión para continuar",
@@ -287,7 +288,7 @@
     "voteResultsLabel": "Resultados de votación",
     "roleRevealLabel": "Revelar rol",
     "saveSettings": "Guardar configuración",
-    "reportAfk": "Reportar AFK / inactivo",
+    "reportAfk": "Reportar AFK",
     "afkReported": "Reportado como AFK",
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
     "roleRevealExplainer": "Revelar rol muestra el rol de quien sea eliminado por votación o asesinado por la mafia (por ejemplo, \"Médico\"). Desactívalo para mostrar solo que fue eliminado, manteniendo todos los roles en secreto.",
@@ -325,7 +326,14 @@
       "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
       "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
       "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada."
-    ]
+    ],
+    "gameSettings": "Ajustes de partida",
+    "closeSettings": "Cerrar ajustes",
+    "specialRolesCount": "Roles especiales: {{count}} / {{total}} jugadores",
+    "leaveRoomForCivilian": "Deja espacio para al menos 1 civil",
+    "tooManySpecialRoles": "Demasiados roles especiales",
+    "tooManySpecialRolesDescription": "Deja espacio para al menos un civil, según el número actual de jugadores.",
+    "settingsUpdated": "Ajustes actualizados"
   },
   "settings": {
     "title": "Ajustes",

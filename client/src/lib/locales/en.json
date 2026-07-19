@@ -10,7 +10,8 @@
     "close": "Close",
     "loading": "Loading...",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "systemName": "System"
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -287,7 +288,7 @@
     "voteResultsLabel": "Vote Results",
     "roleRevealLabel": "Role Reveal",
     "saveSettings": "Save Settings",
-    "reportAfk": "Report AFK / inactive",
+    "reportAfk": "Report AFK",
     "afkReported": "Reported as AFK",
     "voteAnonymityExplainer": "Voting is anonymous by default — everyone sees who died and who got voted out, but not who voted for whom. Turn on \"Vote Results\" to reveal each vote.",
     "roleRevealExplainer": "Role Reveal shows the role of whoever gets voted out or eliminated by the Mafia (e.g. \"Doctor\"). Turn it off to just show that they were eliminated, keeping every role secret.",
@@ -325,7 +326,14 @@
       "{name} discovered that 'danger' signs on construction sites are not suggestions.",
       "While exploring an old cave, {name} woke up a colony of very territorial bats.",
       "{name} attempted to surf a tsunami on a piece of plywood."
-    ]
+    ],
+    "gameSettings": "Game Settings",
+    "closeSettings": "Close Settings",
+    "specialRolesCount": "Special roles: {{count}} / {{total}} players",
+    "leaveRoomForCivilian": "Leave room for at least 1 civilian",
+    "tooManySpecialRoles": "Too many special roles",
+    "tooManySpecialRolesDescription": "Leave room for at least one civilian, based on the current number of players.",
+    "settingsUpdated": "Settings updated"
   },
   "settings": {
     "title": "Settings",
