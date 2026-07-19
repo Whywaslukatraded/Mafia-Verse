@@ -22,10 +22,9 @@ export default function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Auto-reset leaderboard then fetch fresh data
+  // Fetch leaderboard data
   useEffect(() => {
     const load = async () => {
-      await fetch("/api/reset-leaderboard", { method: "POST" });
       const res = await fetch("/api/leaderboard");
       if (res.ok) {
         const data = await res.json();
