@@ -224,7 +224,8 @@
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
     "roleRevealExplainer": "Revelar rol muestra el rol de quien sea eliminado por votación o asesinado por la mafia (por ejemplo, \"Médico\"). Desactívalo para mostrar solo que fue eliminado, manteniendo todos los roles en secreto.",
     "preparing": "PREPARANDO...",
-    "createRoomButton": "CREAR SALA"
+    "createRoomButton": "CREAR SALA",
+    "howToPlay": "Cómo jugar"
   },
   "room": {
     "linkCopied": "¡Enlace copiado!",
@@ -1051,5 +1052,36 @@
     "disclaimer": "Los créditos desbloquean cosméticos, cofres de botín y funciones premium. Sin reembolsos.",
     "creditsAdded": "¡Créditos agregados!",
     "spendInShop": "Gástalos en la tienda"
+  },
+  "howToPlay": {
+    "title": "Cómo jugar",
+    "gotIt": "Entendido, a jugar",
+    "next": "Siguiente",
+    "steps": {
+      "loop": {
+        "title": "El ciclo básico",
+        "body": "Cada ronda tiene una fase Nocturna, donde los roles secretos actúan en la oscuridad, y una fase Diurna, donde todos discuten y votan para eliminar a un sospechoso. Sobrevive con tu equipo hasta que un bando gane."
+      },
+      "mafia": {
+        "title": "Mafia",
+        "body": "La Mafia elige en secreto a un jugador para eliminar cada noche. Ganan cuando igualan o superan en número a los demás jugadores vivos."
+      },
+      "detective": {
+        "title": "Detective",
+        "body": "Cada noche, el Detective investiga a un jugador para descubrir si es de la Mafia o no. Usa lo que descubras para guiar la votación del día, pero ten cuidado a quién se lo dices."
+      },
+      "doctor": {
+        "title": "Médico",
+        "body": "Cada noche, el Médico elige a un jugador para proteger. Si la Mafia también apunta a ese jugador, sobrevive esa noche."
+      },
+      "civilian": {
+        "title": "Civil",
+        "body": "Los Civiles no tienen poder especial de noche, pero su voto durante el Día es igual de poderoso. Presta atención, haz preguntas y vota con inteligencia."
+      },
+      "vote": {
+        "title": "La votación del día",
+        "body": "Durante el Día, todos discuten a quién sospechan y luego votan. Quien reciba más votos es eliminado. Los Civiles ganan cuando todos los miembros de la Mafia han sido eliminados."
+      }
+    }
   }
 }

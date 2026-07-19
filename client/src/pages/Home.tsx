@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2 } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { containsProfanity } from "@/lib/profanity";
 import { DailyRewards } from "@/components/DailyRewards";
 import { AdRewards } from "@/components/AdRewards";
 import { RatingSystem } from "@/components/RatingSystem";
-import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { HowToPlay } from "@/components/HowToPlay";
 
 const AVATARS = [
   "👤", "🧛", "🕵️", "🏥", "🧟", "🐺", "🔪", "🩸", "🦉", "🕯️", "🎭", "🗝️",
@@ -41,57 +41,21 @@ const ACHIEVEMENTS = [
   { id: 'fashionista', icon: '👗' },
 ];
 
+function generateReferralCode() {
+  const saved = localStorage.getItem("mafia_referral_code");
+  if (saved) return saved;
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  localStorage.setItem("mafia_referral_code", code);
+  return code;
+}
+
 function ReferralModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
-  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [code, setCode] = useState<string | null>(null);
-  const [stats, setStats] = useState({ joined: 0, totalCredits: 0 });
-
-  // The invite code and joined/credits counts are tied to the signed-in
-  // account on the server — a code generated in localStorage never told
-  // the server anything, so real friends signing up never counted.
-  useEffect(() => {
-    let cancelled = false;
-    async function loadSession() {
-      let attempts = 0;
-      while (!isSupabaseReady() && attempts < 30) {
-        await new Promise((r) => setTimeout(r, 100));
-        attempts++;
-      }
-      if (!isSupabaseReady() || cancelled) { setCheckingAuth(false); setLoadingStats(false); return; }
-      const supabase = getSupabase();
-      const { data } = await supabase.auth.getSession();
-      const id = data.session?.user?.id || null;
-      if (cancelled) return;
-      setSupabaseUserId(id);
-      setCheckingAuth(false);
-
-      if (id) {
-        fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (cancelled) return;
-            setCode(data.code ?? null);
-            setStats({ joined: data.joined ?? data.invited ?? 0, totalCredits: data.totalCredits ?? 0 });
-          })
-          .catch(() => {})
-          .finally(() => { if (!cancelled) setLoadingStats(false); });
-      } else {
-        setLoadingStats(false);
-      }
-    }
-    loadSession();
-    return () => { cancelled = true; };
-  }, []);
-
-  const link = code ? `${window.location.origin}/?ref=${code}` : "";
+  const code = generateReferralCode();
+  const link = `${window.location.origin}/?ref=${code}`;
 
   const copy = () => {
-    if (!link) return;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -125,67 +89,35 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-6 space-y-4">
-          {checkingAuth || loadingStats ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-            </div>
-          ) : !supabaseUserId ? (
-            <div className="text-center py-6 space-y-4">
-              <UserPlus className="w-10 h-10 text-muted-foreground mx-auto" />
-              <p className="text-sm font-bold text-foreground">Sign up to get your referral link</p>
-              <p className="text-xs text-muted-foreground">Your invite link and credits are tied to your account, so guests can't refer friends.</p>
-              <Button className="w-full" onClick={() => setLocation("/signup")}>
-                Sign Up
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {t("home.referral.shareDescription1")} <strong className="text-emerald-400">{t("home.referral.shareDescription2")}</strong>.
+          </p>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.referral.yourInviteLink")}</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
+                {link}
+              </div>
+              <Button size="sm" variant="outline" onClick={copy} className="shrink-0 gap-1">
+                {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                {copied ? t("common.copied") : t("common.copy")}
               </Button>
             </div>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {t("home.referral.shareDescription1")} <strong className="text-emerald-400">{t("home.referral.shareDescription2")}</strong>.
-              </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.referral.yourInviteLink")}</Label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
-                    {link}
-                  </div>
-                  <Button size="sm" variant="outline" onClick={copy} className="shrink-0 gap-1">
-                    {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    {copied ? t("common.copied") : t("common.copy")}
-                  </Button>
-                </div>
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            {[
+              { label: t("home.referral.yourCode"), value: code, color: "text-emerald-400" },
+              { label: t("home.referral.reward"), value: "25 🪙", color: "text-amber-400" },
+              { label: t("home.referral.perFriend"), value: t("home.referral.each"), color: "text-blue-400" },
+            ].map((item) => (
+              <div key={item.label} className="bg-muted/30 rounded-xl p-3 text-center border border-border">
+                <p className={`text-base font-black ${item.color}`}>{item.value}</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">{item.label}</p>
               </div>
-
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                {[
-                  { label: t("home.referral.yourCode"), value: code, color: "text-emerald-400" },
-                  { label: t("home.referral.reward"), value: "25 🪙", color: "text-amber-400" },
-                  { label: t("home.referral.perFriend"), value: t("home.referral.each"), color: "text-blue-400" },
-                ].map((item) => (
-                  <div key={item.label} className="bg-muted/30 rounded-xl p-3 text-center border border-border">
-                    <p className={`text-base font-black ${item.color}`}>{item.value}</p>
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">{item.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-muted/30 rounded-xl p-3 text-center border border-border">
-                  <p className="text-base font-black text-foreground">{stats.joined}</p>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Joined</p>
-                </div>
-                <div className="bg-muted/30 rounded-xl p-3 text-center border border-border">
-                  <p className="text-base font-black text-emerald-500">{stats.totalCredits}</p>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">Credits Earned</p>
-                </div>
-              </div>
-
-              <p className="text-[10px] text-center text-muted-foreground px-2">
-                Both you and your friend need to be signed up to earn the credits — they have to create an account using your link, not just play as a guest.
-              </p>
-            </>
-          )}
+            ))}
+          </div>
         </div>
       </motion.div>
     </div>
@@ -213,6 +145,18 @@ export default function Home() {
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(() => {
+    try {
+      return !localStorage.getItem("mafia_seen_onboarding");
+    } catch {
+      return false;
+    }
+  });
+
+  const closeHowToPlay = () => {
+    setShowHowToPlay(false);
+    try { localStorage.setItem("mafia_seen_onboarding", "1"); } catch {}
+  };
 
   // If a room code was passed via ?join=CODE (from a shared room link),
   // make sure the Join tab is active so the pre-filled code is visible.
@@ -220,19 +164,6 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("join")) {
       setActiveTab("join");
-    }
-  }, []);
-
-  // The referral link points here (/?ref=CODE), but a new visitor has to
-  // click through to Login and then Signup before an account actually
-  // exists — and neither of those page navigations preserves the query
-  // string. Stash the code the moment it shows up so Signup.tsx can still
-  // find it once the user finally reaches the signup form.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref) {
-      sessionStorage.setItem("mafia_pending_ref", ref);
     }
   }, []);
 
@@ -517,6 +448,14 @@ export default function Home() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.settings")}</span>
                     </button>
                   </div>
+                  {/* Row 3 */}
+                  <div className="grid grid-cols-1 gap-2 w-full">
+                    <button onClick={() => setShowHowToPlay(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted transition-colors cursor-pointer">
+                      <span className="text-lg">📖</span>
+                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.howToPlay")}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <a
@@ -645,7 +584,10 @@ export default function Home() {
                     </button>
                   </div>
                   <p className="text-[10px] text-muted-foreground/70 px-2 leading-relaxed">
-                    Voting is anonymous by default — everyone sees who died and who got voted out, but not who voted for whom. Turn on "{t("home.voteResults")}" to reveal each vote.
+                    {t("home.voteAnonymityExplainer")}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70 px-2 leading-relaxed">
+                    {t("home.roleRevealExplainer")}
                   </p>
                 </div>
 
@@ -664,6 +606,7 @@ export default function Home() {
         {showAdRewards && <AdRewards onClose={() => setShowAdRewards(false)} />}
         {showRating && <RatingSystem onClose={() => setShowRating(false)} />}
         {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
+        {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
       </AnimatePresence>
     </div>
   );
