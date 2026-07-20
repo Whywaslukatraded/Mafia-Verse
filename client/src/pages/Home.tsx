@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2 } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { containsProfanity } from "@/lib/profanity";
 import { DailyRewards } from "@/components/DailyRewards";
 import { AdRewards } from "@/components/AdRewards";
 import { RatingSystem } from "@/components/RatingSystem";
+import { HowToPlay } from "@/components/HowToPlay";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 import { getDeviceId } from "@/lib/deviceId";
 
@@ -349,6 +350,18 @@ export default function Home() {
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(() => {
+    try {
+      return !localStorage.getItem("mafia_seen_onboarding");
+    } catch {
+      return false;
+    }
+  });
+
+  const closeHowToPlay = () => {
+    setShowHowToPlay(false);
+    try { localStorage.setItem("mafia_seen_onboarding", "1"); } catch {}
+  };
 
   // If a room code was passed via ?join=CODE (from a shared room link),
   // make sure the Join tab is active so the pre-filled code is visible.
@@ -420,14 +433,17 @@ export default function Home() {
 
   const [counts, setCounts] = useState({
     mafia: 1, detective: 1, doctor: 1, civilian: 3,
+    bodyguard: 0, vigilante: 0, mayor: 0, jester: 0,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    bodyguardDuration: 15, vigilanteDuration: 15,
   });
 
   const adjustCount = (role: keyof typeof counts, delta: number) => {
     setCounts(prev => ({ ...prev, [role]: Math.max(0, prev[role] + delta) }));
   };
 
-  const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian;
+  const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian
+    + counts.bodyguard + counts.vigilante + counts.mayor + counts.jester;
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -437,7 +453,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config } as any);
+      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, supabaseUserId: user?.id } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
@@ -461,11 +477,15 @@ export default function Home() {
         settings: {
           mafiaCount: counts.mafia, detectiveCount: counts.detective,
           doctorCount: counts.doctor, civilianCount: counts.civilian,
+          bodyguardCount: counts.bodyguard, vigilanteCount: counts.vigilante,
+          mayorCount: counts.mayor, jesterCount: counts.jester,
           phaseDuration: counts.phaseDuration, mafiaDuration: counts.mafiaDuration,
           doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
+          bodyguardDuration: counts.bodyguardDuration, vigilanteDuration: counts.vigilanteDuration,
           roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
           language: i18n.language?.startsWith("es") ? "es" : "en",
-        }
+        },
+        supabaseUserId: user?.id,
       } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
@@ -480,8 +500,14 @@ export default function Home() {
     { key: 'detective', label: t("home.roles.detectives"), icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { key: 'doctor', label: t("home.roles.doctors"), icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { key: 'civilian', label: t("home.roles.civilians"), icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+    { key: 'bodyguard', label: t("roleBadge.bodyguard"), icon: ShieldCheck, color: 'text-slate-300', bg: 'bg-slate-400/10' },
+    { key: 'vigilante', label: t("roleBadge.vigilante"), icon: Crosshair, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { key: 'mayor', label: t("roleBadge.mayor"), icon: Landmark, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { key: 'jester', label: t("roleBadge.jester"), icon: Drama, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     { key: 'phaseDuration', label: t("home.roles.votingTime"), icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { key: 'mafiaDuration', label: t("home.roles.mafiaNightTime"), icon: Skull, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { key: 'bodyguardDuration', label: t("room.bodyguardNightTime"), icon: ShieldCheck, color: 'text-slate-300', bg: 'bg-slate-400/10' },
+    { key: 'vigilanteDuration', label: t("room.vigilanteNightTime"), icon: Crosshair, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     { key: 'doctorDuration', label: t("home.roles.doctorNightTime"), icon: Heart, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
     { key: 'detectiveDuration', label: t("home.roles.detectiveNightTime"), icon: Shield, color: 'text-blue-400', bg: 'bg-blue-400/10' },
   ];
@@ -653,6 +679,19 @@ export default function Home() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.settings")}</span>
                     </button>
                   </div>
+                  {/* Row 3 */}
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    <button onClick={() => setLocation("/leaderboard")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted transition-colors cursor-pointer">
+                      <Medal className="w-4 h-4 text-yellow-400" />
+                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.leaderboard")}</span>
+                    </button>
+                    <button onClick={() => setShowHowToPlay(true)}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted transition-colors cursor-pointer">
+                      <BookOpen className="w-4 h-4 text-primary" />
+                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.howToPlay")}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <a
@@ -805,6 +844,7 @@ export default function Home() {
         {showAdRewards && <AdRewards onClose={() => setShowAdRewards(false)} />}
         {showRating && <RatingSystem onClose={() => setShowRating(false)} />}
         {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
+        {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
       </AnimatePresence>
     </div>
   );
