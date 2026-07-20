@@ -111,7 +111,17 @@ export function MafiaHandbook() {
                       <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference2")}</li>
                       <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference3")}</li>
                       <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference4")}</li>
+                      <li className="flex gap-2"><ChevronRight className="w-3 h-3 mt-1 text-purple-400 shrink-0" /> {t("handbook.overview.difference5")}</li>
                     </ul>
+                  </div>
+
+                  <div className="bg-pink-500/10 border border-pink-500/20 p-4 rounded-xl">
+                    <h3 className="text-sm font-bold text-pink-400 flex items-center gap-2 mb-2">
+                      <Drama className="w-4 h-4" /> {t("handbook.overview.jesterNoteTitle")}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t("handbook.overview.jesterNoteDescription")}
+                    </p>
                   </div>
                 </motion.div>
               </TabsContent>
@@ -218,6 +228,8 @@ export function MafiaHandbook() {
                       <p><strong className="text-foreground">{t("handbook.flow.night2Label")}</strong> {t("handbook.flow.night2Description")}</p>
                       <p><strong className="text-foreground">{t("handbook.flow.night3Label")}</strong> {t("handbook.flow.night3Description")}</p>
                       <p><strong className="text-foreground">{t("handbook.flow.night4Label")}</strong> {t("handbook.flow.night4Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night5Label")}</strong> {t("handbook.flow.night5Description")}</p>
+                      <p><strong className="text-foreground">{t("handbook.flow.night6Label")}</strong> {t("handbook.flow.night6Description")}</p>
                     </div>
                   </div>
 

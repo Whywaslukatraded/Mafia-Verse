@@ -116,7 +116,9 @@ export default function Room() {
     if (room.status === "lobby") return "bg-background";
     if (room.status === "ended") return "bg-background";
     if (room.status === "night") {
+      if (room.phase === "bodyguard") return "bg-slate-950 transition-colors duration-1000";
       if (room.phase === "mafia") return "bg-[hsl(var(--bg-mafia))] transition-colors duration-1000";
+      if (room.phase === "vigilante") return "bg-orange-950 transition-colors duration-1000";
       if (room.phase === "doctor") return "bg-[hsl(var(--bg-doctor))] transition-colors duration-1000";
       if (room.phase === "detective") return "bg-[hsl(var(--bg-detective))] transition-colors duration-1000";
       return "bg-[hsl(var(--bg-night))] transition-colors duration-1000";

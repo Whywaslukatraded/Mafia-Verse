@@ -431,15 +431,26 @@ export default function Home() {
   const [showVoteResults, setShowVoteResults] = useState(false);
   const [showRoleReveal, setShowRoleReveal] = useState(true);
 
-  const [counts, setCounts] = useState({
+  const DEFAULT_COUNTS = {
     mafia: 1, detective: 1, doctor: 1, civilian: 3,
     bodyguard: 0, vigilante: 0, mayor: 0, jester: 0,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
+  };
+  const [counts, setCounts] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      if (saved) return { ...DEFAULT_COUNTS, ...JSON.parse(saved) };
+    } catch {}
+    return DEFAULT_COUNTS;
   });
 
   const adjustCount = (role: keyof typeof counts, delta: number) => {
-    setCounts(prev => ({ ...prev, [role]: Math.max(0, prev[role] + delta) }));
+    setCounts(prev => {
+      const next = { ...prev, [role]: Math.max(0, prev[role] + delta) };
+      try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
 
   const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian
