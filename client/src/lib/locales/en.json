@@ -228,9 +228,7 @@
     "voteAnonymityExplainer": "Voting is anonymous by default — everyone sees who died and who got voted out, but not who voted for whom. Turn on \"Vote Results\" to reveal each vote.",
     "roleRevealExplainer": "Role Reveal shows the role of whoever gets voted out or eliminated by the Mafia (e.g. \"Doctor\"). Turn it off to just show that they were eliminated, keeping every role secret.",
     "preparing": "PREPARING...",
-    "createRoomButton": "CREATE ROOM",
-    "howToPlay": "How to Play",
-    "leaderboard": "Leaderboard"
+    "createRoomButton": "CREATE ROOM"
   },
   "room": {
     "linkCopied": "Link copied!",
@@ -245,8 +243,7 @@
       "kill": "Kill",
       "protect": "Protect",
       "investigate": "Investigate",
-      "act": "Act",
-      "shoot": "Shoot"
+      "act": "Act"
     },
     "voted": "Voted",
     "vote": "Vote",
@@ -256,10 +253,12 @@
     "actionLockedInDescription": "{{verb}}ing {{name}}...",
     "mafiaLabel": "MAFIA",
     "civiliansLabel": "CIVILIANS",
+    "jesterLabel": "JESTER",
     "wins": "WINS!",
     "mafiaWonDescription_one": "The Mafia took over with {{count}} member remaining",
     "mafiaWonDescription_other": "The Mafia took over with {{count}} members remaining",
     "civiliansWonDescription": "The town eliminated all mafia!",
+    "jesterWonDescription": "{{name}} wanted to be voted out — and it worked!",
     "finalRolesRevealed": "Final Roles Revealed",
     "playAgain": "Play Again",
     "eliminated": "Eliminated",
@@ -301,6 +300,7 @@
     "roleRevealExplainer": "Role Reveal shows the role of whoever gets voted out or eliminated by the Mafia (e.g. \"Doctor\"). Turn it off to just show that they were eliminated, keeping every role secret.",
     "gameEnded": "Game Ended",
     "mafiaWinsExclaim": "MAFIA WINS!",
+    "jesterWinsExclaim": "JESTER WINS!",
     "civiliansWinExclaim": "CIVILIANS WIN!",
     "finalRolesColon": "Final Roles:",
     "was": "was",
@@ -333,19 +333,7 @@
       "{name} discovered that 'danger' signs on construction sites are not suggestions.",
       "While exploring an old cave, {name} woke up a colony of very territorial bats.",
       "{name} attempted to surf a tsunami on a piece of plywood."
-    ],
-    "bodyguardNightTime": "Bodyguard Night Time (sec)",
-    "vigilanteNightTime": "Vigilante Night Time (sec)",
-    "jesterGoalTitle": "Goal: Get Executed",
-    "jesterGoalBody": "You win the moment the town votes you out — you don't need to survive to the end.",
-    "mayorRevealButton": "Reveal Identity (doubles your vote)",
-    "tooManySpecialRoles": "Too many special roles",
-    "tooManySpecialRolesDescription": "Leave room for at least one civilian, based on the current number of players.",
-    "settingsUpdated": "Settings updated",
-    "specialRolesCount": "Special roles: {{count}} / {{total}} players",
-    "leaveRoomForCivilian": "Leave room for at least 1 civilian",
-    "gameSettings": "Game Settings",
-    "closeSettings": "Close Settings"
+    ]
   },
   "settings": {
     "title": "Settings",
@@ -638,11 +626,7 @@
     "mafia": "Mafia",
     "detective": "Detective",
     "doctor": "Doctor",
-    "civilian": "Civilian",
-    "bodyguard": "Bodyguard",
-    "vigilante": "Vigilante",
-    "mayor": "Mayor",
-    "jester": "Jester"
+    "civilian": "Civilian"
   },
   "phaseIndicator": {
     "waitingLobby": "Waiting Lobby",
@@ -665,19 +649,14 @@
       "mafia": "MAFIA",
       "detective": "DETECTIVE",
       "doctor": "DOCTOR",
-      "civilian": "CIVILIAN",
-      "bodyguard": "Bodyguard",
-      "vigilante": "Vigilante",
-      "mayor": "Mayor",
-      "jester": "Jester"
+      "civilian": "CIVILIAN"
     },
     "unknown": "Unknown",
     "host": "Host",
     "bot": "BOT",
     "you": "(You)",
     "roleEliminated": "{{role}} — Eliminated",
-    "eliminated": "Eliminated",
-    "revealed": "Revealed"
+    "eliminated": "Eliminated"
   },
   "chat": {
     "quickMessages": [
@@ -726,7 +705,7 @@
       "whatIsMafiaDescription": "Mafia is a social deduction game. Players are secretly divided into two teams: the Town (the good guys) and the Mafia (the bad guys). Nobody knows who is who at first. The Town must figure out who the Mafia are and vote them out. The Mafia must deceive the Town and secretly eliminate them at night.",
       "teamsAtAGlance": "Teams at a Glance",
       "theTown": "THE TOWN",
-      "theTownDescription": "Detectives, Doctors, Bodyguards, Vigilantes, Mayors, and Civilians all work together to find and eliminate every Mafia member.",
+      "theTownDescription": "Detectives, Doctors, and Civilians work together to find and eliminate all Mafia members.",
       "theMafia": "THE MAFIA",
       "theMafiaDescription": "Hidden among the Town. They secretly choose someone to kill every night. They win when Mafia equals or outnumbers the Town.",
       "howToWin": "How to Win",
@@ -738,10 +717,7 @@
       "difference1": "Multiple Mafia can exist and they all know each other.",
       "difference2": "Multiple Doctors can exist and they all know each other.",
       "difference3": "Multiple Detectives can exist and they all know each other.",
-      "difference4": "Everyone else is a Civilian with no special powers except their vote.",
-      "difference5": "Beyond the basics, special roles like the Bodyguard, Vigilante, and Mayor add extra layers of protection, risk, and influence.",
-      "jesterNoteTitle": "A Wildcard: The Jester",
-      "jesterNoteDescription": "The Jester isn't Town or Mafia — they're a neutral wildcard whose only goal is to get voted out during the Day. If they succeed, they win on their own, and the game keeps going for everyone else."
+      "difference4": "Everyone else is a Civilian with no special powers except their vote."
     },
     "roles": {
       "mafia": {
@@ -783,46 +759,6 @@
           "Listen to Detectives and Doctors, but don't blindly trust anyone. Mafia can fake being helpful.",
           "Speak up. A quiet Civilian looks suspicious. Share your observations and theories during the day."
         ]
-      },
-      "bodyguard": {
-        "title": "Bodyguard",
-        "desc": "A Town-aligned protector who can take a bullet for someone else — literally.",
-        "abilities": [
-          "Each night, choose one other player to guard (you cannot guard yourself).",
-          "If your guarded player is attacked by the Mafia or the Vigilante, you die protecting them instead — and the attacker dies too.",
-          "If nobody attacks your guarded player, nothing happens — your protection was just a precaution.",
-          "You only know who you protected, not whether they were actually targeted, until the results come in."
-        ]
-      },
-      "vigilante": {
-        "title": "Vigilante",
-        "desc": "A Town-aligned vigilante with a gun and a conscience — use both carefully.",
-        "abilities": [
-          "You have exactly 2 bullets for the entire game — spend them wisely.",
-          "Each night, you may shoot one player to eliminate them immediately.",
-          "If you shoot a Town-aligned player by mistake, guilt kills you the following night.",
-          "A well-timed shot can swing the whole game — a bad one can cost you your own life."
-        ]
-      },
-      "mayor": {
-        "title": "Mayor",
-        "desc": "A Town-aligned leader who can trade safety for influence.",
-        "abilities": [
-          "At any point during the Day, you may publicly reveal yourself as the Mayor.",
-          "Once revealed, your vote counts as two votes for the rest of the game.",
-          "Revealing also makes you a marked target: you can no longer be healed by the Doctor or protected by the Bodyguard.",
-          "Revealing too early paints a target on your back — timing is everything."
-        ]
-      },
-      "jester": {
-        "title": "Jester",
-        "desc": "A wildcard with one strange goal: get the town to turn on you.",
-        "abilities": [
-          "You win instantly if the town votes you out during the Day — that is your only path to victory.",
-          "If the Mafia or the Vigilante kills you at night instead, you lose.",
-          "Acting suspicious on purpose (without being too obvious) is your best strategy.",
-          "Your win doesn't end the game for everyone else — Town and Mafia keep playing for their own win."
-        ]
       }
     },
     "flow": {
@@ -834,20 +770,16 @@
       "day3Label": "3. Reveal:",
       "day3Description": "After voting, the eliminated player's role is revealed to everyone. Use this information to update your theories.",
       "nightPhaseTitle": "Night Phase (Secret Actions)",
-      "night1Label": "1. Bodyguard Turn:",
-      "night1Description": "Each Bodyguard secretly picks one other player to guard for the night.",
-      "night2Label": "2. Mafia Turn:",
-      "night2Description": "All Mafia members secretly vote on who to kill. The chosen player will die unless a Doctor saves them or a Bodyguard is guarding them.",
-      "night3Label": "3. Vigilante Turn:",
-      "night3Description": "The Vigilante may spend one of their 2 bullets to shoot a player. Shooting an innocent Town member causes guilt to kill the Vigilante the following night.",
-      "night4Label": "4. Doctor Turn:",
-      "night4Description": "All Doctors secretly choose one player to protect from the night's attacks.",
+      "night1Label": "1. Mafia Turn:",
+      "night1Description": "All Mafia members secretly vote on who to kill. The chosen player will die unless a Doctor saves them.",
+      "night2Label": "2. Doctor Turn:",
+      "night2Description": "All Doctors secretly choose one player to protect from the Mafia's attack.",
+      "night3Label": "3. Detective Turn:",
+      "night3Description": "All Detectives secretly investigate one player to learn if they are Mafia.",
+      "night4Label": "4. Morning:",
+      "night4Description": "Everyone wakes up. If someone died, their role is revealed. If a Detective found a Mafia, they now know — but proving it without revealing themselves is tricky.",
       "tieBreakingTitle": "Tie-Breaking",
-      "tieBreakingDescription": "If two or more players receive the same highest number of votes, nobody is eliminated that round. The game moves straight to night. This is why coordination matters — splitting votes helps the Mafia survive.",
-      "night5Label": "5. Detective Turn:",
-      "night5Description": "All Detectives secretly investigate one player to learn if they are Mafia.",
-      "night6Label": "6. Morning:",
-      "night6Description": "Everyone wakes up. If someone died, their role is revealed. If a Bodyguard's target was attacked, the Bodyguard dies protecting them and the attacker dies too. If a Detective found a Mafia, they now know — but proving it without revealing themselves is tricky."
+      "tieBreakingDescription": "If two or more players receive the same highest number of votes, nobody is eliminated that round. The game moves straight to night. This is why coordination matters — splitting votes helps the Mafia survive."
     },
     "strategy": {
       "townTitle": "For the Town (Civilians, Doctors, Detectives)",
@@ -856,9 +788,7 @@
         "If a Detective reveals they found a Mafia, ask them to describe their investigation process. Fake Detectives often can't answer detailed questions.",
         "Doctors: Protect the most talkative and helpful players. Mafia usually targets players who are leading the Town.",
         "Civilians: Don't stay silent. Even if you have no special info, sharing observations helps the Town coordinate.",
-        "If multiple players are accusing the same person from different angles, that person might actually be Mafia — or the accusers might be coordinated Mafia trying to frame someone.",
-        "Bodyguards and Vigilantes should stay quiet about their actions — revealing too early makes you a Mafia target immediately.",
-        "If the Mayor reveals, protect their vote by backing their read on the game — but remember the Doctor and Bodyguard can no longer save them."
+        "If multiple players are accusing the same person from different angles, that person might actually be Mafia — or the accusers might be coordinated Mafia trying to frame someone."
       ],
       "mafiaTitle": "For the Mafia",
       "mafiaTips": [
@@ -1123,52 +1053,5 @@
     "disclaimer": "Credits unlock cosmetics, loot crates, and premium features. No refunds.",
     "creditsAdded": "Credits Added!",
     "spendInShop": "Spend them in the shop"
-  },
-  "howToPlay": {
-    "title": "How to Play",
-    "gotIt": "Got it, let's play",
-    "next": "Next",
-    "steps": {
-      "loop": {
-        "title": "The Basic Loop",
-        "body": "Each round has a Night phase, where secret roles act in the dark, and a Day phase, where everyone discusses and votes to eliminate a suspect. Survive as your team until one side wins."
-      },
-      "mafia": {
-        "title": "Mafia",
-        "body": "The Mafia secretly choose one player to eliminate each night. They win once they equal or outnumber everyone else still alive."
-      },
-      "detective": {
-        "title": "Detective",
-        "body": "Each night, the Detective investigates one player to learn if they are Mafia or not. Use what you learn to guide the Day vote — but be careful who you tell."
-      },
-      "doctor": {
-        "title": "Doctor",
-        "body": "Each night, the Doctor picks one player to protect. If the Mafia targets that player too, they survive the night."
-      },
-      "civilian": {
-        "title": "Civilian",
-        "body": "Civilians have no special power at night, but their votes during the Day are just as powerful. Pay attention, ask questions, and vote wisely."
-      },
-      "vote": {
-        "title": "The Day Vote",
-        "body": "During the Day, everyone discusses who they suspect, then votes. Whoever gets the most votes is eliminated. Civilians win once every Mafia member is gone."
-      },
-      "bodyguard": {
-        "title": "Bodyguard",
-        "body": "Each night, the Bodyguard protects one player (not themselves). If that player is attacked, the Bodyguard dies defending them instead — and the attacker dies too."
-      },
-      "vigilante": {
-        "title": "Vigilante",
-        "body": "The Vigilante gets exactly 2 bullets for the whole game. Shoot a player at night to eliminate them — but if you shoot an innocent Town member, guilt kills you the following night."
-      },
-      "mayor": {
-        "title": "Mayor",
-        "body": "The Mayor can publicly reveal during the day to make their vote count double. But once revealed, they can no longer be healed or protected — high reward, high risk."
-      },
-      "jester": {
-        "title": "Jester",
-        "body": "The Jester wins the moment the town votes them out — that's their only goal. If Mafia or the Vigilante kills them at night instead, they lose."
-      }
-    }
   }
 }

@@ -98,7 +98,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
           case "error":
             toast({
               title: "Error",
-              description: msg.message,
+              description: msg.payload?.message || msg.message,
               variant: "destructive",
             });
             break;

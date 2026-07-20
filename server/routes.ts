@@ -881,7 +881,7 @@ async function tryResolveReferralClaim(referredUserId: string): Promise<void> {
   }
 }
 
-async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians' | 'mafia', gameActionsMap: Map<number, any>) {
+async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians' | 'mafia' | 'jester', gameActionsMap: Map<number, any>) {
   const history = gameHistory.get(roomId) || [];
   const playersInRoom = await storage.getPlayersInRoom(roomId);
 
@@ -896,7 +896,11 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
     await storage.updatePlayer(p.id, {
       gameHistory: history,
       gamesPlayed: (p.gamesPlayed || 0) + 1,
-      wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
+      wins: (p.wins || 0) + (
+        winner === 'jester' ? (p.role === 'jester' ? 1 : 0) :
+        winner === 'civilians' && p.role !== 'mafia' ? 1 :
+        winner === 'mafia' && p.role === 'mafia' ? 1 : 0
+      )
     });
   }
 
@@ -980,13 +984,15 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           await storage.updatePlayer(topTargetId, { isAlive: false });
           const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
-          revealDelayMs = ELIMINATION_REVEAL_MS;
+          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
 
           if (victim.role === 'jester') {
-            // The Jester wins on their own by getting voted out. Their win is
-            // recorded, but the game keeps going for everyone else.
+            // Classic Jester rule: getting voted out ends the game
+            // immediately, right then — it doesn't continue for anyone else.
+            await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("jesterWinsBody", revealLang, { name: victim.name }) });
-            await storage.updatePlayer(victim.id, { wins: (victim.wins || 0) + 1 });
+            await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+            gameEnded = true;
           } else {
             const remainingPlayers = await storage.getPlayersInRoom(roomId);
             const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
@@ -1086,11 +1092,13 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
-          revealDelayMs = ELIMINATION_REVEAL_MS;
+          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
 
           if (victim.role === 'jester') {
+            await storage.updateRoom(roomId, { status: 'ended' });
             await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("jesterWinsBody", lang, { name: victim.name }) });
-            await storage.updatePlayer(victim.id, { wins: (victim.wins || 0) + 1 });
+            await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+            gameEnded = true;
           } else {
             const remainingPlayers = await storage.getPlayersInRoom(roomId);
             const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
@@ -1272,7 +1280,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await storage.updatePlayer(deadId, { isAlive: false });
       }
 
-      if (anyoneDied) revealDelayMs = ELIMINATION_REVEAL_MS;
+      if (anyoneDied) revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
 
       // Guilt catches up: if a Vigilante shot an innocent last night, they die now.
       const pendingGuiltId = vigilanteGuiltPending.get(roomId);
@@ -1281,7 +1289,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (guiltyVigi && guiltyVigi.isAlive) {
           await storage.updatePlayer(guiltyVigi.id, { isAlive: false });
           deadTonight.add(guiltyVigi.id);
-          revealDelayMs = ELIMINATION_REVEAL_MS;
+          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
           nightSummary += sysMsg("vigilanteGuiltDied", lang, { name: guiltyVigi.name });
           nightData.events.push({ type: 'guilt_death', target: guiltyVigi.name, role: 'vigilante' });
         }

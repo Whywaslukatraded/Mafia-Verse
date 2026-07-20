@@ -296,7 +296,9 @@ export default function Room() {
     const getDuration = () => {
       const settings = room.settings as any;
       if (room.status === "night") {
+        if (room.phase === "bodyguard") return settings.bodyguardDuration || 15;
         if (room.phase === "mafia") return settings.mafiaDuration || 30;
+        if (room.phase === "vigilante") return settings.vigilanteDuration || 15;
         if (room.phase === "doctor") return settings.doctorDuration || 15;
         if (room.phase === "detective") return settings.detectiveDuration || 20;
         return settings.phaseDuration || 30;
@@ -510,16 +512,20 @@ export default function Room() {
                 // computed the real winner in finalizeGameEnd and stored it on
                 // each player's gameHistory — use that when it's there.
                 const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
-                const mafiaWon = latestGameEnd ? latestGameEnd.winner === "mafia" : aliveMafia > 0;
+                const jesterWon = latestGameEnd?.winner === "jester";
+                const mafiaWon = jesterWon ? false : (latestGameEnd ? latestGameEnd.winner === "mafia" : aliveMafia > 0);
+                const jesterName = jesterWon ? (latestGameEnd.roles?.find((r: any) => r.role === "jester")?.name || players.find(p => p.role === "jester")?.name) : undefined;
 
                 return (
                   <>
-                    <div className={`text-8xl font-black mb-2 ${mafiaWon ? "text-red-500" : "text-green-500"}`}>
-                      {mafiaWon ? `🔴 ${t("room.mafiaLabel")}` : `✨ ${t("room.civiliansLabel")}`}
+                    <div className={`text-8xl font-black mb-2 ${jesterWon ? "text-pink-400" : mafiaWon ? "text-red-500" : "text-green-500"}`}>
+                      {jesterWon ? `🃏 ${t("room.jesterLabel")}` : mafiaWon ? `🔴 ${t("room.mafiaLabel")}` : `✨ ${t("room.civiliansLabel")}`}
                     </div>
                     <div className="text-5xl font-black mb-6 text-foreground">{t("room.wins")}</div>
                     <div className="mb-8 text-muted-foreground text-lg font-semibold">
-                      {mafiaWon
+                      {jesterWon
+                        ? t("room.jesterWonDescription", { name: jesterName || t("chat.someone") })
+                        : mafiaWon
                         ? t("room.mafiaWonDescription", { count: aliveMafia })
                         : t("room.civiliansWonDescription")}
                     </div>
@@ -1027,7 +1033,7 @@ export default function Room() {
                           {entry.type === "game_end" ? (
                             <>
                               <h4 className="text-sm font-black uppercase tracking-widest text-yellow-400">
-                                🎮 {t("room.gameEnded")} - {entry.winner === 'mafia' ? `🔴 ${t("room.mafiaWinsExclaim")}` : `✨ ${t("room.civiliansWinExclaim")}`}
+                                🎮 {t("room.gameEnded")} - {entry.winner === 'jester' ? `🃏 ${t("room.jesterWinsExclaim")}` : entry.winner === 'mafia' ? `🔴 ${t("room.mafiaWinsExclaim")}` : `✨ ${t("room.civiliansWinExclaim")}`}
                               </h4>
                               <div className="space-y-2 text-sm">
                                 <div className="text-muted-foreground italic">{t("room.finalRolesColon")}</div>
