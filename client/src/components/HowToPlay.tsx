@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, Sun, Skull, Shield, Heart, Search, User, ChevronRight, ChevronLeft, X } from "lucide-react";
+import { Moon, Sun, Skull, Shield, Heart, Search, User, ShieldCheck, Crosshair, Landmark, Drama, ChevronRight, ChevronLeft, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,15 +9,16 @@ interface HowToPlayProps {
   onClose: () => void;
 }
 
-const STEP_ICONS = [Moon, Skull, Shield, Heart, Search, Sun];
+const STEP_ICONS = [Moon, Skull, Shield, Heart, Search, ShieldCheck, Crosshair, Landmark, Drama, Sun];
 
 export function HowToPlay({ onClose }: HowToPlayProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
 
-  // 6 short steps: the loop, mafia, detective, doctor, civilian, day vote.
-  // Each key below must exist under `howToPlay.steps.*` in en.json/es.json.
-  const steps = ["loop", "mafia", "detective", "doctor", "civilian", "vote"];
+  // 10 short steps: the loop, mafia, detective, doctor, civilian, the 4 new
+  // roles, then the day vote. Each key below must exist under
+  // `howToPlay.steps.*` in en.json/es.json.
+  const steps = ["loop", "mafia", "detective", "doctor", "civilian", "bodyguard", "vigilante", "mayor", "jester", "vote"];
   const isLast = step === steps.length - 1;
   const Icon = STEP_ICONS[step];
 

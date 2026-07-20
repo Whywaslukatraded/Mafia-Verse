@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Skull, Shield, Heart, User, Timer, Lightbulb, Zap, Info, ChevronRight, Users, Eye, Crosshair, Vote, Moon, Sun, Trophy, AlertTriangle } from "lucide-react";
+import { BookOpen, Skull, Shield, Heart, User, Timer, Lightbulb, Zap, Info, ChevronRight, Users, Eye, Crosshair, Vote, Moon, Sun, Trophy, AlertTriangle, ShieldCheck, Landmark, Drama } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function MafiaHandbook() {
@@ -12,6 +12,10 @@ export function MafiaHandbook() {
   const detectiveAbilities = t("handbook.roles.detective.abilities", { returnObjects: true }) as string[];
   const doctorAbilities = t("handbook.roles.doctor.abilities", { returnObjects: true }) as string[];
   const civilianAbilities = t("handbook.roles.civilian.abilities", { returnObjects: true }) as string[];
+  const bodyguardAbilities = t("handbook.roles.bodyguard.abilities", { returnObjects: true }) as string[];
+  const vigilanteAbilities = t("handbook.roles.vigilante.abilities", { returnObjects: true }) as string[];
+  const mayorAbilities = t("handbook.roles.mayor.abilities", { returnObjects: true }) as string[];
+  const jesterAbilities = t("handbook.roles.jester.abilities", { returnObjects: true }) as string[];
   const townTips = t("handbook.strategy.townTips", { returnObjects: true }) as string[];
   const mafiaTips = t("handbook.strategy.mafiaTips", { returnObjects: true }) as string[];
   const redFlags = t("handbook.strategy.redFlags", { returnObjects: true }) as string[];
@@ -150,6 +154,42 @@ export function MafiaHandbook() {
                     glow="shadow-slate-500/10"
                     desc={t("handbook.roles.civilian.desc")}
                     abilities={civilianAbilities}
+                  />
+
+                  <RoleSection
+                    title={t("handbook.roles.bodyguard.title")}
+                    icon={<ShieldCheck className="w-5 h-5" />}
+                    color="text-slate-300"
+                    glow="shadow-slate-400/10"
+                    desc={t("handbook.roles.bodyguard.desc")}
+                    abilities={bodyguardAbilities}
+                  />
+
+                  <RoleSection
+                    title={t("handbook.roles.vigilante.title")}
+                    icon={<Crosshair className="w-5 h-5" />}
+                    color="text-orange-400"
+                    glow="shadow-orange-500/10"
+                    desc={t("handbook.roles.vigilante.desc")}
+                    abilities={vigilanteAbilities}
+                  />
+
+                  <RoleSection
+                    title={t("handbook.roles.mayor.title")}
+                    icon={<Landmark className="w-5 h-5" />}
+                    color="text-purple-400"
+                    glow="shadow-purple-500/10"
+                    desc={t("handbook.roles.mayor.desc")}
+                    abilities={mayorAbilities}
+                  />
+
+                  <RoleSection
+                    title={t("handbook.roles.jester.title")}
+                    icon={<Drama className="w-5 h-5" />}
+                    color="text-pink-400"
+                    glow="shadow-pink-500/10"
+                    desc={t("handbook.roles.jester.desc")}
+                    abilities={jesterAbilities}
                   />
                 </motion.div>
               </TabsContent>

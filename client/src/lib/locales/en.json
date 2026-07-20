@@ -780,6 +780,46 @@
           "Listen to Detectives and Doctors, but don't blindly trust anyone. Mafia can fake being helpful.",
           "Speak up. A quiet Civilian looks suspicious. Share your observations and theories during the day."
         ]
+      },
+      "bodyguard": {
+        "title": "Bodyguard",
+        "desc": "A Town-aligned protector who can take a bullet for someone else — literally.",
+        "abilities": [
+          "Each night, choose one other player to guard (you cannot guard yourself).",
+          "If your guarded player is attacked by the Mafia or the Vigilante, you die protecting them instead — and the attacker dies too.",
+          "If nobody attacks your guarded player, nothing happens — your protection was just a precaution.",
+          "You only know who you protected, not whether they were actually targeted, until the results come in."
+        ]
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "desc": "A Town-aligned vigilante with a gun and a conscience — use both carefully.",
+        "abilities": [
+          "You have exactly 2 bullets for the entire game — spend them wisely.",
+          "Each night, you may shoot one player to eliminate them immediately.",
+          "If you shoot a Town-aligned player by mistake, guilt kills you the following night.",
+          "A well-timed shot can swing the whole game — a bad one can cost you your own life."
+        ]
+      },
+      "mayor": {
+        "title": "Mayor",
+        "desc": "A Town-aligned leader who can trade safety for influence.",
+        "abilities": [
+          "At any point during the Day, you may publicly reveal yourself as the Mayor.",
+          "Once revealed, your vote counts as two votes for the rest of the game.",
+          "Revealing also makes you a marked target: you can no longer be healed by the Doctor or protected by the Bodyguard.",
+          "Revealing too early paints a target on your back — timing is everything."
+        ]
+      },
+      "jester": {
+        "title": "Jester",
+        "desc": "A wildcard with one strange goal: get the town to turn on you.",
+        "abilities": [
+          "You win instantly if the town votes you out during the Day — that is your only path to victory.",
+          "If the Mafia or the Vigilante kills you at night instead, you lose.",
+          "Acting suspicious on purpose (without being too obvious) is your best strategy.",
+          "Your win doesn't end the game for everyone else — Town and Mafia keep playing for their own win."
+        ]
       }
     },
     "flow": {
@@ -1103,6 +1143,22 @@
       "vote": {
         "title": "The Day Vote",
         "body": "During the Day, everyone discusses who they suspect, then votes. Whoever gets the most votes is eliminated. Civilians win once every Mafia member is gone."
+      },
+      "bodyguard": {
+        "title": "Bodyguard",
+        "body": "Each night, the Bodyguard protects one player (not themselves). If that player is attacked, the Bodyguard dies defending them instead — and the attacker dies too."
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "body": "The Vigilante gets exactly 2 bullets for the whole game. Shoot a player at night to eliminate them — but if you shoot an innocent Town member, guilt kills you the following night."
+      },
+      "mayor": {
+        "title": "Mayor",
+        "body": "The Mayor can publicly reveal during the day to make their vote count double. But once revealed, they can no longer be healed or protected — high reward, high risk."
+      },
+      "jester": {
+        "title": "Jester",
+        "body": "The Jester wins the moment the town votes them out — that's their only goal. If Mafia or the Vigilante kills them at night instead, they lose."
       }
     }
   }

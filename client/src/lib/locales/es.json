@@ -780,6 +780,46 @@
           "Escucha a los detectives y médicos, pero no confíes ciegamente en nadie. La mafia puede fingir ser útil.",
           "Habla. Un civil callado parece sospechoso. Comparte tus observaciones y teorías durante el día."
         ]
+      },
+      "bodyguard": {
+        "title": "Guardaespaldas",
+        "desc": "Un protector del bando del Pueblo que puede recibir una bala por otro — literalmente.",
+        "abilities": [
+          "Cada noche, elige a otro jugador para proteger (no puedes protegerte a ti mismo).",
+          "Si el jugador que proteges es atacado por la Mafia o el Vigilante, mueres protegiéndolo en su lugar, y el atacante también muere.",
+          "Si nadie ataca al jugador que proteges, no pasa nada; tu protección fue solo una precaución.",
+          "Solo sabes a quién protegiste, no si realmente fue el objetivo, hasta que llegan los resultados."
+        ]
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "desc": "Un vigilante del bando del Pueblo con un arma y una conciencia — usa ambas con cuidado.",
+        "abilities": [
+          "Tienes exactamente 2 balas para todo el juego — úsalas con sabiduría.",
+          "Cada noche, puedes disparar a un jugador para eliminarlo de inmediato.",
+          "Si le disparas por error a un jugador del bando del Pueblo, la culpa te mata la noche siguiente.",
+          "Un disparo bien calculado puede cambiar todo el juego; uno malo puede costarte la vida."
+        ]
+      },
+      "mayor": {
+        "title": "Alcalde",
+        "desc": "Un líder del bando del Pueblo que puede cambiar seguridad por influencia.",
+        "abilities": [
+          "En cualquier momento durante el Día, puedes revelarte públicamente como el Alcalde.",
+          "Una vez revelado, tu voto cuenta como dos votos por el resto de la partida.",
+          "Revelarte también te convierte en un objetivo marcado: ya no puedes ser curado por el Médico ni protegido por el Guardaespaldas.",
+          "Revelarte demasiado pronto te pone un blanco en la espalda — el momento lo es todo."
+        ]
+      },
+      "jester": {
+        "title": "Bufón",
+        "desc": "Un comodín con un objetivo extraño: lograr que el pueblo se vuelva en tu contra.",
+        "abilities": [
+          "Ganas instantáneamente si el pueblo te elimina por votación durante el Día — ese es tu único camino a la victoria.",
+          "Si la Mafia o el Vigilante te matan de noche en su lugar, pierdes.",
+          "Actuar sospechoso a propósito (sin ser demasiado obvio) es tu mejor estrategia.",
+          "Tu victoria no termina el juego para los demás — el Pueblo y la Mafia siguen jugando por su propia victoria."
+        ]
       }
     },
     "flow": {
@@ -1103,6 +1143,22 @@
       "vote": {
         "title": "La votación del día",
         "body": "Durante el Día, todos discuten a quién sospechan y luego votan. Quien reciba más votos es eliminado. Los Civiles ganan cuando todos los miembros de la Mafia han sido eliminados."
+      },
+      "bodyguard": {
+        "title": "Guardaespaldas",
+        "body": "Cada noche, el Guardaespaldas protege a un jugador (no a sí mismo). Si ese jugador es atacado, el Guardaespaldas muere defendiéndolo en su lugar, y el atacante también muere."
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "body": "El Vigilante tiene exactamente 2 balas para todo el juego. Dispara a un jugador de noche para eliminarlo, pero si le disparas a un inocente del Pueblo, la culpa te mata la noche siguiente."
+      },
+      "mayor": {
+        "title": "Alcalde",
+        "body": "El Alcalde puede revelarse públicamente durante el día para que su voto cuente doble. Pero una vez revelado, ya no puede ser curado ni protegido: alto riesgo, alta recompensa."
+      },
+      "jester": {
+        "title": "Bufón",
+        "body": "El Bufón gana en el momento en que el pueblo lo elimina por votación — ese es su único objetivo. Si la Mafia o el Vigilante lo matan de noche en su lugar, pierde."
       }
     }
   }
