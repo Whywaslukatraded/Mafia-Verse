@@ -158,6 +158,7 @@ export class DatabaseStorage implements IStorage {
       .from(players)
       .where(sql`${players.isBot} = false`)
       .groupBy(players.name, players.avatar, players.avatarConfig)
+      .having(sql`sum(${players.gamesPlayed}) > 0`)
       .orderBy(desc(sql`sum(${players.wins})`))
       .limit(20);
 
