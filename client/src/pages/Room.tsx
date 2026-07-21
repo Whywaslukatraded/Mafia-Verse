@@ -831,9 +831,6 @@ export default function Room() {
                       <p className="text-[10px] text-muted-foreground/70">
                         {t("room.roleRevealExplainer")}
                       </p>
-                      <p className="text-[10px] text-muted-foreground/70">
-                        {t("room.roleRevealExplainer")}
-                      </p>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />

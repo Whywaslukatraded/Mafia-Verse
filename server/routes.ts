@@ -55,6 +55,41 @@ function verifyPassword(password: string, hash: string): boolean {
 }
 
 // Game Logic Helpers
+// Canonical night phase order. A phase is only entered if at least one
+// living player actually holds that role — otherwise it's skipped, so a
+// game with no Doctor never shows/waits on a "Doctor" timer, etc.
+const NIGHT_ROLE_ORDER = ["bodyguard", "mafia", "vigilante", "doctor", "detective"] as const;
+
+function getFirstNightPhase(players: Player[]): string {
+  for (const role of NIGHT_ROLE_ORDER) {
+    if (players.some((p) => p.role === role && p.isAlive)) return role;
+  }
+  return "mafia"; // mafiaCount >= 1 is enforced at settings time, so this is unreachable in practice
+}
+
+// Returns the next night phase after `currentPhase` that has a living role
+// holder, or null if there are no more night roles left to act — meaning
+// the night is over and it's time to resolve/advance to Day.
+function getNextNightPhase(currentPhase: string, players: Player[]): string | null {
+  const idx = NIGHT_ROLE_ORDER.indexOf(currentPhase as any);
+  for (let i = idx + 1; i < NIGHT_ROLE_ORDER.length; i++) {
+    const role = NIGHT_ROLE_ORDER[i];
+    if (players.some((p) => p.role === role && p.isAlive)) return role;
+  }
+  return null;
+}
+
+function getNightPhaseDuration(phase: string, settings: any): number {
+  const map: Record<string, number> = {
+    bodyguard: settings.bodyguardDuration,
+    mafia: settings.mafiaDuration,
+    vigilante: settings.vigilanteDuration,
+    doctor: settings.doctorDuration,
+    detective: settings.detectiveDuration,
+  };
+  return (map[phase] ? map[phase] * 1000 : 0) || 15000;
+}
+
 function assignRoles(players: Player[], settings: any) {
   const roles: string[] = [];
   for (let i = 0; i < settings.mafiaCount; i++) roles.push("mafia");
@@ -1022,7 +1057,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       }
       
       const nextPlayers = await storage.getPlayersInRoom(roomId);
-      const nextPhase = nextPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+      const nextPhase = getFirstNightPhase(nextPlayers);
       await storage.updateRoom(roomId, { status: 'night', phase: nextPhase, turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
       actions.mafiaKills.clear();
@@ -1033,9 +1068,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       gameActions.set(roomId, actions);
       broadcastState(roomId);
       const nextSettings = room.settings as any;
-      const nextDuration = nextPhase === 'bodyguard'
-        ? (nextSettings.bodyguardDuration * 1000 || 15000)
-        : (nextSettings.mafiaDuration * 1000 || 15000);
+      const nextDuration = getNightPhaseDuration(nextPhase, nextSettings);
       const nextTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), nextDuration + revealDelayMs);
       phaseTimers.set(roomId, nextTimer);
       return;
@@ -1123,7 +1156,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
       if (!gameEnded) {
         const nextPlayers = await storage.getPlayersInRoom(roomId);
-        const nextPhase = nextPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+        const nextPhase = getFirstNightPhase(nextPlayers);
         await storage.updateRoom(roomId, { status: 'night', phase: nextPhase, turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       }
       actions.mafiaKills.clear();
@@ -1135,12 +1168,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       gameActions.set(roomId, actions);
     }
   } else if (room.status === 'night') {
-    if (room.phase === 'bodyguard') {
-      console.log(`[Room ${roomId}] Night Phase: Bodyguard -> Mafia`);
-      await storage.updateRoom(roomId, { phase: 'mafia', lastUpdated: new Date() });
-      broadcastState(roomId);
-    } else if (room.phase === 'mafia') {
-      console.log(`[Room ${roomId}] Night Phase: Mafia -> Vigilante`);
+    // Special case: Mafia phase always ends the game immediately if there's
+    // no living Mafia left, regardless of what other roles are in play.
+    if (room.phase === 'mafia') {
       const aliveMafia = players.filter((p: Player) => p.role === 'mafia' && p.isAlive);
       if (aliveMafia.length === 0) {
         console.log(`[Room ${roomId}] All mafia eliminated! Ending game.`);
@@ -1149,20 +1179,21 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
         broadcastState(roomId);
         return;
-      } else {
-        await storage.updateRoom(roomId, { phase: 'vigilante', lastUpdated: new Date() });
       }
+    }
+
+    const nextNightPhase = getNextNightPhase(room.phase, players);
+
+    if (nextNightPhase) {
+      // There's still a living role holder left to act tonight — move to
+      // their phase. Any role with nobody alive holding it (e.g. no Doctor
+      // in this game) is skipped automatically by getNextNightPhase.
+      console.log(`[Room ${roomId}] Night Phase: ${room.phase} -> ${nextNightPhase}`);
+      await storage.updateRoom(roomId, { phase: nextNightPhase, lastUpdated: new Date() });
       broadcastState(roomId);
-    } else if (room.phase === 'vigilante') {
-      console.log(`[Room ${roomId}] Night Phase: Vigilante -> Doctor`);
-      await storage.updateRoom(roomId, { phase: 'doctor', lastUpdated: new Date() });
-      broadcastState(roomId);
-    } else if (room.phase === 'doctor') {
-      console.log(`[Room ${roomId}] Night Phase: Doctor -> Detective`);
-      await storage.updateRoom(roomId, { phase: 'detective', lastUpdated: new Date() });
-      broadcastState(roomId);
-    } else if (room.phase === 'detective') {
-      console.log(`[Room ${roomId}] Night Phase: Detective -> Day Discussion`);
+    } else {
+      // No more night roles left to act — resolve the night and move to Day.
+      console.log(`[Room ${roomId}] Night Phase: ${room.phase} -> Day Discussion`);
       const history = gameHistory.get(roomId) || [];
       const nightData: any = { type: 'night', turn: room.turn, events: [] };
 
@@ -1355,11 +1386,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
-        if (currentRoom.phase === 'bodyguard') duration = (currentRoom.settings as any).bodyguardDuration * 1000 || 15000;
-        if (currentRoom.phase === 'mafia') duration = (currentRoom.settings as any).mafiaDuration * 1000 || 15000;
-        if (currentRoom.phase === 'vigilante') duration = (currentRoom.settings as any).vigilanteDuration * 1000 || 15000;
-        if (currentRoom.phase === 'doctor') duration = (currentRoom.settings as any).doctorDuration * 1000 || 15000;
-        if (currentRoom.phase === 'detective') duration = (currentRoom.settings as any).detectiveDuration * 1000 || 15000;
+        duration = getNightPhaseDuration(currentRoom.phase, currentRoom.settings as any);
       }
       // revealDelayMs is only ever nonzero here when this phase's lastUpdated was
       // itself pushed into the future above (an elimination just happened) — keep
@@ -1993,7 +2020,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const revealDelayMs = ROLE_REVEAL_MS;
 
           const firstNightPlayers = await storage.getPlayersInRoom(myRoomId);
-          const firstPhase = firstNightPlayers.some((p: Player) => p.role === 'bodyguard' && p.isAlive) ? 'bodyguard' : 'mafia';
+          const firstPhase = getFirstNightPhase(firstNightPlayers);
           await storage.updateRoom(myRoomId, { status: 'night', phase: firstPhase, turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
           gameActions.set(myRoomId, {
             votes: new Map(),
@@ -2013,9 +2040,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           mayorRevealed.set(myRoomId, new Set());
 
           const startSettings = room.settings as any;
-          const duration = firstPhase === 'bodyguard'
-            ? (startSettings.bodyguardDuration * 1000 || 15000)
-            : (startSettings.mafiaDuration * 1000 || 15000);
+          const duration = getNightPhaseDuration(firstPhase, startSettings);
           const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
           phaseTimers.set(myRoomId, timer);
           broadcastState(myRoomId);

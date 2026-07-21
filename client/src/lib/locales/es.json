@@ -296,6 +296,10 @@
     "voteResultsLabel": "Resultados de votación",
     "roleRevealLabel": "Revelar rol",
     "saveSettings": "Guardar configuración",
+    "gameSettings": "Configuración del juego",
+    "closeSettings": "Cerrar configuración",
+    "bodyguardNightTime": "Tiempo nocturno del guardaespaldas (seg)",
+    "vigilanteNightTime": "Tiempo nocturno del vigilante (seg)",
     "reportAfk": "Reportar AFK / inactivo",
     "afkReported": "Reportado como AFK",
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
@@ -628,7 +632,11 @@
     "mafia": "Mafioso",
     "detective": "Detective",
     "doctor": "Médico",
-    "civilian": "Civil"
+    "civilian": "Civil",
+    "bodyguard": "Guardaespaldas",
+    "vigilante": "Vigilante",
+    "mayor": "Alcalde",
+    "jester": "Bufón"
   },
   "phaseIndicator": {
     "waitingLobby": "Sala de espera",
@@ -643,7 +651,9 @@
       "voting": "votación",
       "mafia": "mafia",
       "doctor": "médico",
-      "detective": "detective"
+      "detective": "detective",
+      "bodyguard": "guardaespaldas",
+      "vigilante": "vigilante"
     }
   },
   "playerCard": {
