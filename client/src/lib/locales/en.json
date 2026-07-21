@@ -383,7 +383,21 @@
       "{name} discovered that 'danger' signs on construction sites are not suggestions.",
       "While exploring an old cave, {name} woke up a colony of very territorial bats.",
       "{name} attempted to surf a tsunami on a piece of plywood."
-    ]
+    ],
+    "jesterGoalTitle": "Goal: Get Executed",
+    "jesterGoalBody": "You win the moment the town votes you out — you don't need to survive to the end.",
+    "tooManySpecialRoles": "Too many special roles",
+    "tooManySpecialRolesDescription": "Leave room for at least one civilian, based on the current number of players.",
+    "settingsUpdated": "Settings updated",
+    "specialRolesCount": "Special roles: {{count}} / {{total}} players",
+    "leaveRoomForCivilian": "Leave room for at least 1 civilian",
+    "wasVotedOutWithRole": "{{target}} was voted out. They were the {{role}}.",
+    "noOneVotedOut": "No one was voted out.",
+    "wasEliminatedWithRole": "{{target}} was killed during the night. They were the {{role}}.",
+    "bodyguardDiedProtecting": "{{target}} the Bodyguard died protecting their target.",
+    "attackerRetaliatedDied": "{{target}} died in the retaliation.",
+    "vigilanteGuiltDiedHistory": "{{target}} the Vigilante died of guilt after shooting an innocent player.",
+    "detectiveFoundResult": "The Detective investigated {{target}} and found: {{result}}."
   },
   "settings": {
     "title": "Settings",
@@ -705,14 +719,19 @@
       "mafia": "MAFIA",
       "detective": "DETECTIVE",
       "doctor": "DOCTOR",
-      "civilian": "CIVILIAN"
+      "civilian": "CIVILIAN",
+      "bodyguard": "Bodyguard",
+      "vigilante": "Vigilante",
+      "mayor": "Mayor",
+      "jester": "Jester"
     },
     "unknown": "Unknown",
     "host": "Host",
     "bot": "BOT",
     "you": "(You)",
     "roleEliminated": "{{role}} — Eliminated",
-    "eliminated": "Eliminated"
+    "eliminated": "Eliminated",
+    "revealed": "Revealed"
   },
   "chat": {
     "quickMessages": [

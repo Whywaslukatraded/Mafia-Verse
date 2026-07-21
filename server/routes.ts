@@ -1010,9 +1010,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: voteSummary });
       }
       
+      const voteHistoryEntry: any = { type: 'vote', turn: room.turn, results: voteResults, eliminated: null };
       if (voteResults.length > 0) {
         const history = gameHistory.get(roomId) || [];
-        history.push({ type: 'vote', turn: room.turn, results: voteResults });
+        history.push(voteHistoryEntry);
         gameHistory.set(roomId, history);
       }
       
@@ -1027,9 +1028,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
+          voteHistoryEntry.eliminated = { name: victim.name, role: victim.role || "civilian" };
           const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
-          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
+          revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
           if (victim.role === 'jester') {
             // Classic Jester rule: getting voted out ends the game
@@ -1117,9 +1119,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: voteSummary });
       }
       
+      const voteHistoryEntry: any = { type: 'vote', turn: room.turn, results: voteResults, eliminated: null };
       if (voteResults.length > 0) {
         const history = gameHistory.get(roomId) || [];
-        history.push({ type: 'vote', turn: room.turn, results: voteResults });
+        history.push(voteHistoryEntry);
         gameHistory.set(roomId, history);
       }
 
@@ -1134,8 +1137,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
+          voteHistoryEntry.eliminated = { name: victim.name, role: victim.role || "civilian" };
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
-          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
+          revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
           if (victim.role === 'jester') {
             await storage.updateRoom(roomId, { status: 'ended' });
@@ -1321,7 +1325,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         await storage.updatePlayer(deadId, { isAlive: false });
       }
 
-      if (anyoneDied) revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
+      if (anyoneDied) revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
       // Guilt catches up: if a Vigilante shot an innocent last night, they die now.
       const pendingGuiltId = vigilanteGuiltPending.get(roomId);
@@ -1330,7 +1334,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         if (guiltyVigi && guiltyVigi.isAlive) {
           await storage.updatePlayer(guiltyVigi.id, { isAlive: false });
           deadTonight.add(guiltyVigi.id);
-          revealDelayMs = (room.settings as any)?.showRoleReveal !== false ? ELIMINATION_REVEAL_MS : 0;
+          revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
           nightSummary += sysMsg("vigilanteGuiltDied", lang, { name: guiltyVigi.name });
           nightData.events.push({ type: 'guilt_death', target: guiltyVigi.name, role: 'vigilante' });
         }

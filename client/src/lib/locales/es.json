@@ -278,14 +278,38 @@
       "jester": "Convence a todos de que te expulsen a ti."
     },
     "roleGoals": {
-      "mafia": { "title": "Elimina al pueblo", "body": "Trabaja con tus compañeros mafiosos de noche para acabar con el pueblo. Actúa con normalidad de día para que nadie descubra quién eres." },
-      "detective": { "title": "Descubre a la mafia", "body": "Investiga a un jugador cada noche para conocer su verdadero rol. Usa lo que descubras para guiar los votos del pueblo sin delatarte demasiado pronto." },
-      "doctor": { "title": "Protege a los inocentes", "body": "Elige a un jugador para salvar cada noche. No siempre sabrás quién está en peligro, así que confía en tu lectura de la discusión del día." },
-      "civilian": { "title": "Encuentra a la mafia", "body": "No tienes ningún poder especial — solo tu voz y tu voto. Presta atención, haz preguntas y ayuda al pueblo a votar fuera a la mafia antes de que sea tarde." },
-      "bodyguard": { "title": "Protege a tu objetivo", "body": "Protege a un jugador cada noche. Si lo atacan, recibirás el golpe en su lugar — elige con cuidado, podría costarte la vida." },
-      "vigilante": { "title": "Toma la justicia por tu propia mano", "body": "Tienes un número limitado de balas. Úsalas para disparar a quien creas que es mafioso — pero si te equivocas, la culpa te costará caro." },
-      "mayor": { "title": "Lidera al pueblo", "body": "Tu voto vale el doble una vez revelado — pero revelarte también te convierte en un objetivo. Decide cuándo es el momento adecuado." },
-      "jester": { "title": "Logra que te expulsen", "body": "Ganas en el momento en que el pueblo te vote fuera. Actúa sospechoso, siembra dudas y convence a todos de que tú eres la amenaza." }
+      "mafia": {
+        "title": "Elimina al pueblo",
+        "body": "Trabaja con tus compañeros mafiosos de noche para acabar con el pueblo. Actúa con normalidad de día para que nadie descubra quién eres."
+      },
+      "detective": {
+        "title": "Descubre a la mafia",
+        "body": "Investiga a un jugador cada noche para conocer su verdadero rol. Usa lo que descubras para guiar los votos del pueblo sin delatarte demasiado pronto."
+      },
+      "doctor": {
+        "title": "Protege a los inocentes",
+        "body": "Elige a un jugador para salvar cada noche. No siempre sabrás quién está en peligro, así que confía en tu lectura de la discusión del día."
+      },
+      "civilian": {
+        "title": "Encuentra a la mafia",
+        "body": "No tienes ningún poder especial — solo tu voz y tu voto. Presta atención, haz preguntas y ayuda al pueblo a votar fuera a la mafia antes de que sea tarde."
+      },
+      "bodyguard": {
+        "title": "Protege a tu objetivo",
+        "body": "Protege a un jugador cada noche. Si lo atacan, recibirás el golpe en su lugar — elige con cuidado, podría costarte la vida."
+      },
+      "vigilante": {
+        "title": "Toma la justicia por tu propia mano",
+        "body": "Tienes un número limitado de balas. Úsalas para disparar a quien creas que es mafioso — pero si te equivocas, la culpa te costará caro."
+      },
+      "mayor": {
+        "title": "Lidera al pueblo",
+        "body": "Tu voto vale el doble una vez revelado — pero revelarte también te convierte en un objetivo. Decide cuándo es el momento adecuado."
+      },
+      "jester": {
+        "title": "Logra que te expulsen",
+        "body": "Ganas en el momento en que el pueblo te vote fuera. Actúa sospechoso, siembra dudas y convence a todos de que tú eres la amenaza."
+      }
     },
     "inviteFriends": "Invitar amigos",
     "scanOrCopy": "Escanea el código o copia el enlace a la Sala {{code}}",
@@ -357,7 +381,21 @@
       "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
       "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
       "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada."
-    ]
+    ],
+    "jesterGoalTitle": "Objetivo: Ser ejecutado",
+    "jesterGoalBody": "Ganas en el momento en que el pueblo te elimine por votación — no necesitas sobrevivir hasta el final.",
+    "tooManySpecialRoles": "Demasiados roles especiales",
+    "tooManySpecialRolesDescription": "Deja espacio para al menos un civil, según el número actual de jugadores.",
+    "settingsUpdated": "Ajustes actualizados",
+    "specialRolesCount": "Roles especiales: {{count}} / {{total}} jugadores",
+    "leaveRoomForCivilian": "Deja espacio para al menos 1 civil",
+    "wasVotedOutWithRole": "{{target}} fue eliminado por votación. Era el/la {{role}}.",
+    "noOneVotedOut": "Nadie fue eliminado por votación.",
+    "wasEliminatedWithRole": "{{target}} fue asesinado durante la noche. Era el/la {{role}}.",
+    "bodyguardDiedProtecting": "{{target}}, el Guardaespaldas, murió protegiendo a su objetivo.",
+    "attackerRetaliatedDied": "{{target}} murió en la represalia.",
+    "vigilanteGuiltDiedHistory": "{{target}}, el Vigilante, murió de culpa tras dispararle a un jugador inocente.",
+    "detectiveFoundResult": "El Detective investigó a {{target}} y descubrió: {{result}}."
   },
   "settings": {
     "title": "Ajustes",
@@ -679,14 +717,19 @@
       "mafia": "MAFIOSO",
       "detective": "DETECTIVE",
       "doctor": "MÉDICO",
-      "civilian": "CIVIL"
+      "civilian": "CIVIL",
+      "bodyguard": "Guardaespaldas",
+      "vigilante": "Vigilante",
+      "mayor": "Alcalde",
+      "jester": "Bufón"
     },
     "unknown": "Desconocido",
     "host": "Anfitrión",
     "bot": "BOT",
     "you": "(Tú)",
     "roleEliminated": "{{role}} — Eliminado",
-    "eliminated": "Eliminado"
+    "eliminated": "Eliminado",
+    "revealed": "Revelado"
   },
   "chat": {
     "quickMessages": [

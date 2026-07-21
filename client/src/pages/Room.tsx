@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -1116,28 +1116,44 @@ export default function Room() {
                               </h4>
                               <div className="space-y-2">
                                 {entry.type === "vote" ? (
-                                  (room.settings as any).showVoteResults === true ? (
-                                    entry.results.map((res: any, j: number) => (
+                                  <>
+                                    {(room.settings as any).showVoteResults === true && entry.results?.map((res: any, j: number) => (
                                       <div key={j} className="text-sm flex items-center gap-2">
                                         <User className="w-3 h-3 text-blue-400" />
                                         <span className="font-bold text-foreground">{res.voterName}</span>
                                         <span className="text-muted-foreground italic">{t("room.votedFor")}</span>
                                         <span className="font-bold text-red-400">{res.targetName}</span>
                                       </div>
-                                    ))
-                                  ) : (
-                                    <div className="text-sm text-muted-foreground italic">{t("room.voteResultsHidden")}</div>
-                                  )
+                                    ))}
+                                    {(room.settings as any).showVoteResults !== true && (
+                                      <div className="text-sm text-muted-foreground italic">{t("room.voteResultsHidden")}</div>
+                                    )}
+                                    <div className="text-sm flex items-center gap-2 pt-1">
+                                      <Skull className="w-3 h-3 text-red-500" />
+                                      <span>
+                                        {entry.eliminated
+                                          ? t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) })
+                                          : t("room.noOneVotedOut")}
+                                      </span>
+                                    </div>
+                                  </>
                                 ) : (
                                   entry.events.map((ev: any, j: number) => (
                                     <div key={j} className="text-sm flex items-center gap-2">
-                                      {ev.type === "mafia_kill" ? <Skull className="w-3 h-3 text-red-500" /> :
-                                       ev.type === "mafia_attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
+                                      {(ev.type === "kill" || ev.type === "combined_kill") ? <Skull className="w-3 h-3 text-red-500" /> :
+                                       ev.type === "attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
+                                       ev.type === "bodyguard_death" ? <Shield className="w-3 h-3 text-slate-300" /> :
+                                       ev.type === "retaliation_death" ? <Skull className="w-3 h-3 text-orange-400" /> :
+                                       ev.type === "guilt_death" ? <Skull className="w-3 h-3 text-orange-400" /> :
+                                       ev.type === "detective_check" ? <Search className="w-3 h-3 text-blue-400" /> :
                                        <History className="w-3 h-3 text-blue-400" />}
                                       <span>
-                                        {ev.type === "mafia_kill" ? t("room.wasEliminated", { target: ev.target }) :
-                                         ev.type === "mafia_attempt" && ev.saved ? t("room.wasProtected", { target: ev.target }) :
-                                         ev.type === "detective_check" ? t("room.detectiveInvestigated", { target: ev.target }) : ""}
+                                        {(ev.type === "kill" || ev.type === "combined_kill") ? t("room.wasEliminatedWithRole", { target: ev.target, role: t(`roleBadge.${ev.role || "civilian"}`) }) :
+                                         ev.type === "attempt" && ev.saved ? t("room.wasProtected", { target: ev.target }) :
+                                         ev.type === "bodyguard_death" ? t("room.bodyguardDiedProtecting", { target: ev.target }) :
+                                         ev.type === "retaliation_death" ? t("room.attackerRetaliatedDied", { target: ev.target }) :
+                                         ev.type === "guilt_death" ? t("room.vigilanteGuiltDiedHistory", { target: ev.target }) :
+                                         ev.type === "detective_check" ? t("room.detectiveFoundResult", { target: ev.target, result: ev.isMafia ? t("room.mafiaLabel") : t("roleBadge.civilian") }) : ""}
                                       </span>
                                     </div>
                                   ))
