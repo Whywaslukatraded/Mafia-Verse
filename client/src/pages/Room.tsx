@@ -661,10 +661,7 @@ export default function Room() {
                 transition={{ delay: 1 }}
                 className="mt-8 text-xl font-serif text-muted-foreground max-w-xs mx-auto italic"
               >
-                {me?.role === "mafia" ? t("room.roleFlavor.mafia") :
-                 me?.role === "detective" ? t("room.roleFlavor.detective") :
-                 me?.role === "doctor" ? t("room.roleFlavor.doctor") :
-                 t("room.roleFlavor.civilian")}
+                {t(`room.roleFlavor.${me?.role || "civilian"}`, t("room.roleFlavor.civilian"))}
               </motion.p>
             </motion.div>
           </motion.div>
