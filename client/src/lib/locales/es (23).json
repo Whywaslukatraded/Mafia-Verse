@@ -113,6 +113,8 @@
     "codeSentCheckInbox": "Se ha enviado un código a tu correo electrónico."
   },
   "home": {
+    "leaderboard": "Clasificación",
+    "howToPlay": "Cómo jugar",
     "recentPlayers": {
       "title": "Juega con ellos otra vez",
       "invite": "Invitar",
@@ -691,9 +693,56 @@
     "deadPlayersCannotSpeak": "Los jugadores eliminados no pueden hablar...",
     "typeAMessage": "Escribe un mensaje..."
   },
+  "howToPlay": {
+    "title": "Cómo jugar",
+    "gotIt": "¡Entendido!",
+    "next": "Siguiente",
+    "steps": {
+      "loop": {
+        "title": "El ciclo básico",
+        "body": "Mafia Verse alterna entre Noche (los roles especiales actúan en secreto) y Día (todos discuten y luego votan para eliminar a alguien). El juego termina cuando un bando gana."
+      },
+      "mafia": {
+        "title": "Mafia",
+        "body": "Cada noche, la Mafia elige en secreto a un jugador para eliminar. Ganan cuando igualan o superan en número al resto del pueblo."
+      },
+      "detective": {
+        "title": "Detective",
+        "body": "Cada noche, investiga a un jugador para saber si es de la Mafia. Usa lo que descubras para guiar los votos del pueblo sin revelar que eres el Detective."
+      },
+      "doctor": {
+        "title": "Médico",
+        "body": "Cada noche, protege a un jugador del ataque de la Mafia. Puedes protegerte a ti mismo, pero piensa bien quién realmente necesita ser salvado."
+      },
+      "civilian": {
+        "title": "Civil",
+        "body": "No tienes habilidad nocturna, pero tu voto y tu voz son fundamentales durante el Día — escucha con atención y ayuda al pueblo a encontrar a la Mafia."
+      },
+      "bodyguard": {
+        "title": "Guardaespaldas",
+        "body": "Cada noche, protege a un jugador. Si la Mafia ataca a quien proteges, tú recibes el golpe y mueres protegiéndolo en su lugar."
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "body": "Tienes 2 balas para toda la partida. Cualquier noche puedes disparar a un jugador que sospeches. Pero si disparas a un inocente, la culpa te alcanzará."
+      },
+      "mayor": {
+        "title": "Alcalde",
+        "body": "Una vez por partida, puedes revelarte para duplicar el peso de tu voto — pero al hacerlo, la Mafia sabrá exactamente quién eres."
+      },
+      "jester": {
+        "title": "Bufón",
+        "body": "¡Quieres que te eliminen por votación! Si el pueblo te vota fuera durante el Día, ganas al instante y la partida termina ahí mismo."
+      },
+      "vote": {
+        "title": "La votación del Día",
+        "body": "Después de discutir, todos votan a quién eliminar. El jugador con más votos queda eliminado — los empates significan que nadie se va."
+      }
+    }
+  },
   "handbook": {
     "title": "Manual de la Mafia",
-    "subtitle": "Una guía completa para nuevos jugadores",
+    "subtitle": "Todo lo que necesitas saber para jugar bien",
     "tabs": {
       "basics": "Básicos",
       "roles": "Roles",
@@ -702,109 +751,145 @@
     },
     "overview": {
       "whatIsMafiaTitle": "¿Qué es Mafia?",
-      "whatIsMafiaDescription": "Mafia es un juego de deducción social. Los jugadores se dividen en secreto en dos equipos: el Pueblo (los buenos) y la Mafia (los malos). Al principio nadie sabe quién es quién. El Pueblo debe descubrir quiénes son de la mafia y votar para eliminarlos. La Mafia debe engañar al Pueblo y eliminarlos en secreto durante la noche.",
-      "teamsAtAGlance": "Equipos de un vistazo",
-      "theTown": "EL PUEBLO",
-      "theTownDescription": "Detectives, médicos y civiles trabajan juntos para encontrar y eliminar a todos los mafiosos.",
-      "theMafia": "LA MAFIA",
-      "theMafiaDescription": "Oculta entre el Pueblo. Cada noche eligen en secreto a alguien para matar. Ganan cuando la cantidad de mafiosos iguala o supera a la del Pueblo.",
+      "whatIsMafiaDescription": "Mafia es un juego de deducción social. La Mafia trabaja en secreto para eliminar al Pueblo durante la noche, mientras los demás intentan descubrir quiénes son antes de que sea demasiado tarde.",
+      "teamsAtAGlance": "Los bandos de un vistazo",
+      "theTown": "El Pueblo",
+      "theTownDescription": "Detectives, Médicos, Guardaespaldas, Vigilantes, Alcaldes y Civiles — todos trabajando para encontrar y eliminar a la Mafia.",
+      "theMafia": "La Mafia",
+      "theMafiaDescription": "Elimina en secreto a un miembro del Pueblo cada noche, tratando de igualar en número al Pueblo antes de ser descubierta.",
       "howToWin": "Cómo ganar",
-      "townWins": "El Pueblo gana",
-      "townWinsDescription": "cuando todos los mafiosos han sido eliminados mediante la votación diurna.",
-      "mafiaWins": "La Mafia gana",
-      "mafiaWinsDescription": "cuando el número de mafiosos vivos iguala o supera al número de miembros del Pueblo vivos.",
-      "whatMakesDifferentTitle": "¿Qué hace esto diferente?",
-      "difference1": "Puede haber varios mafiosos y todos se conocen entre sí.",
-      "difference2": "Puede haber varios médicos y todos se conocen entre sí.",
-      "difference3": "Puede haber varios detectives y todos se conocen entre sí.",
-      "difference4": "Todos los demás son civiles sin poderes especiales, salvo su voto."
+      "townWins": "El Pueblo gana:",
+      "townWinsDescription": "cuando todos los miembros de la Mafia han sido eliminados.",
+      "mafiaWins": "La Mafia gana:",
+      "mafiaWinsDescription": "cuando la Mafia iguala o supera en número al resto del Pueblo.",
+      "whatMakesDifferentTitle": "Qué hace diferente a este juego",
+      "difference1": "Un Guardaespaldas que puede recibir un disparo por otro jugador, muriendo en su lugar.",
+      "difference2": "Un Vigilante con solo 2 balas para toda la partida — úsalas con sabiduría.",
+      "difference3": "Un Alcalde que puede revelarse para duplicar el poder de su voto, a costa de quedar expuesto.",
+      "difference4": "Un Bufón que gana si logra que lo eliminen por votación a propósito.",
+      "difference5": "Votos y chat en tiempo real, además de un chat del cementerio para jugadores eliminados.",
+      "jesterNoteTitle": "Sobre el Bufón",
+      "jesterNoteDescription": "El Bufón no es del Pueblo ni de la Mafia — solo intenta que lo eliminen por votación. Si lo logra, gana al instante y la partida termina ahí mismo, sin importar lo que los demás estuvieran intentando."
     },
     "roles": {
       "mafia": {
-        "title": "La Mafia",
-        "desc": "Eres un asesino oculto. Tu objetivo es engañar al Pueblo y eliminarlos uno por uno durante la noche.",
+        "title": "Mafia",
+        "desc": "Trabaja con otros miembros de la Mafia para eliminar en secreto al Pueblo cada noche.",
         "abilities": [
-          "Cada noche, todos los mafiosos vivos votan a quién matar. El objetivo con más votos muere (a menos que un médico lo salve).",
-          "Sabes quiénes son los demás mafiosos. Usa el chat nocturno para coordinarte con tu equipo.",
-          "Durante el día, mézclate. Actúa como un civil. No seas demasiado callado, pero tampoco demasiado ruidoso.",
-          "Si hay varios mafiosos, trabajen juntos para dividir votos y evitar sospechas."
+          "Cada noche, vota junto a los demás miembros de la Mafia sobre a quién eliminar",
+          "Puede ver y chatear en privado con los demás miembros de la Mafia",
+          "Gana cuando la Mafia iguala o supera en número al resto del Pueblo"
         ]
       },
       "detective": {
-        "title": "El Detective",
-        "desc": "Eres el investigador. Cada noche puedes revisar a un jugador para ver si es de la mafia.",
+        "title": "Detective",
+        "desc": "Investiga a un jugador cada noche para descubrir su verdadera lealtad.",
         "abilities": [
-          "Cada noche, elige a un jugador para investigar. El resultado te dice si es mafioso o no.",
-          "Sabes quiénes son los demás detectives. Comparte hallazgos con ellos, pero con cuidado: la mafia podría estar escuchando si eres demasiado obvio.",
-          "No te reveles demasiado pronto. La mafia te apuntará de inmediato si sabe quién eres.",
-          "Genera confianza poco a poco. Comparte información con jugadores confiables, pero verifica su comportamiento primero."
+          "Cada noche, investiga a un jugador para saber si es de la Mafia",
+          "Termina la partida al instante a favor del Pueblo si atrapa a un miembro de la Mafia",
+          "Debe compartir sus hallazgos con cuidado — revelarse muy pronto lo convierte en objetivo"
         ]
       },
       "doctor": {
-        "title": "El Médico",
-        "desc": "Eres el protector. Cada noche eliges a un jugador para salvarlo del ataque de la mafia.",
+        "title": "Médico",
+        "desc": "Protege a un jugador cada noche del ataque de la Mafia.",
         "abilities": [
-          "Cada noche, elige a un jugador para proteger. Si la mafia intenta matar a ese jugador, sobrevive.",
-          "Sabes quiénes son los demás médicos. Coordínense para cubrir diferentes objetivos y maximizar la protección.",
-          "Puedes protegerte a ti mismo, pero hacerlo cada noche es predecible. Protege a jugadores clave como los detectives cuando sospeches peligro.",
-          "Observa quién muere. Si alguien que protegiste muere de todas formas, podría haber varios mafiosos o el jugador ya era el objetivo de otra cosa."
+          "Cada noche, elige a un jugador para proteger de la eliminación",
+          "Puede protegerse a sí mismo, pero proteger siempre a la misma persona es predecible",
+          "No sabe a quién apunta la Mafia — proteger es, en parte, una apuesta"
         ]
       },
       "civilian": {
-        "title": "El Civil",
-        "desc": "Eres el pilar del Pueblo. Sin poderes especiales, pero tu voto y tus observaciones son el arma más poderosa del Pueblo.",
+        "title": "Civil",
+        "desc": "Sin habilidad especial — solo buen ojo, buenos instintos y un voto.",
         "abilities": [
-          "Votas durante el día para eliminar a jugadores sospechosos. Tu voto cuenta tanto como el de cualquiera.",
-          "Observa los patrones con cuidado. ¿Quién cambia su versión? ¿Quién evita responder preguntas? ¿Quién parece demasiado ansioso por votar contra alguien en particular?",
-          "Escucha a los detectives y médicos, pero no confíes ciegamente en nadie. La mafia puede fingir ser útil.",
-          "Habla. Un civil callado parece sospechoso. Comparte tus observaciones y teorías durante el día."
+          "Sin acción nocturna — contribuye por completo mediante la discusión y el voto",
+          "Gana junto al resto del Pueblo cuando toda la Mafia es eliminada",
+          "Suele ser la mayoría del Pueblo — los números importan en la votación"
+        ]
+      },
+      "bodyguard": {
+        "title": "Guardaespaldas",
+        "desc": "Protege a un jugador cada noche, recibiendo el golpe en su lugar si es atacado.",
+        "abilities": [
+          "Cada noche, elige a un jugador para proteger",
+          "Si la Mafia ataca al jugador protegido, el Guardaespaldas muere en su lugar",
+          "No sabe a quién apunta la Mafia — proteger es una apuesta, igual que el Médico"
+        ]
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "desc": "Un miembro del Pueblo con un arma y solo 2 balas para toda la partida.",
+        "abilities": [
+          "Comienza la partida con exactamente 2 balas — nunca más",
+          "Cualquier noche puede elegir disparar a un jugador en vez de pasar",
+          "Disparar a un jugador inocente trae una culpa que alcanza al Vigilante más tarde"
+        ]
+      },
+      "mayor": {
+        "title": "Alcalde",
+        "desc": "Un líder del Pueblo que puede revelarse para tener un voto más fuerte.",
+        "abilities": [
+          "Una vez por partida, puede revelar su identidad a todo el pueblo",
+          "Después de revelarse, su voto cuenta doble por el resto de la partida",
+          "Revelarse también le dice a la Mafia exactamente a quién atacar después"
+        ]
+      },
+      "jester": {
+        "title": "Bufón",
+        "desc": "No juega para el Pueblo ni para la Mafia — solo quiere que lo eliminen por votación.",
+        "abilities": [
+          "Gana al instante y termina la partida si es eliminado por votación durante el Día",
+          "No está alineado con el Pueblo ni la Mafia — tiene su propia condición de victoria",
+          "La mejor estrategia suele ser actuar sospechoso lo suficiente para recibir votos, sin ser demasiado obvio"
         ]
       }
     },
     "flow": {
-      "dayPhaseTitle": "Fase diurna (Discusión + Votación)",
-      "day1Label": "1. Discusión:",
-      "day1Description": "Todos hablan en el chat. Comparte sospechas, defiéndete, haz preguntas. Aquí es donde se gana o se pierde la partida.",
-      "day2Label": "2. Votación:",
-      "day2Description": "Cuando se abre la votación, haz clic en la carta de un jugador para votar por su eliminación. El jugador con más votos es eliminado del juego.",
-      "day3Label": "3. Revelación:",
-      "day3Description": "Después de la votación, el rol del jugador eliminado se revela a todos. Usa esta información para actualizar tus teorías.",
-      "nightPhaseTitle": "Fase nocturna (Acciones secretas)",
-      "night1Label": "1. Turno de la mafia:",
-      "night1Description": "Todos los mafiosos votan en secreto a quién matar. El jugador elegido morirá a menos que un médico lo salve.",
-      "night2Label": "2. Turno del médico:",
-      "night2Description": "Todos los médicos eligen en secreto a un jugador para protegerlo del ataque de la mafia.",
-      "night3Label": "3. Turno del detective:",
-      "night3Description": "Todos los detectives investigan en secreto a un jugador para saber si es de la mafia.",
-      "night4Label": "4. Amanecer:",
-      "night4Description": "Todos despiertan. Si alguien murió, su rol se revela. Si un detective encontró a un mafioso, ahora lo sabe, pero probarlo sin revelarse es complicado.",
-      "tieBreakingTitle": "Desempate",
-      "tieBreakingDescription": "Si dos o más jugadores reciben la misma cantidad más alta de votos, nadie es eliminado esa ronda. El juego pasa directamente a la noche. Por eso la coordinación importa: dividir los votos ayuda a la mafia a sobrevivir."
+      "dayPhaseTitle": "Fase de Día",
+      "day1Label": "Discusión:",
+      "day1Description": "todos hablan abiertamente, comparten sospechas y se defienden.",
+      "day2Label": "Votación:",
+      "day2Description": "cada jugador vivo vota por quién cree que debería ser eliminado.",
+      "day3Label": "Eliminación:",
+      "day3Description": "el jugador con más votos es eliminado y su rol puede revelarse.",
+      "nightPhaseTitle": "Fase de Noche",
+      "night1Label": "Guardaespaldas:",
+      "night1Description": "elige a un jugador para proteger esa noche.",
+      "night2Label": "Mafia:",
+      "night2Description": "acuerda en secreto a qué jugador eliminar.",
+      "night3Label": "Vigilante:",
+      "night3Description": "puede elegir disparar a un jugador sospechoso.",
+      "night4Label": "Médico:",
+      "night4Description": "elige a un jugador para proteger del ataque de la Mafia.",
+      "night5Label": "Detective:",
+      "night5Description": "investiga a un jugador para saber si es de la Mafia.",
+      "night6Label": "Resolución:",
+      "night6Description": "los eventos de la noche se resuelven y todos se enteran de lo ocurrido al comenzar el Día.",
+      "tieBreakingTitle": "Empates en la votación",
+      "tieBreakingDescription": "Si la votación termina en empate entre dos o más jugadores, nadie es eliminado ese día y el juego continúa hacia la Noche."
     },
     "strategy": {
-      "townTitle": "Para el Pueblo (Civiles, Médicos, Detectives)",
+      "townTitle": "Estrategia del Pueblo",
       "townTips": [
-        "Presta atención a los jugadores que nunca cambian su versión, o que la cambian demasiado. Ambos casos son sospechosos.",
-        "Si un detective revela que encontró a un mafioso, pídele que describa su proceso de investigación. Los detectives falsos suelen no poder responder preguntas detalladas.",
-        "Médicos: protejan a los jugadores más comunicativos y útiles. La mafia suele apuntar a quienes lideran al Pueblo.",
-        "Civiles: no se queden callados. Aunque no tengan información especial, compartir observaciones ayuda al Pueblo a coordinarse.",
-        "Si varios jugadores acusan a la misma persona desde ángulos distintos, esa persona podría realmente ser de la mafia, o los acusadores podrían ser mafiosos coordinados tratando de incriminar a alguien."
+        "Presta atención a quién ha estado callado durante la discusión — el silencio puede ser tan revelador como una acusación.",
+        "Fíjate en los jugadores que acusan rápidamente a otros sin mucho razonamiento detrás.",
+        "Si eres el Detective, no reveles tus hallazgos demasiado pronto — te convertirás en el próximo objetivo de la Mafia.",
+        "Coordinen los votos como grupo tarde en el Día en lugar de decidir demasiado pronto."
       ],
-      "mafiaTitle": "Para la Mafia",
+      "mafiaTitle": "Estrategia de la Mafia",
       "mafiaTips": [
-        "No voten todos por la misma persona el Día 1. Se ve coordinado. Distribuyan sus primeros votos para parecer pensadores independientes.",
-        "Sacrifica a un compañero mafioso si eso genera confianza a largo plazo. Un mafioso de confianza es más peligroso que dos sospechosos.",
-        "Defiende a un civil de vez en cuando. Si lo salvas de un mal voto, podría confiar en ti después, y la confianza es el arma más poderosa de la mafia.",
-        "Cuando un detective real revele hallazgos, desacredítalo sutilmente. Pregunta: '¿cómo sabemos que en verdad eres detective?'",
-        "Si hay varios mafiosos, que uno juegue agresivo y otro calmado. Estrategias diversas hacen que el Pueblo divida sus sospechas."
+        "Mimeticen durante la discusión — a veces estén de acuerdo con el Pueblo para evitar sospechas.",
+        "Consideren votar para eliminar a los jugadores más callados para protegerse del escrutinio.",
+        "No defiendan a sus compañeros de la Mafia con demasiada fuerza — puede delatar la conexión.",
+        "Si un Detective parece estar a punto de descubrirlos, prioricen eliminarlo."
       ],
-      "redFlagsTitle": "Señales de alerta a vigilar",
+      "redFlagsTitle": "Señales de alerta a observar",
       "redFlags": [
-        "Un jugador que nunca vota primero: siempre espera a ver hacia dónde va la mayoría.",
-        "Alguien que responde preguntas con preguntas en lugar de hechos.",
-        "Dos o más jugadores que siempre están de acuerdo entre sí desde el principio.",
-        "Un jugador que de repente pasa de callado a extremadamente defensivo cuando lo acusan.",
-        "Alguien que reclama un rol especial demasiado pronto sin pruebas que lo respalden."
+        "Evadir una pregunta directa en lugar de responderla",
+        "Estar inusualmente callado justo después de que acusen a un compañero",
+        "Acusaciones demasiado agresivas con poco razonamiento real",
+        "Patrones de voto que protegen siempre a los mismos jugadores"
       ]
     }
   },

@@ -166,24 +166,23 @@ export const api = {
           roomName: z.string().optional(),
           showVoteResults: z.boolean().optional(),
           showRoleReveal: z.boolean().optional(),
-          // Feature: bot dialogue and server-generated system messages (kill/
-          // vote-out reveals, win announcements, notifications) are localized
-          // server-side based on this — sent from the client's current i18n
-          // language at room-creation time so bots/system text matches the
-          // language the room is actually being played in.
-          language: z.enum(['en', 'es']).optional(),
-          // New roles — all optional, default to 0/unused if omitted.
+          // These were missing entirely, which meant zod.parse() silently
+          // stripped them from every create-room request before the server
+          // ever saw them — new roles could never actually be assigned no
+          // matter what the client sent.
           bodyguardCount: z.number().min(0).optional(),
           vigilanteCount: z.number().min(0).optional(),
           mayorCount: z.number().min(0).optional(),
           jesterCount: z.number().min(0).optional(),
           bodyguardDuration: z.number().min(5).optional(),
           vigilanteDuration: z.number().min(5).optional(),
+          // Feature: bot dialogue and server-generated system messages (kill/
+          // vote-out reveals, win announcements, notifications) are localized
+          // server-side based on this — sent from the client's current i18n
+          // language at room-creation time so bots/system text matches the
+          // language the room is actually being played in.
+          language: z.enum(['en', 'es']).optional(),
         }),
-        // Ties this player record to a real signed-in account (if any) so
-        // server-side activity tracking — used to gate referral payouts —
-        // actually has an account to attach to. Omitted for guest play.
-        supabaseUserId: z.string().optional(),
       }),
       responses: {
         201: z.object({
@@ -201,7 +200,6 @@ export const api = {
         code: z.string().min(4),
         name: z.string().min(1),
         avatar: z.string().min(1),
-        supabaseUserId: z.string().optional(),
       }),
       responses: {
         200: z.object({

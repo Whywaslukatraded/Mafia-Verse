@@ -113,6 +113,8 @@
     "codeSentCheckInbox": "A code has been sent to your email."
   },
   "home": {
+    "leaderboard": "Leaderboard",
+    "howToPlay": "How to Play",
     "recentPlayers": {
       "title": "Play With Them Again",
       "invite": "Invite",
@@ -691,9 +693,56 @@
     "deadPlayersCannotSpeak": "Dead players cannot speak...",
     "typeAMessage": "Type a message..."
   },
+  "howToPlay": {
+    "title": "How to Play",
+    "gotIt": "Got it!",
+    "next": "Next",
+    "steps": {
+      "loop": {
+        "title": "The Basic Loop",
+        "body": "Mafia Verse alternates between Night (special roles act in secret) and Day (everyone discusses, then votes to eliminate someone). The game ends when one side wins."
+      },
+      "mafia": {
+        "title": "Mafia",
+        "body": "Each night, the Mafia secretly choose one player to eliminate. They win once they equal or outnumber the remaining town."
+      },
+      "detective": {
+        "title": "Detective",
+        "body": "Each night, check one player to learn if they're Mafia. Use what you learn to guide the town's votes without giving away that you're the Detective."
+      },
+      "doctor": {
+        "title": "Doctor",
+        "body": "Each night, protect one player from the Mafia's kill. You can protect yourself, but think carefully about who really needs saving."
+      },
+      "civilian": {
+        "title": "Civilian",
+        "body": "You have no night ability, but your vote and voice matter most during the Day — listen closely and help the town find the Mafia."
+      },
+      "bodyguard": {
+        "title": "Bodyguard",
+        "body": "Each night, guard one player. If the Mafia targets your guarded player, you take the hit and die protecting them instead."
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "body": "You get 2 bullets for the whole game. Any night, you may shoot a player you suspect. Shoot an innocent, though, and the guilt catches up with you."
+      },
+      "mayor": {
+        "title": "Mayor",
+        "body": "Once per game, reveal yourself to double your vote's weight — but doing so also tells the Mafia exactly who you are."
+      },
+      "jester": {
+        "title": "Jester",
+        "body": "You want to get voted out! If the town votes you out during the Day, you win instantly and the game ends right there."
+      },
+      "vote": {
+        "title": "The Day Vote",
+        "body": "After discussion, everyone votes for who to eliminate. The player with the most votes is voted out — ties mean no one goes."
+      }
+    }
+  },
   "handbook": {
     "title": "Mafia Handbook",
-    "subtitle": "A complete guide for first-time players",
+    "subtitle": "Everything you need to know to play well",
     "tabs": {
       "basics": "Basics",
       "roles": "Roles",
@@ -702,109 +751,145 @@
     },
     "overview": {
       "whatIsMafiaTitle": "What is Mafia?",
-      "whatIsMafiaDescription": "Mafia is a social deduction game. Players are secretly divided into two teams: the Town (the good guys) and the Mafia (the bad guys). Nobody knows who is who at first. The Town must figure out who the Mafia are and vote them out. The Mafia must deceive the Town and secretly eliminate them at night.",
+      "whatIsMafiaDescription": "Mafia is a social deduction game. The Mafia secretly work together to eliminate the Town at night, while everyone else tries to figure out who they are before it's too late.",
       "teamsAtAGlance": "Teams at a Glance",
-      "theTown": "THE TOWN",
-      "theTownDescription": "Detectives, Doctors, and Civilians work together to find and eliminate all Mafia members.",
-      "theMafia": "THE MAFIA",
-      "theMafiaDescription": "Hidden among the Town. They secretly choose someone to kill every night. They win when Mafia equals or outnumbers the Town.",
+      "theTown": "The Town",
+      "theTownDescription": "Detectives, Doctors, Bodyguards, Vigilantes, Mayors, and Civilians — all working to find and eliminate the Mafia.",
+      "theMafia": "The Mafia",
+      "theMafiaDescription": "Secretly eliminates one Town member each night, trying to reach parity with the Town before being caught.",
       "howToWin": "How to Win",
-      "townWins": "Town wins",
-      "townWinsDescription": "when every Mafia member is eliminated through daytime voting.",
-      "mafiaWins": "Mafia wins",
-      "mafiaWinsDescription": "when the number of living Mafia members equals or exceeds the number of living Town members.",
-      "whatMakesDifferentTitle": "What Makes This Different?",
-      "difference1": "Multiple Mafia can exist and they all know each other.",
-      "difference2": "Multiple Doctors can exist and they all know each other.",
-      "difference3": "Multiple Detectives can exist and they all know each other.",
-      "difference4": "Everyone else is a Civilian with no special powers except their vote."
+      "townWins": "Town wins:",
+      "townWinsDescription": "when every Mafia member has been eliminated.",
+      "mafiaWins": "Mafia wins:",
+      "mafiaWinsDescription": "when the Mafia equal or outnumber the remaining Town.",
+      "whatMakesDifferentTitle": "What Makes This Different",
+      "difference1": "A Bodyguard who can take a bullet for someone else, dying in their place.",
+      "difference2": "A Vigilante with only 2 bullets for the whole game — use them wisely.",
+      "difference3": "A Mayor who can reveal for double vote power, at the cost of being exposed.",
+      "difference4": "A Jester who wins by getting voted out on purpose.",
+      "difference5": "Real-time votes, chat, and a graveyard chat for eliminated players.",
+      "jesterNoteTitle": "About the Jester",
+      "jesterNoteDescription": "The Jester isn't Town or Mafia — they're only trying to get themselves voted out. If it works, they win instantly and the game ends right there, regardless of what anyone else was trying to do."
     },
     "roles": {
       "mafia": {
-        "title": "The Mafia",
-        "desc": "You are a hidden killer. Your goal is to deceive the Town and eliminate them one by one at night.",
+        "title": "Mafia",
+        "desc": "Works with fellow Mafia members to secretly eliminate the Town each night.",
         "abilities": [
-          "Each night, all living Mafia vote on who to kill. The target with the most votes dies (unless saved by a Doctor).",
-          "You know who the other Mafia are. Use the chat at night to coordinate with your teammates.",
-          "During the day, blend in. Act like a Civilian. Don't be too quiet, but don't be too loud either.",
-          "If there are multiple Mafia, work together to split votes and avoid suspicion."
+          "Each night, vote with other Mafia members on who to eliminate",
+          "Can see and chat privately with other Mafia members",
+          "Wins when the Mafia equal or outnumber the remaining Town"
         ]
       },
       "detective": {
-        "title": "The Detective",
-        "desc": "You are the investigator. Each night you can check one player to see if they are Mafia.",
+        "title": "Detective",
+        "desc": "Investigates one player each night to learn their true allegiance.",
         "abilities": [
-          "Each night, choose one player to investigate. The result tells you if they are Mafia or not.",
-          "You know who the other Detectives are. Share findings with them, but be careful — Mafia could be listening if you're too obvious.",
-          "Don't reveal yourself too early. Mafia will target you immediately if they know who you are.",
-          "Build trust slowly. Share information with reliable players, but verify their behavior first."
+          "Each night, check one player to learn if they're Mafia",
+          "Instantly ends the game in the Town's favor if a checked Mafia member is caught",
+          "Should share findings carefully — revealing too early makes you a target"
         ]
       },
       "doctor": {
-        "title": "The Doctor",
-        "desc": "You are the protector. Each night you choose one player to save from the Mafia's attack.",
+        "title": "Doctor",
+        "desc": "Protects one player each night from the Mafia's kill.",
         "abilities": [
-          "Each night, choose one player to protect. If the Mafia tries to kill that player, they survive.",
-          "You know who the other Doctors are. Coordinate to cover different targets and maximize protection.",
-          "You can save yourself, but doing it every night is predictable. Save key players like Detectives when you suspect danger.",
-          "Watch who dies. If someone you protected still dies, there might be multiple Mafia or the protected player was already targeted by something else."
+          "Each night, choose one player to protect from elimination",
+          "Can protect themselves, but not the same person every single night is often predictable",
+          "Doesn't know who the Mafia is targeting — protection is a guess"
         ]
       },
       "civilian": {
-        "title": "The Civilian",
-        "desc": "You are the backbone of the Town. No special powers, but your vote and observations are the Town's greatest weapon.",
+        "title": "Civilian",
+        "desc": "No special ability — just sharp eyes, good instincts, and a vote.",
         "abilities": [
-          "You vote during the day to eliminate suspicious players. Your vote counts just as much as anyone else's.",
-          "Watch patterns carefully. Who changes their story? Who avoids answering questions? Who seems too eager to vote out specific people?",
-          "Listen to Detectives and Doctors, but don't blindly trust anyone. Mafia can fake being helpful.",
-          "Speak up. A quiet Civilian looks suspicious. Share your observations and theories during the day."
+          "No night action — contributes entirely through discussion and voting",
+          "Wins alongside the rest of the Town when all Mafia are eliminated",
+          "Often the majority of the Town — numbers matter in the vote"
+        ]
+      },
+      "bodyguard": {
+        "title": "Bodyguard",
+        "desc": "Guards one player each night, taking the hit in their place if targeted.",
+        "abilities": [
+          "Each night, choose one player to guard",
+          "If the Mafia targets the guarded player, the Bodyguard dies instead of them",
+          "Doesn't know who the Mafia is targeting — guarding is a guess, same as the Doctor"
+        ]
+      },
+      "vigilante": {
+        "title": "Vigilante",
+        "desc": "A Town member with a gun and only 2 bullets for the whole game.",
+        "abilities": [
+          "Starts the game with exactly 2 bullets — no more, ever",
+          "Any night, may choose to shoot one player instead of passing",
+          "Shooting an innocent player brings guilt that catches up with the Vigilante later"
+        ]
+      },
+      "mayor": {
+        "title": "Mayor",
+        "desc": "A Town leader who can reveal themselves for a stronger vote.",
+        "abilities": [
+          "Once per game, can reveal their identity to the whole town",
+          "After revealing, their vote counts double for the rest of the game",
+          "Revealing also tells the Mafia exactly who to target next"
+        ]
+      },
+      "jester": {
+        "title": "Jester",
+        "desc": "Plays for neither Town nor Mafia — only wants to be voted out.",
+        "abilities": [
+          "Wins instantly and ends the game if voted out during the Day",
+          "Not aligned with Town or Mafia — has their own separate win condition",
+          "Best strategy is often acting suspicious enough to get votes, without being too obvious"
         ]
       }
     },
     "flow": {
-      "dayPhaseTitle": "Day Phase (Discussion + Voting)",
-      "day1Label": "1. Discussion:",
-      "day1Description": "Everyone talks in the chat. Share suspicions, defend yourself, ask questions. This is where the game is won or lost.",
-      "day2Label": "2. Voting:",
-      "day2Description": "When voting opens, click on a player's card to vote to eliminate them. The player with the most votes is removed from the game.",
-      "day3Label": "3. Reveal:",
-      "day3Description": "After voting, the eliminated player's role is revealed to everyone. Use this information to update your theories.",
-      "nightPhaseTitle": "Night Phase (Secret Actions)",
-      "night1Label": "1. Mafia Turn:",
-      "night1Description": "All Mafia members secretly vote on who to kill. The chosen player will die unless a Doctor saves them.",
-      "night2Label": "2. Doctor Turn:",
-      "night2Description": "All Doctors secretly choose one player to protect from the Mafia's attack.",
-      "night3Label": "3. Detective Turn:",
-      "night3Description": "All Detectives secretly investigate one player to learn if they are Mafia.",
-      "night4Label": "4. Morning:",
-      "night4Description": "Everyone wakes up. If someone died, their role is revealed. If a Detective found a Mafia, they now know — but proving it without revealing themselves is tricky.",
-      "tieBreakingTitle": "Tie-Breaking",
-      "tieBreakingDescription": "If two or more players receive the same highest number of votes, nobody is eliminated that round. The game moves straight to night. This is why coordination matters — splitting votes helps the Mafia survive."
+      "dayPhaseTitle": "Day Phase",
+      "day1Label": "Discussion:",
+      "day1Description": "everyone talks openly, shares suspicions, and defends themselves.",
+      "day2Label": "Voting:",
+      "day2Description": "each living player votes for who they think should be eliminated.",
+      "day3Label": "Elimination:",
+      "day3Description": "the player with the most votes is voted out and their role may be revealed.",
+      "nightPhaseTitle": "Night Phase",
+      "night1Label": "Bodyguard:",
+      "night1Description": "chooses a player to guard for the night.",
+      "night2Label": "Mafia:",
+      "night2Description": "secretly agree on a player to eliminate.",
+      "night3Label": "Vigilante:",
+      "night3Description": "may choose to shoot a suspected player.",
+      "night4Label": "Doctor:",
+      "night4Description": "chooses a player to protect from the Mafia's kill.",
+      "night5Label": "Detective:",
+      "night5Description": "investigates a player to learn if they're Mafia.",
+      "night6Label": "Resolution:",
+      "night6Description": "the night's events play out and everyone learns what happened when Day begins.",
+      "tieBreakingTitle": "Tied Votes",
+      "tieBreakingDescription": "If the vote ends in a tie between two or more players, no one is eliminated that day and the game moves on to Night."
     },
     "strategy": {
-      "townTitle": "For the Town (Civilians, Doctors, Detectives)",
+      "townTitle": "Town Strategy",
       "townTips": [
-        "Watch for players who never change their story — or who change it too much. Both are suspicious.",
-        "If a Detective reveals they found a Mafia, ask them to describe their investigation process. Fake Detectives often can't answer detailed questions.",
-        "Doctors: Protect the most talkative and helpful players. Mafia usually targets players who are leading the Town.",
-        "Civilians: Don't stay silent. Even if you have no special info, sharing observations helps the Town coordinate.",
-        "If multiple players are accusing the same person from different angles, that person might actually be Mafia — or the accusers might be coordinated Mafia trying to frame someone."
+        "Track who's been quiet during discussion — silence can be as telling as an accusation.",
+        "Watch for players who are quick to accuse others without much reasoning behind it.",
+        "If you're the Detective, don't reveal your findings too early — you'll become the Mafia's next target.",
+        "Coordinate votes as a group late in the Day rather than committing too early."
       ],
-      "mafiaTitle": "For the Mafia",
+      "mafiaTitle": "Mafia Strategy",
       "mafiaTips": [
-        "Don't all vote for the same person on Day 1. It looks coordinated. Spread your early votes to look like independent thinkers.",
-        "Sacrifice a Mafia teammate if it builds long-term trust. A trusted Mafia is more dangerous than two suspicious ones.",
-        "Defend a Civilian occasionally. If you save them from a bad vote, they might trust you later — and trust is the Mafia's best weapon.",
-        "When a real Detective reveals findings, discredit them subtly. Ask 'how do we know you're really a Detective?'",
-        "If there are multiple Mafia, have one play aggressive and one play quiet. Diverse strategies make the Town divide their suspicion."
+        "Blend in during discussion — agree with the Town sometimes to avoid suspicion.",
+        "Consider voting out quieter players to protect yourselves from scrutiny.",
+        "Don't defend your fellow Mafia too aggressively — it can give away the connection.",
+        "If a Detective seems close to finding you, make eliminating them a priority."
       ],
       "redFlagsTitle": "Red Flags to Watch For",
       "redFlags": [
-        "A player who never votes first — they always wait to see where the crowd goes.",
-        "Someone who answers questions with questions instead of facts.",
-        "Two or more players who always agree with each other from the start.",
-        "A player who suddenly goes from silent to extremely defensive when accused.",
-        "Someone who claims a special role too early with no proof to back it up."
+        "Deflecting a direct question instead of answering it",
+        "Being unusually quiet right after a fellow player is accused",
+        "Overly aggressive accusations with little actual reasoning",
+        "Voting patterns that consistently protect the same players"
       ]
     }
   },
