@@ -267,6 +267,30 @@ export default function Room() {
       return;
     }
     sendAction({ type: "update_settings", settings: settingsDraft } as any);
+    // Keep Home.tsx's "last used settings" in sync with whatever was actually
+    // saved here — otherwise changing role counts mid-room never carried over
+    // to the next room you create, and Home kept showing stale counts.
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      const prev = saved ? JSON.parse(saved) : {};
+      localStorage.setItem("mafia_last_room_settings", JSON.stringify({
+        ...prev,
+        mafia: settingsDraft.mafiaCount,
+        detective: settingsDraft.detectiveCount,
+        doctor: settingsDraft.doctorCount,
+        civilian: settingsDraft.civilianCount,
+        bodyguard: settingsDraft.bodyguardCount,
+        vigilante: settingsDraft.vigilanteCount,
+        mayor: settingsDraft.mayorCount,
+        jester: settingsDraft.jesterCount,
+        phaseDuration: settingsDraft.phaseDuration,
+        mafiaDuration: settingsDraft.mafiaDuration,
+        doctorDuration: settingsDraft.doctorDuration,
+        detectiveDuration: settingsDraft.detectiveDuration,
+        bodyguardDuration: settingsDraft.bodyguardDuration,
+        vigilanteDuration: settingsDraft.vigilanteDuration,
+      }));
+    } catch {}
     setShowSettingsPanel(false);
     toast({ title: t("room.settingsUpdated") });
   };

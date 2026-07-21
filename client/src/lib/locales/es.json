@@ -317,6 +317,7 @@
     "vigilanteNightTime": "Tiempo nocturno del vigilante (seg)",
     "teammatesTitle": "Tus compañeros {{role}}",
     "noTeammates": "Eres el único con este rol en esta partida — no hay nadie más con quien coordinarte.",
+    "mayorRevealButton": "Revélate como alcalde",
     "reportAfk": "Reportar AFK / inactivo",
     "afkReported": "Reportado como AFK",
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",

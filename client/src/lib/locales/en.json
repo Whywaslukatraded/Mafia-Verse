@@ -305,6 +305,7 @@
     "mafiaNoTeammates": "You're the only Mafia this game — no one else to coordinate with.",
     "teammatesTitle": "Your Fellow {{role}}s",
     "noTeammates": "You're the only one with this role this game — no one else to coordinate with.",
+    "mayorRevealButton": "Reveal Yourself as Mayor",
     "roleGoals": {
       "mafia": {
         "title": "Eliminate the Town",
