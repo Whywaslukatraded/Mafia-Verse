@@ -60,6 +60,16 @@ function verifyPassword(password: string, hash: string): boolean {
 // game with no Doctor never shows/waits on a "Doctor" timer, etc.
 const NIGHT_ROLE_ORDER = ["bodyguard", "mafia", "vigilante", "doctor", "detective"] as const;
 
+// Some rooms can have more than one Mafia, Doctor, Detective, Bodyguard, or
+// Vigilante. Previously, the phase advanced the instant the FIRST player with
+// that role acted — leaving any other teammate's UI stuck "waiting" forever
+// once the phase had already moved on underneath them (looked like a freeze).
+// Now we only advance once every living holder of that role has acted.
+function haveAllRoleHoldersActed(players: Player[], role: string, actionMap: Map<number, number>): boolean {
+  const actors = players.filter((p) => p.role === role && p.isAlive);
+  return actors.length > 0 && actors.every((p) => actionMap.has(p.id));
+}
+
 function getFirstNightPhase(players: Player[]): string {
   for (const role of NIGHT_ROLE_ORDER) {
     if (players.some((p) => p.role === role && p.isAlive)) return role;
@@ -1448,21 +1458,28 @@ async function broadcastState(roomId: number) {
          if (!p.isAlive) {
            return (room.settings as any).showRoleReveal !== false ? p : { ...p, role: 'unknown' };
          }
-         if (me?.role === 'mafia' && p.role === 'mafia') return p; 
-         if (me?.role === 'detective' && p.role === 'detective') return p;
-         if (me?.role === 'doctor' && p.role === 'doctor') return p;
+         // Every role except Civilian gets to recognize others sharing their
+         // role (this covers actual teams like Mafia, but also lets solo
+         // roles like multiple Doctors/Bodyguards/Vigilantes/Mayors/Jesters
+         // know who else shares their role, same as before).
+         if (me?.role && me.role !== 'civilian' && p.role === me.role) return p;
          return { ...p, role: 'unknown' }; 
       });
 
       const revealedMayorIds = Array.from(mayorRevealed.get(roomId) || []);
       const myBullets = me?.role === 'vigilante' ? (vigilanteBullets.get(roomId)?.get(me.id) ?? 0) : undefined;
 
+      // Graveyard chat: messages tagged isSpectator (sent by dead players)
+      // are only visible to other dead players — anyone still alive in the
+      // game only sees the normal in-game chat.
+      const visibleMessages = messages.filter((m: Message) => !(m as any).isSpectator || !me || !me.isAlive);
+
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
         payload: {
           room, players: sanitizedPlayers,
           me: me ? { ...me, currentAction: myAction } : me,
-          messages,
+          messages: visibleMessages,
           revealedMayorIds,
           myBullets,
         }
@@ -2066,28 +2083,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (action.type === 'chat') {
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
-             if ((action as any).content && (action as any).content.trim() && myRoomId && me && me.isAlive) {
+             if ((action as any).content && (action as any).content.trim() && myRoomId && me) {
                try {
+                 // Dead players can still talk to each other in the graveyard —
+                 // their messages are tagged isSpectator so broadcastState can
+                 // hide them from players who are still alive in the game.
                  console.log("CREATING MESSAGE:", { roomId: myRoomId, playerId: me.id, content: (action as any).content });
                  await storage.createMessage({ 
                    roomId: myRoomId, 
                    playerId: me.id, 
                    playerName: me.name, 
                    content: (action as any).content.trim(),
-                   isSpectator: false
+                   isSpectator: !me.isAlive
                  });
                  console.log("MESSAGE CREATED SUCCESSFULLY");
                  bumpActivity(myRoomId, me.id, "messages");
-                 await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
+                 if (me.isAlive) await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
                  const chatLang = (room.settings as any)?.language === "es" ? "es" : "en";
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("chatErrorTitle", chatLang), body: sysMsg("chatErrorBody", chatLang) } }));
                }
-             } else if (!me?.isAlive) {
-               const deadLang = (room.settings as any)?.language === "es" ? "es" : "en";
-               ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("deadCantSpeakTitle", deadLang), body: sysMsg("deadCantSpeakBody", deadLang) } }));
              }
              return;
            }
@@ -2247,11 +2264,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                const killLang = (room.settings as any)?.language === "es" ? "es" : "en";
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", killLang), body: sysMsg("targetLockedBody", killLang, { name: target.name }) } }));
                
-               if (phaseTimers.has(myRoomId)) { 
-                 clearTimeout(phaseTimers.get(myRoomId)); 
-                 phaseTimers.delete(myRoomId); 
+               if (haveAllRoleHoldersActed(players, 'mafia', actions.mafiaKills)) {
+                 if (phaseTimers.has(myRoomId)) { 
+                   clearTimeout(phaseTimers.get(myRoomId)); 
+                   phaseTimers.delete(myRoomId); 
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                }
-               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
@@ -2269,11 +2288,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", healLang), body: sysMsg("protectionAppliedBody", healLang, { name: target.name }) } }));
                
-               if (phaseTimers.has(myRoomId)) { 
-                 clearTimeout(phaseTimers.get(myRoomId)); 
-                 phaseTimers.delete(myRoomId); 
+               if (haveAllRoleHoldersActed(players, 'doctor', actions.doctorSaves)) {
+                 if (phaseTimers.has(myRoomId)) { 
+                   clearTimeout(phaseTimers.get(myRoomId)); 
+                   phaseTimers.delete(myRoomId); 
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                }
-               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
@@ -2295,11 +2316,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                   await finalizeGameEnd(myRoomId, storage, 'civilians', gameActions);
                   broadcastState(myRoomId);
                 } else {
-                  if (phaseTimers.has(myRoomId)) { 
-                    clearTimeout(phaseTimers.get(myRoomId)); 
-                    phaseTimers.delete(myRoomId); 
+                  if (haveAllRoleHoldersActed(players, 'detective', actions.detectiveChecks)) {
+                    if (phaseTimers.has(myRoomId)) { 
+                      clearTimeout(phaseTimers.get(myRoomId)); 
+                      phaseTimers.delete(myRoomId); 
+                    }
+                    await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                   }
-                  await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                 }
              }
              return;
@@ -2318,11 +2341,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                gameActions.set(myRoomId, actions);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", bgLang), body: sysMsg("protectionAppliedBody", bgLang, { name: target.name }) } }));
-               if (phaseTimers.has(myRoomId)) {
-                 clearTimeout(phaseTimers.get(myRoomId));
-                 phaseTimers.delete(myRoomId);
+               if (haveAllRoleHoldersActed(players, 'bodyguard', actions.guards)) {
+                 if (phaseTimers.has(myRoomId)) {
+                   clearTimeout(phaseTimers.get(myRoomId));
+                   phaseTimers.delete(myRoomId);
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                }
-               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
@@ -2343,11 +2368,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                vigilanteBullets.set(myRoomId, bulletsMap);
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", vigiLang), body: sysMsg("targetLockedBody", vigiLang, { name: target.name }) } }));
-               if (phaseTimers.has(myRoomId)) {
-                 clearTimeout(phaseTimers.get(myRoomId));
-                 phaseTimers.delete(myRoomId);
+               if (haveAllRoleHoldersActed(players, 'vigilante', actions.shots)) {
+                 if (phaseTimers.has(myRoomId)) {
+                   clearTimeout(phaseTimers.get(myRoomId));
+                   phaseTimers.delete(myRoomId);
+                 }
+                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                }
-               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }

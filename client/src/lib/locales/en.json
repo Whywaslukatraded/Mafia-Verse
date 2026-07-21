@@ -245,6 +245,7 @@
       "kill": "Kill",
       "protect": "Protect",
       "investigate": "Investigate",
+      "shoot": "Shoot",
       "act": "Act"
     },
     "voted": "Voted",
@@ -270,7 +271,11 @@
       "mafia": "Operate in the shadows. Eliminate everyone else.",
       "detective": "Seek the truth. Find the Mafia.",
       "doctor": "Protect the innocent. Save a life tonight.",
-      "civilian": "Stay vigilant. Survive the night."
+      "civilian": "Stay vigilant. Survive the night.",
+      "bodyguard": "Guard the town. Take the hit for someone else.",
+      "vigilante": "Take justice into your own hands.",
+      "mayor": "Lead the town. Make your vote count double.",
+      "jester": "Convince everyone to vote you out."
     },
     "inviteFriends": "Invite Friends",
     "scanOrCopy": "Scan the code or copy the link to Room {{code}}",
@@ -296,6 +301,44 @@
     "voteResultsLabel": "Vote Results",
     "roleRevealLabel": "Role Reveal",
     "saveSettings": "Save Settings",
+    "mafiaTeammatesTitle": "Your Mafia Teammates",
+    "mafiaNoTeammates": "You're the only Mafia this game — no one else to coordinate with.",
+    "teammatesTitle": "Your Fellow {{role}}s",
+    "noTeammates": "You're the only one with this role this game — no one else to coordinate with.",
+    "roleGoals": {
+      "mafia": {
+        "title": "Eliminate the Town",
+        "body": "Work with your fellow Mafia at night to pick off the Town. Blend in during the day so no one figures out who you are."
+      },
+      "detective": {
+        "title": "Uncover the Mafia",
+        "body": "Investigate one player each night to learn their true role. Use what you find to guide the Town's votes without exposing yourself too early."
+      },
+      "doctor": {
+        "title": "Protect the Innocent",
+        "body": "Choose one player to save each night. You won't always know who's in danger, so trust your read of the day's discussion."
+      },
+      "civilian": {
+        "title": "Find the Mafia",
+        "body": "You have no special power — just your voice and your vote. Pay attention, ask questions, and help the Town vote out the Mafia before it's too late."
+      },
+      "bodyguard": {
+        "title": "Shield Your Target",
+        "body": "Guard one player each night. If they're attacked, you'll take the hit for them — so choose carefully, it could cost you your life."
+      },
+      "vigilante": {
+        "title": "Take Justice Into Your Hands",
+        "body": "You have a limited number of bullets. Use them to shoot someone you believe is Mafia — but if you're wrong, the guilt will cost you."
+      },
+      "mayor": {
+        "title": "Lead the Town",
+        "body": "Your vote counts double once revealed — but revealing yourself also makes you a target. Decide when the moment is right."
+      },
+      "jester": {
+        "title": "Get Yourself Voted Out",
+        "body": "You win the moment the Town votes you out. Act suspicious, stir up doubt, and convince everyone you're the threat."
+      }
+    },
     "gameSettings": "Game Settings",
     "closeSettings": "Close Settings",
     "bodyguardNightTime": "Bodyguard Night Time (sec)",

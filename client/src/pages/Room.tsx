@@ -44,6 +44,20 @@ function ConfettiEffect() {
   );
 }
 
+// Per-role goal banner styling. Each role gets its own title/body text
+// (keys under room.roleGoals.<role>.title / .body) instead of a generic
+// "stay vigilant and survive the night" placeholder.
+const ROLE_GOAL_STYLE: Record<string, { icon: string; box: string; text: string }> = {
+  mafia: { icon: "🔪", box: "bg-red-500/10 border-red-500/30", text: "text-red-400" },
+  detective: { icon: "🔍", box: "bg-blue-500/10 border-blue-500/30", text: "text-blue-400" },
+  doctor: { icon: "💉", box: "bg-green-500/10 border-green-500/30", text: "text-green-400" },
+  civilian: { icon: "🗳️", box: "bg-slate-500/10 border-slate-500/30", text: "text-slate-300" },
+  bodyguard: { icon: "🛡️", box: "bg-slate-400/10 border-slate-400/30", text: "text-slate-300" },
+  vigilante: { icon: "🎯", box: "bg-orange-500/10 border-orange-500/30", text: "text-orange-400" },
+  mayor: { icon: "🏛️", box: "bg-purple-500/10 border-purple-500/30", text: "text-purple-400" },
+  jester: { icon: "🎭", box: "bg-pink-500/10 border-pink-500/30", text: "text-pink-400" },
+};
+
 export default function Room() {
   const { t } = useTranslation();
   const [, params] = useRoute("/room/:code");
@@ -855,15 +869,38 @@ export default function Room() {
                   </motion.p>
                 )}
 
-                {me?.role === "jester" && me?.isAlive && room?.status !== "ended" && (
-                  <div className="mb-3 p-3 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center gap-3">
-                    <span className="text-2xl">🎭</span>
+                {me?.role && me?.isAlive && room?.status !== "ended" && ROLE_GOAL_STYLE[me.role] && (
+                  <div className={cn("mb-3 p-3 rounded-xl border flex items-center gap-3", ROLE_GOAL_STYLE[me.role].box)}>
+                    <span className="text-2xl">{ROLE_GOAL_STYLE[me.role].icon}</span>
                     <div>
-                      <p className="text-sm font-black uppercase tracking-wide text-pink-400">{t("room.jesterGoalTitle")}</p>
-                      <p className="text-xs text-muted-foreground">{t("room.jesterGoalBody")}</p>
+                      <p className={cn("text-sm font-black uppercase tracking-wide", ROLE_GOAL_STYLE[me.role].text)}>
+                        {t(`room.roleGoals.${me.role}.title`)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{t(`room.roleGoals.${me.role}.body`)}</p>
                     </div>
                   </div>
                 )}
+
+                {/* Every role except Civilian gets to see who else shares their
+                    role — this covers Mafia as an actual team, but also lets
+                    multiple Doctors/Bodyguards/Vigilantes/Mayors/Jesters (if a
+                    room has more than one) recognize each other. */}
+                {me?.role && me.role !== "civilian" && me?.isAlive && room?.status !== "ended" && (() => {
+                  const teammates = players.filter((p) => p.role === me.role && p.id !== me.id);
+                  return (
+                    <div className="mb-3 p-3 rounded-xl bg-muted/40 border border-border flex items-center gap-3">
+                      <span className="text-2xl">🤝</span>
+                      <div>
+                        <p className="text-sm font-black uppercase tracking-wide text-foreground">{t("room.teammatesTitle", { role: t(`playerCard.roleLabels.${me.role}`, me.role) })}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {teammates.length > 0
+                            ? teammates.map((p) => p.name).join(", ")
+                            : t("room.noTeammates")}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {me?.role === "mayor" && me?.isAlive && room?.status === "day" && !iAmRevealedMayor && (
                   <Button
@@ -897,7 +934,13 @@ export default function Room() {
                               sendAction(buttonState.action);
                             }
                           }}
-                          revealedRole={room?.status === "ended" ? p.role : undefined}
+                          revealedRole={
+                            room?.status === "ended"
+                              ? p.role
+                              : (me?.role && me.role !== "civilian" && p.role === me.role)
+                                ? p.role
+                                : undefined
+                          }
                           myBulletsLeft={p.id === me?.id && me?.role === "vigilante" ? myBullets : undefined}
                           myMayorRevealed={p.id === me?.id && me?.role === "mayor" ? iAmRevealedMayor : undefined}
                         />

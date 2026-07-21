@@ -245,6 +245,7 @@
       "kill": "Matar",
       "protect": "Proteger",
       "investigate": "Investigar",
+      "shoot": "Disparar",
       "act": "Actuar"
     },
     "voted": "Votado",
@@ -270,7 +271,21 @@
       "mafia": "Actúa en las sombras. Elimina a todos los demás.",
       "detective": "Busca la verdad. Encuentra a la mafia.",
       "doctor": "Protege a los inocentes. Salva una vida esta noche.",
-      "civilian": "Mantente alerta. Sobrevive la noche."
+      "civilian": "Mantente alerta. Sobrevive la noche.",
+      "bodyguard": "Protege al pueblo. Recibe el golpe por otro.",
+      "vigilante": "Toma la justicia por tu propia mano.",
+      "mayor": "Lidera al pueblo. Haz que tu voto valga el doble.",
+      "jester": "Convence a todos de que te expulsen a ti."
+    },
+    "roleGoals": {
+      "mafia": { "title": "Elimina al pueblo", "body": "Trabaja con tus compañeros mafiosos de noche para acabar con el pueblo. Actúa con normalidad de día para que nadie descubra quién eres." },
+      "detective": { "title": "Descubre a la mafia", "body": "Investiga a un jugador cada noche para conocer su verdadero rol. Usa lo que descubras para guiar los votos del pueblo sin delatarte demasiado pronto." },
+      "doctor": { "title": "Protege a los inocentes", "body": "Elige a un jugador para salvar cada noche. No siempre sabrás quién está en peligro, así que confía en tu lectura de la discusión del día." },
+      "civilian": { "title": "Encuentra a la mafia", "body": "No tienes ningún poder especial — solo tu voz y tu voto. Presta atención, haz preguntas y ayuda al pueblo a votar fuera a la mafia antes de que sea tarde." },
+      "bodyguard": { "title": "Protege a tu objetivo", "body": "Protege a un jugador cada noche. Si lo atacan, recibirás el golpe en su lugar — elige con cuidado, podría costarte la vida." },
+      "vigilante": { "title": "Toma la justicia por tu propia mano", "body": "Tienes un número limitado de balas. Úsalas para disparar a quien creas que es mafioso — pero si te equivocas, la culpa te costará caro." },
+      "mayor": { "title": "Lidera al pueblo", "body": "Tu voto vale el doble una vez revelado — pero revelarte también te convierte en un objetivo. Decide cuándo es el momento adecuado." },
+      "jester": { "title": "Logra que te expulsen", "body": "Ganas en el momento en que el pueblo te vote fuera. Actúa sospechoso, siembra dudas y convence a todos de que tú eres la amenaza." }
     },
     "inviteFriends": "Invitar amigos",
     "scanOrCopy": "Escanea el código o copia el enlace a la Sala {{code}}",
@@ -300,6 +315,8 @@
     "closeSettings": "Cerrar configuración",
     "bodyguardNightTime": "Tiempo nocturno del guardaespaldas (seg)",
     "vigilanteNightTime": "Tiempo nocturno del vigilante (seg)",
+    "teammatesTitle": "Tus compañeros {{role}}",
+    "noTeammates": "Eres el único con este rol en esta partida — no hay nadie más con quien coordinarte.",
     "reportAfk": "Reportar AFK / inactivo",
     "afkReported": "Reportado como AFK",
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
