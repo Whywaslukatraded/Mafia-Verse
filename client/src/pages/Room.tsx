@@ -130,9 +130,9 @@ export default function Room() {
     if (room.status === "lobby") return "bg-background";
     if (room.status === "ended") return "bg-background";
     if (room.status === "night") {
-      if (room.phase === "bodyguard") return "bg-slate-950 transition-colors duration-1000";
+      if (room.phase === "bodyguard") return "bg-[hsl(var(--bg-bodyguard))] transition-colors duration-1000";
       if (room.phase === "mafia") return "bg-[hsl(var(--bg-mafia))] transition-colors duration-1000";
-      if (room.phase === "vigilante") return "bg-orange-950 transition-colors duration-1000";
+      if (room.phase === "vigilante") return "bg-[hsl(var(--bg-vigilante))] transition-colors duration-1000";
       if (room.phase === "doctor") return "bg-[hsl(var(--bg-doctor))] transition-colors duration-1000";
       if (room.phase === "detective") return "bg-[hsl(var(--bg-detective))] transition-colors duration-1000";
       return "bg-[hsl(var(--bg-night))] transition-colors duration-1000";
@@ -886,7 +886,7 @@ export default function Room() {
                     transition={{ y: { repeat: Infinity, duration: 1.2 } }}
                     className="text-center text-xs font-bold text-emerald-400 uppercase tracking-wider"
                   >
-                    ↓ Scroll down to lock in your answer
+                    ↓ {t("room.readyToLockIn")}
                   </motion.p>
                 )}
 
@@ -993,7 +993,8 @@ export default function Room() {
 
             {/* Night Action Lock-In Section */}
             {room?.status !== "ended" && room?.status !== "lobby" && (
-              <div className="sticky bottom-0 z-40 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-6 pb-4 -mx-4 px-4">
+              <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-6 pb-4">
+                <div className="max-w-5xl mx-auto px-4">
                 <AnimatePresence mode="wait">
                   {isMyNightTurn && !lockedIn ? (
                     <motion.div
@@ -1058,6 +1059,7 @@ export default function Room() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+                </div>
               </div>
             )}
 

@@ -29,7 +29,7 @@ const AVATARS = [
 
 const ACCESSORIES = ["None", "🕶️", "👑", "🎓", "🎀", "🎩", "🎧", "🎭"];
 const CLOTHING = ["None", "👔", "👗", "🧥", "🥋", "👕", "🦺", "🧣"];
-const BGS = ["bg-primary/10", "bg-red-500/10", "bg-blue-500/10", "bg-emerald-500/10", "bg-amber-500/10", "bg-purple-500/10"];
+const BGS = ["bg-primary/30", "bg-red-500/30", "bg-blue-500/30", "bg-emerald-500/30", "bg-amber-500/30", "bg-purple-500/30"];
 
 const ACHIEVEMENTS = [
   { id: 'first_win', icon: '🩸' },
