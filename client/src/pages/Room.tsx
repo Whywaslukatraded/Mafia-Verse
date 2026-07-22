@@ -223,11 +223,30 @@ export default function Room() {
     }
   }, [gameState?.room.status]);
 
-  // Keep the draft in sync with the server's settings while the panel is closed,
-  // so it reflects the latest saved values. Once the host opens the panel to edit,
-  // stop overwriting it out from under them until they close it again.
+  // Seed the draft from the server's settings once when the room first loads,
+  // so it isn't garbage before the host ever opens the panel.
+  const settingsInitializedRef = useRef(false);
   useEffect(() => {
-    if (room?.status === "lobby" && room.settings && !showSettingsPanel) {
+    if (room?.status === "lobby" && room.settings && !settingsInitializedRef.current) {
+      const s = room.settings as any;
+      settingsInitializedRef.current = true;
+      setSettingsDraft({
+        mafiaCount: s.mafiaCount ?? 1, detectiveCount: s.detectiveCount ?? 1,
+        doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
+        bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
+        mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
+        phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
+        doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
+        bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
+        showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
+      });
+    }
+  }, [room?.status, room?.settings]);
+
+  // Seed the draft from the latest server settings each time the host opens
+  // the panel (but never while it's open or from a race with our own save).
+  const openSettingsPanel = () => {
+    if (room?.settings) {
       const s = room.settings as any;
       setSettingsDraft({
         mafiaCount: s.mafiaCount ?? 1, detectiveCount: s.detectiveCount ?? 1,
@@ -240,7 +259,8 @@ export default function Room() {
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
       });
     }
-  }, [room?.status, room?.settings, showSettingsPanel]);
+    setShowSettingsPanel(true);
+  };
 
   type NumericSettingKey = "mafiaCount" | "detectiveCount" | "doctorCount" | "civilianCount"
     | "bodyguardCount" | "vigilanteCount" | "mayorCount" | "jesterCount"
@@ -783,7 +803,7 @@ export default function Room() {
                       {t("room.waitingForPlayers")}
                     </CardTitle>
                     {isHost && (
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowSettingsPanel(v => !v)}>
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => showSettingsPanel ? setShowSettingsPanel(false) : openSettingsPanel()}>
                         <Settings2 className="w-3.5 h-3.5" />
                         {showSettingsPanel ? t("room.closeSettings") : t("room.gameSettings")}
                       </Button>
