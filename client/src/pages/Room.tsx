@@ -932,7 +932,7 @@ export default function Room() {
                   </Button>
                 )}
 
-                <div className="grid grid-cols-auto gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
                     const canReportAfk = room?.status === "day" && me?.isAlive && p.id !== me?.id && p.isAlive && !isSpectator;

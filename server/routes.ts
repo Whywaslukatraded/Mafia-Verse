@@ -930,6 +930,21 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   const history = gameHistory.get(roomId) || [];
   const playersInRoom = await storage.getPlayersInRoom(roomId);
 
+  // A vigilante who shot an innocent normally dies of guilt the following
+  // night. If the game ends before that next night happens, that pending
+  // guilt death would otherwise be silently discarded — resolve it now so
+  // it still shows up in the chronicle and final roles.
+  const pendingGuiltId = vigilanteGuiltPending.get(roomId);
+  if (pendingGuiltId) {
+    const guiltyVigi = playersInRoom.find((p: Player) => p.id === pendingGuiltId);
+    if (guiltyVigi && guiltyVigi.isAlive) {
+      await storage.updatePlayer(guiltyVigi.id, { isAlive: false });
+      guiltyVigi.isAlive = false;
+      history.push({ type: 'guilt_death', target: guiltyVigi.name, role: 'vigilante' });
+    }
+    vigilanteGuiltPending.delete(roomId);
+  }
+
   history.push({
     type: 'game_end',
     winner,

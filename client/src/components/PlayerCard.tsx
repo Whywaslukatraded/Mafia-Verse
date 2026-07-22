@@ -114,7 +114,7 @@ export function PlayerCard({
     <motion.div
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
       className={cn(
-        "relative w-full aspect-[3/4] rounded-xl overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-4 group",
+        "relative w-full aspect-[3/4] rounded-lg overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-1.5 sm:p-2 group",
         !player.isAlive && "bg-muted border-muted-foreground/20 grayscale opacity-70",
         player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-border shadow-lg",
         player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,
@@ -126,73 +126,73 @@ export function PlayerCard({
         <Button
           size="icon"
           variant="ghost"
-          className="absolute top-2 left-2 h-6 w-6 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          className="absolute top-1 left-1 h-5 w-5 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-10"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
         >
-          <X className="w-3 h-3" />
+          <X className="w-2.5 h-2.5" />
         </Button>
       )}
 
       {/* Status Icons */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1">
+      <div className="absolute top-1 right-1 flex flex-col gap-0.5">
         {player.isHost && (
-          <div className="p-1 bg-yellow-500/20 rounded-full text-yellow-500" title={t("playerCard.host")}>
-            <Crown className="w-4 h-4" />
+          <div className="p-0.5 bg-yellow-500/20 rounded-full text-yellow-500" title={t("playerCard.host")}>
+            <Crown className="w-3 h-3" />
           </div>
         )}
         {RoleIcon && player.isAlive && (
-          <div className={cn("p-1 rounded-full bg-muted/80", cosmetic?.iconColor)} title={cosmetic?.label}>
-            <RoleIcon className="w-4 h-4" />
+          <div className={cn("p-0.5 rounded-full bg-muted/80", cosmetic?.iconColor)} title={cosmetic?.label}>
+            <RoleIcon className="w-3 h-3" />
           </div>
         )}
       </div>
 
       {/* Avatar */}
       <div className={cn(
-        "w-20 h-20 rounded-full mb-4 flex items-center justify-center text-4xl font-bold border-2 transition-colors relative overflow-hidden",
+        "w-10 h-10 sm:w-12 sm:h-12 rounded-full mb-1.5 flex items-center justify-center text-lg sm:text-xl font-bold border-2 transition-colors relative overflow-hidden",
         !player.isAlive ? "bg-muted border-muted-foreground/30 opacity-50" : (player.avatarConfig as any)?.bg || "bg-card border-primary/20 shadow-lg shadow-primary/5"
       )}>
         {player.isAlive ? (
           <>
             <span className="relative z-10">{player.avatar || player.name.charAt(0).toUpperCase()}</span>
             {(player.avatarConfig as any)?.accessory && (player.avatarConfig as any).accessory !== "None" && (
-              <span className="absolute top-2 text-xl z-30">{(player.avatarConfig as any).accessory}</span>
+              <span className="absolute top-0.5 text-[10px] sm:text-xs z-30">{(player.avatarConfig as any).accessory}</span>
             )}
             {(player.avatarConfig as any)?.clothing && (player.avatarConfig as any).clothing !== "None" && (
-              <span className="absolute bottom-2 text-xl z-20 opacity-90">{(player.avatarConfig as any).clothing}</span>
+              <span className="absolute bottom-0.5 text-[10px] sm:text-xs z-20 opacity-90">{(player.avatarConfig as any).clothing}</span>
             )}
           </>
         ) : (
-          <Ghost className="w-10 h-10 text-slate-500" />
+          <Ghost className="w-5 h-5 text-slate-500" />
         )}
       </div>
 
       {/* Name */}
       <div className="text-center w-full">
         <h3 className={cn(
-          "font-bold truncate px-2 text-lg flex items-center justify-center gap-1",
+          "font-bold truncate px-1 text-xs sm:text-sm flex items-center justify-center gap-1 flex-wrap",
           !player.isAlive && "line-through text-muted-foreground"
         )}>
           {player.name}
-          {player.isBot && <span className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
-          {isMe && <span className="ml-1 text-xs text-muted-foreground font-normal">{t("playerCard.you")}</span>}
+          {player.isBot && <span className="text-[8px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
+          {isMe && <span className="ml-0.5 text-[10px] text-muted-foreground font-normal">{t("playerCard.you")}</span>}
           {isMe && typeof myBulletsLeft === "number" && (
-            <span className="ml-1 text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-bold">
+            <span className="ml-0.5 text-[8px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded-full font-bold">
               🔫 {myBulletsLeft}/2
             </span>
           )}
           {isMe && myMayorRevealed && (
-            <span className="ml-1 text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold">
+            <span className="ml-0.5 text-[8px] bg-purple-500/20 text-purple-400 px-1 py-0.5 rounded-full font-bold">
               {t("playerCard.revealed")}
             </span>
           )}
         </h3>
         
         {/* Revealed Role or Status */}
-        <div className="mt-2 min-h-[20px] text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mt-0.5 min-h-[14px] text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate px-1">
           {!player.isAlive
             ? (player.role && player.role !== "unknown" ? t("playerCard.roleEliminated", { role: t(`playerCard.roleLabels.${player.role.toLowerCase()}`, player.role) }) : t("playerCard.eliminated"))
             : displayRoleLabel}
@@ -207,7 +207,7 @@ export function PlayerCard({
             e.stopPropagation();
             if (onInteract) onInteract();
           }}
-          className="absolute inset-x-0 bottom-0 py-3 text-xs font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
+          className="absolute inset-x-0 bottom-0 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
         >
           {interactionLabel}
         </Button>
