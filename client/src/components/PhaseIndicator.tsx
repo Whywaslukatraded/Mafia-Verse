@@ -47,7 +47,7 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
 
   return (
     <div className={cn(
-      "w-full py-6 px-4 rounded-xl mb-6 relative overflow-hidden transition-all duration-500",
+      "w-full py-6 px-4 rounded-xl mb-6 relative overflow-hidden transition-[background-color,border-color] duration-500",
       isNight ? "bg-indigo-950 border border-indigo-900" : "bg-orange-50 border border-orange-200/50",
       isLobby && "bg-card border-border",
       isEnded && "bg-muted border-muted-foreground/20"

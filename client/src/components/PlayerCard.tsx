@@ -114,7 +114,7 @@ export function PlayerCard({
     <motion.div
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
       className={cn(
-        "relative w-full aspect-[3/4] rounded-lg overflow-hidden border transition-all duration-300 flex flex-col items-center justify-center p-1.5 sm:p-2 group",
+        "relative w-full aspect-[3/4] rounded-lg overflow-hidden border transition-[background-color,border-color,box-shadow] duration-300 flex flex-col items-center justify-center p-1.5 sm:p-2 group",
         !player.isAlive && "bg-muted border-muted-foreground/20 grayscale opacity-70",
         player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-border shadow-lg",
         player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,

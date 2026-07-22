@@ -1,43 +1,50 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { engine } from "@/components/GameAudio";
-import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
-import TwoFactorSetup from "@/pages/TwoFactorSetup";
-import TwoFactorVerify from "@/pages/TwoFactorVerify";
-import ResetPassword from "@/pages/ResetPassword";
-import AuthCallback from "@/pages/AuthCallback";
-import Room from "@/pages/Room";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
-import Cosmetics from "@/pages/Cosmetics";
-import Store from "@/pages/Store";
-import Leaderboard from "@/pages/Leaderboard";
+
+// Everything except Home is lazy-loaded — the initial bundle only needs the
+// code for the page someone actually lands on. Login/Signup/Settings/Store/
+// etc. only download once the user navigates there, which is most of what
+// Lighthouse's "unused JavaScript" (189KB) audit was flagging.
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Login = lazy(() => import("@/pages/Login"));
+const Signup = lazy(() => import("@/pages/Signup"));
+const TwoFactorSetup = lazy(() => import("@/pages/TwoFactorSetup"));
+const TwoFactorVerify = lazy(() => import("@/pages/TwoFactorVerify"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const Room = lazy(() => import("@/pages/Room"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Cosmetics = lazy(() => import("@/pages/Cosmetics"));
+const Store = lazy(() => import("@/pages/Store"));
+const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/2fa-setup" component={TwoFactorSetup} />
-      <Route path="/2fa-verify" component={TwoFactorVerify} />
-      <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/auth/callback" component={AuthCallback} />
-      <Route path="/room/:code" component={Room} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/cosmetics" component={Cosmetics} />
-      <Route path="/store" component={Store} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={null}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/2fa-setup" component={TwoFactorSetup} />
+        <Route path="/2fa-verify" component={TwoFactorVerify} />
+        <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/auth/callback" component={AuthCallback} />
+        <Route path="/room/:code" component={Room} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/settings" component={Settings} />
+        <Route path="/cosmetics" component={Cosmetics} />
+        <Route path="/store" component={Store} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
