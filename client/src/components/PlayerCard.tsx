@@ -173,10 +173,10 @@ export function PlayerCard({
       {/* Name */}
       <div className="text-center w-full">
         <h3 className={cn(
-          "font-bold truncate px-1 text-xs sm:text-sm flex items-center justify-center gap-1 flex-wrap",
+          "font-bold px-1 text-xs sm:text-sm flex items-center justify-center gap-1 flex-wrap leading-tight",
           !player.isAlive && "line-through text-muted-foreground"
         )}>
-          {player.name}
+          <span className="break-words line-clamp-2">{player.name}</span>
           {player.isBot && <span className="text-[8px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
           {isMe && <span className="ml-0.5 text-[10px] text-muted-foreground font-normal">{t("playerCard.you")}</span>}
           {isMe && typeof myBulletsLeft === "number" && (
