@@ -309,6 +309,8 @@ export default function Room() {
         detectiveDuration: settingsDraft.detectiveDuration,
         bodyguardDuration: settingsDraft.bodyguardDuration,
         vigilanteDuration: settingsDraft.vigilanteDuration,
+        showVoteResults: settingsDraft.showVoteResults,
+        showRoleReveal: settingsDraft.showRoleReveal,
       }));
     } catch {}
     setShowSettingsPanel(false);

@@ -428,8 +428,37 @@ export default function Home() {
   }, []);
 
   const [roomName, setRoomName] = useState("");
-  const [showVoteResults, setShowVoteResults] = useState(false);
-  const [showRoleReveal, setShowRoleReveal] = useState(true);
+  const [showVoteResults, setShowVoteResultsState] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      if (saved) return JSON.parse(saved).showVoteResults === true;
+    } catch {}
+    return false;
+  });
+  const [showRoleReveal, setShowRoleRevealState] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed && typeof parsed.showRoleReveal === "boolean") return parsed.showRoleReveal;
+    } catch {}
+    return true;
+  });
+  const setShowVoteResults = (val: boolean) => {
+    setShowVoteResultsState(val);
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      const prev = saved ? JSON.parse(saved) : {};
+      localStorage.setItem("mafia_last_room_settings", JSON.stringify({ ...prev, showVoteResults: val }));
+    } catch {}
+  };
+  const setShowRoleReveal = (val: boolean) => {
+    setShowRoleRevealState(val);
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      const prev = saved ? JSON.parse(saved) : {};
+      localStorage.setItem("mafia_last_room_settings", JSON.stringify({ ...prev, showRoleReveal: val }));
+    } catch {}
+  };
 
   const DEFAULT_COUNTS = {
     mafia: 1, detective: 1, doctor: 1, civilian: 3,
