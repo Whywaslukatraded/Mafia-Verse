@@ -1508,6 +1508,21 @@ async function broadcastState(roomId: number) {
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Keep-alive: free-tier hosts (Render, Railway, etc.) spin the server down
+  // after a period of no incoming traffic. This route gives something to
+  // ping, and the setInterval below pings it on its own so the server never
+  // sits idle long enough to sleep.
+  app.get("/ping", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
+  setInterval(() => {
+    const selfUrl = process.env.SELF_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT || 5000}`;
+    fetch(`${selfUrl}/ping`).catch(() => {
+      // Ignore failures — a missed ping just means we try again in 10 minutes.
+    });
+  }, 10 * 60 * 1000);
+
   // Reward-system tables. All keyed on supabase_user_id (a real signed-in account)
   // rather than a client-generated sessionId/localStorage token, which is what
   // made the old client-only versions of these features exploitable — clearing
