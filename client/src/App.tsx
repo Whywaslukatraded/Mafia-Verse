@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,26 +26,28 @@ const Cosmetics = lazy(() => import("@/pages/Cosmetics"));
 const Store = lazy(() => import("@/pages/Store"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 
-function Router() {
+function Router404() {
   return (
-    <Suspense fallback={null}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/login" component={Login} />
-        <Route path="/signup" component={Signup} />
-        <Route path="/2fa-setup" component={TwoFactorSetup} />
-        <Route path="/2fa-verify" component={TwoFactorVerify} />
-        <Route path="/reset-password" component={ResetPassword} />
-        <Route path="/auth/callback" component={AuthCallback} />
-        <Route path="/room/:code" component={Room} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/cosmetics" component={Cosmetics} />
-        <Route path="/store" component={Store} />
-        <Route path="/leaderboard" component={Leaderboard} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+    <Router hook={useHashLocation} base={window.location.pathname}> 
+      <Suspense fallback={null}>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/login" component={Login} />
+          <Route path="/signup" component={Signup} />
+          <Route path="/2fa-setup" component={TwoFactorSetup} />
+          <Route path="/2fa-verify" component={TwoFactorVerify} />
+          <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/auth/callback" component={AuthCallback} />
+          <Route path="/room/:code" component={Room} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/cosmetics" component={Cosmetics} />
+          <Route path="/store" component={Store} />
+          <Route path="/leaderboard" component={Leaderboard} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
+    </Router>
   );
 }
 
@@ -90,7 +93,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <Router404 />
       </TooltipProvider>
     </QueryClientProvider>
   );
