@@ -27,8 +27,20 @@ const Store = lazy(() => import("@/pages/Store"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 
 function Router404() {
+  // Check if we are running inside an itch.io nested preview sandbox or subfolder
+  const isItchSandbox = window.location.pathname.includes('/embed') || window.location.hostname.includes('itch.zone');
+  
+  // If trapped in the sandbox on the root view, bypass Wouter and force-mount the Home page layout directly
+  if (isItchSandbox && (window.location.hash === "" || window.location.hash === "#" || window.location.hash === "#/")) {
+    return (
+      <Suspense fallback={null}>
+        <Home />
+      </Suspense>
+    );
+  }
+
   return (
-    <Router hook={useHashLocation} base={window.location.pathname}> 
+    <Router hook={useHashLocation}>
       <Suspense fallback={null}>
         <Switch>
           <Route path="/" component={Home} />
