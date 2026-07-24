@@ -831,11 +831,15 @@
       "theTownDescription": "Detectives, Médicos, Guardaespaldas, Vigilantes, Alcaldes y Civiles — todos trabajando para encontrar y eliminar a la Mafia.",
       "theMafia": "La Mafia",
       "theMafiaDescription": "Elimina en secreto a un miembro del Pueblo cada noche, tratando de igualar en número al Pueblo antes de ser descubierta.",
+      "theJester": "El Bufón",
+      "theJesterDescription": "Un embaucador solitario con un solo objetivo: lograr que el Pueblo lo vote y elimine durante el Día.",
       "howToWin": "Cómo ganar",
       "townWins": "El Pueblo gana:",
       "townWinsDescription": "cuando todos los miembros de la Mafia han sido eliminados.",
       "mafiaWins": "La Mafia gana:",
       "mafiaWinsDescription": "cuando la Mafia iguala o supera en número al resto del Pueblo.",
+      "jesterWins": "El Bufón gana:",
+      "jesterWinsDescription": "en el instante en que el Pueblo lo vota y elimina — todos los demás pierden esa ronda.",
       "whatMakesDifferentTitle": "Qué hace diferente a este juego",
       "difference1": "Un Guardaespaldas que puede recibir un disparo por otro jugador, muriendo en su lugar.",
       "difference2": "Un Vigilante con solo 2 balas para toda la partida — úsalas con sabiduría.",
@@ -957,6 +961,13 @@
         "Consideren votar para eliminar a los jugadores más callados para protegerse del escrutinio.",
         "No defiendan a sus compañeros de la Mafia con demasiada fuerza — puede delatar la conexión.",
         "Si un Detective parece estar a punto de descubrirlos, prioricen eliminarlo."
+      ],
+      "jesterTitle": "Estrategia del Bufón",
+      "jesterTips": [
+        "Actúa un poco sospechoso a propósito — quieres los votos del Pueblo, no su confianza.",
+        "No exageres al principio, o la Mafia te eliminará la Noche 1 en vez de que el Pueblo te vote.",
+        "Si la gente te defiende, eso es malo para ti — vuelve a atraer la sospecha hacia ti mismo.",
+        "Una contradicción bien calculada en tu propia historia puede ser justo lo que te haga ganar el voto."
       ],
       "redFlagsTitle": "Señales de alerta a observar",
       "redFlags": [

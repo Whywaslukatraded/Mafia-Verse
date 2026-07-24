@@ -831,11 +831,15 @@
       "theTownDescription": "Detectives, Doctors, Bodyguards, Vigilantes, Mayors, and Civilians — all working to find and eliminate the Mafia.",
       "theMafia": "The Mafia",
       "theMafiaDescription": "Secretly eliminates one Town member each night, trying to reach parity with the Town before being caught.",
+      "theJester": "The Jester",
+      "theJesterDescription": "A solo trickster with one goal: get voted out by the Town during the Day.",
       "howToWin": "How to Win",
       "townWins": "Town wins:",
       "townWinsDescription": "when every Mafia member has been eliminated.",
       "mafiaWins": "Mafia wins:",
       "mafiaWinsDescription": "when the Mafia equal or outnumber the remaining Town.",
+      "jesterWins": "Jester wins:",
+      "jesterWinsDescription": "the instant the Town votes them out — everyone else loses that round.",
       "whatMakesDifferentTitle": "What Makes This Different",
       "difference1": "A Bodyguard who can take a bullet for someone else, dying in their place.",
       "difference2": "A Vigilante with only 2 bullets for the whole game — use them wisely.",
@@ -957,6 +961,13 @@
         "Consider voting out quieter players to protect yourselves from scrutiny.",
         "Don't defend your fellow Mafia too aggressively — it can give away the connection.",
         "If a Detective seems close to finding you, make eliminating them a priority."
+      ],
+      "jesterTitle": "Jester Strategy",
+      "jesterTips": [
+        "Act a little suspicious on purpose — you want the Town's votes, not their trust.",
+        "Don't overdo it early, or you'll get eliminated Night 1 by the Mafia instead of voted out by the Town.",
+        "If people are defending you, that's bad for you — steer suspicion back onto yourself.",
+        "A well-timed contradiction in your own story can be exactly what gets you voted out."
       ],
       "redFlagsTitle": "Red Flags to Watch For",
       "redFlags": [

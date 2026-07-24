@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa } from "@shared/schema";
+import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -1956,6 +1956,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!room) return res.status(404).json({ message: "Room not found" });
 
       const players = await storage.getPlayersInRoom(room.id);
+      if (players.length >= MAX_PLAYERS_PER_ROOM) {
+        return res.status(400).json({ message: `Room is full (max ${MAX_PLAYERS_PER_ROOM} players).` });
+      }
       const sessionId = randomUUID();
       const isSpectator = room.status !== "lobby";
 

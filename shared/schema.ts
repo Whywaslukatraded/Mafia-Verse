@@ -2,6 +2,8 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const MAX_PLAYERS_PER_ROOM = 20;
+
 // === TABLE DEFINITIONS ===
 
 export const userMfa = pgTable("user_mfa", {

@@ -18,6 +18,7 @@ export function MafiaHandbook() {
   const jesterAbilities = t("handbook.roles.jester.abilities", { returnObjects: true }) as string[];
   const townTips = t("handbook.strategy.townTips", { returnObjects: true }) as string[];
   const mafiaTips = t("handbook.strategy.mafiaTips", { returnObjects: true }) as string[];
+  const jesterTips = t("handbook.strategy.jesterTips", { returnObjects: true }) as string[];
   const redFlags = t("handbook.strategy.redFlags", { returnObjects: true }) as string[];
 
   return (
@@ -80,7 +81,7 @@ export function MafiaHandbook() {
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
                       <Users className="w-4 h-4 text-blue-400" /> {t("handbook.overview.teamsAtAGlance")}
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                         <p className="text-xs font-bold text-blue-400 mb-1">{t("handbook.overview.theTown")}</p>
                         <p className="text-xs text-muted-foreground">{t("handbook.overview.theTownDescription")}</p>
@@ -88,6 +89,10 @@ export function MafiaHandbook() {
                       <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                         <p className="text-xs font-bold text-red-400 mb-1">{t("handbook.overview.theMafia")}</p>
                         <p className="text-xs text-muted-foreground">{t("handbook.overview.theMafiaDescription")}</p>
+                      </div>
+                      <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-3">
+                        <p className="text-xs font-bold text-pink-400 mb-1">{t("handbook.overview.theJester")}</p>
+                        <p className="text-xs text-muted-foreground">{t("handbook.overview.theJesterDescription")}</p>
                       </div>
                     </div>
                   </div>
@@ -99,6 +104,7 @@ export function MafiaHandbook() {
                     <div className="space-y-2 text-sm text-muted-foreground">
                       <p><strong className="text-emerald-400">{t("handbook.overview.townWins")}</strong> {t("handbook.overview.townWinsDescription")}</p>
                       <p><strong className="text-red-400">{t("handbook.overview.mafiaWins")}</strong> {t("handbook.overview.mafiaWinsDescription")}</p>
+                      <p><strong className="text-pink-400">{t("handbook.overview.jesterWins")}</strong> {t("handbook.overview.jesterWinsDescription")}</p>
                     </div>
                   </div>
 
@@ -258,6 +264,12 @@ export function MafiaHandbook() {
                     title={t("handbook.strategy.mafiaTitle")}
                     accent="border-red-500/20"
                     tips={mafiaTips}
+                  />
+
+                  <StrategyCard
+                    title={t("handbook.strategy.jesterTitle")}
+                    accent="border-pink-500/20"
+                    tips={jesterTips}
                   />
 
                   <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
