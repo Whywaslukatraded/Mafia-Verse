@@ -293,11 +293,18 @@ const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsil
 
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
 
-async function fillWithBots(roomId: number, storage: any) {
-  const players = await storage.getPlayersInRoom(roomId);
-  if (players.length >= 6) return;
+const MAX_BOTS_PER_ROOM = 5;
 
-  const botsNeeded = 6 - players.length;
+async function fillWithBots(roomId: number, storage: any): Promise<{ added: number; cappedAtMax: boolean }> {
+  const players = await storage.getPlayersInRoom(roomId);
+  const existingBots = players.filter((p: Player) => p.isBot).length;
+  if (players.length >= 6 || existingBots >= MAX_BOTS_PER_ROOM) {
+    return { added: 0, cappedAtMax: existingBots >= MAX_BOTS_PER_ROOM };
+  }
+
+  const botsWantedForMin = 6 - players.length;
+  const botsRoomForMore = MAX_BOTS_PER_ROOM - existingBots;
+  const botsNeeded = Math.min(botsWantedForMin, botsRoomForMore);
   for (let i = 0; i < botsNeeded; i++) {
     await storage.createPlayer({
       roomId,
@@ -316,6 +323,7 @@ async function fillWithBots(roomId: number, storage: any) {
       gameHistory: []
     });
   }
+  return { added: botsNeeded, cappedAtMax: botsNeeded < botsWantedForMin };
 }
 
 // Tracks each bot's last message so they never repeat themselves back-to-back
@@ -1903,6 +1911,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post(api.rooms.create.path, roomCreateLimiter, async (req, res) => {
     try {
       const input = api.rooms.create.input.parse(req.body);
+      const s = input.settings as any;
+      const totalRoles = (s.mafiaCount || 0) + (s.detectiveCount || 0) + (s.doctorCount || 0) + (s.civilianCount || 0)
+        + (s.bodyguardCount || 0) + (s.vigilanteCount || 0) + (s.mayorCount || 0) + (s.jesterCount || 0);
+      if ((s.mafiaCount || 0) < 1) {
+        return res.status(400).json({ message: "You need at least 1 Mafia to start a game." });
+      }
+      if ((s.civilianCount || 0) < 1) {
+        return res.status(400).json({ message: "You need at least 1 Civilian to start a game." });
+      }
+      if (totalRoles > MAX_PLAYERS_PER_ROOM) {
+        return res.status(400).json({ message: `Too many people — rooms cap out at ${MAX_PLAYERS_PER_ROOM} players.` });
+      }
       const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
       
       const sessionId = randomUUID();
@@ -2147,8 +2167,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (action.type === 'add_bots' && me.isHost) {
-             await fillWithBots(myRoomId, storage);
-             broadcastState(myRoomId);
+             const { added, cappedAtMax } = await fillWithBots(myRoomId, storage);
+             if (cappedAtMax) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: `You can only play with ${MAX_BOTS_PER_ROOM} bots at a time per room.` } }));
+             }
+             if (added > 0) broadcastState(myRoomId);
              return;
            }
 
@@ -2181,8 +2204,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              // Leave room for at least one civilian so the special roles don't outnumber
              // everyone else and break voting.
              const totalSpecialRoles = mafiaCount + detectiveCount + doctorCount + bodyguardCount + vigilanteCount + mayorCount + jesterCount;
-             if (mafiaCount < 1 || totalSpecialRoles >= players.length) {
-               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Too many special roles for the current player count." } }));
+             if (mafiaCount < 1 || civilianCount < 1 || totalSpecialRoles >= players.length) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: civilianCount < 1 ? "You need at least 1 Civilian." : "Too many special roles for the current player count." } }));
                return;
              }
 

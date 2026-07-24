@@ -278,6 +278,14 @@ export default function Room() {
     + settingsDraft.bodyguardCount + settingsDraft.vigilanteCount + settingsDraft.mayorCount + settingsDraft.jesterCount;
 
   const handleSaveSettings = () => {
+    if (settingsDraft.civilianCount < 1) {
+      toast({
+        title: t("room.needCivilian"),
+        description: t("room.needCivilianDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
     if (settingsDraft.mafiaCount < 1 || specialRoleTotal >= players.length) {
       toast({
         title: t("room.tooManySpecialRoles"),

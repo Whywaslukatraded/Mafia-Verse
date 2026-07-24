@@ -511,6 +511,18 @@ export default function Home() {
       toast({ title: t("home.inappropriateName"), description: t("home.inappropriateNameDescription"), variant: "destructive" });
       return;
     }
+    if (counts.mafia < 1) {
+      toast({ title: t("home.needMafia"), description: t("home.needMafiaDescription"), variant: "destructive" });
+      return;
+    }
+    if (counts.civilian < 1) {
+      toast({ title: t("home.needCivilian"), description: t("home.needCivilianDescription"), variant: "destructive" });
+      return;
+    }
+    if (totalPlayers > 20) {
+      toast({ title: t("home.tooManyPlayers"), description: t("home.tooManyPlayersDescription"), variant: "destructive" });
+      return;
+    }
     try {
       const res = await createRoom.mutateAsync({
         name: name.trim(), avatar, avatarConfig: config,
@@ -846,8 +858,9 @@ export default function Home() {
                     <div className="flex flex-col">
                       <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">{t("home.totalPlayers")}</span>
                       <span className="text-xs text-muted-foreground/60 italic">{t("home.minPlayers")}</span>
+                      <span className={cn("text-xs italic", totalPlayers > 20 ? "text-destructive font-bold" : "text-muted-foreground/60")}>{t("home.maxPlayersHint")}</span>
                     </div>
-                    <span className="text-3xl font-black font-mono tracking-tighter">{totalPlayers}</span>
+                    <span className={cn("text-3xl font-black font-mono tracking-tighter", totalPlayers > 20 && "text-destructive")}>{totalPlayers}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 px-2">
                     <button onClick={() => setShowVoteResults(!showVoteResults)}
@@ -870,7 +883,7 @@ export default function Home() {
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6 || !name} data-testid="button-create-room">
+                  disabled={createRoom.isPending || totalPlayers < 6 || totalPlayers > 20 || counts.mafia < 1 || counts.civilian < 1 || !name} data-testid="button-create-room">
                   {createRoom.isPending ? t("home.preparing") : t("home.createRoomButton")}
                 </Button>
               </CardContent>
