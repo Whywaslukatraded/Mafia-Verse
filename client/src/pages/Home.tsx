@@ -484,6 +484,8 @@ export default function Home() {
 
   const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian
     + counts.bodyguard + counts.vigilante + counts.mayor + counts.jester;
+  const specialRoleTotal = counts.mafia + counts.detective + counts.doctor
+    + counts.bodyguard + counts.vigilante + counts.mayor + counts.jester;
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -517,6 +519,10 @@ export default function Home() {
     }
     if (counts.civilian < 1) {
       toast({ title: t("home.needCivilian"), description: t("home.needCivilianDescription"), variant: "destructive" });
+      return;
+    }
+    if (specialRoleTotal > 10) {
+      toast({ title: t("home.tooManySpecialRoles"), description: t("home.tooManySpecialRolesDescription"), variant: "destructive" });
       return;
     }
     if (totalPlayers > 20) {
@@ -883,7 +889,7 @@ export default function Home() {
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
-                  disabled={createRoom.isPending || totalPlayers < 6 || totalPlayers > 20 || counts.mafia < 1 || counts.civilian < 1 || !name} data-testid="button-create-room">
+                  disabled={createRoom.isPending || totalPlayers < 6 || totalPlayers > 20 || specialRoleTotal > 10 || counts.mafia < 1 || counts.civilian < 1 || !name} data-testid="button-create-room">
                   {createRoom.isPending ? t("home.preparing") : t("home.createRoomButton")}
                 </Button>
               </CardContent>

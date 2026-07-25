@@ -294,6 +294,7 @@ const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsil
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
 
 const MAX_BOTS_PER_ROOM = 5;
+const MAX_SPECIAL_ROLES = 10;
 
 async function fillWithBots(roomId: number, storage: any): Promise<{ added: number; cappedAtMax: boolean }> {
   const players = await storage.getPlayersInRoom(roomId);
@@ -1920,6 +1921,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if ((s.civilianCount || 0) < 1) {
         return res.status(400).json({ message: "You need at least 1 Civilian to start a game." });
       }
+      const totalSpecialRoles = (s.mafiaCount || 0) + (s.detectiveCount || 0) + (s.doctorCount || 0)
+        + (s.bodyguardCount || 0) + (s.vigilanteCount || 0) + (s.mayorCount || 0) + (s.jesterCount || 0);
+      if (totalSpecialRoles > MAX_SPECIAL_ROLES) {
+        return res.status(400).json({ message: `Too many special roles — max ${MAX_SPECIAL_ROLES}, to keep large games fair.` });
+      }
       if (totalRoles > MAX_PLAYERS_PER_ROOM) {
         return res.status(400).json({ message: `Too many people — rooms cap out at ${MAX_PLAYERS_PER_ROOM} players.` });
       }
@@ -2204,8 +2210,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              // Leave room for at least one civilian so the special roles don't outnumber
              // everyone else and break voting.
              const totalSpecialRoles = mafiaCount + detectiveCount + doctorCount + bodyguardCount + vigilanteCount + mayorCount + jesterCount;
-             if (mafiaCount < 1 || civilianCount < 1 || totalSpecialRoles >= players.length) {
-               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: civilianCount < 1 ? "You need at least 1 Civilian." : "Too many special roles for the current player count." } }));
+             if (mafiaCount < 1) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "You need at least 1 Mafia." } }));
+               return;
+             }
+             if (civilianCount < 1) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "You need at least 1 Civilian." } }));
+               return;
+             }
+             if (totalSpecialRoles > MAX_SPECIAL_ROLES) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: `Too many special roles — max ${MAX_SPECIAL_ROLES}, to keep large games fair.` } }));
+               return;
+             }
+             if (totalSpecialRoles >= players.length) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Too many special roles for the current player count." } }));
                return;
              }
 

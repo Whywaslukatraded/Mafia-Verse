@@ -286,7 +286,23 @@ export default function Room() {
       });
       return;
     }
-    if (settingsDraft.mafiaCount < 1 || specialRoleTotal >= players.length) {
+    if (settingsDraft.mafiaCount < 1) {
+      toast({
+        title: t("room.needMafia"),
+        description: t("room.needMafiaDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (specialRoleTotal > 10) {
+      toast({
+        title: t("room.tooManySpecialRoles"),
+        description: t("room.tooManySpecialRolesCapDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (specialRoleTotal >= players.length) {
       toast({
         title: t("room.tooManySpecialRoles"),
         description: t("room.tooManySpecialRolesDescription"),
@@ -869,7 +885,10 @@ export default function Room() {
 
                       <div className="flex items-center justify-between px-1 pt-1 text-xs text-muted-foreground">
                         <span>{t("room.specialRolesCount", { count: specialRoleTotal, total: players.length })}</span>
-                        {specialRoleTotal >= players.length && (
+                        {specialRoleTotal > 10 && (
+                          <span className="text-red-400 font-bold">{t("room.specialRolesCapHint")}</span>
+                        )}
+                        {specialRoleTotal <= 10 && specialRoleTotal >= players.length && (
                           <span className="text-red-400 font-bold">{t("room.leaveRoomForCivilian")}</span>
                         )}
                       </div>
