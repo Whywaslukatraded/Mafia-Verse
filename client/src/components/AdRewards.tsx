@@ -312,6 +312,16 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
                         {t("adRewards.watchAnother")}
                       </Button>
                     )}
+                    {remaining <= 0 && (
+                      <a
+                        href="https://discord.gg/j5Vmfr5GF"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 mt-2 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                      >
+                        🎉 {t("adRewards.discordPrompt")}
+                      </a>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

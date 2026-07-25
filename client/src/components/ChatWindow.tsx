@@ -214,6 +214,16 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 <div className="space-y-4">
+                    {isSpectator && activeTab === "graveyard" && (
+                        <a
+                            href="https://discord.gg/j5Vmfr5GF"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                        >
+                            👻 {t("chat.graveyardDiscordPrompt")}
+                        </a>
+                    )}
                     {filteredMessages.map((msg, idx) => (
                         <div
                             key={msg.id}
