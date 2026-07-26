@@ -114,7 +114,7 @@ export function PlayerCard({
     <motion.div
       whileHover={canInteract && player.isAlive ? { scale: 1.02, y: -2 } : {}}
       className={cn(
-        "relative w-full aspect-[3/4] rounded-lg overflow-hidden border transition-[background-color,border-color,box-shadow] duration-300 flex flex-col items-center justify-center p-1.5 sm:p-2 group",
+        "relative w-full aspect-[3/4] rounded-lg overflow-hidden border flex flex-col items-center justify-center p-1.5 sm:p-2 group",
         !player.isAlive && "bg-muted border-muted-foreground/20 grayscale opacity-70",
         player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-border shadow-lg",
         player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,
@@ -126,6 +126,7 @@ export function PlayerCard({
         <Button
           size="icon"
           variant="ghost"
+          aria-label={t("playerCard.removeBot")}
           className="absolute top-1 left-1 h-5 w-5 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover:opacity-100 transition-opacity z-10"
           onClick={(e) => {
             e.stopPropagation();
@@ -152,7 +153,7 @@ export function PlayerCard({
 
       {/* Avatar */}
       <div className={cn(
-        "w-10 h-10 sm:w-12 sm:h-12 rounded-full mb-1.5 flex items-center justify-center text-lg sm:text-xl font-bold border-2 transition-colors relative overflow-hidden",
+        "w-10 h-10 sm:w-12 sm:h-12 rounded-full mb-1.5 flex items-center justify-center text-lg sm:text-xl font-bold border-2 relative overflow-hidden",
         !player.isAlive ? "bg-muted border-muted-foreground/30 opacity-50" : (player.avatarConfig as any)?.bg || "bg-card border-primary/20 shadow-lg shadow-primary/5"
       )}>
         {player.isAlive ? (

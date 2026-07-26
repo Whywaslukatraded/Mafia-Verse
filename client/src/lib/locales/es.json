@@ -327,6 +327,11 @@
     "roomLabel": "Sala",
     "share": "Compartir",
     "startGame": "Iniciar partida",
+    "muteSound": "Silenciar sonido",
+    "unmuteSound": "Activar sonido",
+    "leaveRoom": "Salir de la sala",
+    "decreaseSetting": "Disminuir {{label}}",
+    "increaseSetting": "Aumentar {{label}}",
     "waitingForPlayers": "Esperando jugadores",
     "playerCount": "{{count}} / 6+ jugadores",
     "host": "ANFITRIÓN",
@@ -733,6 +738,7 @@
     }
   },
   "playerCard": {
+    "removeBot": "Eliminar bot",
     "roleLabels": {
       "mafia": "MAFIOSO",
       "detective": "DETECTIVE",

@@ -293,6 +293,11 @@
     "roomLabel": "Room",
     "share": "Share",
     "startGame": "Start Game",
+    "muteSound": "Mute sound",
+    "unmuteSound": "Unmute sound",
+    "leaveRoom": "Leave room",
+    "decreaseSetting": "Decrease {{label}}",
+    "increaseSetting": "Increase {{label}}",
     "waitingForPlayers": "Waiting for Players",
     "playerCount": "{{count}} / 6+ players",
     "host": "HOST",
@@ -733,6 +738,7 @@
     }
   },
   "playerCard": {
+    "removeBot": "Remove bot",
     "roleLabels": {
       "mafia": "MAFIA",
       "detective": "DETECTIVE",

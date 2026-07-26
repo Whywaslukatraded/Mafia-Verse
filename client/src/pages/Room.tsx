@@ -805,7 +805,7 @@ export default function Room() {
             )}
           </div>
           <div className="flex gap-2 flex-shrink-0">
-            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)}>
+            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
             <MafiaHandbook />
@@ -823,7 +823,7 @@ export default function Room() {
                 {t("room.startGame")}
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="ml-auto">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="ml-auto" aria-label={t("room.leaveRoom")}>
               <LogOut className="w-4 h-4 text-red-400" />
             </Button>
           </div>
@@ -887,11 +887,11 @@ export default function Room() {
                             <span className="text-sm font-semibold">{row.label}</span>
                           </div>
                           <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, -1)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, -1)} aria-label={t("room.decreaseSetting", { label: row.label })}>
                               <Minus className="w-3.5 h-3.5" />
                             </Button>
                             <span className="w-8 text-center font-mono font-bold">{settingsDraft[row.key]}</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, 1)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => adjustSetting(row.key, 1)} aria-label={t("room.increaseSetting", { label: row.label })}>
                               <Plus className="w-3.5 h-3.5" />
                             </Button>
                           </div>
@@ -1050,7 +1050,7 @@ export default function Room() {
                               });
                             }}
                             className={cn(
-                              "absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full border flex items-center justify-center transition-colors z-10",
+                              "absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full border flex items-center justify-center z-10",
                               reportedAfk.has(p.id)
                                 ? "bg-amber-500/30 border-amber-500/50 text-amber-400"
                                 : "bg-muted/80 border-border text-muted-foreground hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-amber-400"
