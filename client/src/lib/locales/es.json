@@ -171,6 +171,8 @@
     "accessory": "Accesorio",
     "clothing": "Ropa",
     "background": "Fondo",
+    "selectBackgroundColor": "Seleccionar fondo {{color}}",
+    "bgColorNames": ["violeta", "rojo", "azul", "esmeralda", "ámbar", "morado"],
     "mafiaHandle": "Tu alias de la mafia",
     "chooseNamePlaceholder": "ELIGE UN NOMBRE...",
     "pickPersona": "Elige tu personaje",

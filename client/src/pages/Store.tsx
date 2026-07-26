@@ -203,7 +203,7 @@ export default function Store() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CREDIT_PACKS.map((pack) => (
               <motion.button key={pack.price} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => buyCredits(pack)} disabled={buying !== null}
-                className={cn("relative flex items-center gap-4 p-4 rounded-xl border text-left transition-all disabled:opacity-50",
+                className={cn("relative flex items-center gap-4 p-4 rounded-xl border text-left disabled:opacity-50",
                   pack.popular ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-card hover:border-primary/30")}>
                 {pack.popular && <span className="absolute -top-2 left-4 px-2 py-0.5 bg-amber-500 text-white text-[9px] font-black uppercase rounded-full">{t("store.popular")}</span>}
                 <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center shrink-0", pack.popular ? "bg-amber-500/20" : "bg-muted")}>
@@ -226,7 +226,7 @@ export default function Store() {
         <section className="mb-10">
           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">{t("store.syndicatePassName")}</h2>
           <motion.button whileHover={syndicatePass ? {} : { scale: 1.01 }} whileTap={syndicatePass ? {} : { scale: 0.99 }} onClick={buySyndicate} disabled={buying !== null || syndicatePass}
-            className={cn("w-full flex items-center gap-4 p-5 rounded-xl border text-left transition-all",
+            className={cn("w-full flex items-center gap-4 p-5 rounded-xl border text-left",
               syndicatePass ? "border-green-500/30 bg-green-500/5 opacity-60 cursor-default" : "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10")}>
             <div className="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
               <Crown className="w-7 h-7 text-purple-500" />
@@ -257,7 +257,7 @@ export default function Store() {
               const Icon = tier.icon;
               return (
                 <motion.button key={tier.amount} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => sendTip(tier.amount)} disabled={buying !== null}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors text-left disabled:opacity-50">
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 text-left disabled:opacity-50">
                   <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
                     <Icon className="w-6 h-6 text-muted-foreground" />
                   </div>
@@ -267,7 +267,7 @@ export default function Store() {
               );
             })}
             {!showCustomTip ? (
-              <button onClick={() => setShowCustomTip(true)} className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5 transition-colors">
+              <button onClick={() => setShowCustomTip(true)} className="w-full py-3 text-sm font-bold text-pink-500 border border-dashed border-pink-500/30 rounded-xl hover:bg-pink-500/5">
                 {t("store.customAmount")}
               </button>
             ) : (

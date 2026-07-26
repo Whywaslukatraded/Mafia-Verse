@@ -171,6 +171,8 @@
     "accessory": "Accessory",
     "clothing": "Clothing",
     "background": "Background",
+    "selectBackgroundColor": "Select {{color}} background",
+    "bgColorNames": ["violet", "red", "blue", "emerald", "amber", "purple"],
     "mafiaHandle": "Your Mafia Handle",
     "chooseNamePlaceholder": "CHOOSE A NAME...",
     "pickPersona": "Pick Your Persona",
