@@ -134,7 +134,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                 <p className="text-xs text-muted-foreground">{t("dailyRewards.subtitle")}</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label={t("common.close")}>
               ✕
             </button>
           </div>
@@ -187,8 +187,15 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                       whileTap={isNext ? { scale: 0.95 } : {}}
                       onClick={() => handleClaim(reward.day)}
                       disabled={!isNext}
+                      aria-label={
+                        isClaimed
+                          ? t("dailyRewards.ariaClaimed", { day: reward.day })
+                          : isNext
+                            ? t("dailyRewards.ariaClaimNow", { day: reward.day, count: reward.credits })
+                            : t("dailyRewards.ariaLocked", { day: reward.day })
+                      }
                       className={cn(
-                        "relative flex flex-col items-center gap-1 p-2 rounded-xl border transition-all",
+                        "relative flex flex-col items-center gap-1 p-2 rounded-xl border",
                         isClaimed
                           ? "bg-green-500/10 border-green-500/30 opacity-60"
                           : isNext
@@ -240,7 +247,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                     <div
                       key={reward.day}
                       className={cn(
-                        "flex items-center justify-between p-3 rounded-xl border transition-all",
+                        "flex items-center justify-between p-3 rounded-xl border",
                         isNext ? "bg-amber-500/5 border-amber-500/20" : "bg-muted/30 border-border"
                       )}
                     >
@@ -261,7 +268,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
                       ) : isNext ? (
                         <button
                           onClick={() => handleClaim(reward.day)}
-                          className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors"
+                          className="text-xs font-bold text-amber-500 hover:text-amber-400"
                         >
                           {t("dailyRewards.claim")}
                         </button>

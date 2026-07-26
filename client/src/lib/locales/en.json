@@ -1009,6 +1009,9 @@
   "dailyRewards": {
     "title": "Daily Rewards",
     "subtitle": "Come back every day",
+    "ariaClaimed": "Day {{day}}, already claimed",
+    "ariaClaimNow": "Claim day {{day}} reward, {{count}} credits",
+    "ariaLocked": "Day {{day}}, locked",
     "currentStreak": "Current Streak",
     "dayStreak_one": "{{count}} day streak",
     "dayStreak_other": "{{count}} day streak",

@@ -195,7 +195,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
               </div>
             </div>
             {!watching && (
-              <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label={t("common.close")}>
                 <X className="w-5 h-5" />
               </button>
             )}
@@ -238,7 +238,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
 
               {/* Countdown timer bar above billboard */}
               <div className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all",
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl border",
                 watching ? "bg-amber-500/10 border-amber-500/30" : "bg-muted/30 border-border"
               )}>
                 <Timer className={cn("w-4 h-4", watching ? "text-amber-500 animate-spin" : "text-muted-foreground")} />
@@ -252,7 +252,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
 
               {/* Premium Billboard */}
               <div className={cn(
-                "relative rounded-2xl overflow-hidden border shadow-lg transition-all duration-300",
+                "relative rounded-2xl overflow-hidden border shadow-lg",
                 selectedAd.border,
                 `bg-gradient-to-br ${selectedAd.gradient}`,
                 watching && "ring-2 ring-amber-500/40 shadow-amber-500/10"
@@ -284,9 +284,9 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
                 {watching && (
                   <div className="h-1 bg-white/10 mx-4 mb-3 rounded-full overflow-hidden">
                     <motion.div
-                      className="h-full bg-amber-500 rounded-full"
-                      initial={{ width: "0%" }}
-                      animate={{ width: `${progressPct}%` }}
+                      className="h-full w-full bg-amber-500 rounded-full origin-left"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: progressPct / 100 }}
                       transition={{ duration: 0.5 }}
                     />
                   </div>

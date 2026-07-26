@@ -1009,6 +1009,9 @@
   "dailyRewards": {
     "title": "Recompensas diarias",
     "subtitle": "Vuelve todos los días",
+    "ariaClaimed": "Día {{day}}, ya reclamado",
+    "ariaClaimNow": "Reclamar recompensa del día {{day}}, {{count}} créditos",
+    "ariaLocked": "Día {{day}}, bloqueado",
     "currentStreak": "Racha actual",
     "dayStreak_one": "Racha de {{count}} día",
     "dayStreak_other": "Racha de {{count}} días",
