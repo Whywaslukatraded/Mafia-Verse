@@ -564,7 +564,9 @@ export default function Room() {
     setLockedIn(true);
     toast({ title: t("room.actionLockedIn"), description: t("room.actionLockedInDescription", { verb: getNightActionLabel().verb, name: pendingNightAction.targetName }) });
   };
-  useEffect(() => { lockInRef.current = handleLockIn; });
+  // Plain assignment, not a hook — safe to run after the early return above
+  // without upsetting React's hooks-order requirement.
+  lockInRef.current = handleLockIn;
 
   const roomName = room.settings?.roomName;
 
