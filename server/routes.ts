@@ -2338,6 +2338,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (target?.isAlive && target.role !== 'mafia') {
                actions.mafiaKills.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
+
+               const mafiaBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'mafia' && !actions.mafiaKills.has(p.id));
+               for (const bot of mafiaBots) {
+                 const nonMafiaAlive = players.filter((p: Player) => p.isAlive && p.role !== 'mafia');
+                 if (nonMafiaAlive.length > 0) {
+                   actions.mafiaKills.set(bot.id, nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)].id);
+                 }
+               }
+               gameActions.set(myRoomId, actions);
+
                broadcastState(myRoomId);
                const killLang = (room.settings as any)?.language === "es" ? "es" : "en";
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", killLang), body: sysMsg("targetLockedBody", killLang, { name: target.name }) } }));
@@ -2363,6 +2373,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (target?.isAlive) {
                actions.doctorSaves.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
+
+               const doctorBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'doctor' && p.id !== me.id && !actions.doctorSaves.has(p.id));
+               for (const bot of doctorBots) {
+                 const eligible = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+                 if (eligible.length > 0) {
+                   actions.doctorSaves.set(bot.id, eligible[Math.floor(Math.random() * eligible.length)].id);
+                 }
+               }
+               gameActions.set(myRoomId, actions);
+
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", healLang), body: sysMsg("protectionAppliedBody", healLang, { name: target.name }) } }));
                
@@ -2382,6 +2402,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (target) {
                 actions.detectiveChecks.set(me.id, target.id);
                 gameActions.set(myRoomId, actions);
+
+                const detectiveBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'detective' && p.id !== me.id && !actions.detectiveChecks.has(p.id));
+                for (const bot of detectiveBots) {
+                  const eligible = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+                  if (eligible.length > 0) {
+                    actions.detectiveChecks.set(bot.id, eligible[Math.floor(Math.random() * eligible.length)].id);
+                  }
+                }
+                gameActions.set(myRoomId, actions);
+
                 const isMafia = target.role === 'mafia';
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
@@ -2417,6 +2447,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (target?.isAlive) {
                actions.guards.set(me.id, target.id);
                gameActions.set(myRoomId, actions);
+
+               const bodyguardBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'bodyguard' && p.id !== me.id && !actions.guards.has(p.id));
+               for (const bot of bodyguardBots) {
+                 const eligible = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+                 if (eligible.length > 0) {
+                   actions.guards.set(bot.id, eligible[Math.floor(Math.random() * eligible.length)].id);
+                 }
+               }
+               gameActions.set(myRoomId, actions);
+
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("protectionAppliedTitle", bgLang), body: sysMsg("protectionAppliedBody", bgLang, { name: target.name }) } }));
                if (haveAllRoleHoldersActed(players, 'bodyguard', actions.guards)) {
@@ -2444,6 +2484,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                const bulletsMap = vigilanteBullets.get(myRoomId) || new Map<number, number>();
                bulletsMap.set(me.id, bullets - 1);
                vigilanteBullets.set(myRoomId, bulletsMap);
+
+               const vigilanteBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'vigilante' && p.id !== me.id && !actions.shots.has(p.id));
+               for (const bot of vigilanteBots) {
+                 const botBulletsLeft = bulletsMap.get(bot.id) ?? 2;
+                 if (botBulletsLeft > 0 && Math.random() > 0.65) {
+                   const eligible = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+                   if (eligible.length > 0) {
+                     actions.shots.set(bot.id, eligible[Math.floor(Math.random() * eligible.length)].id);
+                     bulletsMap.set(bot.id, botBulletsLeft - 1);
+                   }
+                 }
+               }
+               vigilanteBullets.set(myRoomId, bulletsMap);
+               gameActions.set(myRoomId, actions);
+
                broadcastState(myRoomId);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", vigiLang), body: sysMsg("targetLockedBody", vigiLang, { name: target.name }) } }));
                if (haveAllRoleHoldersActed(players, 'vigilante', actions.shots)) {
