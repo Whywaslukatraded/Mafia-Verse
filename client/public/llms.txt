@@ -1,0 +1,10 @@
+# Mafia Verse
+
+> Real-time multiplayer Mafia party game. Create a room, assign roles, and play with friends over voice or in the same room — no downloads required.
+
+Mafia Verse is a browser-based social deduction game for groups of 6-20 players. A host creates a room, configures roles (Mafia, Detective, Doctor, Bodyguard, Vigilante, Mayor, Jester, Civilian), and shares a room code for friends to join from their own devices. The game alternates Night phases (role actions) and Day phases (discussion and voting) until one team wins.
+
+## Key pages
+
+- [Home](https://mafia-verse.onrender.com/): create or join a room
+- [Leaderboard](https://mafia-verse.onrender.com/leaderboard): global win/loss stats
