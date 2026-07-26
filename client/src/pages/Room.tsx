@@ -89,6 +89,9 @@ export default function Room() {
   const [showRoleReveal, setShowRoleReveal] = useState(false);
   const [hasRevealed, setHasRevealed] = useState(false);
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);
+  const pendingActionRef = useRef(pendingNightAction);
+  useEffect(() => { pendingActionRef.current = pendingNightAction; }, [pendingNightAction]);
+  const lockInRef = useRef<(() => void) | null>(null);
   const [lockedIn, setLockedIn] = useState(false);
   const [reportedAfk, setReportedAfk] = useState<Set<number>>(new Set());
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
@@ -392,10 +395,19 @@ export default function Room() {
 
     const duration = getDuration();
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
+    let autoLockedIn = false;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - serverPhaseStart) / 1000);
       const remaining = Math.min(duration, Math.max(0, duration - elapsed));
       setTimeRemaining(remaining);
+      // A player can select a target without pressing "Lock In" — if the
+      // timer runs out on them, submit whatever they had selected instead
+      // of silently doing nothing (e.g. a Doctor who picked a heal target
+      // but never confirmed before time expired).
+      if (remaining <= 0 && !autoLockedIn) {
+        autoLockedIn = true;
+        pendingActionRef.current && lockInRef.current?.();
+      }
     }, 100);
 
     return () => clearInterval(interval);
@@ -552,6 +564,7 @@ export default function Room() {
     setLockedIn(true);
     toast({ title: t("room.actionLockedIn"), description: t("room.actionLockedInDescription", { verb: getNightActionLabel().verb, name: pendingNightAction.targetName }) });
   };
+  useEffect(() => { lockInRef.current = handleLockIn; });
 
   const roomName = room.settings?.roomName;
 
@@ -981,6 +994,13 @@ export default function Room() {
                   </Button>
                 )}
 
+                {room?.status === "day" && me?.isAlive && !isSpectator && (
+                  <div className="flex items-center gap-1.5 mb-2 px-1 text-[10px] text-muted-foreground">
+                    <Flag className="w-3 h-3 text-amber-400" />
+                    <span>{t("room.afkFlagExplainer")}</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
@@ -1016,17 +1036,21 @@ export default function Room() {
                         />
                         {canReportAfk && (
                           <button
-                            title={reportedAfk.has(p.id) ? t("room.afkReported") : t("room.reportAfk")}
-                            disabled={reportedAfk.has(p.id)}
+                            title={reportedAfk.has(p.id) ? t("room.afkReportedTapToUndo") : t("room.reportAfk")}
                             onClick={(e) => {
                               e.stopPropagation();
-                              sendAction({ type: "report_afk", targetId: p.id } as any);
-                              setReportedAfk((prev) => new Set(prev).add(p.id));
+                              const alreadyReported = reportedAfk.has(p.id);
+                              sendAction({ type: alreadyReported ? "unreport_afk" : "report_afk", targetId: p.id } as any);
+                              setReportedAfk((prev) => {
+                                const next = new Set(prev);
+                                if (alreadyReported) next.delete(p.id); else next.add(p.id);
+                                return next;
+                              });
                             }}
                             className={cn(
                               "absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full border flex items-center justify-center transition-colors z-10",
                               reportedAfk.has(p.id)
-                                ? "bg-amber-500/30 border-amber-500/50 text-amber-400 cursor-default"
+                                ? "bg-amber-500/30 border-amber-500/50 text-amber-400"
                                 : "bg-muted/80 border-border text-muted-foreground hover:bg-amber-500/20 hover:border-amber-500/40 hover:text-amber-400"
                             )}
                           >

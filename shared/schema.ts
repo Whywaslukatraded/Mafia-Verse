@@ -225,6 +225,7 @@ export type GameAction =
   | { type: 'replay' }
   | { type: 'chat'; content: string }
   | { type: 'report_afk'; targetId: number }
+  | { type: 'unreport_afk'; targetId: number }
   | { type: 'bodyguard_protect'; targetId: number }
   | { type: 'vigilante_shoot'; targetId: number }
   | { type: 'mayor_reveal' }

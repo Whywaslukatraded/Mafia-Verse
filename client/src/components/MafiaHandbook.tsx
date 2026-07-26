@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Skull, Shield, Heart, User, Timer, Lightbulb, Zap, Info, ChevronRight, Users, Eye, Crosshair, Vote, Moon, Sun, Trophy, AlertTriangle, ShieldCheck, Landmark, Drama } from "lucide-react";
+import { BookOpen, Skull, Shield, Heart, User, Timer, Lightbulb, Zap, Info, ChevronRight, Users, Eye, Crosshair, Vote, Moon, Sun, Trophy, AlertTriangle, ShieldCheck, Landmark, Drama, Flag } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function MafiaHandbook() {
@@ -127,6 +127,15 @@ export function MafiaHandbook() {
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {t("handbook.overview.jesterNoteDescription")}
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
+                    <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2 mb-2">
+                      <Flag className="w-4 h-4" /> {t("handbook.overview.afkFlagTitle")}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t("handbook.overview.afkFlagDescription")}
                     </p>
                   </div>
                 </motion.div>

@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
+import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, users, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -2485,6 +2485,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              }
              return;
            }
+
+           if (action.type === 'unreport_afk') {
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             if (myRoomId && target) {
+               afkReports.get(myRoomId)?.get(target.id)?.delete(me.id);
+             }
+             return;
+           }
            
            if (action.type === 'skip' && me.isHost) {
               advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
@@ -2532,6 +2540,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e: any) {
       console.error("Reset leaderboard error", e);
       res.status(500).json({ error: e?.message || "Failed to reset leaderboard" });
+    }
+  });
+
+  // Remove a single user from the leaderboard by name, instead of wiping everyone.
+  // curl -X POST https://mafia-verse.onrender.com/api/leaderboard/delete-user \
+  //   -H "x-admin-secret: <ADMIN_SECRET>" -H "Content-Type: application/json" \
+  //   -d '{"name":"ExactPlayerName"}'
+  app.post("/api/leaderboard/delete-user", async (req, res) => {
+    try {
+      const providedSecret = req.headers["x-admin-secret"];
+      const expectedSecret = process.env.ADMIN_SECRET;
+      if (!expectedSecret) {
+        return res.status(503).json({ error: "Admin actions are disabled: ADMIN_SECRET is not configured." });
+      }
+      if (providedSecret !== expectedSecret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const name = (req.body?.name || "").trim();
+      if (!name) {
+        return res.status(400).json({ error: "Missing 'name' in request body." });
+      }
+      const deleted = await db.delete(users).where(eq(users.name, name)).returning();
+      if (deleted.length === 0) {
+        return res.status(404).json({ error: `No leaderboard user found with the name "${name}".` });
+      }
+      res.json({ success: true, deleted: deleted.map(u => u.name) });
+    } catch (e: any) {
+      console.error("Delete leaderboard user error", e);
+      res.status(500).json({ error: e?.message || "Failed to delete user" });
     }
   });
 

@@ -356,6 +356,8 @@
     "mayorRevealButton": "Revélate como alcalde",
     "reportAfk": "Reportar AFK / inactivo",
     "afkReported": "Reportado como AFK",
+    "afkReportedTapToUndo": "Reportado como AFK — toca para deshacer",
+    "afkFlagExplainer": "Marca jugadores inactivos — toca de nuevo para deshacer. 2+ reportes afectan su registro de actividad de cuenta.",
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
     "roleRevealExplainer": "Revelar rol muestra el rol de quien sea eliminado por votación o asesinado por la mafia (por ejemplo, \"Médico\"). Desactívalo para mostrar solo que fue eliminado, manteniendo todos los roles en secreto.",
     "gameEnded": "Partida terminada",
@@ -863,7 +865,9 @@
       "difference4": "Un Bufón que gana si logra que lo eliminen por votación a propósito.",
       "difference5": "Votos y chat en tiempo real, además de un chat del cementerio para jugadores eliminados.",
       "jesterNoteTitle": "Sobre el Bufón",
-      "jesterNoteDescription": "El Bufón no es del Pueblo ni de la Mafia — solo intenta que lo eliminen por votación. Si lo logra, gana al instante y la partida termina ahí mismo, sin importar lo que los demás estuvieran intentando."
+      "jesterNoteDescription": "El Bufón no es del Pueblo ni de la Mafia — solo intenta que lo eliminen por votación. Si lo logra, gana al instante y la partida termina ahí mismo, sin importar lo que los demás estuvieran intentando.",
+      "afkFlagTitle": "El ícono de bandera",
+      "afkFlagDescription": "Esa bandera amarilla en la tarjeta de un jugador no es una marca de \"sospechoso\" — reporta a alguien como AFK/inactivo. No afecta la partida en sí, pero si un jugador acumula 2+ reportes en una partida, queda registrado en el historial de actividad de su cuenta. Toca la bandera de nuevo para deshacer un reporte hecho por error."
     },
     "roles": {
       "mafia": {
