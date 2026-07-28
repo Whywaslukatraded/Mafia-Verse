@@ -1,4 +1,4 @@
-# 🍷 Mafia Verse
+# Mafia Verse
 
 A high-performance, real-time multiplayer party game where players create custom rooms, assign secret roles, and compete with friends to see who can survive the night. 
 
@@ -6,11 +6,11 @@ A high-performance, real-time multiplayer party game where players create custom
 
 ---
 
-## 🚀 Technical Highlights & Performance Engineering
+## Technical Highlights & Performance Engineering
 
 This project was built with a strict focus on web performance, mobile responsiveness, and optimal asset delivery. Recent engineering audits brought initial rendering milestones down to elite levels.
 
-### 📊 Current Lighthouse & Browser Performance Metrics
+### Current Lighthouse & Browser Performance Metrics
 * **First Contentful Paint (FCP):** 1.0s
 * **Largest Contentful Paint (LCP):** 1.0s
 * **Time to Interactive (TTI):** 1.3s
@@ -18,7 +18,7 @@ This project was built with a strict focus on web performance, mobile responsive
 * **Cumulative Layout Shift (CLS):** 0 *(Perfect visual stability)*
 * **Time to First Byte (TTFB):** 157ms
 
-### ⚙️ Optimizations Implemented
+### Optimizations Implemented
 * **Aggressive Edge Caching:** Tailored Render CDN header configurations using a 1-year long-term, immutable cache policy (`public, max-age=31536000, immutable`) for static assets, dropping repeat-visit load times from **1.3s to under 300ms**.
 * **Zero-Cache Lobby Engine:** To protect real-time gameplay integrity, explicitly configured `no-store, no-cache, must-revalidate` directives on entry-point HTML and API layers so players always interact with a flawless, fresh game state.
 * **Strict W3C Specification Compliance:** Refactored layout architecture to eliminate non-standard `http-equiv` headers and URL-encoded dynamic inline SVGs to achieve a 100% error-free validation pass.
@@ -26,23 +26,23 @@ This project was built with a strict focus on web performance, mobile responsive
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
-### 💻 Frontend (Client Side)
+### Frontend (Client Side)
 * **Core Interface:** Built using React, TypeScript, and modern JSX components (`.tsx`) to manage real-time lobby views, player status badges, and interactive chat logs securely and type-safely.
 * **Progressive Enhancements:** Configured web app manifests and cross-platform styling tweaks tailored smoothly for target iOS (`apple-mobile-web-app-capable`) and Android devices.
 
-### ⚙️ Backend (Server Side)
+### Backend (Server Side)
 * **Real-time Synchronization Engine:** Runs a persistent networking layer utilizing Node.js, TypeScript, and real-time event emitters to manage concurrent game spaces, synchronize countdown timers, and securely execute state operations without database blocking overhead.
 * **Hosting Configuration:** Orchestrated and deployed completely via Render Web Services with customizable static mapping routers.
 
 ---
 
-## 📈 Codebase & Architecture Statistics
+## Codebase & Architecture Statistics
 
 Verified via recursive terminal diagnostics to show explicit file breakdowns, granular language distribution, and total multi-million line framework dependencies footprint:
 
-### 💻 Core Project Statistics (My Written Code)
+### Core Project Statistics (My Written Code)
 * **Total Core Lines (Physical):** 19,125 Lines
 * **Raw Code Logic (Source):** 16,956 Lines
 * **Core Managed Code Files:** 115 Active Script Files *(plus media and environment configurations)*
@@ -57,7 +57,7 @@ Verified via recursive terminal diagnostics to show explicit file breakdowns, gr
 * **JavaScript (.js):** 3 Files | 70 Lines
 * **HyperText Markup Language (.html):** 1 File | 29 Lines
 
-### 📦 Ecosystem Footprint (Full Infrastructure & Dependencies Stack)
+### Ecosystem Footprint (Full Infrastructure & Dependencies Stack)
 * **Total Project Files Managed:** 28,574 Total Files
 * **Ecosystem Source Files Scanned:** 17,467 Active Code Assets
 * **Total Ecosystem Lines (Physical):** 3,183,389 Lines
@@ -67,13 +67,13 @@ Verified via recursive terminal diagnostics to show explicit file breakdowns, gr
 
 ---
 
-## 📦 Key Features
+## Key Features
 * **Real-Time Multiplayer:** Instant room creation, synchronization, and seamless message/action propagation.
 * **Dynamic Role Engine:** Automated role generation and secret assignments tailored to the room's player count.
 
 ---
 
-## 🔧 Local Development & Installation
+## Local Development & Installation
 
 1. **Clone the repository:**
    ```bash
@@ -93,6 +93,7 @@ Verified via recursive terminal diagnostics to show explicit file breakdowns, gr
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **MIT License** — granting full permission for personal, open-source deployment, modifications, and code usage. See the `LICENSE` file in this repository for additional terms.
+
