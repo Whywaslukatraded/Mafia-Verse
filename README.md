@@ -2,7 +2,8 @@
 
 A high-performance, real-time multiplayer party game where players create custom rooms, assign secret roles, and compete with friends to see who can survive the night. 
 
-**Play Live:** [https://onrender.com](https://onrender.com)
+**Play Live:** [https://mafia-verse.onrender.com/](https://mafia-verse.onrender.com/)
+
 
 ---
 
