@@ -63,12 +63,14 @@ This application represents **550+ code commits, 16 distinct API keys, 7 months 
 This project was built with a strict focus on web performance, mobile responsiveness, and optimal asset delivery. Recent engineering audits brought initial rendering milestones down to elite levels.
 
 ### 📊 Current Lighthouse & Browser Performance Metrics
-* **First Contentful Paint (FCP):** 1.0s
-* **Largest Contentful Paint (LCP):** 1.0s
-* **Time to Interactive (TTI):** 1.3s
-* **Total Blocking Time (TBT):** 82ms
-* **Cumulative Layout Shift (CLS):** 0 *(Perfect visual stability)*
-* **Time to First Byte (TTFB):** 157ms
+* **First Contentful Paint (FCP):** 895ms
+* **Largest Contentful Paint (LCP):** 895ms
+* **Time to Interactive (TTI):** 895ms
+* **Speed Index:** 841ms
+* **Total Blocking Time (TBT):** 0ms
+* **Cumulative Layout Shift (CLS):** 0
+* **Time to First Byte (TTFB):** 170ms
+* **Fully Loaded Time:** 896ms
 
 ### ⚙️ Optimizations Implemented
 * **Aggressive Edge Caching:** Tailored Render CDN header configurations using a 1-year long-term, immutable cache policy (`public, max-age=31536000, immutable`) for static assets, dropping repeat-visit load times from **1.3s to under 300ms**.
