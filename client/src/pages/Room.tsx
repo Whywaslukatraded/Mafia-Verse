@@ -1251,11 +1251,12 @@ export default function Room() {
           <div className="space-y-6">
             <ChatWindow
               messages={gameState?.messages || []}
-              onSendMessage={(content) => sendAction({ type: "chat", content } as any)}
+              onSendMessage={(content, channel) => sendAction({ type: "chat", content, channel } as any)}
               notify={notify}
               currentPlayerId={me?.id || 0}
               isSpectator={(isSpectator ?? false) || !(me?.isAlive ?? true)}
               players={players}
+              mafiaChatAvailable={gameState?.mafiaChatAvailable ?? false}
             />
           </div>
         </div>

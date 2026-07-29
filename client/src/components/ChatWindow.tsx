@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, Smile, Ghost } from "lucide-react";
+import { Send, MessageSquare, Smile, Ghost, Skull } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Message } from "@shared/schema";
@@ -14,20 +14,22 @@ const REACTION_EMOTES = ["😂", "🤔", "👀", "😱", "👍", "❤️", "🎉
 
 interface ChatWindowProps {
     messages: Message[];
-    onSendMessage: (content: string) => void;
+    onSendMessage: (content: string, channel?: "game" | "mafia") => void;
     currentPlayerId?: number;
     isSpectator?: boolean;
     players?: any[];
     notify?: (title: string, options?: NotificationOptions) => void;
+    mafiaChatAvailable?: boolean;
 }
 
 type Reactions = Record<number, Record<string, Set<number>>>;
 
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable }: ChatWindowProps) {
     const { t } = useTranslation();
     // Quick chat templates live in translation files so the messages sent match
     // whichever language the sender has selected.
     const QUICK_MESSAGES = t("chat.quickMessages", { returnObjects: true }) as string[];
+    const MAFIA_QUICK_MESSAGES = t("chat.mafiaQuickMessages", { returnObjects: true }) as string[];
 
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
@@ -38,13 +40,19 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     // isSpectator here means "in the graveyard" (dead OR joined as a true
     // spectator) — Room.tsx passes true for both. They see the living
     // chat read-only plus their own private graveyard chat they can post to.
-    const [activeTab, setActiveTab] = useState<"game" | "graveyard">("game");
+    // mafiaChatAvailable means "alive mafia, with at least one living
+    // teammate" — Room.tsx only sets this true under those conditions, so a
+    // lone mafia never sees a self-only channel that would out their role.
+    const [activeTab, setActiveTab] = useState<"game" | "graveyard" | "mafia">("game");
 
-    const gameMessages = messages.filter(msg => !msg.isSpectator);
+    const gameMessages = messages.filter(msg => !msg.isSpectator && !(msg as any).isMafiaChat);
     const graveyardMessages = messages.filter(msg => msg.isSpectator);
-    const filteredMessages = isSpectator
-        ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
-        : gameMessages;
+    const mafiaMessages = messages.filter(msg => (msg as any).isMafiaChat);
+    const filteredMessages = mafiaChatAvailable && activeTab === "mafia"
+        ? mafiaMessages
+        : isSpectator
+            ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
+            : gameMessages;
 
     // Persist reactions in localStorage to survive state updates
     useEffect(() => {
@@ -112,7 +120,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             });
             return;
         }
-        onSendMessage(trimmed);
+        const channel = mafiaChatAvailable && activeTab === "mafia" ? "mafia" : undefined;
+        onSendMessage(trimmed, channel);
         setInput("");
         
         if (isSpectator) {
@@ -139,7 +148,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             });
             return;
         }
-        onSendMessage(msg);
+        const channel = mafiaChatAvailable && activeTab === "mafia" ? "mafia" : undefined;
+        onSendMessage(msg, channel);
     };
 
     const addReaction = (messageId: number, emote: string) => {
@@ -206,6 +216,32 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                             <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>
                         </button>
                     </div>
+                ) : mafiaChatAvailable ? (
+                    <div className="flex">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("game")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "game" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {t("chat.roomChat")}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("mafia")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "mafia" ? "border-red-500 text-red-400" : "border-transparent text-muted-foreground hover:text-red-400"
+                            )}
+                        >
+                            <Skull className="w-3.5 h-3.5" />
+                            {t("chat.mafiaChat")}
+                            <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>
+                        </button>
+                    </div>
                 ) : (
                     <div className="p-3 font-semibold text-sm uppercase tracking-wider flex justify-between items-center">
                         <span>{t("chat.roomChat")}</span>
@@ -237,9 +273,9 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                             }`}>
                                 <span className={cn(
                                     "text-[10px] font-black uppercase tracking-tighter bg-muted px-1.5 py-0.5 rounded border border-border group-hover:bg-muted/80 transition-colors",
-                                    msg.isSpectator ? "text-blue-400 border-blue-400/20" : getPlayerColor(msg.playerId)
+                                    msg.isSpectator ? "text-blue-400 border-blue-400/20" : (msg as any).isMafiaChat ? "text-red-400 border-red-400/20" : getPlayerColor(msg.playerId)
                                 )}>
-                                    {msg.playerName} {msg.isSpectator && "👻"}
+                                    {msg.playerName} {msg.isSpectator && "👻"} {(msg as any).isMafiaChat && "🍷"}
                                     {!msg.isSpectator && (
                                         <span className="ml-1 text-[9px] opacity-60">
                                             {(() => {
@@ -260,8 +296,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                   className={cn(
                                       "px-3 py-2 rounded-2xl max-w-[85%] text-sm shadow-sm transition-transform group-hover:scale-[1.02]",
                                       msg.playerId === currentPlayerId
-                                          ? (msg.isSpectator ? "bg-blue-600 text-primary-foreground rounded-tr-none" : "bg-primary text-primary-foreground rounded-tr-none")
-                                          : (msg.isSpectator ? "bg-muted text-blue-500 rounded-tl-none border border-blue-500/20" : "bg-muted text-muted-foreground rounded-tl-none border border-border")
+                                          ? (msg.isSpectator ? "bg-blue-600 text-primary-foreground rounded-tr-none" : (msg as any).isMafiaChat ? "bg-red-700 text-primary-foreground rounded-tr-none" : "bg-primary text-primary-foreground rounded-tr-none")
+                                          : (msg.isSpectator ? "bg-muted text-blue-500 rounded-tl-none border border-blue-500/20" : (msg as any).isMafiaChat ? "bg-muted text-red-500 rounded-tl-none border border-red-500/20" : "bg-muted text-muted-foreground rounded-tl-none border border-border")
                                   )}
                               >
                                   {msg.content}
@@ -324,16 +360,21 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2 bg-card border-border shadow-2xl z-50" side="top" align="start">
               <div className="grid grid-cols-1 gap-1">
-                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">{t("chat.tacticalComms")}</div>
-                {QUICK_MESSAGES.map((msg) => (
+                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
+                  {mafiaChatAvailable && activeTab === "mafia" ? t("chat.mafiaTacticalComms") : t("chat.tacticalComms")}
+                </div>
+                {(mafiaChatAvailable && activeTab === "mafia" ? MAFIA_QUICK_MESSAGES : QUICK_MESSAGES).map((msg) => (
                   <Button
                     key={msg}
                     variant="ghost"
                     size="sm"
-                    className="justify-start h-8 text-xs font-medium hover:bg-primary/20 hover:text-primary transition-colors truncate"
+                    className={cn("justify-start h-8 text-xs font-medium transition-colors truncate",
+                      mafiaChatAvailable && activeTab === "mafia" ? "hover:bg-red-500/20 hover:text-red-400" : "hover:bg-primary/20 hover:text-primary")}
                     onClick={() => {
                       if (msg.includes("{name}")) {
-                        const targets = players.filter(p => p.id !== currentPlayerId && p.isAlive);
+                        const targets = mafiaChatAvailable && activeTab === "mafia"
+                          ? players.filter(p => p.id !== currentPlayerId && p.isAlive && p.role !== "mafia")
+                          : players.filter(p => p.id !== currentPlayerId && p.isAlive);
                         const target = targets[Math.floor(Math.random() * targets.length)];
                         handleQuickMessage(msg.replace("{name}", target?.name || t("chat.someone")));
                       } else {
@@ -351,9 +392,11 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-                isSpectator
-                    ? (activeTab === "game" ? t("chat.gameChatReadOnly") : t("chat.typeAMessage"))
-                    : (!currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage"))
+                mafiaChatAvailable && activeTab === "mafia"
+                    ? t("chat.mafiaTypeAMessage")
+                    : isSpectator
+                        ? (activeTab === "game" ? t("chat.gameChatReadOnly") : t("chat.typeAMessage"))
+                        : (!currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage"))
             }
             className="bg-background h-10"
             disabled={(isSpectator && activeTab === "game") || !currentPlayerId}

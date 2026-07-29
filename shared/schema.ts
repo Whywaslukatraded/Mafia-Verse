@@ -122,6 +122,7 @@ export const messages = pgTable("messages", {
   playerName: text("player_name").notNull(),
   content: text("content").notNull(),
   isSpectator: boolean("is_spectator").default(false),
+  isMafiaChat: boolean("is_mafia_chat").default(false),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
@@ -138,6 +139,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   timestamp: true,
 }).extend({
   isSpectator: z.boolean().optional(),
+  isMafiaChat: z.boolean().optional(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -223,7 +225,7 @@ export type GameAction =
   | { type: 'add_bots' }
   | { type: 'remove_bot'; playerId: number }
   | { type: 'replay' }
-  | { type: 'chat'; content: string }
+  | { type: 'chat'; content: string; channel?: 'game' | 'mafia' }
   | { type: 'report_afk'; targetId: number }
   | { type: 'unreport_afk'; targetId: number }
   | { type: 'bodyguard_protect'; targetId: number }
@@ -248,4 +250,5 @@ export type GameState = {
   me?: Player;
   revealedMayorIds?: number[];
   myBullets?: number;
+  mafiaChatAvailable?: boolean;
 };

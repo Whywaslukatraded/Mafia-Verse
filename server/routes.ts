@@ -372,6 +372,31 @@ function pickUnique(arr: string[], botId: number): string {
   return choice;
 }
 
+const GRAVEYARD_BOT_LINES_EN = [
+  "well that was fast 💀",
+  "RIP me, gg",
+  "who got me??",
+  "this is boring, I can see everyone's role now 👀",
+  "can't believe I died N1",
+  "at least the popcorn's good down here",
+  "anyone else bored down here?",
+  "ooh this vote is about to be spicy",
+  "wish I could tell you all who the mafia is",
+  "typing from the great beyond",
+];
+const GRAVEYARD_BOT_LINES_ES = [
+  "vaya, qué rápido 💀",
+  "descanse en paz, gg",
+  "¿quién me eliminó?",
+  "qué aburrido, ahora veo todos los roles 👀",
+  "no puedo creer que morí la noche 1",
+  "al menos las palomitas están buenas aquí",
+  "¿alguien más aburrido aquí abajo?",
+  "esta votación se va a poner interesante",
+  "ojalá pudiera decirles quién es la mafia",
+  "escribiendo desde el más allá",
+];
+
 const BOT_MESSAGES_EN = {
   general: [
     "I watched everyone last night. Someone's story doesn't line up.",
@@ -833,6 +858,18 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       }
     }
   }
+  // Dead bots don't have any night/day actions left, but shouldn't just go
+  // silent in the graveyard — give them a small chance each phase to post a
+  // bit of flavor chatter there, same as living bots do in the main chat.
+  const deadBots = players.filter((p: Player) => p.isBot && !p.isAlive);
+  for (const bot of deadBots) {
+    if (Math.random() > 0.75) {
+      const lines = lang === "es" ? GRAVEYARD_BOT_LINES_ES : GRAVEYARD_BOT_LINES_EN;
+      const content = lines[Math.floor(Math.random() * lines.length)];
+      await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content, isSpectator: true } as any);
+    }
+  }
+
   gameActions.set(roomId, actions);
   return false;
 }
@@ -1500,7 +1537,16 @@ async function broadcastState(roomId: number) {
       // Graveyard chat: messages tagged isSpectator (sent by dead players)
       // are only visible to other dead players — anyone still alive in the
       // game only sees the normal in-game chat.
-      const visibleMessages = messages.filter((m: Message) => !(m as any).isSpectator || !me || !me.isAlive);
+      // Mafia chat: messages tagged isMafiaChat are only sent to alive mafia
+      // players — never to the rest of the room, not even at the network level.
+      const visibleMessages = messages.filter((m: Message) => {
+        if ((m as any).isSpectator) return !!me && !me.isAlive;
+        if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
+        return true;
+      });
+
+      const aliveMafiaCount = players.filter((p: Player) => p.isAlive && p.role === 'mafia').length;
+      const mafiaChatAvailable = !!me && me.isAlive && me.role === 'mafia' && aliveMafiaCount >= 2;
 
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
@@ -1510,6 +1556,7 @@ async function broadcastState(roomId: number) {
           messages: visibleMessages,
           revealedMayorIds,
           myBullets,
+          mafiaChatAvailable,
         }
       }));
     }
@@ -2148,6 +2195,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              console.log("CHAT ACTION received:", { content: (action as any).content, myRoomId, meId: me?.id, meExists: !!me, meAlive: me?.isAlive });
              if ((action as any).content && (action as any).content.trim() && myRoomId && me) {
                try {
+                 // A player can only send to the mafia channel if they're
+                 // actually alive mafia — never trust the client's claim.
+                 const requestedChannel = (action as any).channel;
+                 const isMafiaChat = requestedChannel === 'mafia' && me.isAlive && me.role === 'mafia';
                  // Dead players can still talk to each other in the graveyard —
                  // their messages are tagged isSpectator so broadcastState can
                  // hide them from players who are still alive in the game.
@@ -2157,11 +2208,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                    playerId: me.id, 
                    playerName: me.name, 
                    content: (action as any).content.trim(),
-                   isSpectator: !me.isAlive
-                 });
+                   isSpectator: !me.isAlive,
+                   isMafiaChat,
+                 } as any);
                  console.log("MESSAGE CREATED SUCCESSFULLY");
                  bumpActivity(myRoomId, me.id, "messages");
-                 if (me.isAlive) await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
+                 if (me.isAlive && !isMafiaChat) await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
