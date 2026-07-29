@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,14 +45,16 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     // lone mafia never sees a self-only channel that would out their role.
     const [activeTab, setActiveTab] = useState<"game" | "graveyard" | "mafia">("game");
 
-    const gameMessages = messages.filter(msg => !msg.isSpectator && !(msg as any).isMafiaChat);
-    const graveyardMessages = messages.filter(msg => msg.isSpectator);
-    const mafiaMessages = messages.filter(msg => (msg as any).isMafiaChat);
-    const filteredMessages = mafiaChatAvailable && activeTab === "mafia"
-        ? mafiaMessages
-        : isSpectator
-            ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
-            : gameMessages;
+    const gameMessages = useMemo(() => messages.filter(msg => !msg.isSpectator && !(msg as any).isMafiaChat), [messages]);
+    const graveyardMessages = useMemo(() => messages.filter(msg => msg.isSpectator), [messages]);
+    const mafiaMessages = useMemo(() => messages.filter(msg => (msg as any).isMafiaChat), [messages]);
+    const filteredMessages = useMemo(() => (
+        mafiaChatAvailable && activeTab === "mafia"
+            ? mafiaMessages
+            : isSpectator
+                ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
+                : gameMessages
+    ), [mafiaChatAvailable, activeTab, mafiaMessages, isSpectator, graveyardMessages, gameMessages]);
 
     // Persist reactions in localStorage to survive state updates
     useEffect(() => {

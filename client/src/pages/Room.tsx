@@ -396,14 +396,20 @@ export default function Room() {
     const duration = getDuration();
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
     let autoLockedIn = false;
+    let lastDisplayed = -1;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - serverPhaseStart) / 1000);
       const remaining = Math.min(duration, Math.max(0, duration - elapsed));
-      setTimeRemaining(remaining);
-      // A player can select a target without pressing "Lock In" — if the
-      // timer runs out on them, submit whatever they had selected instead
-      // of silently doing nothing (e.g. a Doctor who picked a heal target
-      // but never confirmed before time expired).
+      // Checking every 100ms keeps the auto-lock-in timing tight, but the
+      // displayed number only actually changes once a second — updating
+      // React state on every 100ms tick was forcing 10x more re-renders of
+      // the whole Room page than the UI needed, which was starving mobile
+      // keyboards mid-keystroke (typed characters would silently drop,
+      // including in chat inputs unrelated to the timer itself).
+      if (remaining !== lastDisplayed) {
+        lastDisplayed = remaining;
+        setTimeRemaining(remaining);
+      }
       if (remaining <= 0 && !autoLockedIn) {
         autoLockedIn = true;
         pendingActionRef.current && lockInRef.current?.();
