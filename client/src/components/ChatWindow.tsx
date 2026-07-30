@@ -34,6 +34,12 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
     const [reactions, setReactions] = useState<Reactions>({});
+    // When a quick-chat preset contains "{name}" (e.g. "I believe {name} is
+    // mafia"), we no longer pick a random target and send immediately —
+    // we hold the template here and show a player list so the sender picks
+    // who they mean.
+    const [pendingPresetMsg, setPendingPresetMsg] = useState<string | null>(null);
+    const [presetPopoverOpen, setPresetPopoverOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastSentRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
@@ -354,40 +360,67 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">{t("chat.gameChatReadOnly")}</p>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <Popover>
+          <Popover open={presetPopoverOpen} onOpenChange={(open) => { setPresetPopoverOpen(open); if (!open) setPendingPresetMsg(null); }}>
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={(isSpectator && activeTab === "game") || !currentPlayerId}>
                 <MessageSquare className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-56 p-2 bg-card border-border shadow-2xl z-50" side="top" align="start">
-              <div className="grid grid-cols-1 gap-1">
-                <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
-                  {mafiaChatAvailable && activeTab === "mafia" ? t("chat.mafiaTacticalComms") : t("chat.tacticalComms")}
+              {pendingPresetMsg ? (
+                <div className="grid grid-cols-1 gap-1">
+                  <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1 flex items-center justify-between">
+                    <span>{t("chat.selectTarget")}</span>
+                    <button type="button" className="underline normal-case tracking-normal font-medium" onClick={() => setPendingPresetMsg(null)}>
+                      {t("common.back")}
+                    </button>
+                  </div>
+                  {(mafiaChatAvailable && activeTab === "mafia"
+                    ? players.filter(p => p.id !== currentPlayerId && p.isAlive && p.role !== "mafia")
+                    : players.filter(p => p.id !== currentPlayerId && p.isAlive)
+                  ).map((p) => (
+                    <Button
+                      key={p.id}
+                      variant="ghost"
+                      size="sm"
+                      className={cn("justify-start h-8 text-xs font-medium transition-colors truncate",
+                        mafiaChatAvailable && activeTab === "mafia" ? "hover:bg-red-500/20 hover:text-red-400" : "hover:bg-primary/20 hover:text-primary")}
+                      onClick={() => {
+                        handleQuickMessage(pendingPresetMsg.replace("{name}", p.name));
+                        setPendingPresetMsg(null);
+                        setPresetPopoverOpen(false);
+                      }}
+                    >
+                      {p.name}
+                    </Button>
+                  ))}
                 </div>
-                {(mafiaChatAvailable && activeTab === "mafia" ? MAFIA_QUICK_MESSAGES : QUICK_MESSAGES).map((msg) => (
-                  <Button
-                    key={msg}
-                    variant="ghost"
-                    size="sm"
-                    className={cn("justify-start h-8 text-xs font-medium transition-colors truncate",
-                      mafiaChatAvailable && activeTab === "mafia" ? "hover:bg-red-500/20 hover:text-red-400" : "hover:bg-primary/20 hover:text-primary")}
-                    onClick={() => {
-                      if (msg.includes("{name}")) {
-                        const targets = mafiaChatAvailable && activeTab === "mafia"
-                          ? players.filter(p => p.id !== currentPlayerId && p.isAlive && p.role !== "mafia")
-                          : players.filter(p => p.id !== currentPlayerId && p.isAlive);
-                        const target = targets[Math.floor(Math.random() * targets.length)];
-                        handleQuickMessage(msg.replace("{name}", target?.name || t("chat.someone")));
-                      } else {
-                        handleQuickMessage(msg);
-                      }
-                    }}
-                  >
-                    {msg.replace("{name}", "...")}
-                  </Button>
-                ))}
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-1">
+                  <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
+                    {mafiaChatAvailable && activeTab === "mafia" ? t("chat.mafiaTacticalComms") : t("chat.tacticalComms")}
+                  </div>
+                  {(mafiaChatAvailable && activeTab === "mafia" ? MAFIA_QUICK_MESSAGES : QUICK_MESSAGES).map((msg) => (
+                    <Button
+                      key={msg}
+                      variant="ghost"
+                      size="sm"
+                      className={cn("justify-start h-8 text-xs font-medium transition-colors truncate",
+                        mafiaChatAvailable && activeTab === "mafia" ? "hover:bg-red-500/20 hover:text-red-400" : "hover:bg-primary/20 hover:text-primary")}
+                      onClick={() => {
+                        if (msg.includes("{name}")) {
+                          setPendingPresetMsg(msg);
+                        } else {
+                          handleQuickMessage(msg);
+                          setPresetPopoverOpen(false);
+                        }
+                      }}
+                    >
+                      {msg.replace("{name}", "...")}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </PopoverContent>
           </Popover>
           <Input

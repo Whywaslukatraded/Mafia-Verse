@@ -806,7 +806,8 @@
     "tacticalComms": "Tactical Comms",
     "someone": "someone",
     "deadPlayersCannotSpeak": "Dead players cannot speak...",
-    "typeAMessage": "Type a message..."
+    "typeAMessage": "Type a message...",
+    "selectTarget": "Choose a target"
   },
   "howToPlay": {
     "title": "How to Play",

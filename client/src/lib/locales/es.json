@@ -806,7 +806,8 @@
     "tacticalComms": "Comunicaciones tácticas",
     "someone": "alguien",
     "deadPlayersCannotSpeak": "Los jugadores eliminados no pueden hablar...",
-    "typeAMessage": "Escribe un mensaje..."
+    "typeAMessage": "Escribe un mensaje...",
+    "selectTarget": "Elige un objetivo"
   },
   "howToPlay": {
     "title": "Cómo jugar",
