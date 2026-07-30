@@ -108,7 +108,7 @@ export default function Room() {
     bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
-    showVoteResults: false, showRoleReveal: true,
+    showVoteResults: true, showRoleReveal: true,
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});

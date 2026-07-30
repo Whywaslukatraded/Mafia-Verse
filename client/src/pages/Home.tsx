@@ -433,7 +433,7 @@ export default function Home() {
       const saved = localStorage.getItem("mafia_last_room_settings");
       if (saved) return JSON.parse(saved).showVoteResults === true;
     } catch {}
-    return false;
+    return true;
   });
   const [showRoleReveal, setShowRoleRevealState] = useState(() => {
     try {
