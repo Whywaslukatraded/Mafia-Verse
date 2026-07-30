@@ -1598,6 +1598,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         );
       `);
       await bootstrapClient.query(`ALTER TABLE ad_claims ADD COLUMN IF NOT EXISTS supabase_user_id TEXT;`);
+      await bootstrapClient.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_mafia_chat BOOLEAN DEFAULT false;`);
+      await bootstrapClient.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_spectator BOOLEAN DEFAULT false;`);
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS daily_streaks (
           supabase_user_id TEXT PRIMARY KEY,
