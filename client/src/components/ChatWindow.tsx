@@ -86,8 +86,12 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const prevMessagesRef = useRef<Message[]>([]);
 
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        // ScrollArea (Radix) renders the actual scrollable element as an inner
+        // "viewport" div, not the node our ref points to — setting scrollTop
+        // on the outer wrapper was a no-op, which is why this never worked.
+        const viewport = scrollRef.current?.querySelector<HTMLDivElement>('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
         }
         // Notify on new messages from other players
         const prevIds = new Set(prevMessagesRef.current.map(m => m.id));
