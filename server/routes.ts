@@ -214,67 +214,109 @@ function sysName(lang: string | undefined): string {
 
 
 const DEATH_STORIES = [
-  "{name} was skiing down the mountain and fell into a crevasse never to be seen again.",
-  "As {name} was skydiving, his or her parachute didn't deploy and they were dead.",
-  "{name} went for a swim in shark-infested waters and became a midnight snack.",
-  "{name} tried to pet a stray 'cat' that turned out to be a very hungry mountain lion.",
-  "{name} accidentally joined a high-stakes underground drag race with a golf cart.",
-  "{name} mistook a high-voltage transformer for a public phone booth.",
-  "While hunting for ghosts, {name} tripped and fell into a deep, forgotten well.",
-  "{name} decided to challenge a professional wrestler to a 'friendly' match.",
-  "A giant grand piano fell from the third floor, landing exactly on {name}.",
-  "{name} tried to recreate a famous fire-breathing trick with high-proof rum.",
-  "During a safari, {name} forgot that windows should stay rolled up around lions.",
-  "{name} entered a pie-eating contest against a grizzly bear and lost spectacularly.",
-  "A freak bowling accident sent {name} sliding down the lane and into the machinery.",
-  "{name} thought they could outrun a swarm of angry hornets by jumping into a cactus.",
-  "While taking a selfie on a cliff edge, {name} lost their balance and their phone.",
-  "{name} tried to use a lawnmower to trim their hedges, with disastrous results.",
-  "A experimental weather balloon landed directly on {name}'s tent during the night.",
-  "{name} discovered that 'danger' signs on construction sites are not suggestions.",
-  "While exploring an old cave, {name} woke up a colony of very territorial bats.",
-  "{name} attempted to surf a tsunami on a piece of plywood.",
-  "A misplaced banana peel caused {name} to tumble into a vat of industrial glue.",
-  "{name} forgot that oxygen is required for long-distance underwater cave diving.",
-  "During a magic show, the 'sawing a person in half' trick went horribly wrong for {name}.",
-  "{name} tried to jump the Grand Canyon on a pogo stick.",
-  "A rogue golf ball struck {name} with the precision of a heat-seeking missile.",
-  "{name} decided to investigate why the local volcano was making rumbling noises.",
-  "While cleaning their gutters, {name} discovered that gravity is a very harsh mistress.",
-  "{name} tried to use a umbrella as a parachute during a particularly windy storm.",
-  "A experimental jet engine test went awry, and {name} was in the wrong zip code."
+  "{name} was found floating in the harbor, wearing concrete shoes that definitely weren't fashionable.",
+  "{name} answered a knock at the door and never came back to finish dinner.",
+  "A black sedan pulled up beside {name}'s car, and only one drove away.",
+  "{name} was caught skimming from the family's books — the accountant's job is a dangerous one.",
+  "Someone left a message for {name} inside a fish wrapped in newspaper. It was not a good sign.",
+  "{name} took one too many meetings in dark alleys and didn't walk out of the last one.",
+  "The last anyone heard from {name} was a gunshot echoing from the warehouse district.",
+  "{name} tried to double-cross the wrong crew and paid the family's oldest toll.",
+  "A single rose was left where {name} used to sit. Nobody asked who sent it.",
+  "{name} was last seen getting into a car that wasn't theirs, and never seen again.",
+  "The docks were quiet that night — quiet enough to hide what happened to {name}.",
+  "{name} talked to the wrong reporter, and the family doesn't tolerate loose lips.",
+  "Somebody tampered with {name}'s brakes on the old bridge road.",
+  "{name} was found slumped in a back booth, their coffee gone cold beside them.",
+  "The family's enforcer paid {name} a visit, and only one of them left the room.",
+  "{name} tried to skip town with the family's money. The family has a long memory.",
+  "A single bullet, a quiet street, and {name} never made it home.",
+  "{name} was seen arguing with a stranger in a long coat. Neither was seen again — except one.",
+  "The safe was empty, and so was the chair where {name} used to sit.",
+  "{name} made a call that should have stayed private. Someone was listening.",
+  "A car with no plates idled outside {name}'s apartment all night. By morning, it was gone — and so was {name}.",
+  "{name} was found in the trunk of their own car, parked exactly where they'd left it.",
+  "Somebody slipped something into {name}'s drink at the speakeasy. It wasn't a compliment.",
+  "{name} owed the wrong people money, and interest rates in this town are lethal.",
+  "The last text from {name} just said 'meet me at the pier.' They never showed up to send another.",
+  "{name} was caught wearing a wire. The tailor never finished the job.",
+  "A single candle burned in {name}'s window that night. By dawn, it had gone out for good.",
+  "{name} tried to walk away from the family business. Nobody walks away.",
+  "The bartender swears {name} left through the back door. Nobody's seen them use it since.",
+  "{name} was found with a deck of cards scattered around them — someone folded their hand permanently.",
+  "A note in {name}'s coat pocket simply read: 'You knew too much.'",
+  "{name} met with a rival family to broker peace. It didn't take.",
+  "Somebody rigged {name}'s elevator to stop between floors — permanently.",
+  "{name} was the only one who knew where the bodies were buried. Now they're one of them.",
+  "The family's tailor measured {name} for a suit they'd never wear.",
+  "{name} bet against the house one too many times, and the house always collects.",
+  "A single set of footprints led away from where {name} was last seen. Only one set.",
+  "{name} was caught red-handed skimming the till, and the family doesn't do second chances.",
+  "The last thing {name} heard was a car door slamming shut behind them.",
+  "{name} tried to bluff their way out of a debt they couldn't pay.",
+  "Someone left {name}'s watch on the boss's desk. {name} wasn't wearing it anymore.",
+  "{name} vanished somewhere between the club and the parking garage.",
+  "A single shot rang out near the old distillery, and {name} never called home again.",
+  "{name} trusted the wrong lieutenant, and lieutenants talk when the price is right.",
+  "The family found out {name} was working both sides of the street.",
+  "{name}'s chair at the poker table stayed empty for the rest of the night — permanently.",
+  "Somebody left the porch light off for {name}. They never made it up the steps.",
+  "{name} made one deal too many with a rival crew, and the family doesn't forgive that.",
+  "A phone rang three times in an empty office — right after {name} stopped answering.",
+  "{name} thought they could disappear into the crowd. The family found them anyway."
 ];
 
 const DEATH_STORIES_ES = [
-  "{name} esquiaba montaña abajo y cayó en una grieta, para no volver a ser visto jamás.",
-  "Mientras {name} practicaba paracaidismo, el paracaídas no se abrió y murió en el acto.",
-  "{name} fue a nadar en aguas infestadas de tiburones y se convirtió en un bocadillo de medianoche.",
-  "{name} intentó acariciar a un 'gato' callejero que resultó ser un puma muy hambriento.",
-  "{name} terminó, sin querer, en una carrera clandestina de alto riesgo manejando un carrito de golf.",
-  "{name} confundió un transformador de alto voltaje con una cabina telefónica pública.",
-  "Mientras cazaba fantasmas, {name} tropezó y cayó en un pozo profundo y olvidado.",
-  "{name} decidió retar a un luchador profesional a un combate 'amistoso'.",
-  "Un piano de cola gigante cayó del tercer piso, aterrizando justo sobre {name}.",
-  "{name} intentó recrear un famoso truco de escupir fuego usando ron de alta graduación.",
-  "Durante un safari, {name} olvidó que las ventanas deben permanecer cerradas cerca de los leones.",
-  "{name} entró en un concurso de comer pasteles contra un oso pardo y perdió estrepitosamente.",
-  "Un accidente insólito en la bolera hizo que {name} resbalara por la pista hacia la maquinaria.",
-  "{name} pensó que podía escapar de un enjambre de avispas furiosas saltando sobre un cactus.",
-  "Mientras se tomaba una selfie al borde de un acantilado, {name} perdió el equilibrio y el teléfono.",
-  "{name} intentó usar una cortadora de césped para podar los arbustos, con resultados desastrosos.",
-  "Un globo meteorológico experimental cayó directamente sobre la carpa de {name} durante la noche.",
-  "{name} descubrió que los letreros de 'peligro' en las obras de construcción no son una sugerencia.",
-  "Mientras exploraba una cueva antigua, {name} despertó a una colonia de murciélagos muy territoriales.",
-  "{name} intentó surfear un tsunami sobre un pedazo de madera contrachapada.",
-  "Una cáscara de plátano fuera de lugar hizo que {name} cayera en un tanque de pegamento industrial.",
-  "{name} olvidó que se necesita oxígeno para el buceo en cuevas submarinas de larga distancia.",
-  "Durante un show de magia, el truco de 'serruchar a una persona por la mitad' salió terriblemente mal para {name}.",
-  "{name} intentó saltar el Gran Cañón en un pogo stick.",
-  "Una pelota de golf perdida golpeó a {name} con la precisión de un misil termodirigido.",
-  "{name} decidió investigar por qué el volcán local hacía ruidos retumbantes.",
-  "Mientras limpiaba las canaletas, {name} descubrió que la gravedad es una amante muy cruel.",
-  "{name} intentó usar un paraguas como paracaídas durante una tormenta particularmente ventosa.",
-  "Una prueba experimental de motor a reacción salió mal, y {name} estaba en el código postal equivocado."
+  "Encontraron a {name} flotando en el puerto, con unos zapatos de cemento que definitivamente no estaban de moda.",
+  "{name} atendió a alguien que tocó la puerta y nunca volvió a terminar la cena.",
+  "Un sedán negro se detuvo junto al auto de {name}, y solo uno se fue manejando.",
+  "Descubrieron que {name} desviaba dinero de los libros de la familia — el trabajo de contador es peligroso.",
+  "Alguien dejó un mensaje para {name} dentro de un pescado envuelto en periódico. No era buena señal.",
+  "{name} tuvo demasiadas reuniones en callejones oscuros y no salió caminando de la última.",
+  "Lo último que se supo de {name} fue un disparo que resonó en la zona de los almacenes.",
+  "{name} intentó traicionar a la banda equivocada y pagó el peaje más antiguo de la familia.",
+  "Dejaron una sola rosa donde solía sentarse {name}. Nadie preguntó quién la envió.",
+  "Vieron a {name} subirse a un auto que no era suyo, y nunca más lo volvieron a ver.",
+  "El muelle estaba tranquilo esa noche — lo bastante tranquilo para ocultar lo que le pasó a {name}.",
+  "{name} habló con el periodista equivocado, y la familia no tolera las bocas sueltas.",
+  "Alguien manipuló los frenos de {name} en el viejo camino del puente.",
+  "Encontraron a {name} desplomado en una mesa del fondo, con el café ya frío a su lado.",
+  "El ejecutor de la familia le hizo una visita a {name}, y solo uno de los dos salió del cuarto.",
+  "{name} intentó huir del pueblo con el dinero de la familia. La familia tiene buena memoria.",
+  "Una sola bala, una calle silenciosa, y {name} nunca llegó a casa.",
+  "Vieron a {name} discutiendo con un desconocido de abrigo largo. Ninguno volvió a aparecer — excepto uno.",
+  "La caja fuerte estaba vacía, igual que la silla donde solía sentarse {name}.",
+  "{name} hizo una llamada que debió mantenerse en privado. Alguien estaba escuchando.",
+  "Un auto sin placas se quedó toda la noche frente al edificio de {name}. Al amanecer, había desaparecido — y {name} también.",
+  "Encontraron a {name} en la cajuela de su propio auto, estacionado justo donde lo había dejado.",
+  "Alguien le puso algo a la bebida de {name} en el bar clandestino. No era un cumplido.",
+  "{name} le debía dinero a la gente equivocada, y en este pueblo los intereses se cobran caro.",
+  "El último mensaje de {name} solo decía: 'nos vemos en el muelle'. Nunca llegó a mandar otro.",
+  "Descubrieron que {name} llevaba un micrófono escondido. El sastre nunca terminó el traje.",
+  "Esa noche ardía una sola vela en la ventana de {name}. Al amanecer, se había apagado para siempre.",
+  "{name} intentó alejarse del negocio familiar. Nadie se aleja.",
+  "El bartender jura que {name} salió por la puerta trasera. Nadie la ha vuelto a usar desde entonces.",
+  "Encontraron a {name} rodeado de cartas de una baraja esparcidas — alguien retiró su mano para siempre.",
+  "Una nota en el bolsillo del abrigo de {name} decía simplemente: 'Sabías demasiado'.",
+  "{name} se reunió con una familia rival para negociar la paz. No funcionó.",
+  "Alguien saboteó el elevador de {name} para que se detuviera entre pisos — para siempre.",
+  "{name} era el único que sabía dónde estaban enterrados los cuerpos. Ahora es uno de ellos.",
+  "El sastre de la familia le tomó las medidas a {name} para un traje que nunca usaría.",
+  "{name} apostó contra la casa demasiadas veces, y la casa siempre cobra.",
+  "Un solo rastro de huellas se alejaba del lugar donde vieron por última vez a {name}. Solo un rastro.",
+  "Atraparon a {name} con las manos en la caja, y la familia no da segundas oportunidades.",
+  "Lo último que escuchó {name} fue la puerta de un auto cerrándose detrás de él.",
+  "{name} intentó salir con un farol de una deuda que no podía pagar.",
+  "Alguien dejó el reloj de {name} sobre el escritorio del jefe. {name} ya no lo llevaba puesto.",
+  "{name} desapareció en algún punto entre el club y el estacionamiento.",
+  "Un solo disparo resonó cerca de la vieja destilería, y {name} nunca volvió a llamar a casa.",
+  "{name} confió en el teniente equivocado, y los tenientes hablan cuando el precio es bueno.",
+  "La familia descubrió que {name} trabajaba para los dos lados.",
+  "La silla de {name} en la mesa de póker quedó vacía el resto de la noche — para siempre.",
+  "Alguien dejó apagada la luz del porche para {name}. Nunca llegó a subir los escalones.",
+  "{name} hizo un trato de más con una banda rival, y la familia no perdona eso.",
+  "Un teléfono sonó tres veces en una oficina vacía — justo después de que {name} dejara de contestar.",
+  "{name} pensó que podía perderse entre la multitud. La familia lo encontró de todas formas."
 ];
 
 function getRandomDeathStory(name: string, lang: string = "en") {
@@ -874,6 +916,107 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   return false;
 }
 
+// Bots used to only ever decide on a target inside handleBotActions, which
+// only runs once — right when a phase's timer fully expires (or a human's
+// action happens to trigger an early-advance check for that same phase).
+// If no human held that phase's role, bots effectively never acted until
+// the whole phase duration ran out, making every such phase feel stalled.
+// This schedules bots to commit to a decision shortly after a phase starts
+// instead, then reuses the same "everyone acted -> advance early" check the
+// human action handlers already use.
+async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const snapshotRoom = await storage.getRoom(roomId);
+  if (!snapshotRoom || snapshotRoom.status === 'ended' || snapshotRoom.status === 'lobby') return;
+  const phaseAtSchedule = snapshotRoom.phase;
+  const statusAtSchedule = snapshotRoom.status;
+
+  const delay = 500 + Math.floor(Math.random() * 700); // ~0.5s-1.2s — feels immediate, not robotic/simultaneous
+  setTimeout(async () => {
+    const room = await storage.getRoom(roomId);
+    // Bail out if the phase already moved on for any other reason (a human
+    // resolved it, the game ended, etc.) — nothing to do here anymore.
+    if (!room || room.phase !== phaseAtSchedule || room.status !== statusAtSchedule || room.status === 'ended') return;
+
+    const players = await storage.getPlayersInRoom(roomId);
+    const bots = players.filter((p: Player) => p.isBot && p.isAlive);
+    if (bots.length === 0) return;
+    const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
+
+    const pickTarget = (pool: Player[]) => {
+      const botsInPool = pool.filter((p) => p.isBot);
+      if (Math.random() > 0.6 && botsInPool.length > 0) return botsInPool[Math.floor(Math.random() * botsInPool.length)];
+      return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    let changed = false;
+    for (const bot of bots) {
+      const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+      if (alivePlayers.length === 0) continue;
+
+      if (room.status === 'day' && room.phase === 'voting' && !actions.votes.has(bot.id)) {
+        actions.votes.set(bot.id, pickTarget(alivePlayers).id);
+        changed = true;
+      } else if (room.status === 'night' && room.phase === 'mafia' && bot.role === 'mafia' && !actions.mafiaKills.has(bot.id)) {
+        const nonMafiaAlive = alivePlayers.filter((p: Player) => p.role !== 'mafia');
+        if (nonMafiaAlive.length > 0) {
+          actions.mafiaKills.set(bot.id, pickTarget(nonMafiaAlive).id);
+          changed = true;
+        }
+      } else if (room.status === 'night' && room.phase === 'doctor' && bot.role === 'doctor' && !actions.doctorSaves.has(bot.id)) {
+        actions.doctorSaves.set(bot.id, pickTarget(alivePlayers).id);
+        changed = true;
+      } else if (room.status === 'night' && room.phase === 'bodyguard' && bot.role === 'bodyguard' && !actions.guards.has(bot.id)) {
+        actions.guards.set(bot.id, pickTarget(alivePlayers).id);
+        changed = true;
+      } else if (room.status === 'night' && room.phase === 'vigilante' && bot.role === 'vigilante' && !actions.shots.has(bot.id)) {
+        const bulletsLeft = vigilanteBullets.get(roomId)?.get(bot.id) ?? 0;
+        if (bulletsLeft > 0 && Math.random() > 0.65) {
+          actions.shots.set(bot.id, pickTarget(alivePlayers).id);
+          const bulletsMap = vigilanteBullets.get(roomId) || new Map<number, number>();
+          bulletsMap.set(bot.id, bulletsLeft - 1);
+          vigilanteBullets.set(roomId, bulletsMap);
+        } else {
+          // Chose not to shoot this phase — still mark as "acted" (with an
+          // unreachable target id) so the early-advance check below doesn't
+          // wait forever on a bot that isn't going to do anything tonight.
+          actions.shots.set(bot.id, -1);
+        }
+        changed = true;
+      } else if (room.status === 'night' && room.phase === 'detective' && bot.role === 'detective' && !actions.detectiveChecks.has(bot.id)) {
+        actions.detectiveChecks.set(bot.id, pickTarget(alivePlayers).id);
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    gameActions.set(roomId, actions);
+    broadcastState(roomId);
+
+    // Same "has everyone with this role acted" check the human action
+    // handlers already use to advance early instead of waiting for the timer.
+    let allActed = false;
+    if (room.status === 'day' && room.phase === 'voting') {
+      const allAlivePlayers = players.filter((p: Player) => p.isAlive);
+      allActed = actions.votes.size === allAlivePlayers.length;
+    } else if (room.status === 'night') {
+      const roleActionMaps: Record<string, Map<number, number>> = {
+        mafia: actions.mafiaKills,
+        doctor: actions.doctorSaves,
+        bodyguard: actions.guards,
+        vigilante: actions.shots,
+        detective: actions.detectiveChecks,
+      };
+      const actionMap = roleActionMaps[room.phase];
+      if (actionMap) allActed = haveAllRoleHoldersActed(players, room.phase, actionMap);
+    }
+
+    if (allActed) {
+      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+      await advancePhase(roomId, wss, storage, roomClients, clients, gameActions);
+    }
+  }, delay);
+}
+
 // Persists the game chronicle (votes, nights, and this final result) onto every
 // player's row so the end screen can show what actually happened, and updates
 // win/loss stats. Must be called on every path that can end the game — a couple
@@ -1144,6 +1287,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       const nextDuration = getNightPhaseDuration(nextPhase, nextSettings);
       const nextTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), nextDuration + revealDelayMs);
       phaseTimers.set(roomId, nextTimer);
+      void scheduleBotQuickActions(roomId, wss, storage, roomClients, clients, gameActions);
       return;
     }
   }
@@ -1159,6 +1303,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       console.log(`[Room ${roomId}] Day Phase: Discussion -> Voting`);
       await storage.updateRoom(roomId, { phase: 'voting', lastUpdated: new Date() });
       broadcastState(roomId);
+      void scheduleBotQuickActions(roomId, wss, storage, roomClients, clients, gameActions);
     } else if (room.phase === 'voting') {
       const voteCounts = new Map<number, number>();
       const voteResults: { voterName: string, targetName: string }[] = [];
@@ -1461,6 +1606,7 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       // the real timer in sync with that so the phase doesn't get cut short.
       const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
       phaseTimers.set(roomId, timer);
+      void scheduleBotQuickActions(roomId, wss, storage, roomClients, clients, gameActions);
     }
   }
   broadcastState(roomId);
@@ -2165,6 +2311,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const duration = getNightPhaseDuration(firstPhase, startSettings);
           const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
           phaseTimers.set(myRoomId, timer);
+          void scheduleBotQuickActions(myRoomId, wss, storage, roomClients, clients, gameActions);
           broadcastState(myRoomId);
         }
 
