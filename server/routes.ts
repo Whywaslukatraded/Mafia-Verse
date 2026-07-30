@@ -1277,16 +1277,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       let anyoneDied = false;
 
       // Step 1-2: figure out this night's targets, then map every attacker onto their target.
-      let mafiaTargetId: number | null = null;
-      if (actions.mafiaKills.size > 0) {
-        const killVotes = new Map<number, number>();
-        actions.mafiaKills.forEach((targetId: number) => {
-          killVotes.set(targetId, (killVotes.get(targetId) || 0) + 1);
-        });
-        let topTarget = -1, maxVotes = 0;
-        killVotes.forEach((count, id) => { if (count > maxVotes) { maxVotes = count; topTarget = id; } });
-        if (topTarget !== -1) mafiaTargetId = topTarget;
-      }
+      // Mafia doesn't need consensus — every distinct target a mafia member
+      // picked gets attacked for real (no more majority-vote-to-one-kill).
+      const mafiaTargetIds = new Set<number>(Array.from(actions.mafiaKills.values()));
       // Only one Bodyguard's guard matters for resolution purposes — if several
       // are alive, each acted independently, but we resolve per attacked target below.
       const guardEntries = Array.from(actions.guards.entries()); // [bodyguardId, targetId][]
@@ -1294,10 +1287,10 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
       type AttackerRef = { type: 'mafia' | 'vigilante'; id?: number };
       const targetAttackedBy = new Map<number, AttackerRef[]>();
-      if (mafiaTargetId !== null) {
-        if (!targetAttackedBy.has(mafiaTargetId)) targetAttackedBy.set(mafiaTargetId, []);
-        targetAttackedBy.get(mafiaTargetId)!.push({ type: 'mafia' });
-      }
+      mafiaTargetIds.forEach((targetId: number) => {
+        if (!targetAttackedBy.has(targetId)) targetAttackedBy.set(targetId, []);
+        targetAttackedBy.get(targetId)!.push({ type: 'mafia' });
+      });
       actions.shots.forEach((targetId: number, vigilanteId: number) => {
         if (!targetAttackedBy.has(targetId)) targetAttackedBy.set(targetId, []);
         targetAttackedBy.get(targetId)!.push({ type: 'vigilante', id: vigilanteId });
