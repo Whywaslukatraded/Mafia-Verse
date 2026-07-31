@@ -1,6 +1,6 @@
 # Mafia Verse
 
-Mafia Verse is a high-quality, free-to-play, multiplayer game and is based on the party game Mafia combined with modern game elements such as cosmetics. Players can create rooms, play with their friends or bots, and assign many different roles to see who wins. 
+Mafia Verse is a high-quality, free-to-play, multiplayer game based on the party game Mafia, combined with modern elements such as cosmetics. Players can create rooms, play with their friends or bots, and assign many different roles to see who wins. 
 
 
 **Play Live:** [https://mafia-verse.onrender.com/](https://mafia-verse.onrender.com/)
@@ -20,7 +20,7 @@ Mafia Verse is a high-quality, free-to-play, multiplayer game and is based on th
 
 ## The Story behind Mafia Verse & Lessons Learnt 
 
-The idea for this website started at a birthday party in January 2026. A friend of the birthday boy showed me a cool dodgeball-style game that was built using only some prompts on Replit. When I looked at the game, I was eager to build a game of my own. I decided that I would create the popular game, Mafia, because a common caveat of playing it in person is that it always leads to accidental peaking during the night, which completely ruins the point of the game. I built the game with the original 4 roles used in Mafia on Replit with a customizable voting time and timer system for each role. I ran into my first roadblock when I ran out of Replit credits for a month. My dad, however, seeing the dedication I put into this game, decided to help me complete my project by giving me Replit core for a month. 
+The idea for this website started at a birthday party in January 2026. A friend of the birthday boy showed me a cool dodgeball-style game built using only a few prompts on Replit. When I looked at the game, I was eager to build a game of my own. I decided that I would create the popular game, Mafia, because a common caveat of playing it in person is that it always leads to accidental peaking during the night, which completely ruins the point of the game. I built the game with the original 4 roles used in Mafia on Replit with a customizable voting time and timer system for each role. I ran into my first roadblock when I ran out of Replit credits for a month. My dad, however, seeing the dedication I put into this game, decided to help me complete my project by giving me Replit core for a month. 
 
 To add depth to the website, I added modern elements to the game such as a cosmetic store and costumes that could be earned or bought (certain ones). I connected **Stripe** to handle payments and also added a login and signup system with 2FA with **Clerk**. I realized that **Clerk’s** low Google Authenticator limits forced me to migrate all login and 2FA data to **Supabase**. Additionally, I added bots, a rating system, achievements, and a chat box for communication. After a lot of progress, unfortunately, my Replit membership ended, and my credits ran out. Stripe was a premium integration, and the free tier didn’t have Stripe; the database endpoints had been disabled, and I couldn’t edit my website further. I then chose to sync my code and files to GitHub and tried using similar platforms such as **Bolt.new** and **Lovable.dev**. When I tried using Bolt, it added my desired features such as a profanity filter and a referral system, but the database was completely broken, and none of the buttons worked. Lovable tried to rebuild my entire game from scratch. I was devastated, but still I wanted to finish this project. I started by opening Claude Sonnet 5, completely deleting the broken Replit database, and tried to rebuild the entire backend of my project. This left my project without a database, so I re-linked **Supabase** to handle all logins, 2FA setups and codes, and data. I also connected **Brevo** through an API key to handle account verification and the forgot password emails. 
 
@@ -34,26 +34,17 @@ I added new features like 4 new roles (Bodyguard, Vigilante, Jester, and Mayor),
 
 ---
 
-## Concepts Learnt
-* **API keys:** are unique codes used by developers that connect different software. They act as a username and a password for a specific API, which acts like a messenger between the user and the system. It gives the necessary data to the system while allowing the user to perform a function, while preventing unauthorized users from abusing the data.
-* **Statement descriptors:** are the text that appears on a customer’s bank statement after a purchase. It is designed by businesses so that customers don’t accidentally report payments as fraud. It usually contains the business name, a small description, and a support number.
-* **Sandboxes:** are places where developers can run tests without affecting real data, and it separates from the main network to avoid any security issues or bugs.
-* **Live mode:** is the real environment where financial transactions are processed, and real payments are made.
-* **Test mode:** uses a fake environment where a dummy credit card number is used to make sure that when live mode is on, it processes the real payment.
-* **First Contentful Paint:** is how fast the screen loads.
-* **Largest Contentful Paint:** is how fast the main game board loads.
-* **Time to Interactive (TTI):** is how fast you can actually click the buttons.
-* **Speed Index:** is a metric that measures how quickly the parts of the page are visually filled in while it loads.
-* **Total Blocking Time (TBT):** is the amount of code that is making the browser lag and freeze.
-* **Cumulative Layout Shift (CLS):** is the amount of movement while movement.
-* **Time to First Byte (TTFB):** is how fast Render’s server responds to a user.
-* **Fully Loaded Time:** is how fast the entire app loads.
+## Concepts Learnt & Platforms Used
+
+**Concepts Learnt:** API keys, Statement descriptors, Sandboxes, Live mode, Test mode, First Contentful Paint, Largest Contentful Paint, Time to Interactive (TTI), Speed Index, Total Blocking Time (TBT), Cumulative Layout Shift (CLS), Time to First Byte (TTFB), Fully Loaded Time. 
+
+**Platforms and Integrations Used:** Replit, Claude, Brevo, Supabase, Render, and Stripe.
 
 ---
 
 ## Speed, Performance & Making the Game responsive
 
-I built this project making sure that the game loads nearly instantly no matter the device and remains completely lag-free. I ran some speed tests using **GTmetrix** and **Lighthouse**, and the results showed that all speeds were below 1 second. 
+I built this project ensuring that the game loads nearly instantly no matter the device and remains completely lag-free. I ran some speed tests using **GTmetrix** and **Lighthouse**, and the results showed that all speeds were below 1 second. 
 
 ### Current Speed & Performance Metrics
 * **First Contentful Paint (FCP):** 839ms 
@@ -70,18 +61,19 @@ I built this project making sure that the game loads nearly instantly no matter 
 * **Zero-Cache Lobby Engine:** Even though static files should be stored, multiplayer game data should never be cached. **Zero-Cache** means making the browser forget the previous data and getting new information from the server. This prevents old lobbies from being seen by players, and I implemented a `no-store, no-cache, must-revalidate` rule on HTML and API parts. This ensures that live data such as the number of players remains accurate on all screens for every millisecond.
 * **Cleaning the Code Layout:** I removed broken tags and fixed my vector graphic paths (SVG’s). This allowed the browser to read and draw the shapes given in my code while preventing errors.
 * **Fixing Logic & Syntax Errors:** While coding with Claude Sonnet 5, I ran into a lot of **Syntax Errors**, which are small code mistakes such as typos or missing brackets, and it causes the entire script to crash.
-* **Stopping Page Lag (60 FPS)** I deleted some styling sheets that weren’t used (`@import` CSS) that were slowing down the FCP. To keep the room at a stable 60 FPS even when 20 players are in 1 live room, I replaced the CPU with a GPU, which is the device’s graphics hardware.
+* **Stopping Page Lag (60 FPS)** To keep the room at a stable 60 FPS even when 20 players are in 1 live room, I deleted some styling sheets that weren’t used (`@import` CSS) that were slowing down the FCP. 
 
 ## The Game’s Engine & Languages
 
-### Frontend (What the user sees) 
-* **React & TypeScript (.tsx):** I used this combination to build what the user sees, such as live lobbies, live chat, and player badges. 
+### Frontend 
+* **React & TypeScript (.tsx):** Used this combination to build live visual interfaces, such as live lobbies, live chat, and player badges. 
 * **Mobile Layouts & UI Manifests:** I added custom styling sheets and web configurations so that the game looks like an application on both iOS and Android devices.
       
-### Backend (The hidden background code)    
+### Backend 
 * **Node.js & WebSockets (.ts):** This handles all the players’ network connections, synchronizes the countdowns, and performs room actions, making sure that the server doesn’t crash.     
 * **Database & Hosting:** I connected all user logins, accounts with 2FA, and in game logs through a secure **Supabase** layer that created my database. This was completely hosted on **Render Web Services**.    
-
+* **Game State Management:** The server constantly checks the live status of each game and automatically switches rooms between **Day Phase** (for discussion and voting) and **Night Phase** (for role actions for certain roles) based on set timers.
+* **User Data Security:** Handles player logins, signups, and 2FA via Supabase with Row-Level Security (RLS), which sends database requests through the Node.js backend server to manage 2FA and email verification without compromising user data.
 
 ---
 
@@ -115,7 +107,7 @@ I ran some commands in Windows PowerShell and Command Prompt to see how large th
 ---
 
 ## Prerequisites
-Node.js must be installed before cloning this repository.
+[Node.js](https://nodejs.org) (LTS version is highly recommended) must be installed on your local computer before cloning this repository.
 
 ### Cloning and Development of this Repository 
 The following commands can be run in **PowerShell** and **Command Prompt** for Windows and **Terminal** for Mac.      
@@ -126,13 +118,16 @@ The following commands can be run in **PowerShell** and **Command Prompt** for W
    cd mafia-verse
    ```
 
-2. **Install the dependencies:**
+2. **Set up local variables**
+Create a `.env` file in the root directory and add your own API keys and database URLs.
+
+3. **Install dependencies:**
    ```bash
    npm install
    ```
 
  
-3. **Run the development server:**
+4. **Run the local development server:**
    ```bash
    npm start
    ```
