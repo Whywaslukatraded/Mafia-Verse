@@ -203,6 +203,10 @@ export default function Room() {
         detective_wins: (stats.detective_wins || 0) + (won && me.role === "detective" ? 1 : 0),
         doctor_wins: (stats.doctor_wins || 0) + (won && me.role === "doctor" ? 1 : 0),
         civilian_wins: (stats.civilian_wins || 0) + (won && me.role === "civilian" ? 1 : 0),
+        bodyguard_wins: (stats.bodyguard_wins || 0) + (won && me.role === "bodyguard" ? 1 : 0),
+        vigilante_wins: (stats.vigilante_wins || 0) + (won && me.role === "vigilante" ? 1 : 0),
+        mayor_wins: (stats.mayor_wins || 0) + (won && me.role === "mayor" ? 1 : 0),
+        jester_wins: (stats.jester_wins || 0) + (won && me.role === "jester" ? 1 : 0),
       };
       localStorage.setItem("mafia_stats", JSON.stringify(newStats));
       window.dispatchEvent(new Event("storage"));

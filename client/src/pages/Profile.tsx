@@ -73,6 +73,10 @@ export default function Profile() {
     { role: t("home.roles.detectives"), emoji: "🔍", stat: "detective_wins", color: "text-blue-400" },
     { role: t("home.roles.doctors"), emoji: "💉", stat: "doctor_wins", color: "text-green-400" },
     { role: t("home.roles.civilians"), emoji: "🛡️", stat: "civilian_wins", color: "text-yellow-400" },
+    { role: t("home.roles.bodyguards"), emoji: "🥊", stat: "bodyguard_wins", color: "text-slate-300" },
+    { role: t("home.roles.vigilantes"), emoji: "🔫", stat: "vigilante_wins", color: "text-orange-400" },
+    { role: t("home.roles.mayors"), emoji: "🎩", stat: "mayor_wins", color: "text-amber-400" },
+    { role: t("home.roles.jesters"), emoji: "🃏", stat: "jester_wins", color: "text-purple-400" },
   ];
 
   return (

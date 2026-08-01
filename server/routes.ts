@@ -1011,8 +1011,24 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
     }
 
     if (allActed) {
-      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
-      await advancePhase(roomId, wss, storage, roomClients, clients, gameActions);
+      // room.lastUpdated is pushed into the future by revealDelayMs on the
+      // first night (and after eliminations) to hold the phase behind the
+      // role-reveal / elimination overlay. Advancing early here would race
+      // straight past that overlay — so if we're still inside that window,
+      // wait it out instead of cutting it short. The regular phaseTimer
+      // already accounts for this (duration + revealDelayMs), so this only
+      // ever adds a short remaining wait, never skips ahead of it.
+      const readyAt = room.lastUpdated ? new Date(room.lastUpdated).getTime() : 0;
+      const msRemaining = readyAt - Date.now();
+      if (msRemaining > 0) {
+        setTimeout(async () => {
+          if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+          await advancePhase(roomId, wss, storage, roomClients, clients, gameActions);
+        }, msRemaining);
+      } else {
+        if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+        await advancePhase(roomId, wss, storage, roomClients, clients, gameActions);
+      }
     }
   }, delay);
 }
@@ -1386,6 +1402,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       actions.guards.clear();
       actions.shots.clear();
       gameActions.set(roomId, actions);
+
+      if (gameEnded) {
+        broadcastState(roomId);
+        return;
+      }
     }
   } else if (room.status === 'night') {
     // Special case: Mafia phase always ends the game immediately if there's
@@ -1574,28 +1595,25 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
   const currentRoom = await storage.getRoom(roomId);
   if (currentRoom) {
-    if (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount) {
+    // Guard against double-firing: if an earlier branch in this same call
+    // already ended the game (and awarded wins via finalizeGameEnd), don't
+    // re-evaluate and award wins a second time here.
+    if (currentRoom.status !== 'ended' && (aliveMafiaCount === 0 || aliveMafiaCount >= aliveCiviliansCount)) {
+      const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
       const history = gameHistory.get(roomId) || [];
       const playersInRoom = await storage.getPlayersInRoom(roomId);
-      
-      const winner = aliveMafiaCount === 0 ? 'civilians' : 'mafia';
       history.push({
         type: 'game_end',
         winner,
         roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
       });
-      
-      for (const p of playersInRoom) {
-        await storage.updatePlayer(p.id, {
-          gameHistory: history,
-          gamesPlayed: (p.gamesPlayed || 0) + 1,
-          wins: (p.wins || 0) + (winner === 'civilians' && p.role !== 'mafia' ? 1 : winner === 'mafia' && p.role === 'mafia' ? 1 : 0)
-        });
-      }
+      gameHistory.set(roomId, history);
+
       await storage.updateRoom(roomId, { status: 'ended' });
-      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
-      gameActions.delete(roomId);
+      await finalizeGameEnd(roomId, storage, winner, gameActions);
       broadcastState(roomId);
+    } else if (currentRoom.status === 'ended') {
+      // Already ended by an earlier branch this call — nothing more to do.
     } else {
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
