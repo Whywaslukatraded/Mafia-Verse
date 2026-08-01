@@ -264,7 +264,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 <div className="space-y-4">
                     {isSpectator && activeTab === "graveyard" && (
                         <a
-                            href="https://discord.gg/j5Vmfr5GF"
+                            href="https://discord.gg/9fRxpUyjD4"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400 hover:bg-indigo-500/20 transition-colors"
