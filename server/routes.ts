@@ -2796,6 +2796,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // curl -X POST https://mafia-verse.onrender.com/api/leaderboard/delete-user \
   //   -H "x-admin-secret: <ADMIN_SECRET>" -H "Content-Type: application/json" \
   //   -d '{"name":"ExactPlayerName"}'
+  // Multiple names: -d '{"name":"PlayerOne, PlayerTwo, PlayerThree"}'
   app.post("/api/leaderboard/delete-user", async (req, res) => {
     try {
       const providedSecret = req.headers["x-admin-secret"];
@@ -2806,15 +2807,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (providedSecret !== expectedSecret) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      const name = (req.body?.name || "").trim();
-      if (!name) {
+      const rawName = (req.body?.name || "").trim();
+      if (!rawName) {
         return res.status(400).json({ error: "Missing 'name' in request body." });
       }
-      const deleted = await db.delete(users).where(eq(users.name, name)).returning();
-      if (deleted.length === 0) {
-        return res.status(404).json({ error: `No leaderboard user found with the name "${name}".` });
+      // Accept either a single name or a comma-separated list of names.
+      const names = Array.from(new Set(rawName.split(",").map((n: string) => n.trim()).filter((n: string) => n.length > 0)));
+      if (names.length === 0) {
+        return res.status(400).json({ error: "Missing 'name' in request body." });
       }
-      res.json({ success: true, deleted: deleted.map(u => u.name) });
+
+      const deletedNames: string[] = [];
+      const notFoundNames: string[] = [];
+      for (const name of names) {
+        const deleted = await db.delete(users).where(eq(users.name, name)).returning();
+        if (deleted.length === 0) {
+          notFoundNames.push(name);
+        } else {
+          deletedNames.push(...deleted.map(u => u.name));
+        }
+      }
+
+      if (deletedNames.length === 0) {
+        return res.status(404).json({ error: `No leaderboard user found for: ${notFoundNames.join(", ")}` });
+      }
+      res.json({
+        success: true,
+        deleted: deletedNames,
+        ...(notFoundNames.length > 0 ? { notFound: notFoundNames } : {}),
+      });
     } catch (e: any) {
       console.error("Delete leaderboard user error", e);
       res.status(500).json({ error: e?.message || "Failed to delete user" });
