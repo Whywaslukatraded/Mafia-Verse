@@ -2797,6 +2797,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   //   -H "x-admin-secret: <ADMIN_SECRET>" -H "Content-Type: application/json" \
   //   -d '{"name":"ExactPlayerName"}'
   // Multiple names: -d '{"name":"PlayerOne, PlayerTwo, PlayerThree"}'
+  // Note: this resets the matching player's wins/gamesPlayed/achievements to
+  // zero in the `players` table — the same table the leaderboard is actually
+  // built from — rather than deleting an account. getLeaderboard() already
+  // excludes anyone with 0 games played, so this removes them from the board.
   app.post("/api/leaderboard/delete-user", async (req, res) => {
     try {
       const providedSecret = req.headers["x-admin-secret"];
@@ -2817,39 +2821,39 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ error: "Missing 'name' in request body." });
       }
 
-      const deletedNames: string[] = [];
+      const resetNames: string[] = [];
       const notFoundNames: string[] = [];
       const failedNames: { name: string; error: string }[] = [];
       for (const name of names) {
         try {
-          const deleted = await db.delete(users).where(eq(users.name, name)).returning();
-          if (deleted.length === 0) {
+          const count = await storage.resetPlayerStatsByName(name);
+          if (count === 0) {
             notFoundNames.push(name);
           } else {
-            deletedNames.push(...deleted.map(u => u.name));
+            resetNames.push(name);
           }
         } catch (nameErr: any) {
-          // One name's constraint failure shouldn't abort the rest of the batch.
-          console.error(`Delete leaderboard user error for "${name}"`, nameErr);
+          // One name's failure shouldn't abort the rest of the batch.
+          console.error(`Reset leaderboard stats error for "${name}"`, nameErr);
           failedNames.push({ name, error: nameErr?.cause?.message || nameErr?.message || "Unknown error" });
         }
       }
 
-      if (deletedNames.length === 0 && failedNames.length > 0 && notFoundNames.length === 0) {
-        return res.status(500).json({ error: "Failed to delete all requested users.", failed: failedNames });
+      if (resetNames.length === 0 && failedNames.length > 0 && notFoundNames.length === 0) {
+        return res.status(500).json({ error: "Failed to reset all requested users.", failed: failedNames });
       }
-      if (deletedNames.length === 0 && failedNames.length === 0) {
-        return res.status(404).json({ error: `No leaderboard user found for: ${notFoundNames.join(", ")}` });
+      if (resetNames.length === 0 && failedNames.length === 0) {
+        return res.status(404).json({ error: `No leaderboard player found for: ${notFoundNames.join(", ")}` });
       }
       res.json({
         success: true,
-        deleted: deletedNames,
+        reset: resetNames,
         ...(notFoundNames.length > 0 ? { notFound: notFoundNames } : {}),
         ...(failedNames.length > 0 ? { failed: failedNames } : {}),
       });
     } catch (e: any) {
-      console.error("Delete leaderboard user error", e);
-      res.status(500).json({ error: e?.cause?.message || e?.message || "Failed to delete user" });
+      console.error("Reset leaderboard stats error", e);
+      res.status(500).json({ error: e?.cause?.message || e?.message || "Failed to reset user" });
     }
   });
 

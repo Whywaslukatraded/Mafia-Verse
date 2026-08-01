@@ -25,6 +25,7 @@ export interface IStorage {
   deleteMessagesByRoom(roomId: number): Promise<void>;
 
   getLeaderboard(): Promise<{ name: string; avatar: string | null; avatarConfig: any; wins: number; gamesPlayed: number; winRate: number }[]>;
+  resetPlayerStatsByName(name: string): Promise<number>;
 
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
@@ -144,6 +145,16 @@ export class DatabaseStorage implements IStorage {
 
   async resetLeaderboard(): Promise<void> {
     await db.update(players).set({ wins: 0, gamesPlayed: 0, achievements: [] });
+  }
+
+  // Zeroes out wins/gamesPlayed/achievements for every player row matching
+  // this exact name — same table getLeaderboard() reads from, and it already
+  // filters out anyone with gamesPlayed = 0, so this is what actually removes
+  // someone from the visible leaderboard (deleting from `users` does not,
+  // since the leaderboard is sourced from `players`, not `users`).
+  async resetPlayerStatsByName(name: string): Promise<number> {
+    const updated = await db.update(players).set({ wins: 0, gamesPlayed: 0, achievements: [] }).where(eq(players.name, name)).returning();
+    return updated.length;
   }
 
   async getLeaderboard() {
