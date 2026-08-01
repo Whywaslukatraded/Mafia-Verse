@@ -2819,26 +2819,37 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       const deletedNames: string[] = [];
       const notFoundNames: string[] = [];
+      const failedNames: { name: string; error: string }[] = [];
       for (const name of names) {
-        const deleted = await db.delete(users).where(eq(users.name, name)).returning();
-        if (deleted.length === 0) {
-          notFoundNames.push(name);
-        } else {
-          deletedNames.push(...deleted.map(u => u.name));
+        try {
+          const deleted = await db.delete(users).where(eq(users.name, name)).returning();
+          if (deleted.length === 0) {
+            notFoundNames.push(name);
+          } else {
+            deletedNames.push(...deleted.map(u => u.name));
+          }
+        } catch (nameErr: any) {
+          // One name's constraint failure shouldn't abort the rest of the batch.
+          console.error(`Delete leaderboard user error for "${name}"`, nameErr);
+          failedNames.push({ name, error: nameErr?.cause?.message || nameErr?.message || "Unknown error" });
         }
       }
 
-      if (deletedNames.length === 0) {
+      if (deletedNames.length === 0 && failedNames.length > 0 && notFoundNames.length === 0) {
+        return res.status(500).json({ error: "Failed to delete all requested users.", failed: failedNames });
+      }
+      if (deletedNames.length === 0 && failedNames.length === 0) {
         return res.status(404).json({ error: `No leaderboard user found for: ${notFoundNames.join(", ")}` });
       }
       res.json({
         success: true,
         deleted: deletedNames,
         ...(notFoundNames.length > 0 ? { notFound: notFoundNames } : {}),
+        ...(failedNames.length > 0 ? { failed: failedNames } : {}),
       });
     } catch (e: any) {
       console.error("Delete leaderboard user error", e);
-      res.status(500).json({ error: e?.message || "Failed to delete user" });
+      res.status(500).json({ error: e?.cause?.message || e?.message || "Failed to delete user" });
     }
   });
 
