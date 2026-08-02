@@ -162,6 +162,11 @@ const afkReports = new Map<number, Map<number, Set<number>>>();
 // fresh game starts and cleared when it ends.
 const vigilanteBullets = new Map<number, Map<number, number>>();       // roomId -> playerId -> bullets left (starts at 2)
 const mayorRevealed = new Map<number, Set<number>>();                  // roomId -> set of playerIds who've revealed
+// roomId -> { commandTarget, avoidTargets }. "you select X" in mafia chat sets
+// commandTarget and immediately points every bot at X. "I pick X" adds X to
+// avoidTargets so bots pick someone else instead of piling onto the same
+// target the human already claimed. Cleared every time a new mafia phase starts.
+const mafiaChatHints = new Map<number, { commandTarget?: number; avoidTargets: Set<number> }>();
 const vigilanteGuiltPending = new Map<number, number>();               // roomId -> vigilante playerId who must die from guilt next night
 
 // Small dictionary for the recurring system/chat messages that aren't part
@@ -188,6 +193,8 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
   targetLockedTitle: { en: "Target Locked", es: "Objetivo bloqueado" },
   targetLockedBody: { en: "You have targeted {name} for elimination.", es: "Has marcado a {name} para la eliminación." },
   chatErrorTitle: { en: "Error", es: "Error" },
+  mafiaCommandAcknowledged: { en: "🎯 The crew is now targeting {name}.", es: "🎯 El equipo ahora tiene como objetivo a {name}." },
+  mafiaAvoidAcknowledged: { en: "📝 Noted — the crew will leave {name} to you.", es: "📝 Anotado — el equipo te dejará a {name} a ti." },
   chatErrorBody: { en: "Failed to send message", es: "No se pudo enviar el mensaje" },
   deadCantSpeakTitle: { en: "🪦 Silence from Beyond", es: "🪦 Silencio desde el más allá" },
   deadCantSpeakBody: { en: "The dead cannot speak and risk snitching...", es: "Los muertos no pueden hablar ni arriesgarse a delatar..." },
@@ -675,6 +682,40 @@ function getEchoPrefixes(lang: string | undefined) {
   return lang === "es" ? ECHO_PREFIXES_ES : ECHO_PREFIXES_EN;
 }
 
+// Recognizes two simple patterns in mafia-chat messages:
+//   "you select/pick/choose/target/kill NAME"  -> command bots to target NAME
+//   "I select/pick/choose/'m picking/'ll pick NAME" -> bots should avoid NAME
+// (assume the human is already handling that target themselves)
+// Case-insensitive, English only for now (matches the phrasing requested).
+function parseMafiaChatCommand(content: string, candidates: Player[]): { kind: 'command' | 'avoid'; targetId: number } | null {
+  const lower = content.toLowerCase();
+
+  const findNamedPlayer = (afterIndex: number): Player | null => {
+    const rest = lower.slice(afterIndex);
+    // Match the longest candidate name first so "Bot_Alpha_315" beats a
+    // shorter name that happens to be a substring of another.
+    const sorted = [...candidates].sort((a, b) => b.name.length - a.name.length);
+    for (const p of sorted) {
+      if (rest.includes(p.name.toLowerCase())) return p;
+    }
+    return null;
+  };
+
+  const commandMatch = lower.match(/\byou\s+(?:should\s+)?(?:select|pick|choose|target|kill)\b/);
+  if (commandMatch && commandMatch.index !== undefined) {
+    const target = findNamedPlayer(commandMatch.index + commandMatch[0].length);
+    if (target) return { kind: 'command', targetId: target.id };
+  }
+
+  const avoidMatch = lower.match(/\bi(?:'m| am|'ll| will)?\s+(?:select|selecting|pick|picking|choose|choosing|go(?:ing)?\s+with|going\s+for)\b/);
+  if (avoidMatch && avoidMatch.index !== undefined) {
+    const target = findNamedPlayer(avoidMatch.index + avoidMatch[0].length);
+    if (target) return { kind: 'avoid', targetId: target.id };
+  }
+
+  return null;
+}
+
 // Reads an actual human message and picks the bot response category that best
 // matches what was said, instead of only checking a couple of keywords.
 function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[], lang: string | undefined) {
@@ -831,11 +872,20 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     if (bot.role === 'mafia') {
       const nonMafiaAlive = alivePlayers.filter((p: Player) => p.role !== 'mafia');
       if (nonMafiaAlive.length > 0) {
-        const nonMafiaBots = nonMafiaAlive.filter((p: Player) => p.isBot);
-        if (Math.random() > 0.5 && nonMafiaBots.length > 0) {
-          target = nonMafiaBots[Math.floor(Math.random() * nonMafiaBots.length)];
+        const hint = mafiaChatHints.get(roomId);
+        if (hint?.commandTarget && nonMafiaAlive.some((p: Player) => p.id === hint.commandTarget)) {
+          target = nonMafiaAlive.find((p: Player) => p.id === hint.commandTarget)!;
         } else {
-          target = nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)];
+          const avoiding = hint?.avoidTargets && hint.avoidTargets.size > 0
+            ? nonMafiaAlive.filter((p: Player) => !hint.avoidTargets!.has(p.id))
+            : nonMafiaAlive;
+          const pool = avoiding.length > 0 ? avoiding : nonMafiaAlive;
+          const nonMafiaBots = pool.filter((p: Player) => p.isBot);
+          if (Math.random() > 0.5 && nonMafiaBots.length > 0) {
+            target = nonMafiaBots[Math.floor(Math.random() * nonMafiaBots.length)];
+          } else {
+            target = pool[Math.floor(Math.random() * pool.length)];
+          }
         }
       }
     }
@@ -930,7 +980,18 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
   const phaseAtSchedule = snapshotRoom.phase;
   const statusAtSchedule = snapshotRoom.status;
 
-  const delay = 500 + Math.floor(Math.random() * 700); // ~0.5s-1.2s — feels immediate, not robotic/simultaneous
+  if (statusAtSchedule === 'night' && phaseAtSchedule === 'mafia') {
+    // Fresh mafia phase — any "you select X" / "I pick X" from a previous
+    // night shouldn't carry over.
+    mafiaChatHints.delete(roomId);
+  }
+
+  // Voting gets a longer delay than night-role phases — 1 second felt
+  // instant/robotic for a day-phase decision that's supposed to feel like
+  // bots are actually weighing who to vote for.
+  const delay = statusAtSchedule === 'day' && phaseAtSchedule === 'voting'
+    ? 3000 + Math.floor(Math.random() * 1000)  // ~3s-4s
+    : 500 + Math.floor(Math.random() * 700);   // ~0.5s-1.2s — feels immediate, not robotic/simultaneous
   setTimeout(async () => {
     const room = await storage.getRoom(roomId);
     // Bail out if the phase already moved on for any other reason (a human
@@ -959,7 +1020,15 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
       } else if (room.status === 'night' && room.phase === 'mafia' && bot.role === 'mafia' && !actions.mafiaKills.has(bot.id)) {
         const nonMafiaAlive = alivePlayers.filter((p: Player) => p.role !== 'mafia');
         if (nonMafiaAlive.length > 0) {
-          actions.mafiaKills.set(bot.id, pickTarget(nonMafiaAlive).id);
+          const hint = mafiaChatHints.get(roomId);
+          if (hint?.commandTarget && nonMafiaAlive.some((p: Player) => p.id === hint.commandTarget)) {
+            actions.mafiaKills.set(bot.id, hint.commandTarget);
+          } else {
+            const avoiding = hint?.avoidTargets && hint.avoidTargets.size > 0
+              ? nonMafiaAlive.filter((p: Player) => !hint.avoidTargets!.has(p.id))
+              : nonMafiaAlive;
+            actions.mafiaKills.set(bot.id, pickTarget(avoiding.length > 0 ? avoiding : nonMafiaAlive).id);
+          }
           changed = true;
         }
       } else if (room.status === 'night' && room.phase === 'doctor' && bot.role === 'doctor' && !actions.doctorSaves.has(bot.id)) {
@@ -2374,6 +2443,56 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  console.log("MESSAGE CREATED SUCCESSFULLY");
                  bumpActivity(myRoomId, me.id, "messages");
                  if (me.isAlive && !isMafiaChat) await respondToHumanChat(myRoomId, (action as any).content.trim(), storage);
+
+                 // "you select X" / "I pick X" commands, only meaningful
+                 // during the actual mafia night phase.
+                 if (isMafiaChat && room.phase === 'mafia' && room.status === 'night') {
+                   const nonMafiaAlive = players.filter((p: Player) => p.isAlive && p.role !== 'mafia');
+                   const parsed = parseMafiaChatCommand((action as any).content.trim(), nonMafiaAlive);
+                   if (parsed) {
+                     const hint = mafiaChatHints.get(myRoomId) || { avoidTargets: new Set<number>() };
+                     const freshActions = gameActions.get(myRoomId) || actions;
+                     const mafiaBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'mafia');
+
+                     if (parsed.kind === 'command') {
+                       hint.commandTarget = parsed.targetId;
+                       for (const bot of mafiaBots) {
+                         freshActions.mafiaKills.set(bot.id, parsed.targetId);
+                       }
+                     } else {
+                       hint.avoidTargets.add(parsed.targetId);
+                       // If a bot already locked onto the target the human
+                       // just claimed, redirect it to someone else instead.
+                       const alternatives = nonMafiaAlive.filter((p: Player) => p.id !== parsed.targetId && !hint.avoidTargets.has(p.id));
+                       for (const bot of mafiaBots) {
+                         if (freshActions.mafiaKills.get(bot.id) === parsed.targetId) {
+                           const pool = alternatives.length > 0 ? alternatives : nonMafiaAlive.filter((p: Player) => p.id !== parsed.targetId);
+                           if (pool.length > 0) freshActions.mafiaKills.set(bot.id, pool[Math.floor(Math.random() * pool.length)].id);
+                           else freshActions.mafiaKills.delete(bot.id);
+                         }
+                       }
+                     }
+                     mafiaChatHints.set(myRoomId, hint);
+                     gameActions.set(myRoomId, freshActions);
+
+                     const targetPlayer = nonMafiaAlive.find((p: Player) => p.id === parsed.targetId);
+                     if (targetPlayer) {
+                       const cmdLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                       await storage.createMessage({
+                         roomId: myRoomId, playerId: 0, playerName: sysName(cmdLang),
+                         content: sysMsg(parsed.kind === 'command' ? "mafiaCommandAcknowledged" : "mafiaAvoidAcknowledged", cmdLang, { name: targetPlayer.name }),
+                         isMafiaChat: true,
+                       } as any);
+                     }
+
+                     if (haveAllRoleHoldersActed(players, 'mafia', freshActions.mafiaKills)) {
+                       if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
+                       await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+                       return;
+                     }
+                   }
+                 }
+
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
@@ -2552,10 +2671,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                gameActions.set(myRoomId, actions);
 
                const mafiaBots = players.filter((p: Player) => p.isBot && p.isAlive && p.role === 'mafia' && !actions.mafiaKills.has(p.id));
+               const chatHint = mafiaChatHints.get(myRoomId);
                for (const bot of mafiaBots) {
                  const nonMafiaAlive = players.filter((p: Player) => p.isAlive && p.role !== 'mafia');
                  if (nonMafiaAlive.length > 0) {
-                   actions.mafiaKills.set(bot.id, nonMafiaAlive[Math.floor(Math.random() * nonMafiaAlive.length)].id);
+                   if (chatHint?.commandTarget && nonMafiaAlive.some((p: Player) => p.id === chatHint.commandTarget)) {
+                     actions.mafiaKills.set(bot.id, chatHint.commandTarget);
+                   } else {
+                     const avoiding = chatHint?.avoidTargets && chatHint.avoidTargets.size > 0
+                       ? nonMafiaAlive.filter((p: Player) => !chatHint.avoidTargets!.has(p.id))
+                       : nonMafiaAlive;
+                     const pool = avoiding.length > 0 ? avoiding : nonMafiaAlive;
+                     actions.mafiaKills.set(bot.id, pool[Math.floor(Math.random() * pool.length)].id);
+                   }
                  }
                }
                gameActions.set(myRoomId, actions);

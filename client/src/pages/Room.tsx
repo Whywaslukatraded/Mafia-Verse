@@ -112,7 +112,6 @@ export default function Room() {
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
-  const prevWinsRef = useRef<number | null>(null);
   const shownEliminationsRef = useRef<Set<number>>(new Set());
 
   const me = gameState?.me;
@@ -185,20 +184,38 @@ export default function Room() {
   // Feature 8: Streak tracking + stats sync on game end
   useEffect(() => {
     if (gameState?.room.status === "ended" && me) {
-      const currentWins = me.wins || 0;
+      // players rows (and me.wins/me.gamesPlayed) are scoped to a single
+      // room — a new room always starts that row at wins:0, gamesPlayed:0.
+      // Comparing against them directly made the profile's totals reset
+      // every time you joined a new game instead of accumulating. Use the
+      // room's own game-end record instead (reliable regardless of room),
+      // and accumulate wins/gamesPlayed locally exactly like the per-role
+      // stats already do below.
+      const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
       const stats = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-      const prevWins = prevWinsRef.current ?? stats.wins ?? 0;
-      const won = currentWins > prevWins;
+
+      // Guard against double-counting the same game's result (e.g. if this
+      // effect re-fires from another state update before the room resets).
+      if (!latestGameEnd || stats.lastCountedRoomCode === code) {
+        return;
+      }
+
+      const winner = latestGameEnd.winner;
+      const won = winner === "jester" ? me.role === "jester"
+        : winner === "mafia" ? me.role === "mafia"
+        : me.role !== "mafia" && me.role !== "jester"; // civilians win: every town-aligned role
 
       const currentStreak = won ? ((stats.currentStreak || 0) + 1) : 0;
       const bestStreak = Math.max(stats.bestStreak || 0, currentStreak);
 
       const newStats = {
-        wins: currentWins,
-        gamesPlayed: me.gamesPlayed || 0,
+        ...stats,
+        wins: (stats.wins || 0) + (won ? 1 : 0),
+        gamesPlayed: (stats.gamesPlayed || 0) + 1,
         achievements: (me as any).achievements || [],
         currentStreak,
         bestStreak,
+        lastCountedRoomCode: code,
         mafia_wins: (stats.mafia_wins || 0) + (won && me.role === "mafia" ? 1 : 0),
         detective_wins: (stats.detective_wins || 0) + (won && me.role === "detective" ? 1 : 0),
         doctor_wins: (stats.doctor_wins || 0) + (won && me.role === "doctor" ? 1 : 0),
@@ -210,7 +227,6 @@ export default function Room() {
       };
       localStorage.setItem("mafia_stats", JSON.stringify(newStats));
       window.dispatchEvent(new Event("storage"));
-      prevWinsRef.current = currentWins;
 
       // Feature 10: Confetti for winners
       if (won && !showConfetti) {
@@ -218,7 +234,7 @@ export default function Room() {
         setTimeout(() => setShowConfetti(false), 5000);
       }
     }
-  }, [gameState?.room.status, me]);
+  }, [gameState?.room.status, me, code]);
 
   // Clear reactions when returning to lobby (game ended/replayed)
   useEffect(() => {
