@@ -998,6 +998,8 @@ export default function Room() {
                     room has more than one) recognize each other. */}
                 {me?.role && me.role !== "civilian" && me?.isAlive && room?.status !== "ended" && (() => {
                   const teammates = players.filter((p) => p.role === me.role && p.id !== me.id);
+                  const showActedStatus = me.role === "mafia" && room?.status === "night" && room?.phase === "mafia";
+                  const actedIds = new Set((gameState as any)?.mafiaTeammatesActedIds || []);
                   return (
                     <div className="mb-3 p-3 rounded-xl bg-muted/40 border border-border flex items-center gap-3">
                       <span className="text-2xl">🤝</span>
@@ -1005,7 +1007,16 @@ export default function Room() {
                         <p className="text-sm font-black uppercase tracking-wide text-foreground">{t("room.teammatesTitle", { role: t(`playerCard.roleLabels.${me.role}`, me.role) })}</p>
                         <p className="text-xs text-muted-foreground">
                           {teammates.length > 0
-                            ? teammates.map((p) => p.name).join(", ")
+                            ? teammates.map((p) => (
+                                <span key={p.id} className="inline-flex items-center gap-1 mr-2">
+                                  {p.name}
+                                  {showActedStatus && (
+                                    actedIds.has(p.id)
+                                      ? <span className="text-emerald-400" title={t("room.teammateLockedIn")}>✓</span>
+                                      : <span className="text-muted-foreground/50" title={t("room.teammateStillDeciding")}>⋯</span>
+                                  )}
+                                </span>
+                              ))
                             : t("room.noTeammates")}
                         </p>
                       </div>

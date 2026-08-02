@@ -364,6 +364,8 @@
     "mafiaNoTeammates": "Eres el único Mafia en esta partida — no hay nadie más con quien coordinarte.",
     "teammatesTitle": "Tus compañeros {{role}}",
     "noTeammates": "Eres el único con este rol en esta partida — no hay nadie más con quien coordinarte.",
+    "teammateLockedIn": "Ya eligió un objetivo",
+    "teammateStillDeciding": "Todavía decidiendo",
     "mayorRevealButton": "Revélate como alcalde",
     "reportAfk": "Reportar AFK / inactivo",
     "afkReported": "Reportado como AFK",

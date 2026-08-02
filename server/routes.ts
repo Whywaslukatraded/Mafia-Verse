@@ -195,6 +195,8 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
   chatErrorTitle: { en: "Error", es: "Error" },
   mafiaCommandAcknowledged: { en: "🎯 The crew is now targeting {name}.", es: "🎯 El equipo ahora tiene como objetivo a {name}." },
   mafiaAvoidAcknowledged: { en: "📝 Noted — the crew will leave {name} to you.", es: "📝 Anotado — el equipo te dejará a {name} a ti." },
+  mafiaCommandToastTitle: { en: "Target Set", es: "Objetivo establecido" },
+  mafiaAvoidToastTitle: { en: "Noted", es: "Anotado" },
   chatErrorBody: { en: "Failed to send message", es: "No se pudo enviar el mensaje" },
   deadCantSpeakTitle: { en: "🪦 Silence from Beyond", es: "🪦 Silencio desde el más allá" },
   deadCantSpeakBody: { en: "The dead cannot speak and risk snitching...", es: "Los muertos no pueden hablar ni arriesgarse a delatar..." },
@@ -986,12 +988,15 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
     mafiaChatHints.delete(roomId);
   }
 
-  // Voting gets a longer delay than night-role phases — 1 second felt
-  // instant/robotic for a day-phase decision that's supposed to feel like
-  // bots are actually weighing who to vote for.
+  // Voting felt fine at 3-4s, but night roles (detective, doctor, etc.) were
+  // resolving in under 1.2s which read as an obvious skip rather than bots
+  // actually "deciding" — give every phase a similar natural pause. Mafia
+  // stays on the faster end since a slow mafia phase blocks the whole table.
   const delay = statusAtSchedule === 'day' && phaseAtSchedule === 'voting'
     ? 3000 + Math.floor(Math.random() * 1000)  // ~3s-4s
-    : 500 + Math.floor(Math.random() * 700);   // ~0.5s-1.2s — feels immediate, not robotic/simultaneous
+    : statusAtSchedule === 'night' && phaseAtSchedule !== 'mafia'
+    ? 2000 + Math.floor(Math.random() * 1500)  // ~2s-3.5s
+    : 500 + Math.floor(Math.random() * 700);   // ~0.5s-1.2s — mafia stays fast
   setTimeout(async () => {
     const room = await storage.getRoom(roomId);
     // Bail out if the phase already moved on for any other reason (a human
@@ -1324,26 +1329,40 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
           if (victim.role === 'jester') {
             // Classic Jester rule: getting voted out ends the game
-            // immediately, right then — it doesn't continue for anyone else.
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("jesterWinsBody", revealLang, { name: victim.name }) });
-            await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+            // immediately — but the actual status flip is delayed below so
+            // players get to see the elimination reveal overlay first,
+            // instead of jumping straight to the end screen.
+            const revealLang2 = revealLang;
+            const victimName = victim.name;
             gameEnded = true;
+            setTimeout(async () => {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang2), content: sysMsg("jesterWinsBody", revealLang2, { name: victimName }) });
+              await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+              broadcastState(roomId);
+            }, revealDelayMs);
           } else {
             const remainingPlayers = await storage.getPlayersInRoom(roomId);
             const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
-            if (remainingMafia.length === 0) {
-              await storage.updateRoom(roomId, { status: 'ended' });
-              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("mafiaEliminatedCiviliansWin", revealLang) });
-              await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
-              gameEnded = true;
-            }
             const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
-            if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
-              await storage.updateRoom(roomId, { status: 'ended' });
-              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: sysMsg("mafiaTookOverMafiaWins", revealLang) });
-              await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+            if (remainingMafia.length === 0) {
+              const revealLang2 = revealLang;
               gameEnded = true;
+              setTimeout(async () => {
+                await storage.updateRoom(roomId, { status: 'ended' });
+                await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang2), content: sysMsg("mafiaEliminatedCiviliansWin", revealLang2) });
+                await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
+                broadcastState(roomId);
+              }, revealDelayMs);
+            } else if (remainingMafia.length >= remainingInnocents.length) {
+              const revealLang2 = revealLang;
+              gameEnded = true;
+              setTimeout(async () => {
+                await storage.updateRoom(roomId, { status: 'ended' });
+                await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang2), content: sysMsg("mafiaTookOverMafiaWins", revealLang2) });
+                await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+                broadcastState(roomId);
+              }, revealDelayMs);
             }
           }
         }
@@ -1433,25 +1452,34 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
           if (victim.role === 'jester') {
-            await storage.updateRoom(roomId, { status: 'ended' });
-            await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("jesterWinsBody", lang, { name: victim.name }) });
-            await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+            const victimName = victim.name;
             gameEnded = true;
+            setTimeout(async () => {
+              await storage.updateRoom(roomId, { status: 'ended' });
+              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("jesterWinsBody", lang, { name: victimName }) });
+              await finalizeGameEnd(roomId, storage, 'jester', gameActions);
+              broadcastState(roomId);
+            }, revealDelayMs);
           } else {
             const remainingPlayers = await storage.getPlayersInRoom(roomId);
             const remainingMafia = remainingPlayers.filter((p: Player) => p.role === 'mafia' && p.isAlive);
-            if (remainingMafia.length === 0) {
-              await storage.updateRoom(roomId, { status: 'ended' });
-              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
-              await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
-              gameEnded = true;
-            }
             const remainingInnocents = remainingPlayers.filter((p: Player) => p.role !== 'mafia' && p.isAlive);
-            if (!gameEnded && remainingMafia.length >= remainingInnocents.length) {
-              await storage.updateRoom(roomId, { status: 'ended' });
-              await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaTookOverMafiaWins", lang) });
-              await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+            if (remainingMafia.length === 0) {
               gameEnded = true;
+              setTimeout(async () => {
+                await storage.updateRoom(roomId, { status: 'ended' });
+                await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaEliminatedCiviliansWin", lang) });
+                await finalizeGameEnd(roomId, storage, 'civilians', gameActions);
+                broadcastState(roomId);
+              }, revealDelayMs);
+            } else if (remainingMafia.length >= remainingInnocents.length) {
+              gameEnded = true;
+              setTimeout(async () => {
+                await storage.updateRoom(roomId, { status: 'ended' });
+                await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: sysMsg("mafiaTookOverMafiaWins", lang) });
+                await finalizeGameEnd(roomId, storage, 'mafia', gameActions);
+                broadcastState(roomId);
+              }, revealDelayMs);
             }
           }
         }
@@ -1678,9 +1706,16 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       });
       gameHistory.set(roomId, history);
 
-      await storage.updateRoom(roomId, { status: 'ended' });
-      await finalizeGameEnd(roomId, storage, winner, gameActions);
-      broadcastState(roomId);
+      // Don't flip status to 'ended' immediately — the death was just
+      // broadcast moments ago as part of the normal day-transition above,
+      // and the client's elimination overlay is keyed off room.status not
+      // yet being 'ended'. Flipping it right away would force-dismiss that
+      // overlay before the player has had a chance to see it.
+      setTimeout(async () => {
+        await storage.updateRoom(roomId, { status: 'ended' });
+        await finalizeGameEnd(roomId, storage, winner, gameActions);
+        broadcastState(roomId);
+      }, ELIMINATION_REVEAL_MS);
     } else if (currentRoom.status === 'ended') {
       // Already ended by an earlier branch this call — nothing more to do.
     } else {
@@ -1774,6 +1809,14 @@ async function broadcastState(roomId: number) {
       const aliveMafiaCount = players.filter((p: Player) => p.isAlive && p.role === 'mafia').length;
       const mafiaChatAvailable = !!me && me.isAlive && me.role === 'mafia' && aliveMafiaCount >= 2;
 
+      // Lets mafia teammates see "who's locked in" during the mafia phase
+      // without revealing WHO each teammate targeted — the "SELECTED" state
+      // on player cards only ever reflected your own local click, so a
+      // teammate (especially a bot) deciding didn't show up anywhere.
+      const mafiaTeammatesActedIds = mafiaChatAvailable
+        ? players.filter((p: Player) => p.isAlive && p.role === 'mafia' && actions?.mafiaKills.has(p.id)).map((p: Player) => p.id)
+        : undefined;
+
       ws.send(JSON.stringify({
         type: WS_EVENTS.STATE_UPDATE,
         payload: {
@@ -1783,6 +1826,7 @@ async function broadcastState(roomId: number) {
           revealedMayorIds,
           myBullets,
           mafiaChatAvailable,
+          mafiaTeammatesActedIds,
         }
       }));
     }
@@ -2483,6 +2527,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                          content: sysMsg(parsed.kind === 'command' ? "mafiaCommandAcknowledged" : "mafiaAvoidAcknowledged", cmdLang, { name: targetPlayer.name }),
                          isMafiaChat: true,
                        } as any);
+                       ws.send(JSON.stringify({
+                         type: 'notification',
+                         payload: {
+                           title: sysMsg(parsed.kind === 'command' ? "mafiaCommandToastTitle" : "mafiaAvoidToastTitle", cmdLang),
+                           body: sysMsg(parsed.kind === 'command' ? "mafiaCommandAcknowledged" : "mafiaAvoidAcknowledged", cmdLang, { name: targetPlayer.name }),
+                         },
+                       }));
                      }
 
                      if (haveAllRoleHoldersActed(players, 'mafia', freshActions.mafiaKills)) {

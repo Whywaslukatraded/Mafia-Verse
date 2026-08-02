@@ -251,4 +251,5 @@ export type GameState = {
   revealedMayorIds?: number[];
   myBullets?: number;
   mafiaChatAvailable?: boolean;
+  mafiaTeammatesActedIds?: number[];
 };
