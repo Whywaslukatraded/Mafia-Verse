@@ -12,9 +12,9 @@ Mafia Verse is a high-quality, free-to-play, multiplayer game based on the party
 * **Random Role Engine** Automatically assigns all players roles, and the number is matched to the room’s player count.  
 * **8 Roles:** Includes the original 4 Mafia roles(Mafia, Detective, Doctor, and Civilian) plus Bodyguard, Vigilante, Jester, and Mayor.
 * **3 Chats:** There are 3 chats: 1 for the entire room to talk about suspicious players, 1 for eliminated players to talk about strategy in the future, and 1 for the Mafia to communicate their attacks.
-* **Daily Rewards & Cosmetics** features a **Daily Rewards** button and custom ads to earn credits, which unlock an avatar out of a 118-avatar collection. Costumes that can be unlocked in **Shop** with wins. 
+* **Daily Rewards & Cosmetics:** Features a **Daily Rewards** button and custom ads to earn credits, which unlock an avatar out of a 118-avatar collection. Costumes that can be unlocked in **Shop** with wins. 
 * **Leaderboard:** An automated **Leaderboard** that tells players their win rate, number of games, and number of wins.
-* **Language Support and Customizable UX** Contains a full Spanish version of the game and has a built-in light and dark mode switch.
+* **Language Support and Customizable UX:** Contains a full Spanish version of the game and has a built-in light and dark mode switch.
 
 ---
 
