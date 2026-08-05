@@ -10,7 +10,11 @@
     "close": "Cerrar",
     "loading": "Cargando...",
     "copy": "Copiar",
-    "copied": "¡Copiado!"
+    "copied": "¡Copiado!",
+    "connectionLostTitle": "Conexión perdida",
+    "connectionLostDescription": "Intentando reconectar...",
+    "reconnectingTitle": "Reconectando",
+    "reconnectingPlayAgainDescription": "Espera un momento y vuelve a tocar Jugar de nuevo."
   },
   "login": {
     "subtitle": "Inicia sesión para continuar",
@@ -281,6 +285,7 @@
     "playAgainHelper": "Inicia una nueva ronda con este mismo grupo, no una nueva partida pública.",
     "matchAlreadyEndedTitle": "Esta partida ya terminó",
     "matchAlreadyEndedDescription": "Te uniste después de que esta ronda terminó, así que no participaste en ella. Espera un momento: el anfitrión puede iniciar una nueva ronda y tú estarás en ella.",
+    "waitingForHostRematch": "Esperando a que el anfitrión inicie una nueva ronda...",
     "playAgain": "Jugar de nuevo",
     "eliminated": "Eliminado",
     "wasRole": "era {{role}}",

@@ -346,6 +346,10 @@ const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "�
 
 const MAX_BOTS_PER_ROOM = 5;
 const MAX_SPECIAL_ROLES = 10;
+// "Play Again" is meant to be a rematch with the same group, not a fresh
+// public game — if fewer than this many real (non-bot) players from the
+// finished match are still connected, we don't attempt it.
+const MIN_REMATCH_PLAYERS = 2;
 
 async function fillWithBots(roomId: number, storage: any): Promise<{ added: number; cappedAtMax: boolean }> {
   const players = await storage.getPlayersInRoom(roomId);
@@ -2634,10 +2638,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
-           if (action.type === 'replay' && me.isHost) {
+           if (action.type === 'replay') {
+             if (!me.isHost) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Only the host can start a rematch." } }));
+               return;
+             }
              const currentRoom = await storage.getRoom(myRoomId);
              if (currentRoom?.status !== 'ended') return;
-             
+
+             // Previously this silently did nothing if too few real players
+             // remained, leaving the host stuck staring at the Game Over
+             // screen with no feedback. Check who from the finished match is
+             // actually still connected and fail with a clear, specific
+             // reason instead — never the generic "Connection Lost" toast,
+             // since the connection itself is fine here.
+             const connectedRealPlayers = players.filter((p: Player) => !p.isBot && clients.get(p.sessionId)?.readyState === WebSocket.OPEN);
+             if (connectedRealPlayers.length < MIN_REMATCH_PLAYERS) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Not enough of your original group is still here to rematch." } }));
+               return;
+             }
+
              const survivors = players.filter((p: Player) => p.isAlive);
              const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
              const innocentsCount = survivors.length - mafiaCount;

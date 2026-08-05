@@ -10,7 +10,11 @@
     "close": "Close",
     "loading": "Loading...",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "connectionLostTitle": "Connection Lost",
+    "connectionLostDescription": "Trying to reconnect...",
+    "reconnectingTitle": "Reconnecting",
+    "reconnectingPlayAgainDescription": "Give it a moment, then tap Play Again again."
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -278,8 +282,10 @@
     "civiliansWonDescription": "The town eliminated all mafia!",
     "jesterWonDescription": "{{name}} wanted to be voted out — and it worked!",
     "finalRolesRevealed": "Final Roles Revealed",
+    "playAgainHelper": "Starts a new round with this same group — not a new public game.",
     "matchAlreadyEndedTitle": "This match is already over",
     "matchAlreadyEndedDescription": "You joined after this round ended, so you weren't part of it. Sit tight — the host can start a new round and you'll be right in it.",
+    "waitingForHostRematch": "Waiting for the host to start a new round...",
     "playAgain": "Play Again",
     "eliminated": "Eliminated",
     "wasRole": "was {{role}}",

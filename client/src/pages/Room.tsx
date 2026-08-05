@@ -697,13 +697,20 @@ export default function Room() {
                       </div>
                     </div>
 
-                    <Button
-                      onClick={() => sendAction({ type: "replay" } as any)}
-                      className="gap-3 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
-                    >
-                      <RotateCcw className="w-6 h-6" />
-                      {t("room.playAgain")}
-                    </Button>
+                    {isHost ? (
+                      <>
+                        <Button
+                          onClick={() => sendAction({ type: "replay" } as any)}
+                          className="gap-3 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
+                        >
+                          <RotateCcw className="w-6 h-6" />
+                          {t("room.playAgain")}
+                        </Button>
+                        <div className="mt-3 text-xs text-muted-foreground">{t("room.playAgainHelper")}</div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic">{t("room.waitingForHostRematch")}</div>
+                    )}
                   </>
                 );
               })()}
@@ -1202,7 +1209,7 @@ export default function Room() {
             {room.status === "ended" && (
               <>
                 {isHost && (
-                  <div className="flex gap-3 mb-6 justify-center">
+                  <div className="flex flex-col items-center gap-2 mb-6">
                     <Button
                       onClick={() => sendAction({ type: "replay" } as any)}
                       className="gap-3 px-8 py-6 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg hover:shadow-purple-500/50 animate-pulse"
@@ -1210,6 +1217,7 @@ export default function Room() {
                       <RotateCcw className="w-6 h-6" />
                       {t("room.playAgain")}
                     </Button>
+                    <div className="text-xs text-muted-foreground">{t("room.playAgainHelper")}</div>
                   </div>
                 )}
                 <Card className="bg-card border-border mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

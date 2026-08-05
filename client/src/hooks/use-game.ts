@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest } from "@shared/schema";
@@ -24,6 +25,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [reconnectKey, setReconnectKey] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,10 +148,19 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
         type: "action",
         payload: action
       }));
+    } else if (action.type === "replay") {
+      // Play Again failing here almost always just means the socket is
+      // mid-reconnect (see the auto-reconnect logic above), not that the
+      // connection is actually lost — the scary generic toast below is
+      // the wrong message for this expected, short-lived case.
+      toast({
+        title: t("common.reconnectingTitle"),
+        description: t("common.reconnectingPlayAgainDescription"),
+      });
     } else {
       toast({
-        title: "Connection Lost",
-        description: "Trying to reconnect...",
+        title: t("common.connectionLostTitle"),
+        description: t("common.connectionLostDescription"),
         variant: "destructive",
       });
     }
