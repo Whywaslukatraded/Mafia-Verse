@@ -22,6 +22,7 @@ export default function TwoFactorSetup() {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -44,6 +45,7 @@ export default function TwoFactorSetup() {
         return;
       }
       setSupabaseUserId(sessionData.session.user.id);
+      setAccessToken(sessionData.session.access_token);
       setEmail(sessionData.session.user.email || "");
       setStep("qr"); // placeholder state until a method is chosen; "choose" screen shows first
     }
@@ -57,7 +59,7 @@ export default function TwoFactorSetup() {
     try {
       const res = await fetch("/api/auth/2fa/setup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId }),
       });
       const data = await res.json();
@@ -84,7 +86,7 @@ export default function TwoFactorSetup() {
     try {
       const res = await fetch("/api/auth/2fa/setup-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId, email: email.trim() }),
       });
       const data = await res.json();
@@ -110,7 +112,7 @@ export default function TwoFactorSetup() {
     try {
       const res = await fetch("/api/auth/2fa/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId, code }),
       });
       const data = await res.json();

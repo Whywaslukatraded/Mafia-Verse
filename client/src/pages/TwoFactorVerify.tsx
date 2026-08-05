@@ -17,6 +17,7 @@ export default function TwoFactorVerify() {
   const [verifying, setVerifying] = useState(false);
   const [method, setMethod] = useState<"totp" | "email">("totp");
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [sendingCode, setSendingCode] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
 
@@ -26,16 +27,20 @@ export default function TwoFactorVerify() {
       const supabase = getSupabase();
       const { data: sessionData } = await supabase.auth.getSession();
       const id = sessionData.session?.user?.id;
-      if (!id) return;
+      const token = sessionData.session?.access_token;
+      if (!id || !token) return;
       setSupabaseUserId(id);
+      setAccessToken(token);
 
       try {
-        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`);
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const status = await res.json();
         const userMethod = status.method === "email" ? "email" : "totp";
         setMethod(userMethod);
         if (userMethod === "email") {
-          await sendLoginCode(id);
+          await sendLoginCode(id, token);
         }
       } catch {
         // fall back to totp UI if status check fails
@@ -45,12 +50,12 @@ export default function TwoFactorVerify() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sendLoginCode = async (id: string) => {
+  const sendLoginCode = async (id: string, token: string) => {
     setSendingCode(true);
     try {
       const res = await fetch("/api/auth/2fa/send-login-code", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ supabaseUserId: id }),
       });
       const data = await res.json();
@@ -78,10 +83,11 @@ export default function TwoFactorVerify() {
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
     const supabaseId = sessionData.session?.user?.id;
+    const token = sessionData.session?.access_token;
     try {
       const res = await fetch("/api/auth/2fa/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ supabaseUserId: supabaseId, code }),
       });
       const data = await res.json();
@@ -155,7 +161,7 @@ export default function TwoFactorVerify() {
               variant="ghost"
               size="sm"
               className="w-full text-muted-foreground"
-              onClick={() => supabaseUserId && sendLoginCode(supabaseUserId)}
+              onClick={() => supabaseUserId && accessToken && sendLoginCode(supabaseUserId, accessToken)}
               disabled={sendingCode}
             >
               {t("twoFactor.resendCode")}

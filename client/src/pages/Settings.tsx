@@ -40,6 +40,7 @@ export default function Settings() {
   // (userMfa table) that TwoFactorSetup/TwoFactorVerify actually use, instead
   // of a disconnected local-account flag that never got set.
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const isLoggedIn = !!supabaseUserId;
   const [has2FA, setHas2FA] = useState(false);
@@ -63,11 +64,14 @@ export default function Settings() {
       const id = data.session?.user?.id;
       if (!id) return;
       setSupabaseUserId(id);
+      setAccessToken(data.session?.access_token || null);
       setUserEmail(data.session?.user?.email || null);
 
       setChecking2FA(true);
       try {
-        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`);
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`, {
+          headers: { Authorization: `Bearer ${data.session?.access_token}` },
+        });
         if (res.ok) {
           const d = await res.json();
           setHas2FA(!!d.isEnabled);
@@ -87,14 +91,15 @@ export default function Settings() {
     setDisabling2FA(true);
     try {
       // Real re-authentication: confirm the password is actually correct via
-      // Supabase before disabling, since the server endpoint itself doesn't
-      // (and can't, without knowing the password) verify it.
+      // Supabase before disabling. The server also independently verifies
+      // this exact session token belongs to a real, currently-valid account —
+      // so this fresh sign-in doubles as proof of both password AND identity.
       const supabase = getSupabase();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: disablePassword,
       });
-      if (authError) {
+      if (authError || !authData.session) {
         toast({ title: t("settings.errorTitle"), description: t("settings.incorrectPassword"), variant: "destructive" });
         setDisabling2FA(false);
         return;
@@ -102,7 +107,7 @@ export default function Settings() {
 
       const res = await fetch("/api/auth/2fa/disable", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session.access_token}` },
         body: JSON.stringify({ supabaseUserId }),
       });
       const data = await res.json();

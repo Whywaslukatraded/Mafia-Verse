@@ -65,8 +65,11 @@ export default function Login() {
     if (data.session) {
       // Check if 2FA is required
       const supabaseId = data.session.user.id;
+      const accessToken = data.session.access_token;
       try {
-        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
         const status = await res.json();
         if (status.isEnabled) {
           // 2FA is enabled → verify it
