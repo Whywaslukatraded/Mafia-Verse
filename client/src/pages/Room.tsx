@@ -637,9 +637,33 @@ export default function Room() {
                 // computed the real winner in finalizeGameEnd and stored it on
                 // each player's gameHistory — use that when it's there.
                 const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
+
+                // A player whose gameHistory has no game_end entry never
+                // participated in this match — most commonly someone who
+                // joined the room after it already ended. Show them a plain
+                // "match is over" state instead of guessing a winner from
+                // the live (and for them, irrelevant) player list.
+                if (!latestGameEnd) {
+                  return (
+                    <>
+                      <div className="text-6xl mb-4">🕯️</div>
+                      <div className="text-3xl font-black mb-4 text-foreground">{t("room.matchAlreadyEndedTitle")}</div>
+                      <div className="mb-8 text-muted-foreground text-lg font-semibold">
+                        {t("room.matchAlreadyEndedDescription")}
+                      </div>
+                    </>
+                  );
+                }
+
                 const jesterWon = latestGameEnd?.winner === "jester";
-                const mafiaWon = jesterWon ? false : (latestGameEnd ? latestGameEnd.winner === "mafia" : aliveMafia > 0);
-                const jesterName = jesterWon ? (latestGameEnd.roles?.find((r: any) => r.role === "jester")?.name || players.find(p => p.role === "jester")?.name) : undefined;
+                const mafiaWon = jesterWon ? false : latestGameEnd.winner === "mafia";
+                // The roles list below is the frozen snapshot the server saved
+                // the moment this match ended — the same data for every player
+                // who was actually in it, so every tab shows an identical
+                // result and anyone who joins later never gets added to it.
+                const finalRoles: any[] = latestGameEnd.roles || [];
+                const jesterName = jesterWon ? finalRoles.find((r: any) => r.role === "jester")?.name : undefined;
+                const aliveMafiaAtEnd = finalRoles.filter((r: any) => r.role === "mafia" && r.isAlive).length;
 
                 return (
                   <>
@@ -651,14 +675,14 @@ export default function Room() {
                       {jesterWon
                         ? t("room.jesterWonDescription", { name: jesterName || t("chat.someone") })
                         : mafiaWon
-                        ? t("room.mafiaWonDescription", { count: aliveMafia })
+                        ? t("room.mafiaWonDescription", { count: aliveMafiaAtEnd })
                         : t("room.civiliansWonDescription")}
                     </div>
 
                     <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
                       <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
                       <div className="grid grid-cols-2 gap-3">
-                        {players.map((p) => (
+                        {finalRoles.map((p) => (
                           <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
                             <span className="text-2xl">{p.avatar || "👤"}</span>
                             <div className="text-left flex-1">

@@ -1227,7 +1227,14 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   history.push({
     type: 'game_end',
     winner,
-    roles: playersInRoom.map((p: Player) => ({ name: p.name, role: p.role }))
+    // This snapshot is frozen at the moment the game ends and copied onto
+    // every participating player's row below. It is the single source of
+    // truth for "who was in this match" — anyone who joins the room after
+    // this point is never added to it, so late joiners can't appear in
+    // (or desync) the Final Roles Revealed screen. Include everything the
+    // client needs (avatar/isAlive/id) so it never has to fall back to the
+    // live, mutable players list to render this screen.
+    roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive }))
   });
   gameHistory.set(roomId, history);
 

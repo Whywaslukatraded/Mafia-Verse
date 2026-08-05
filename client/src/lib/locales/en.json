@@ -278,6 +278,8 @@
     "civiliansWonDescription": "The town eliminated all mafia!",
     "jesterWonDescription": "{{name}} wanted to be voted out — and it worked!",
     "finalRolesRevealed": "Final Roles Revealed",
+    "matchAlreadyEndedTitle": "This match is already over",
+    "matchAlreadyEndedDescription": "You joined after this round ended, so you weren't part of it. Sit tight — the host can start a new round and you'll be right in it.",
     "playAgain": "Play Again",
     "eliminated": "Eliminated",
     "wasRole": "was {{role}}",
