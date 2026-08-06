@@ -2,6 +2,8 @@
 // Requires BREVO_API_KEY and BREVO_SENDER_EMAIL environment variables.
 // BREVO_SENDER_EMAIL must be a verified sender in your Brevo account.
 
+import { randomInt } from "crypto";
+
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 export async function sendEmail(to: string, subject: string, htmlContent: string): Promise<void> {
@@ -34,7 +36,10 @@ export async function sendEmail(to: string, subject: string, htmlContent: string
 }
 
 export function generateSixDigitCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Uses Node's CSPRNG (crypto.randomInt) instead of Math.random(),
+  // which is not cryptographically secure and can be predicted from
+  // a handful of observed outputs.
+  return randomInt(100000, 1000000).toString();
 }
 
 export function build2FAEmailHtml(code: string): string {
