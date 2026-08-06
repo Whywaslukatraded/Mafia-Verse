@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame } from "lucide-react";
+import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -482,6 +483,26 @@ export default function Home() {
     });
   };
 
+  // Feature: Role presets — populates the same editable count fields below
+  // rather than creating a separate config path, so a preset is just a
+  // starting point the host can still tweak.
+  const applyPreset = (preset: RolePreset) => {
+    const next = {
+      mafia: preset.mafiaCount, detective: preset.detectiveCount, doctor: preset.doctorCount, civilian: preset.civilianCount,
+      bodyguard: preset.bodyguardCount, vigilante: preset.vigilanteCount, mayor: preset.mayorCount, jester: preset.jesterCount,
+      phaseDuration: preset.phaseDuration, mafiaDuration: preset.mafiaDuration, doctorDuration: preset.doctorDuration, detectiveDuration: preset.detectiveDuration,
+      bodyguardDuration: preset.bodyguardDuration, vigilanteDuration: preset.vigilanteDuration,
+    };
+    setCounts(next);
+    try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(next)); } catch {}
+  };
+
+  const PRESET_META: Record<string, { icon: any; color: string }> = {
+    classic: { icon: Sparkles, color: "text-blue-400" },
+    chaos: { icon: Flame, color: "text-orange-400" },
+    beginner: { icon: Smile, color: "text-emerald-400" },
+  };
+
   const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian
     + counts.bodyguard + counts.vigilante + counts.mayor + counts.jester;
   const specialRoleTotal = counts.mafia + counts.detective + counts.doctor
@@ -849,6 +870,26 @@ export default function Home() {
                   <Input placeholder={t("home.roomNamePlaceholder")} value={roomName}
                     onChange={e => setRoomName(e.target.value)}
                     className="bg-muted/50 border-border h-11 focus:ring-primary/50 text-foreground" maxLength={32} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.presets.label")}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ROLE_PRESETS.map((preset) => {
+                      const meta = PRESET_META[preset.id];
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyPreset(preset)}
+                          className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/50 border border-border hover:border-primary/50 hover:bg-muted transition-colors"
+                          data-testid={`button-preset-${preset.id}`}
+                        >
+                          <meta.icon className={`w-4 h-4 ${meta.color}`} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">{t(`home.presets.${preset.id}`)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   {ROLE_ROWS.map((role) => (

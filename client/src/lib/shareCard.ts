@@ -22,6 +22,10 @@ export interface ShareCardHighlight {
 export interface ShareCardOptions {
   playerName: string;
   avatarEmoji: string;
+  // Equipped cosmetics — same shape PlayerCard.tsx reads from player.avatarConfig.
+  // bg is a Tailwind background class (e.g. "bg-blue-500"); accessory/clothing
+  // are emoji, matching how PlayerCard layers them over the avatar circle.
+  avatarConfig?: { bg?: string; accessory?: string; clothing?: string } | null;
   role: ShareCardRole;
   won: boolean;
   winnerLabel: string; // e.g. "MAFIA WINS" / "TOWN WINS" / "JESTER WINS" — already translated
@@ -110,9 +114,41 @@ export async function generateShareCard(options: ShareCardOptions): Promise<{ ca
   ctx.font = "900 56px Georgia, serif";
   ctx.fillText(options.winnerLabel, WIDTH / 2, 150);
 
-  // Avatar
-  ctx.font = "150px sans-serif";
-  ctx.fillText(options.avatarEmoji || "🎭", WIDTH / 2, 340);
+  // Avatar — mirrors PlayerCard.tsx: a circular background (from
+  // avatarConfig.bg), the base avatar emoji centered, and accessory/clothing
+  // emoji layered near the top/bottom of the circle when equipped.
+  const avatarCenterY = 300;
+  const avatarRadius = 90;
+  const avatarBg = options.avatarConfig?.bg
+    ? readComputedColor(options.avatarConfig.bg, "backgroundColor")
+    : cardBg;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(WIDTH / 2, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+  ctx.fillStyle = avatarBg;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = accent;
+  ctx.stroke();
+  ctx.clip();
+
+  ctx.font = "90px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(options.avatarEmoji || "🎭", WIDTH / 2, avatarCenterY + 8);
+  ctx.restore();
+  ctx.textBaseline = "alphabetic";
+
+  if (options.avatarConfig?.accessory && options.avatarConfig.accessory !== "None") {
+    ctx.font = "36px sans-serif";
+    ctx.fillText(options.avatarConfig.accessory, WIDTH / 2, avatarCenterY - avatarRadius + 30);
+  }
+  if (options.avatarConfig?.clothing && options.avatarConfig.clothing !== "None") {
+    ctx.font = "32px sans-serif";
+    ctx.globalAlpha = 0.9;
+    ctx.fillText(options.avatarConfig.clothing, WIDTH / 2, avatarCenterY + avatarRadius - 10);
+    ctx.globalAlpha = 1;
+  }
 
   // Player name
   ctx.fillStyle = foreground;

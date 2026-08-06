@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile } from "lucide-react";
+import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -225,6 +226,7 @@ export default function Room() {
       const { toBlob, dataUrl } = await generateShareCard({
         playerName: me.name,
         avatarEmoji: me.avatar || "🎭",
+        avatarConfig: (me as any).avatarConfig,
         role: myFinalRole,
         won,
         winnerLabel,
@@ -403,6 +405,20 @@ export default function Room() {
 
   const toggleSetting = (key: "showVoteResults" | "showRoleReveal") => {
     setSettingsDraft(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Feature: Role presets — same shared presets as room creation. Only
+  // overwrites the role/timer fields; showVoteResults/showRoleReveal stay
+  // whatever the host already had them set to.
+  const applyPresetToDraft = (preset: RolePreset) => {
+    const { id, ...presetFields } = preset;
+    setSettingsDraft(prev => ({ ...prev, ...presetFields }));
+  };
+
+  const PRESET_META: Record<string, { icon: any; color: string }> = {
+    classic: { icon: Sparkles, color: "text-blue-400" },
+    chaos: { icon: Flame, color: "text-orange-400" },
+    beginner: { icon: Smile, color: "text-emerald-400" },
   };
 
   const specialRoleTotal = settingsDraft.mafiaCount + settingsDraft.detectiveCount + settingsDraft.doctorCount
@@ -1095,6 +1111,26 @@ export default function Room() {
 
                   {isHost && showSettingsPanel && (
                     <div className="mt-6 pt-6 border-t border-border space-y-3">
+                      <div className="space-y-2">
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.presets.label")}</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          {ROLE_PRESETS.map((preset) => {
+                            const meta = PRESET_META[preset.id];
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => applyPresetToDraft(preset)}
+                                className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-muted/50 border border-border hover:border-primary/50 hover:bg-muted transition-colors"
+                                data-testid={`button-room-preset-${preset.id}`}
+                              >
+                                <meta.icon className={cn("w-4 h-4", meta.color)} />
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-foreground">{t(`home.presets.${preset.id}`)}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                       {([
                         { key: "mafiaCount", label: t("home.roles.mafias"), icon: Skull, color: "text-red-500" },
                         { key: "detectiveCount", label: t("home.roles.detectives"), icon: Shield, color: "text-blue-500" },

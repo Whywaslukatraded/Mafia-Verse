@@ -243,6 +243,12 @@
     "enterAbyss": "ENTER THE ABYSS",
     "roomNameOptional": "Room Name (optional)",
     "roomNamePlaceholder": "e.g. The Godfather's Table",
+    "presets": {
+      "label": "Quick Presets",
+      "classic": "Classic",
+      "chaos": "Chaos",
+      "beginner": "Beginner-Friendly"
+    },
     "totalPlayers": "Total Players",
     "minPlayers": "Min 6 players required",
     "maxPlayersHint": "20 players max",
@@ -520,7 +526,7 @@
     "questions": {
       "howToPlay": {
         "question": "How do I play?",
-        "answer": "Mafia Verse alternates between Night, when special roles act in secret, and Day, when everyone discusses and then votes to eliminate someone. The game ends when one side wins. Open the Mafia Handbook from the home screen for a full breakdown of every role."
+        "answer": "Mafia Verse alternates between Night, when special roles act in secret, and Day, when everyone discusses and then votes to eliminate someone. The game ends when one side wins. Open the Mafia Handbook from inside a room during a match for a full breakdown of every role."
       },
       "credits": {
         "question": "What are credits used for, and do I have to pay?",

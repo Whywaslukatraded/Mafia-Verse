@@ -243,6 +243,12 @@
     "enterAbyss": "ENTRA AL ABISMO",
     "roomNameOptional": "Nombre de la sala (opcional)",
     "roomNamePlaceholder": "ej. La mesa del padrino",
+    "presets": {
+      "label": "Ajustes rápidos",
+      "classic": "Clásico",
+      "chaos": "Caos",
+      "beginner": "Para principiantes"
+    },
     "totalPlayers": "Total de jugadores",
     "minPlayers": "Se requieren al menos 6 jugadores",
     "maxPlayersHint": "Máximo 20 jugadores",
@@ -520,7 +526,7 @@
     "questions": {
       "howToPlay": {
         "question": "¿Cómo juego?",
-        "answer": "Mafia Verse alterna entre la Noche, cuando los roles especiales actúan en secreto, y el Día, cuando todos discuten y luego votan para eliminar a alguien. La partida termina cuando un bando gana. Abre el Manual de la Mafia desde la pantalla de inicio para ver el detalle completo de cada rol."
+        "answer": "Mafia Verse alterna entre la Noche, cuando los roles especiales actúan en secreto, y el Día, cuando todos discuten y luego votan para eliminar a alguien. La partida termina cuando un bando gana. Abre el Manual de la Mafia desde dentro de una sala durante la partida para ver el detalle completo de cada rol."
       },
       "credits": {
         "question": "¿Para qué sirven los créditos y tengo que pagar?",
