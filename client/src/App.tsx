@@ -25,6 +25,8 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const Cosmetics = lazy(() => import("@/pages/Cosmetics"));
 const Store = lazy(() => import("@/pages/Store"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
+const About = lazy(() => import("@/pages/About"));
+const FAQ = lazy(() => import("@/pages/FAQ"));
 
 function Router404() {
   // Check if we are running inside an itch.io nested preview sandbox or subfolder
@@ -56,6 +58,8 @@ function Router404() {
           <Route path="/cosmetics" component={Cosmetics} />
           <Route path="/store" component={Store} />
           <Route path="/leaderboard" component={Leaderboard} />
+          <Route path="/about" component={About} />
+          <Route path="/faq" component={FAQ} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>

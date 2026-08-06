@@ -194,6 +194,8 @@
     "settings": "Settings",
     "joinDiscord": "Join our Discord",
     "systemCore": "System Core: 2,900+ Source Lines",
+    "aboutLink": "About",
+    "faqLink": "FAQ",
     "achievementsLabel": "Achievements",
     "achievements": {
       "first_win": {
@@ -474,6 +476,56 @@
     "couldNotDisable2FA": "Could not disable 2FA",
     "somethingWentWrong": "Something went wrong",
     "incorrectPassword": "Incorrect password"
+  },
+  "notFound": {
+    "title": "Dead End",
+    "tagline": "This Street Doesn't Exist",
+    "description": "Whatever you were looking for isn't here — maybe it never was. Even the Mafia can't find a room on a street that doesn't exist.",
+    "backHome": "Back to the City"
+  },
+  "about": {
+    "title": "About Mafia Verse",
+    "description": "Mafia Verse is a social deduction game of lies, alliances, and cold calculation. Gather your crew, trust no one, and figure out who's Mafia before the town runs out of nights.",
+    "highlights": {
+      "bots": {
+        "title": "Play anytime, any size",
+        "description": "AI bots fill empty seats so a game always starts, even if your crew is small."
+      },
+      "graveyard": {
+        "title": "The dead still talk",
+        "description": "Eliminated players get their own graveyard chat to keep watching the chaos unfold."
+      },
+      "community": {
+        "title": "Built with the community",
+        "description": "Feedback from real players shapes new roles, settings, and features."
+      }
+    }
+  },
+  "faq": {
+    "title": "F.A.Q.",
+    "subtitle": "Questions From The Street",
+    "questions": {
+      "howToPlay": {
+        "question": "How do I play?",
+        "answer": "Mafia Verse alternates between Night, when special roles act in secret, and Day, when everyone discusses and then votes to eliminate someone. The game ends when one side wins. Open the Mafia Handbook from the home screen for a full breakdown of every role."
+      },
+      "credits": {
+        "question": "What are credits used for, and do I have to pay?",
+        "answer": "Credits are spent on crates and cosmetics — things like personas, accessories, and backgrounds. They're entirely optional and don't affect gameplay; you can play every match for free without ever buying credits."
+      },
+      "botAutoFill": {
+        "question": "How does bot auto-fill work?",
+        "answer": "AI bots fill empty seats so a game always starts, even if your crew is small. If your room doesn't fill with real players in time, bots take the remaining slots automatically so you're never stuck waiting on an empty lobby."
+      },
+      "syndicatePass": {
+        "question": "What does the Syndicate Pass include?",
+        "answer": "The Syndicate Pass unlocks 20+ exclusive cosmetics including legendary personas, gold-tier accessories, and syndicate-only backgrounds, plus a premium mystery street kit pack and a permanent lobby badge."
+      },
+      "afkFlag": {
+        "question": "What happens if I get flagged for inactivity?",
+        "answer": "That yellow flag on a player's card isn't a \"suspicious\" marker — it reports someone as AFK/inactive. It doesn't affect the game itself, but if a player collects 2+ reports in a game, it's logged against their account's activity record."
+      }
+    }
   },
   "leaderboard": {
     "title": "Hall of Infamy",

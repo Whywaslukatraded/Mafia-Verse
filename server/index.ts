@@ -65,6 +65,27 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+// Route prefixes whose response bodies should never be logged at all —
+// these can carry TOTP secrets, QR payloads, tokens, or other secrets even
+// on a successful (2xx) response.
+const NEVER_LOG_BODY_PREFIXES = ["/api/auth/2fa", "/api/auth/login", "/api/auth/signup", "/api/auth/reset-password", "/api/stripe"];
+
+// Defense in depth for everything else: strip any field whose key looks
+// sensitive before it ever reaches the log, regardless of which route it
+// came from.
+const SENSITIVE_KEY_PATTERN = /secret|token|password|qrcode|totp|code|credential|authorization/i;
+function redactSensitiveFields(value: any): any {
+  if (Array.isArray(value)) return value.map(redactSensitiveFields);
+  if (value && typeof value === "object") {
+    const redacted: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value)) {
+      redacted[key] = SENSITIVE_KEY_PATTERN.test(key) ? "[REDACTED]" : redactSensitiveFields(val);
+    }
+    return redacted;
+  }
+  return value;
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -80,8 +101,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      const skipBody = NEVER_LOG_BODY_PREFIXES.some((prefix) => path.startsWith(prefix));
+      if (capturedJsonResponse && !skipBody) {
+        logLine += ` :: ${JSON.stringify(redactSensitiveFields(capturedJsonResponse))}`;
       }
 
       log(logLine);

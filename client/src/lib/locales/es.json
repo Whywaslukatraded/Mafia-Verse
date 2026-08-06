@@ -194,6 +194,8 @@
     "settings": "Ajustes",
     "joinDiscord": "Únete a nuestro Discord",
     "systemCore": "Núcleo del sistema: más de 2900 líneas de código",
+    "aboutLink": "Acerca de",
+    "faqLink": "Preguntas",
     "achievementsLabel": "Logros",
     "achievements": {
       "first_win": {
@@ -474,6 +476,56 @@
     "couldNotDisable2FA": "No se pudo desactivar 2FA",
     "somethingWentWrong": "Algo salió mal",
     "incorrectPassword": "Contraseña incorrecta"
+  },
+  "notFound": {
+    "title": "Callejón sin salida",
+    "tagline": "Esta calle no existe",
+    "description": "Lo que buscabas no está aquí, tal vez nunca estuvo. Ni la Mafia puede encontrar una sala en una calle que no existe.",
+    "backHome": "Volver a la ciudad"
+  },
+  "about": {
+    "title": "Acerca de Mafia Verse",
+    "description": "Mafia Verse es un juego de deducción social lleno de mentiras, alianzas y cálculo frío. Reúne a tu grupo, no confíes en nadie y descubre quién es de la Mafia antes de que se acaben las noches en el pueblo.",
+    "highlights": {
+      "bots": {
+        "title": "Juega en cualquier momento, con cualquier tamaño",
+        "description": "Los bots de IA llenan los espacios vacíos para que la partida siempre comience, aunque tu grupo sea pequeño."
+      },
+      "graveyard": {
+        "title": "Los muertos siguen hablando",
+        "description": "Los jugadores eliminados tienen su propio chat de cementerio para seguir el caos de la partida."
+      },
+      "community": {
+        "title": "Hecho con la comunidad",
+        "description": "Los comentarios de jugadores reales dan forma a nuevos roles, ajustes y funciones."
+      }
+    }
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "subtitle": "Preguntas desde la calle",
+    "questions": {
+      "howToPlay": {
+        "question": "¿Cómo juego?",
+        "answer": "Mafia Verse alterna entre la Noche, cuando los roles especiales actúan en secreto, y el Día, cuando todos discuten y luego votan para eliminar a alguien. La partida termina cuando un bando gana. Abre el Manual de la Mafia desde la pantalla de inicio para ver el detalle completo de cada rol."
+      },
+      "credits": {
+        "question": "¿Para qué sirven los créditos y tengo que pagar?",
+        "answer": "Los créditos se gastan en cajas y cosméticos: personajes, accesorios y fondos. Son totalmente opcionales y no afectan la partida; puedes jugar cada partida gratis sin comprar créditos nunca."
+      },
+      "botAutoFill": {
+        "question": "¿Cómo funciona el relleno automático con bots?",
+        "answer": "Los bots de IA llenan los espacios vacíos para que la partida siempre comience, aunque tu grupo sea pequeño. Si tu sala no se llena con jugadores reales a tiempo, los bots ocupan los espacios restantes automáticamente para que nunca te quedes esperando en una sala vacía."
+      },
+      "syndicatePass": {
+        "question": "¿Qué incluye el Pase Syndicate?",
+        "answer": "El Pase Syndicate desbloquea más de 20 cosméticos exclusivos, incluyendo personajes legendarios, accesorios de nivel oro y fondos exclusivos del Syndicate, además de un paquete premium sorpresa y una insignia permanente de sala."
+      },
+      "afkFlag": {
+        "question": "¿Qué pasa si me marcan por inactividad?",
+        "answer": "Esa bandera amarilla en la tarjeta de un jugador no es una marca de \"sospechoso\": reporta a alguien como AFK/inactivo. No afecta la partida en sí, pero si un jugador acumula 2+ reportes en una partida, queda registrado en el historial de actividad de su cuenta."
+      }
+    }
   },
   "leaderboard": {
     "title": "Salón de la infamia",

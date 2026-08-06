@@ -763,7 +763,21 @@ export default function Home() {
                   <span className="text-sm font-bold text-indigo-400">{t("home.joinDiscord")}</span>
                 </a>
 
-                <div className="pt-2 flex justify-center">
+                <div className="pt-2 flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => setLocation("/about")}
+                    className="text-[10px] text-muted-foreground/60 hover:text-foreground uppercase tracking-[0.2em] font-mono transition-colors"
+                    data-testid="link-about"
+                  >
+                    {t("home.aboutLink")}
+                  </button>
+                  <button
+                    onClick={() => setLocation("/faq")}
+                    className="text-[10px] text-muted-foreground/60 hover:text-foreground uppercase tracking-[0.2em] font-mono transition-colors"
+                    data-testid="link-faq"
+                  >
+                    {t("home.faqLink")}
+                  </button>
                   <span className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] font-mono">
                     {t("home.systemCore")}
                   </span>
