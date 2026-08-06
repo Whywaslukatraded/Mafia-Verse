@@ -249,6 +249,17 @@
       "chaos": "Chaos",
       "beginner": "Beginner-Friendly"
     },
+    "botPersonality": {
+      "label": "Bot Personality",
+      "default": "Default",
+      "chill": "Chill",
+      "aggressiveLiar": "Aggressive Liar",
+      "chaotic": "Chaotic",
+      "defaultDescription": "Bots behave the way they always have — a balanced mix of accusing, defending, and staying quiet.",
+      "chillDescription": "Bots talk less and go easier on accusations, letting the humans drive the conversation.",
+      "aggressiveLiarDescription": "Bots talk more, accuse more often, and defend themselves harder when called out.",
+      "chaoticDescription": "Bots talk often but unpredictably, jumping between accusing, defending, and joking around."
+    },
     "totalPlayers": "Total Players",
     "minPlayers": "Min 6 players required",
     "maxPlayersHint": "20 players max",

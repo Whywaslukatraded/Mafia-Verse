@@ -71,6 +71,9 @@ export const rooms = pgTable("rooms", {
     jesterCount?: number;
     bodyguardDuration?: number;
     vigilanteDuration?: number;
+    // Feature: Bot personality — alters chat tone/behavior tendencies only.
+    // Undefined/unset means "use current default behavior" (unchanged).
+    botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
@@ -178,6 +181,7 @@ export type CreateRoomRequest = {
     jesterCount?: number;
     bodyguardDuration?: number;
     vigilanteDuration?: number;
+    botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
   };
 };
 

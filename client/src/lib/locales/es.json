@@ -249,6 +249,17 @@
       "chaos": "Caos",
       "beginner": "Para principiantes"
     },
+    "botPersonality": {
+      "label": "Personalidad de los bots",
+      "default": "Predeterminado",
+      "chill": "Tranquilo",
+      "aggressiveLiar": "Mentiroso agresivo",
+      "chaotic": "Caótico",
+      "defaultDescription": "Los bots se comportan como siempre — una mezcla equilibrada de acusar, defenderse y quedarse callados.",
+      "chillDescription": "Los bots hablan menos y son más suaves con las acusaciones, dejando que los humanos lleven la conversación.",
+      "aggressiveLiarDescription": "Los bots hablan más, acusan más seguido y se defienden con más fuerza cuando los señalan.",
+      "chaoticDescription": "Los bots hablan seguido pero de forma impredecible, saltando entre acusar, defenderse y bromear."
+    },
     "totalPlayers": "Total de jugadores",
     "minPlayers": "Se requieren al menos 6 jugadores",
     "maxPlayersHint": "Máximo 20 jugadores",

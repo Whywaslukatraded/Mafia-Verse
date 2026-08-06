@@ -116,6 +116,7 @@ export default function Room() {
     phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
     showVoteResults: true, showRoleReveal: true,
+    botPersonality: undefined as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
@@ -390,6 +391,7 @@ export default function Room() {
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
         bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
+        botPersonality: s.botPersonality as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
       });
     }
     setShowSettingsPanel(true);
@@ -482,6 +484,7 @@ export default function Room() {
         vigilanteDuration: settingsDraft.vigilanteDuration,
         showVoteResults: settingsDraft.showVoteResults,
         showRoleReveal: settingsDraft.showRoleReveal,
+        botPersonality: settingsDraft.botPersonality,
       }));
     } catch {}
     setShowSettingsPanel(false);
@@ -1196,6 +1199,36 @@ export default function Room() {
                       <p className="text-[10px] text-muted-foreground/70">
                         {t("room.roleRevealExplainer")}
                       </p>
+
+                      <div className="space-y-2 pt-2 border-t border-border">
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.botPersonality.label")}</span>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSettingsDraft(prev => ({ ...prev, botPersonality: undefined }))}
+                            className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-2 rounded-lg border transition-all",
+                              !settingsDraft.botPersonality ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                            data-testid="button-bot-personality-default"
+                          >
+                            {t("home.botPersonality.default")}
+                          </button>
+                          {(["chill", "aggressiveLiar", "chaotic"] as const).map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setSettingsDraft(prev => ({ ...prev, botPersonality: p }))}
+                              className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-2 rounded-lg border transition-all",
+                                settingsDraft.botPersonality === p ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                              data-testid={`button-bot-personality-${p}`}
+                            >
+                              {t(`home.botPersonality.${p}`)}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/70">
+                          {t(`home.botPersonality.${settingsDraft.botPersonality || "default"}Description`)}
+                        </p>
+                      </div>
 
                       <Button onClick={handleSaveSettings} className="w-full gap-2 mt-2">
                         <CheckCircle2 className="w-4 h-4" />

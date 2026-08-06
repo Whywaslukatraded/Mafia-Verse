@@ -724,7 +724,7 @@ function parseMafiaChatCommand(content: string, candidates: Player[]): { kind: '
 
 // Reads an actual human message and picks the bot response category that best
 // matches what was said, instead of only checking a couple of keywords.
-function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[], lang: string | undefined) {
+function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[], lang: string | undefined, personality: typeof BOT_PERSONALITY_DEFAULTS = BOT_PERSONALITY_DEFAULTS) {
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
 
   const roleWords = lang === "es"
@@ -773,7 +773,10 @@ function classifyMessage(msgLower: string, players: Player[], bot: Player, alive
     return { category: "response" as const, targetName: undefined };
   }
   if (accusationWords.some(w => msgLower.includes(w))) {
-    if (alivePlayers.length > 0 && Math.random() > 0.4) {
+    // Original threshold was a flat 0.4. More aggressive personalities are
+    // more likely to name someone directly instead of staying vague.
+    const accuseThreshold = Math.min(0.9, Math.max(0.05, 0.4 / personality.aggression));
+    if (alivePlayers.length > 0 && Math.random() > accuseThreshold) {
       const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
       return { category: "accusation" as const, targetName: victim.name };
     }
@@ -804,11 +807,79 @@ function buildBotReply(category: keyof typeof BOT_MESSAGES_EN, targetName: strin
   return line.replace("{name}", name);
 }
 
+// Feature: Bot personality — a small set of multipliers layered on top of
+// the existing chat/behavior probabilities below, not a rewrite of them.
+// `undefined` (no personality picked) always resolves to these exact
+// multipliers (all 1, matching the original hardcoded constants), so a room
+// with no personality set behaves identically to before this feature existed.
+type BotPersonality = "chill" | "aggressiveLiar" | "chaotic";
+
+const BOT_PERSONALITY_DEFAULTS = {
+  // Multiplies how often a bot decides to speak at all (handleBotActions'
+  // `Math.random() > 0.35` and respondToHumanChat's `Math.random() > 0.8`
+  // ignore-chance both scale from this).
+  talkativeness: 1,
+  // Shifts the category-distribution `rand` thresholds toward "accusation"
+  // (higher = more accusatory) vs. toward "agreement"/"defense" (lower).
+  aggression: 1,
+  // When > 1, categories are picked closer to a flat/random distribution
+  // instead of following the normal weighted bands — a "chaotic" bot is
+  // less predictable turn to turn, not just louder or angrier.
+  randomness: 1,
+};
+
+const BOT_PERSONALITIES: Record<BotPersonality, typeof BOT_PERSONALITY_DEFAULTS> = {
+  chill: { talkativeness: 0.55, aggression: 0.5, randomness: 1 },
+  aggressiveLiar: { talkativeness: 1.4, aggression: 1.7, randomness: 1 },
+  chaotic: { talkativeness: 1.2, aggression: 1, randomness: 1.8 },
+};
+
+function getBotPersonality(room: any): typeof BOT_PERSONALITY_DEFAULTS {
+  const key = (room.settings as any)?.botPersonality as BotPersonality | undefined;
+  return key && BOT_PERSONALITIES[key] ? BOT_PERSONALITIES[key] : BOT_PERSONALITY_DEFAULTS;
+}
+
+// Replaces the old hardcoded "rand > 0.7 -> accusation, rand > 0.55 ->
+// defense, ..." chain with weights so a personality can shift them. The
+// base weights below reproduce those exact original band widths, so a room
+// with no personality set (all multipliers = 1) picks categories with
+// identical odds to before this feature existed.
+const BASE_CATEGORY_WEIGHTS: Record<string, number> = {
+  accusation: 0.30, defense: 0.15, suspicion: 0.15,
+  response: 0.15, agreement: 0.10, general: 0.15,
+};
+
+function pickBotChatCategory(personality: typeof BOT_PERSONALITY_DEFAULTS): keyof typeof BOT_MESSAGES_EN {
+  const categories = Object.keys(BASE_CATEGORY_WEIGHTS) as (keyof typeof BOT_MESSAGES_EN)[];
+  const uniform = 1 / categories.length;
+  const blend = Math.min(1, Math.max(0, personality.randomness - 1));
+
+  const weights = categories.map((cat) => {
+    let w = BASE_CATEGORY_WEIGHTS[cat];
+    // Aggression pushes weight toward accusation and away from the
+    // "softer" categories (defense, agreement).
+    if (cat === "accusation") w *= personality.aggression;
+    else if (cat === "defense" || cat === "agreement") w /= personality.aggression;
+    // Randomness flattens the whole distribution toward uniform.
+    w = w * (1 - blend) + uniform * blend;
+    return Math.max(0.01, w);
+  });
+
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < categories.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return categories[i];
+  }
+  return "general";
+}
+
 async function respondToHumanChat(roomId: number, humanMessage: string, storage: any) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
   const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
+  const personality = getBotPersonality(room);
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   if (bots.length === 0) return;
@@ -825,7 +896,10 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
     : ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"];
   const isDirectQuestion = msgLower.includes("?") || msgLower.includes("¿") || questionWords.some(w => msgLower.includes(w));
 
-  if (!calledBot && !isDirectQuestion && Math.random() > 0.8) return;
+  // Original threshold was a flat 0.8 (20% chance of staying quiet). More
+  // talkative personalities skip that quiet chance less often.
+  const ignoreThreshold = 1 - Math.min(0.95, Math.max(0.02, 0.2 / personality.talkativeness));
+  if (!calledBot && !isDirectQuestion && Math.random() > ignoreThreshold) return;
 
   const bot = calledBot || bots[Math.floor(Math.random() * bots.length)];
   const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
@@ -836,7 +910,7 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
     return;
   }
 
-  const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers, lang);
+  const { category, targetName } = classifyMessage(msgLower, players, bot, alivePlayers, lang, personality);
   let content = buildBotReply(category, targetName, bot.id, alivePlayers, lang);
 
   // ~45% of the time, open with a direct quote of what the player said —
@@ -858,6 +932,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
   const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
+  const personality = getBotPersonality(room);
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
@@ -919,7 +994,10 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       }
     }
 
-    if (Math.random() > 0.35) {
+    // Original threshold was a flat 0.35 (65% chance of speaking each turn).
+    // More talkative personalities speak more often; chill bots speak less.
+    const speakChance = Math.min(0.98, Math.max(0.05, 0.65 * personality.talkativeness));
+    if (Math.random() < speakChance) {
       let content = "";
 
       const recentMessages = await storage.getMessagesByRoom(roomId);
@@ -931,24 +1009,16 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         if (calledBot) {
           content = buildBotReply("calledOut", undefined, bot.id, alivePlayers, lang);
         } else {
-          const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers, lang);
+          const { category, targetName } = classifyMessage(msgText, players, bot, alivePlayers, lang, personality);
           content = buildBotReply(category, targetName, bot.id, alivePlayers, lang);
         }
       } else {
-        const rand = Math.random();
-        if (rand > 0.7 && alivePlayers.length > 0) {
+        const category = pickBotChatCategory(personality);
+        if (category === "accusation" && alivePlayers.length > 0) {
           const victim = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
           content = buildBotReply("accusation", victim.name, bot.id, alivePlayers, lang);
-        } else if (rand > 0.55) {
-          content = buildBotReply("defense", undefined, bot.id, alivePlayers, lang);
-        } else if (rand > 0.4) {
-          content = buildBotReply("suspicion", undefined, bot.id, alivePlayers, lang);
-        } else if (rand > 0.25) {
-          content = buildBotReply("response", undefined, bot.id, alivePlayers, lang);
-        } else if (rand > 0.15) {
-          content = buildBotReply("agreement", undefined, bot.id, alivePlayers, lang);
         } else {
-          content = buildBotReply("general", undefined, bot.id, alivePlayers, lang);
+          content = buildBotReply(category, undefined, bot.id, alivePlayers, lang);
         }
       }
       if (content) {

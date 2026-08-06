@@ -503,6 +503,28 @@ export default function Home() {
     beginner: { icon: Smile, color: "text-emerald-400" },
   };
 
+  // Feature: Bot personality — host-configurable at creation too, same
+  // optional field the in-room Game Settings panel writes. Undefined means
+  // "use current default bot behavior."
+  const [botPersonality, setBotPersonality] = useState<"chill" | "aggressiveLiar" | "chaotic" | undefined>(() => {
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.botPersonality) return parsed.botPersonality;
+      }
+    } catch {}
+    return undefined;
+  });
+  const updateBotPersonality = (val: "chill" | "aggressiveLiar" | "chaotic" | undefined) => {
+    setBotPersonality(val);
+    try {
+      const saved = localStorage.getItem("mafia_last_room_settings");
+      const prev = saved ? JSON.parse(saved) : {};
+      localStorage.setItem("mafia_last_room_settings", JSON.stringify({ ...prev, botPersonality: val }));
+    } catch {}
+  };
+
   const totalPlayers = counts.mafia + counts.detective + counts.doctor + counts.civilian
     + counts.bodyguard + counts.vigilante + counts.mayor + counts.jester;
   const specialRoleTotal = counts.mafia + counts.detective + counts.doctor
@@ -563,6 +585,7 @@ export default function Home() {
           bodyguardDuration: counts.bodyguardDuration, vigilanteDuration: counts.vigilanteDuration,
           roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
           language: i18n.language?.startsWith("es") ? "es" : "en",
+          botPersonality,
         },
         supabaseUserId: user?.id,
       } as any);
@@ -942,6 +965,35 @@ export default function Home() {
                   <p className="text-[10px] text-muted-foreground/70 px-2 leading-relaxed">
                     {t("home.roleRevealExplainer")}
                   </p>
+                  <div className="px-2 space-y-2 pt-1">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.botPersonality.label")}</span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateBotPersonality(undefined)}
+                        className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-2 rounded-lg border transition-all",
+                          !botPersonality ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                        data-testid="button-create-bot-personality-default"
+                      >
+                        {t("home.botPersonality.default")}
+                      </button>
+                      {(["chill", "aggressiveLiar", "chaotic"] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => updateBotPersonality(p)}
+                          className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-2 rounded-lg border transition-all",
+                            botPersonality === p ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                          data-testid={`button-create-bot-personality-${p}`}
+                        >
+                          {t(`home.botPersonality.${p}`)}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                      {t(`home.botPersonality.${botPersonality || "default"}Description`)}
+                    </p>
+                  </div>
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
