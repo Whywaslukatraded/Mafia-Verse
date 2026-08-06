@@ -32,6 +32,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
   // 7-day edit cooldown and one-time credit reward can't be reset just by
   // clearing browser storage or opening a new incognito session.
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingRating, setLoadingRating] = useState(false);
 
@@ -56,14 +57,18 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
+      const token = data.session?.access_token || null;
       if (cancelled) return;
       setSupabaseUserId(id);
+      setAccessToken(token);
       setCheckingAuth(false);
 
-      if (id) {
+      if (id && token) {
         setLoadingRating(true);
         try {
-          const res = await fetch(`/api/rewards/rating?supabaseUserId=${encodeURIComponent(id)}`);
+          const res = await fetch(`/api/rewards/rating?supabaseUserId=${encodeURIComponent(id)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (res.ok) {
             const data = await res.json();
             if (data && !cancelled) {
@@ -92,13 +97,13 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
   const daysUntilEditable = canEdit ? 0 : Math.ceil((EDIT_COOLDOWN_MS - msSinceLastEdit) / (24 * 60 * 60 * 1000));
 
   const handleSubmit = useCallback(async () => {
-    if (stars === 0 || !supabaseUserId || submitting) return;
+    if (stars === 0 || !supabaseUserId || !accessToken || submitting) return;
     setSubmitting(true);
     setErrorMsg("");
     try {
       const res = await fetch("/api/rewards/rating", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId, stars }),
       });
       const data = await res.json();
@@ -118,7 +123,7 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
     } finally {
       setSubmitting(false);
     }
-  }, [stars, supabaseUserId, submitting, ratingData, t]);
+  }, [stars, supabaseUserId, accessToken, submitting, ratingData, t]);
 
   const starLabels: Record<number, string> = {
     5: t("rating.amazing"),

@@ -59,6 +59,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
   // a client-generated sessionId — a sessionId resets the moment someone clears
   // localStorage or opens a new incognito tab, which was the actual loophole.
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   const BILLBOARD_ADS = useMemo(() => BILLBOARD_ADS_META.map(ad => ({
@@ -100,12 +101,16 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
+      const token = data.session?.access_token || null;
       if (cancelled) return;
       setSupabaseUserId(id);
+      setAccessToken(token);
       setCheckingAuth(false);
 
-      if (id) {
-        fetch(`/api/ad-claim/status?supabaseUserId=${encodeURIComponent(id)}`)
+      if (id && token) {
+        fetch(`/api/ad-claim/status?supabaseUserId=${encodeURIComponent(id)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
           .then(r => r.json())
           .then(data => {
             if (cancelled) return;

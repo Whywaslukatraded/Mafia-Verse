@@ -43,6 +43,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [streak, setStreak] = useState({ current: 0, longest: 0, canClaim: false });
   const [claimingDay, setClaimingDay] = useState<number | null>(null);
   const [showClaimAnim, setShowClaimAnim] = useState(false);
@@ -61,20 +62,24 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
+      const token = data.session?.access_token || null;
       if (cancelled) return;
       setSupabaseUserId(id);
+      setAccessToken(token);
       setCheckingAuth(false);
-      if (id) await refreshStatus(id);
+      if (id && token) await refreshStatus(id, token);
     }
     loadSession();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refreshStatus = async (id: string) => {
+  const refreshStatus = async (id: string, token: string) => {
     setLoadingStatus(true);
     try {
-      const res = await fetch(`/api/rewards/daily/status?supabaseUserId=${encodeURIComponent(id)}`);
+      const res = await fetch(`/api/rewards/daily/status?supabaseUserId=${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setStreak({ current: data.current, longest: data.longest, canClaim: data.canClaim });
@@ -87,13 +92,13 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
   };
 
   const handleClaim = useCallback(async (dayNum: number) => {
-    if (!supabaseUserId || !streak.canClaim || dayNum !== streak.current + 1 || claimingDay) return;
+    if (!supabaseUserId || !accessToken || !streak.canClaim || dayNum !== streak.current + 1 || claimingDay) return;
     setClaimingDay(dayNum);
     setErrorMsg("");
     try {
       const res = await fetch("/api/rewards/daily/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId, day: dayNum }),
       });
       const data = await res.json();
@@ -112,7 +117,7 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
     } finally {
       setClaimingDay(null);
     }
-  }, [supabaseUserId, streak, claimingDay]);
+  }, [supabaseUserId, accessToken, streak, claimingDay]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

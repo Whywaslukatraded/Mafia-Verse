@@ -36,12 +36,15 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
+      const token = data.session?.access_token || null;
       if (cancelled) return;
       setSupabaseUserId(id);
       setCheckingAuth(false);
 
-      if (id) {
-        fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`)
+      if (id && token) {
+        fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
           .then(r => r.json())
           .then(data => {
             if (cancelled) return;

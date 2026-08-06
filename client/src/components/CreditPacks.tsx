@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, CreditCard, X, CheckCircle2, Zap } from "lucide-react";
+import { Coins, CreditCard, X, CheckCircle2, Zap, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 const PACKS_META = [
   { credits: 100, price: 99, label: "$0.99", popular: false },
@@ -11,42 +12,46 @@ const PACKS_META = [
   { credits: 3000, price: 2499, label: "$24.99", popular: false, badgeKey: "bonus30" },
 ];
 
-function addCredits(amount: number) {
-  try {
-    const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}")
-    s.credits = (s.credits || 0) + amount;
-    localStorage.setItem("mafia_stats", JSON.stringify(s));
-    window.dispatchEvent(new Event("storage"));
-  } catch {}
-}
-
 export function CreditPacks({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const PACKS = PACKS_META.map(p => ({ ...p, badge: p.badgeKey ? t(`creditPacks.${p.badgeKey}`) : undefined }));
   const [buying, setBuying] = useState<number | null>(null);
   const [thanks, setThanks] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleBuy = async (pack: typeof PACKS[0]) => {
     setBuying(pack.price);
+    setError(null);
     try {
+      if (!isSupabaseReady()) {
+        setError(t("creditPacks.signInRequired", "Sign in to purchase credits."));
+        setBuying(null);
+        return;
+      }
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setError(t("creditPacks.signInRequired", "Sign in to purchase credits."));
+        setBuying(null);
+        return;
+      }
       const res = await fetch("/api/stripe/credit-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credits: pack.credits, amount: pack.price }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ credits: pack.credits }),
       });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
+      const responseData = await res.json();
+      if (res.ok && responseData.url) {
+        window.location.href = responseData.url;
       } else {
-        // Demo fallback
-        addCredits(pack.credits);
-        setThanks(true);
-        setTimeout(() => setThanks(false), 3000);
+        // Real purchases only ever complete through the actual Stripe
+        // redirect above — never fall back to granting credits locally,
+        // that would let anyone get free credits just by blocking this request.
+        setError(responseData.message || t("creditPacks.checkoutFailed", "Checkout failed. Please try again."));
       }
     } catch {
-      addCredits(pack.credits);
-      setThanks(true);
-      setTimeout(() => setThanks(false), 3000);
+      setError(t("creditPacks.checkoutFailed", "Checkout failed. Please try again."));
     }
     setBuying(null);
   };

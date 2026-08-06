@@ -49,6 +49,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [code, setCode] = useState<string | null>(null);
@@ -57,9 +58,11 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
   const [redeeming, setRedeeming] = useState(false);
   const [redeemResult, setRedeemResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const loadStats = useCallback((id: string) => {
+  const loadStats = useCallback((id: string, token: string) => {
     setLoadingStats(true);
-    return fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`)
+    return fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then(r => r.json())
       .then(data => {
         setCode(data.code ?? null);
@@ -84,12 +87,14 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
+      const token = data.session?.access_token || null;
       if (cancelled) return;
       setSupabaseUserId(id);
+      setAccessToken(token);
       setCheckingAuth(false);
 
-      if (id) {
-        await loadStats(id);
+      if (id && token) {
+        await loadStats(id, token);
       } else {
         setLoadingStats(false);
       }
@@ -113,14 +118,14 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
   // the page navigations between landing, login, and signup.
   const redeemCodeSubmit = useCallback(async () => {
     const trimmed = redeemCode.trim().toUpperCase();
-    if (!trimmed || !supabaseUserId) return;
+    if (!trimmed || !supabaseUserId || !accessToken) return;
     setRedeeming(true);
     setRedeemResult(null);
     try {
       const res = await fetch("/api/rewards/referral/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: trimmed, newSupabaseUserId: supabaseUserId, deviceId: getDeviceId() }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ code: trimmed, deviceId: getDeviceId() }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -138,7 +143,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
             window.dispatchEvent(new Event("storage"));
           } catch {}
         }
-        await loadStats(supabaseUserId);
+        await loadStats(supabaseUserId, accessToken);
       } else if (res.status === 429) {
         setRedeemResult({ ok: false, message: t("home.referral.redeemAlreadyUsed") });
       } else if (res.status === 400) {
@@ -152,7 +157,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
       setRedeemResult({ ok: false, message: t("home.referral.redeemInvalid") });
     }
     setRedeeming(false);
-  }, [redeemCode, supabaseUserId, t, loadStats]);
+  }, [redeemCode, supabaseUserId, accessToken, t, loadStats]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -287,9 +292,12 @@ function RecentPlayers() {
       const supabase = getSupabase();
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user?.id || null;
-      if (cancelled || !id) return;
+      const token = data.session?.access_token || null;
+      if (cancelled || !id || !token) return;
       setSupabaseUserId(id);
-      fetch(`/api/rewards/recent-players?supabaseUserId=${encodeURIComponent(id)}`)
+      fetch(`/api/rewards/recent-players?supabaseUserId=${encodeURIComponent(id)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
         .then(r => r.json())
         .then(data => { if (!cancelled) setRecentPlayers(data.recentPlayers || []); })
         .catch(() => {});

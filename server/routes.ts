@@ -10,6 +10,39 @@ import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
 import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
 import rateLimit from "express-rate-limit";
+import { createClient } from "@supabase/supabase-js";
+
+// Server-side Supabase client used ONLY to verify access tokens (auth.getUser).
+// Uses the service role key when available (bypasses RLS, needed for reliable
+// token verification server-side); falls back to the anon key if that's all
+// that's configured, which still works for verifying a token's own identity.
+const supabaseAdmin = (process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY))
+  ? createClient(process.env.SUPABASE_URL, (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY) as string, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : null;
+
+// Verifies the caller's Supabase access token (sent as `Authorization: Bearer <token>`)
+// and returns the VERIFIED user id — never trust a client-supplied supabaseUserId
+// for anything that reads/writes another account's data. Returns null (and the
+// route should respond 401) if the token is missing, invalid, or expired.
+async function getVerifiedSupabaseUserId(req: any): Promise<string | null> {
+  if (!supabaseAdmin) {
+    console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured — cannot verify auth tokens");
+    return null;
+  }
+  const authHeader = req.headers?.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return null;
+  try {
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !data?.user) return null;
+    return data.user.id;
+  } catch (err) {
+    console.error("Token verification error:", err);
+    return null;
+  }
+}
 
 // Room creation: no more than 10 rooms per IP every 10 minutes — enough for
 // normal use (replays, multiple friend groups) but stops one person from
@@ -2144,8 +2177,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/2fa/setup", async (req, res) => {
     try {
-      const { supabaseUserId } = req.body;
-      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
 
       const { TOTP } = await import("otpauth");
       const secret = new TOTP({
@@ -2178,8 +2211,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // (to confirm the email) and for each subsequent login.
   app.post("/api/auth/2fa/setup-email", async (req, res) => {
     try {
-      const { supabaseUserId, email } = req.body;
-      if (!supabaseUserId || !email) return res.status(400).json({ message: "Missing user ID or email" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Missing email" });
 
       const code = generateSixDigitCode();
       const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -2205,8 +2240,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // TOTP users don't need this — their app generates codes on its own.
   app.post("/api/auth/2fa/send-login-code", twoFaVerifyLimiter, async (req, res) => {
     try {
-      const { supabaseUserId } = req.body;
-      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
 
       const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
       if (!mfa || mfa.mfaMethod !== "email" || !mfa.mfaEmail) {
@@ -2228,8 +2263,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/2fa/verify", twoFaVerifyLimiter, async (req, res) => {
     try {
-      const { supabaseUserId, code } = req.body;
-      if (!supabaseUserId || !code) return res.status(400).json({ message: "Missing fields" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ message: "Missing code" });
 
       const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
       if (!mfa) {
@@ -2272,8 +2309,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/auth/2fa/status", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
-      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
       const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ isEnabled: mfa?.isEnabled ?? false, method: mfa?.mfaMethod ?? "totp" });
     } catch (err: any) {
@@ -2283,8 +2320,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/2fa/disable", async (req, res) => {
     try {
-      const { supabaseUserId } = req.body;
-      if (!supabaseUserId) return res.status(400).json({ message: "Missing user ID" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
 
       await db.update(userMfa).set({ isEnabled: false, totpSecret: null, mfaMethod: "totp", mfaEmail: null, emailCode: null, emailCodeExpires: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ disabled: true });
@@ -3152,10 +3189,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Stripe checkout: Credit Packs
+  // Server-side price catalog — the client can request a credits amount, but
+  // the actual charge is always looked up here, never taken from the request
+  // body. This is what stops someone from POSTing an arbitrary `amount`.
+  const CREDIT_PACK_CATALOG: Record<number, number> = {
+    100: 99,
+    550: 499,
+    1200: 999,
+    3000: 2499,
+  };
+
   app.post("/api/stripe/credit-checkout", async (req, res) => {
     try {
-      const { credits, amount } = req.body;
-      if (!credits || !amount) return res.status(400).json({ message: "Missing credits or amount" });
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to purchase credits." });
+
+      const { credits } = req.body;
+      const amount = CREDIT_PACK_CATALOG[credits];
+      if (!amount) return res.status(400).json({ message: "Invalid credit pack" });
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
@@ -3165,7 +3216,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [{ price_data: { currency: "usd", product_data: { name: `${credits} Credits` }, unit_amount: amount }, quantity: 1 }],
-        metadata: { item: "credits", amount: String(credits) },
+        metadata: { item: "credits", amount: String(credits), supabaseUserId },
         success_url: `${origin}/store?success=true&item=credits&amount=${credits}`,
         cancel_url: `${origin}/store?canceled=true`,
       });
@@ -3180,6 +3231,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Stripe checkout: Syndicate Pass
   app.post("/api/stripe/syndicate-checkout", async (req, res) => {
     try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to purchase the Syndicate Pass." });
+
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
       const origin = req.headers.origin || `https://${req.headers.host}` || "http://localhost:5000";
@@ -3188,7 +3242,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [{ price_data: { currency: "usd", product_data: { name: "The Syndicate Pass" }, unit_amount: 499 }, quantity: 1 }],
-        metadata: { item: "syndicate" },
+        metadata: { item: "syndicate", supabaseUserId },
         success_url: `${origin}/store?success=true&item=syndicate`,
         cancel_url: `${origin}/store?canceled=true`,
       });
@@ -3200,9 +3254,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Stripe checkout: Tips
+  // Stripe checkout: Tips — amount is intentionally user-chosen (it's a tip),
+  // just enforce a sane minimum. Still requires a real signed-in account so
+  // the payment can be attributed to someone.
   app.post("/api/stripe/tip-checkout", async (req, res) => {
     try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to send a tip." });
+
       const { amount } = req.body;
       if (!amount || amount < 100) return res.status(400).json({ message: "Minimum tip is $1.00" });
 
@@ -3214,7 +3273,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [{ price_data: { currency: "usd", product_data: { name: "Support the Game" }, unit_amount: amount }, quantity: 1 }],
-        metadata: { item: "tip", amount: String(amount) },
+        metadata: { item: "tip", amount: String(amount), supabaseUserId },
         success_url: `${origin}/store?success=true&item=tip&amount=${amount}`,
         cancel_url: `${origin}/store?canceled=true`,
       });
@@ -3254,7 +3313,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Check ad claim status for today (server-side rate limit check, tied to account)
   app.get("/api/ad-claim/status", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim.", claimsToday: 0, remaining: 0 });
 
       const today = new Date().toISOString().split("T")[0];
@@ -3277,8 +3336,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Claim free ad credits — enforced server-side 5/day limit, tied to the signed-in account
   app.post("/api/ad-claim", async (req, res) => {
     try {
-      const { supabaseUserId, roomCode } = req.body;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim." });
+      const { roomCode } = req.body;
 
       const today = new Date().toISOString().split("T")[0];
       const MAX_DAILY = 5;
@@ -3338,7 +3398,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // --- Daily login-streak rewards, tied to the signed-in account ---
   app.get("/api/rewards/daily/status", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
 
       const today = new Date().toISOString().split("T")[0];
@@ -3365,8 +3425,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/rewards/daily/claim", async (req, res) => {
     try {
-      const { supabaseUserId, day } = req.body;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
+      const { day } = req.body;
 
       const DAILY_CREDITS = [5, 7, 10, 5, 7, 10, 15];
       const dayNum = parseInt(day, 10);
@@ -3415,7 +3476,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // --- Rating, tied to the signed-in account (credits only awarded once, ever) ---
   app.get("/api/rewards/rating", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
 
       const client = await pool.connect();
@@ -3437,8 +3498,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/rewards/rating", async (req, res) => {
     try {
-      const { supabaseUserId, stars } = req.body;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
+      const { stars } = req.body;
       const starsNum = parseInt(stars, 10);
       if (!Number.isInteger(starsNum) || starsNum < 1 || starsNum > 5) {
         return res.status(400).json({ message: "Invalid rating" });
@@ -3492,7 +3554,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // building block toward a friends list, without a real friends system yet.
   app.get("/api/rewards/recent-players", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to see recent players." });
 
       const client = await pool.connect();
@@ -3523,7 +3585,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/rewards/referral", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Sign up to get your referral link." });
 
       const client = await pool.connect();
@@ -3562,8 +3624,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Credits are NOT paid out here anymore — see the fraud-prevention note below.
   app.post("/api/rewards/referral/claim", async (req, res) => {
     try {
-      const { code, newSupabaseUserId, deviceId } = req.body;
-      if (!code || !newSupabaseUserId) return res.status(400).json({ message: "Missing code or new user id" });
+      const newSupabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!newSupabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      const { code, deviceId } = req.body;
+      if (!code) return res.status(400).json({ message: "Missing code" });
 
       const client = await pool.connect();
       try {
@@ -3615,7 +3679,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Authoritative account credit balance
   app.get("/api/account/credits", async (req, res) => {
     try {
-      const supabaseUserId = req.query.supabaseUserId as string;
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.json({ credits: 0 });
       const client = await pool.connect();
       try {

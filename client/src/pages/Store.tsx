@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 const CREDIT_PACKS = [
   { credits: 100, price: 99, label: "$0.99" },
@@ -59,13 +60,7 @@ export default function Store() {
   const [customTip, setCustomTip] = useState("");
   const [showCustomTip, setShowCustomTip] = useState(false);
   const [fulfillMsg, setFulfillMsg] = useState<string | null>(null);
-  const [checkoutState, setCheckoutState] = useState<{
-    open: boolean; item: string; amount: number; credits?: number; label: string;
-  } | null>(null);
-  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
-  const [cardExpiry, setCardExpiry] = useState("12/30");
-  const [cardCvc, setCardCvc] = useState("123");
-  const [processingPayment, setProcessingPayment] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const TIP_TIERS = TIP_TIERS_META.map(tier => ({ ...tier, desc: t(`store.tipTiers.${tier.key}`) }));
 
@@ -123,51 +118,44 @@ export default function Store() {
 
   const checkout = async (endpoint: string, body: object) => {
     setBuying(JSON.stringify(body));
+    setCheckoutError(null);
     try {
-      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const data = await res.json();
-      if (res.ok && data.url) { window.location.href = data.url; return; }
-      openTestCheckout(endpoint, body);
-    } catch { openTestCheckout(endpoint, body); }
-    setBuying(null);
-  };
-
-  const openTestCheckout = (endpoint: string, body: any) => {
-    let label = "", item = "", credits: number | undefined;
-    if (endpoint.includes("credit")) { item = "credits"; credits = body.credits; label = t("store.creditsLabel", { count: body.credits }); }
-    else if (endpoint.includes("syndicate")) { item = "syndicate"; label = t("store.syndicatePassName"); }
-    else if (endpoint.includes("tip")) { item = "tip"; label = t("store.tipLabel", { amount: (body.amount / 100).toFixed(2) }); }
-    setCheckoutState({ open: true, item, amount: body.amount, credits, label });
-    setBuying(null);
-  };
-
-  const handleTestPay = () => {
-    if (!checkoutState) return;
-    setProcessingPayment(true);
-    setTimeout(() => {
-      setProcessingPayment(false);
-      setCheckoutState(null);
-      if (checkoutState.item === "credits" && checkoutState.credits) {
-        addCreditsLocal(checkoutState.credits);
-        setStats(getStats());
-        setFulfillMsg(t("store.creditsAdded", { credits: checkoutState.credits }));
-      } else if (checkoutState.item === "syndicate") {
-        setSyndicatePass(true);
-        setSyndicatePassState(true);
-        setFulfillMsg(t("store.syndicateActivated"));
-      } else if (checkoutState.item === "tip") {
-        setFulfillMsg(t("store.thankYouTip", { amount: (checkoutState.amount / 100).toFixed(2) }));
+      if (!isSupabaseReady()) {
+        setCheckoutError(t("store.signInRequired", "Sign in to make a purchase."));
+        setBuying(null);
+        return;
       }
-      setTimeout(() => setFulfillMsg(null), 4000);
-    }, 2000);
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setCheckoutError(t("store.signInRequired", "Sign in to make a purchase."));
+        setBuying(null);
+        return;
+      }
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const responseData = await res.json();
+      if (res.ok && responseData.url) { window.location.href = responseData.url; return; }
+      // Real purchases only ever complete through the actual Stripe redirect
+      // above — never fall back to granting credits/passes locally, that
+      // would let anyone get premium items for free just by blocking this request.
+      setCheckoutError(responseData.message || t("store.checkoutFailed", "Checkout failed. Please try again."));
+    } catch {
+      setCheckoutError(t("store.checkoutFailed", "Checkout failed. Please try again."));
+    }
+    setBuying(null);
   };
 
   const sendCustomTip = () => {
     const cents = Math.round(parseFloat(customTip) * 100);
     if (cents >= 100) checkout("/api/stripe/tip-checkout", { amount: cents });
   };
-  const buyCredits = (pack: any) => checkout("/api/stripe/credit-checkout", { credits: pack.credits, amount: pack.price });
-  const buySyndicate = () => { if (!syndicatePass) checkout("/api/stripe/syndicate-checkout", { amount: 499 }); };
+  const buyCredits = (pack: any) => checkout("/api/stripe/credit-checkout", { credits: pack.credits });
+  const buySyndicate = () => { if (!syndicatePass) checkout("/api/stripe/syndicate-checkout", {}); };
   const sendTip = (amountCents: number) => checkout("/api/stripe/tip-checkout", { amount: amountCents });
 
   return (
@@ -193,6 +181,12 @@ export default function Store() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-500" />
               <span className="text-sm font-bold text-green-500">{fulfillMsg}</span>
+            </motion.div>
+          )}
+          {checkoutError && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
+              <X className="w-5 h-5 text-red-500" />
+              <span className="text-sm font-bold text-red-500">{checkoutError}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -318,50 +312,6 @@ export default function Store() {
           </div>
         </section>
       </div>
-
-      {/* Stripe Emulator */}
-      <AnimatePresence>
-        {checkoutState?.open && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => !processingPayment && setCheckoutState(null)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-bold">{t("store.secureCheckout")}</span>
-                </div>
-                {!processingPayment && <button onClick={() => setCheckoutState(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>}
-              </div>
-              <div className="p-5">
-                <div className="bg-muted/50 rounded-xl p-4 mb-5">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold">{checkoutState.label}</p>
-                    <p className="text-lg font-black">${(checkoutState.amount / 100).toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.cardNumber")}</label>
-                    <Input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="font-mono" disabled={processingPayment} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.expiry")}</label>
-                      <Input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="font-mono" disabled={processingPayment} />
-                    </div>
-                    <div>
-                      <label className="text-xs uppercase text-muted-foreground mb-1.5 block">{t("store.cvc")}</label>
-                      <Input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} className="font-mono" disabled={processingPayment} />
-                    </div>
-                  </div>
-                </div>
-                <Button onClick={handleTestPay} disabled={processingPayment} className="w-full mt-4 h-11 text-sm font-black bg-primary hover:bg-primary/90">
-                  {processingPayment ? t("store.processing") : t("store.payAmount", { amount: (checkoutState.amount / 100).toFixed(2) })}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
