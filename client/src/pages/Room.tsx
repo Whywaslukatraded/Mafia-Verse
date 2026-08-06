@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { generateShareCard, type ShareCardHighlight } from "@/lib/shareCard";
 
 // --- Confetti ---
 const CONFETTI_COLORS = ["#ffd700", "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7", "#ff9ff3", "#54a0ff"];
@@ -99,6 +100,11 @@ export default function Room() {
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showShareCardModal, setShowShareCardModal] = useState(false);
+  const [shareCardDataUrl, setShareCardDataUrl] = useState<string | null>(null);
+  const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null);
+  const [generatingShareCard, setGeneratingShareCard] = useState(false);
+  const [resultTextCopied, setResultTextCopied] = useState(false);
 
   // Feature: Edit game settings from the lobby (e.g. after a replay, once more
   // players have joined) instead of being locked to whatever was picked at creation.
@@ -172,6 +178,108 @@ export default function Room() {
   const qrCodeUrl = code
     ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(window.location.href)}`
     : "";
+
+  // Feature: Share Result — picks up to 2 notable moments from this player's
+  // own gameHistory (the same canonical, frozen data the Game Chronicle
+  // below reads from) to put on the share card.
+  const pickHighlights = (history: any[]): ShareCardHighlight[] => {
+    const highlights: ShareCardHighlight[] = [];
+    for (const entry of history) {
+      if (entry.type === "vote" && entry.eliminated) {
+        highlights.push({
+          text: t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) }),
+        });
+      } else if ((entry.type === "night" || entry.type === "day") && Array.isArray(entry.events)) {
+        for (const ev of entry.events) {
+          if (ev.type === "kill" || ev.type === "combined_kill") {
+            highlights.push({ text: t("room.wasEliminatedWithRole", { target: ev.target, role: t(`roleBadge.${ev.role || "civilian"}`) }) });
+          } else if (ev.type === "attempt" && ev.saved) {
+            highlights.push({ text: t("room.wasProtected", { target: ev.target }) });
+          } else if (ev.type === "detective_check") {
+            highlights.push({ text: t("room.detectiveFoundResult", { target: ev.target, result: ev.isMafia ? t("room.mafiaLabel") : t("roleBadge.civilian") }) });
+          }
+        }
+      }
+      if (highlights.length >= 2) break;
+    }
+    return highlights.slice(0, 2);
+  };
+
+  const handleGenerateShareCard = async (latestGameEnd: any) => {
+    if (!me || !latestGameEnd) return;
+    setGeneratingShareCard(true);
+    try {
+      const myFinalRole = latestGameEnd.roles?.find((r: any) => r.id === me.id)?.role || me.role || "civilian";
+      const won = latestGameEnd.winner === "jester"
+        ? myFinalRole === "jester"
+        : latestGameEnd.winner === "mafia"
+        ? myFinalRole === "mafia"
+        : myFinalRole !== "mafia" && myFinalRole !== "jester";
+      const winnerLabel = latestGameEnd.winner === "jester"
+        ? t("room.jesterWinsExclaim")
+        : latestGameEnd.winner === "mafia"
+        ? t("room.mafiaWinsExclaim")
+        : t("room.civiliansWinExclaim");
+      const highlights = pickHighlights(((me as any)?.gameHistory as any[]) || []);
+
+      const { toBlob, dataUrl } = await generateShareCard({
+        playerName: me.name,
+        avatarEmoji: me.avatar || "🎭",
+        role: myFinalRole,
+        won,
+        winnerLabel,
+        roleLabel: t(`roleBadge.${myFinalRole}`),
+        resultLabel: won ? t("room.youWon") : t("room.youLost"),
+        highlights,
+        roomLabel: room.code,
+      });
+
+      const blob = await toBlob();
+      setShareCardDataUrl(dataUrl);
+      setShareCardBlob(blob);
+      setShowShareCardModal(true);
+    } catch (err) {
+      console.error("Failed to generate share card", err);
+      toast({ title: t("room.shareCardErrorTitle"), description: t("room.shareCardErrorDescription"), variant: "destructive" });
+    } finally {
+      setGeneratingShareCard(false);
+    }
+  };
+
+  const handleDownloadShareCard = () => {
+    if (!shareCardDataUrl) return;
+    const a = document.createElement("a");
+    a.href = shareCardDataUrl;
+    a.download = `mafia-verse-result-${room.code}.png`;
+    a.click();
+  };
+
+  // No backend exists to host a public, permanent link to a finished game's
+  // results (the room URL only works for the original participant's own
+  // browser — see the "match already ended" state above), so instead of a
+  // misleading "copy link" that would break for anyone else who opens it,
+  // this copies a plain text summary of the result.
+  const handleCopyResultText = async (latestGameEnd: any) => {
+    if (!me || !latestGameEnd) return;
+    const myFinalRole = latestGameEnd.roles?.find((r: any) => r.id === me.id)?.role || me.role || "civilian";
+    const won = latestGameEnd.winner === "jester"
+      ? myFinalRole === "jester"
+      : latestGameEnd.winner === "mafia"
+      ? myFinalRole === "mafia"
+      : myFinalRole !== "mafia" && myFinalRole !== "jester";
+    const summary = t("room.shareResultSummary", {
+      role: t(`roleBadge.${myFinalRole}`),
+      result: won ? t("room.youWon") : t("room.youLost"),
+    });
+    try {
+      await navigator.clipboard.writeText(summary);
+      setResultTextCopied(true);
+      toast({ title: t("common.copied"), description: t("room.resultTextCopiedDescription") });
+      setTimeout(() => setResultTextCopied(false), 2000);
+    } catch {
+      toast({ title: t("room.shareCardErrorTitle"), description: t("room.shareCardErrorDescription"), variant: "destructive" });
+    }
+  };
 
   // Session check
   useEffect(() => {
@@ -697,6 +805,17 @@ export default function Room() {
                       </div>
                     </div>
 
+                    <Button
+                      onClick={() => handleGenerateShareCard(latestGameEnd)}
+                      disabled={generatingShareCard}
+                      variant="outline"
+                      className="gap-2 mb-6"
+                      data-testid="button-share-result"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      {generatingShareCard ? t("room.generatingImage") : t("room.shareResult")}
+                    </Button>
+
                     {isHost ? (
                       <>
                         <Button
@@ -830,6 +949,60 @@ export default function Room() {
                 {linkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 {linkCopied ? t("common.copied") : t("room.copyLink")}
               </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Result Card — Game Over screen "Share Result" feature */}
+      <AnimatePresence>
+        {showShareCardModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-xl px-4"
+            onClick={() => setShowShareCardModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 text-center relative shadow-2xl"
+            >
+              <button
+                onClick={() => setShowShareCardModal(false)}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={t("common.close")}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="font-serif font-bold text-xl text-primary mb-1">{t("room.shareResultTitle")}</h3>
+              <p className="text-xs text-muted-foreground mb-5">{t("room.shareResultSubtitle")}</p>
+
+              {shareCardDataUrl && (
+                <div className="flex justify-center mb-5">
+                  <img src={shareCardDataUrl} alt={t("room.shareResultTitle")} className="rounded-xl border border-border max-h-[400px]" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Button onClick={handleDownloadShareCard} className="w-full gap-2">
+                  <Download className="w-4 h-4" />
+                  {t("room.downloadImage")}
+                </Button>
+                <Button
+                  onClick={() => handleCopyResultText([...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end"))}
+                  variant="outline"
+                  className="w-full gap-2"
+                >
+                  {resultTextCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {resultTextCopied ? t("common.copied") : t("room.copyResultText")}
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-4">{t("room.shareResultLinkNote")}</p>
             </motion.div>
           </motion.div>
         )}
