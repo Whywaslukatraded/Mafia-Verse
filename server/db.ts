@@ -54,6 +54,10 @@ export async function runMigrations(): Promise<void> {
     try {
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
+      // Feature: Pre-game ready-up lobby
+      await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready boolean DEFAULT false`);
+      // Feature: Per-role player stats
+      await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS role_stats jsonb DEFAULT '{}'`);
       await client.query(`
         CREATE TABLE IF NOT EXISTS ad_claims (
           id serial PRIMARY KEY,
@@ -92,8 +96,10 @@ export async function runMigrations(): Promise<void> {
           supabase_user_id text,
           is_spectator boolean DEFAULT false,
           is_bot boolean DEFAULT false,
+          is_ready boolean DEFAULT false,
           wins integer DEFAULT 0,
           games_played integer DEFAULT 0,
+          role_stats jsonb DEFAULT '{}',
           credits integer DEFAULT 0,
           achievements jsonb DEFAULT '[]',
           game_history jsonb DEFAULT '[]',

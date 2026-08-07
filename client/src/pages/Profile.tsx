@@ -69,14 +69,14 @@ export default function Profile() {
   const earnedAchievements = new Set(stats.achievements || []);
 
   const ROLE_STATS = [
-    { role: t("home.roles.mafias"), emoji: "🍷", stat: "mafia_wins", color: "text-red-400" },
-    { role: t("home.roles.detectives"), emoji: "🔍", stat: "detective_wins", color: "text-blue-400" },
-    { role: t("home.roles.doctors"), emoji: "💉", stat: "doctor_wins", color: "text-green-400" },
-    { role: t("home.roles.civilians"), emoji: "🛡️", stat: "civilian_wins", color: "text-yellow-400" },
-    { role: t("home.roles.bodyguards"), emoji: "🥊", stat: "bodyguard_wins", color: "text-slate-300" },
-    { role: t("home.roles.vigilantes"), emoji: "🔫", stat: "vigilante_wins", color: "text-orange-400" },
-    { role: t("home.roles.mayors"), emoji: "🎩", stat: "mayor_wins", color: "text-amber-400" },
-    { role: t("home.roles.jesters"), emoji: "🃏", stat: "jester_wins", color: "text-purple-400" },
+    { role: t("home.roles.mafias"), emoji: "🍷", statWins: "mafia_wins", statGames: "mafia_games", color: "text-red-400" },
+    { role: t("home.roles.detectives"), emoji: "🔍", statWins: "detective_wins", statGames: "detective_games", color: "text-blue-400" },
+    { role: t("home.roles.doctors"), emoji: "💉", statWins: "doctor_wins", statGames: "doctor_games", color: "text-green-400" },
+    { role: t("home.roles.civilians"), emoji: "🛡️", statWins: "civilian_wins", statGames: "civilian_games", color: "text-yellow-400" },
+    { role: t("home.roles.bodyguards"), emoji: "🥊", statWins: "bodyguard_wins", statGames: "bodyguard_games", color: "text-slate-300" },
+    { role: t("home.roles.vigilantes"), emoji: "🔫", statWins: "vigilante_wins", statGames: "vigilante_games", color: "text-orange-400" },
+    { role: t("home.roles.mayors"), emoji: "🎩", statWins: "mayor_wins", statGames: "mayor_games", color: "text-amber-400" },
+    { role: t("home.roles.jesters"), emoji: "🃏", statWins: "jester_wins", statGames: "jester_games", color: "text-purple-400" },
   ];
 
   return (
@@ -146,13 +146,21 @@ export default function Profile() {
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("profile.rolePerformance")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {ROLE_STATS.map(role => {
-                  const roleWins = (stats as any)[role.stat] || 0;
+                  const roleWins = (stats as any)[role.statWins] || 0;
+                  const roleGames = (stats as any)[role.statGames] || 0;
+                  const roleWinRate = roleGames > 0 ? Math.round((roleWins / roleGames) * 100) : null;
                   return (
                     <div key={role.role} className="bg-muted/50 border border-border rounded-xl p-3 flex items-center gap-2">
                       <span className="text-2xl">{role.emoji}</span>
                       <div className="flex-1">
                         <p className={cn("text-sm font-bold", role.color)}>{role.role}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{t("profile.winsCount", { count: roleWins })}</p>
+                        {roleGames > 0 ? (
+                          <p className="text-[10px] text-muted-foreground font-mono">
+                            {t("profile.roleRecord", { wins: roleWins, games: roleGames, rate: roleWinRate })}
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground/50 italic font-mono">{t("profile.roleNotPlayed")}</p>
+                        )}
                       </div>
                     </div>
                   );

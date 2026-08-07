@@ -595,6 +595,8 @@
     "rolePerformance": "Role Performance",
     "winsCount_one": "{{count}} win",
     "winsCount_other": "{{count}} wins",
+    "roleRecord": "{{wins}}W / {{games}}G ({{rate}}%)",
+    "roleNotPlayed": "Not yet played",
     "currentStreak": "Current Streak",
     "bestStreak": "Best Streak",
     "achievementHall": "Achievement Hall",

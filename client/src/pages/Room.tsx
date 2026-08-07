@@ -336,6 +336,18 @@ export default function Room() {
         vigilante_wins: (stats.vigilante_wins || 0) + (won && me.role === "vigilante" ? 1 : 0),
         mayor_wins: (stats.mayor_wins || 0) + (won && me.role === "mayor" ? 1 : 0),
         jester_wins: (stats.jester_wins || 0) + (won && me.role === "jester" ? 1 : 0),
+        // Feature 6: per-role games played, alongside the per-role win counts
+        // above — needed so the profile page can show a win *rate* per role
+        // ("3/5 as Mafia") instead of just a raw win count. Incremented once
+        // per finished game for whichever single role `me` held that game.
+        mafia_games: (stats.mafia_games || 0) + (me.role === "mafia" ? 1 : 0),
+        detective_games: (stats.detective_games || 0) + (me.role === "detective" ? 1 : 0),
+        doctor_games: (stats.doctor_games || 0) + (me.role === "doctor" ? 1 : 0),
+        civilian_games: (stats.civilian_games || 0) + (me.role === "civilian" ? 1 : 0),
+        bodyguard_games: (stats.bodyguard_games || 0) + (me.role === "bodyguard" ? 1 : 0),
+        vigilante_games: (stats.vigilante_games || 0) + (me.role === "vigilante" ? 1 : 0),
+        mayor_games: (stats.mayor_games || 0) + (me.role === "mayor" ? 1 : 0),
+        jester_games: (stats.jester_games || 0) + (me.role === "jester" ? 1 : 0),
       };
       localStorage.setItem("mafia_stats", JSON.stringify(newStats));
       window.dispatchEvent(new Event("storage"));

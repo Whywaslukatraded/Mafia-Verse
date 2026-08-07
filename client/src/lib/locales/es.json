@@ -595,6 +595,8 @@
     "rolePerformance": "Rendimiento por rol",
     "winsCount_one": "{{count}} victoria",
     "winsCount_other": "{{count}} victorias",
+    "roleRecord": "{{wins}}G / {{games}}P ({{rate}}%)",
+    "roleNotPlayed": "Aún no jugado",
     "currentStreak": "Racha actual",
     "bestStreak": "Mejor racha",
     "achievementHall": "Salón de logros",
