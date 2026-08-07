@@ -25,7 +25,14 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
-  base: "./",
+  // Must be an absolute root path, not "./" — this app is served from
+  // nested routes (e.g. /auth/callback for email confirmation links), and
+  // a relative base resolves asset URLs relative to the CURRENT path
+  // instead of the site root. That caused /auth/callback to request
+  // assets/manifest.json from a nonexistent nested path, 404, and fall
+  // through to the SPA catch-all (index.html) — which is why the JS
+  // bundle loaded as HTML and the app never mounted (black screen).
+  base: "/",
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
