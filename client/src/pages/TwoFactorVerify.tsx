@@ -96,6 +96,13 @@ export default function TwoFactorVerify() {
         setVerifying(false);
         return;
       }
+      // Security fix (#1/#3): this used to be a client-only flag that no
+      // server code ever checked, so it provided no real protection. This is
+      // now a short-lived, server-signed token that requireVerifiedUser()
+      // on the backend actually validates for accounts with 2FA enabled.
+      if (data.mfaToken) {
+        localStorage.setItem("mafia_mfa_token", data.mfaToken);
+      }
       localStorage.setItem("mafia_2fa_passed", "true");
       toast({ title: t("twoFactor.welcomeBack") });
       setLocation("/");

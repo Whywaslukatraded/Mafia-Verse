@@ -50,9 +50,32 @@ export default function AuthCallback() {
             description: t("authCallback.welcomeMessage"),
           });
           const supabaseId = data.session?.user?.id;
-          if (supabaseId) {
+          const accessToken = data.session?.access_token;
+
+          // Fix (#4): Signup.tsx couldn't claim a pending referral because no
+          // session/token existed yet at that point (email confirmation was
+          // still pending) — the server requires a real Bearer token now, so
+          // finish that claim here where one actually exists.
+          const pendingRefCode = (() => { try { return localStorage.getItem("mafia_pending_referral"); } catch { return null; } })();
+          if (pendingRefCode && accessToken) {
             try {
-              const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`);
+              await fetch("/api/rewards/referral/claim", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({ code: pendingRefCode }),
+              });
+            } catch {
+              // Non-fatal — referral crediting shouldn't block login.
+            } finally {
+              try { localStorage.removeItem("mafia_pending_referral"); } catch {}
+            }
+          }
+
+          if (supabaseId && accessToken) {
+            try {
+              const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
               const status = await res.json();
               if (status.isEnabled) {
                 setLocation("/2fa-verify");

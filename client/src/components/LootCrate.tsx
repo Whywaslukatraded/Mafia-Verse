@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Coins, Sparkles, X, Gift, Star, Diamond, Crown, Flame } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 /* ------------------------------------------------------------------ */
 /*  100+ ITEMS — 5 RARITY TIERS                                       */
@@ -19,7 +20,7 @@ const RARITY_WEIGHTS = {
 // Item names are translated via lootCrate.items.<id> in the locale files;
 // credit items compute their display name dynamically instead of storing
 // "N Credits" as a literal string.
-const LOOT_ITEMS = [
+export const LOOT_ITEMS = [
   /* ---------- COMMON (chat borders + name colours) ---------- */
   { id: "lc_border_grey",   type: "chat_border",  tier: "common", weight: 5 },
   { id: "lc_border_olive",  type: "chat_border",  tier: "common", weight: 5 },
@@ -162,7 +163,7 @@ const LOOT_ITEMS = [
   { id: "lc_250c", credits: 250, type: "credits", tier: "mythic", weight: 1 },
 ];
 
-const TIER_COLORS: Record<string, string> = {
+export const TIER_COLORS: Record<string, string> = {
   common:    "text-gray-400",
   rare:      "text-blue-400",
   epic:      "text-purple-400",
@@ -170,7 +171,7 @@ const TIER_COLORS: Record<string, string> = {
   mythic:    "text-rose-400",
 };
 
-const TIER_BG: Record<string, string> = {
+export const TIER_BG: Record<string, string> = {
   common:    "bg-gray-500/10 border-gray-500/20",
   rare:      "bg-blue-500/10 border-blue-500/20",
   epic:      "bg-purple-500/10 border-purple-500/20",
@@ -178,30 +179,27 @@ const TIER_BG: Record<string, string> = {
   mythic:    "bg-rose-500/10 border-rose-500/20",
 };
 
-function getCredits(): number {
+// Fast-paint local cache, always overwritten from the server response below —
+// never used to compute a roll or a balance change itself. Security fix (#10):
+// this used to be the only source of truth, so editing localStorage granted
+// unlimited free crate opens and cosmetics.
+function getCreditsCache(): number {
   try {
     const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
     return s.credits || 0;
   } catch { return 0; }
 }
 
-function addCredits(amount: number) {
+function setCreditsCache(amount: number) {
   try {
     const s = JSON.parse(localStorage.getItem("mafia_stats") || "{}");
-    s.credits = (s.credits || 0) + amount;
+    s.credits = amount;
     localStorage.setItem("mafia_stats", JSON.stringify(s));
     window.dispatchEvent(new Event("storage"));
   } catch {}
 }
 
-function hasItem(id: string): boolean {
-  try {
-    const owned = JSON.parse(localStorage.getItem("mafia_cosmetics_owned") || "[]");
-    return owned.includes(id);
-  } catch { return false; }
-}
-
-function addOwnedItem(id: string) {
+function addOwnedItemCache(id: string) {
   try {
     const owned = new Set(JSON.parse(localStorage.getItem("mafia_cosmetics_owned") || "[]"));
     owned.add(id);
@@ -209,54 +207,100 @@ function addOwnedItem(id: string) {
   } catch {}
 }
 
-function rollLoot() {
-  const totalWeight = LOOT_ITEMS.reduce((sum, i) => sum + i.weight, 0);
-  let roll = Math.random() * totalWeight;
-  for (const item of LOOT_ITEMS) {
-    roll -= item.weight;
-    if (roll <= 0) return item;
-  }
-  return LOOT_ITEMS[0];
-}
-
 const CRATE_COST = 15;
 
 export function LootCrate({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const [credits, setCredits] = useState(getCredits);
+  const [credits, setCredits] = useState(getCreditsCache);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<typeof LOOT_ITEMS[0] | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Refresh from the authoritative server balance on open, same pattern as
+  // Store.tsx/Cosmetics.tsx — the local value above is just a fast-paint cache.
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/account/credits", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const { credits: serverCredits } = await res.json();
+          if (typeof serverCredits === "number") {
+            setCredits(serverCredits);
+            setCreditsCache(serverCredits);
+          }
+        }
+      } catch {}
+    })();
+  }, []);
 
   const getItemName = (item: typeof LOOT_ITEMS[0]) =>
     item.type === "credits" ? t("lootCrate.creditsAmount", { count: item.credits }) : t(`lootCrate.items.${item.id}`);
 
   const tierLabel = (tier: string) => t(`cosmetics.tiers.${tier}`, tier);
 
-  const open = useCallback(() => {
-    if (credits < CRATE_COST || spinning) return;
-    addCredits(-CRATE_COST);
-    setCredits(getCredits);
+  // Security fix (#10): the roll, the credit deduction, and the reward are
+  // now all done in a single server-side transaction (/api/loot-crate/open)
+  // instead of computed here and written straight to localStorage. The
+  // 2s spin + 800ms reveal timing is unchanged — it now just waits for
+  // whichever is slower, the animation or the real network request.
+  const open = useCallback(async () => {
+    if (credits < CRATE_COST || spinning || !isSupabaseReady()) return;
+    setErrorMsg(null);
     setSpinning(true);
     setResult(null);
     setRevealed(false);
 
-    setTimeout(() => {
-      const item = rollLoot();
-      setResult(item);
+    const supabase = getSupabase();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
       setSpinning(false);
+      setErrorMsg(t("lootCrate.signInRequired", "Sign in to open crates."));
+      return;
+    }
 
-      setTimeout(() => {
-        setRevealed(true);
-        if (item.type === "credits") {
-          addCredits(item.credits || 0);
-          setCredits(getCredits);
-        } else {
-          addOwnedItem(item.id);
-        }
-      }, 800);
-    }, 2000);
-  }, [credits, spinning]);
+    const minSpinDelay = new Promise((resolve) => setTimeout(resolve, 2000));
+    const openRequest = fetch("/api/loot-crate/open", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+      },
+    }).then(async (res) => ({ ok: res.ok, body: await res.json() }));
+
+    const [, response] = await Promise.all([minSpinDelay, openRequest]);
+    setSpinning(false);
+
+    if (!response.ok) {
+      setErrorMsg(response.body?.message || t("lootCrate.openFailed", "Couldn't open the crate. Please try again."));
+      return;
+    }
+
+    // The server only returns id/type/tier/credits — look up the full
+    // client-side item (for its weight, which isn't needed for display) so
+    // getItemName/tierLabel/TIER_* keep working exactly as before.
+    const serverItem = response.body.item;
+    const item = LOOT_ITEMS.find((i) => i.id === serverItem.id) || serverItem;
+    setResult(item);
+    if (typeof response.body.credits === "number") {
+      setCredits(response.body.credits);
+      setCreditsCache(response.body.credits);
+    }
+
+    setTimeout(() => {
+      setRevealed(true);
+      if (item.type !== "credits") {
+        addOwnedItemCache(item.id);
+      }
+    }, 800);
+  }, [credits, spinning, t]);
 
   const canAfford = credits >= CRATE_COST;
 
@@ -378,6 +422,10 @@ export function LootCrate({ onClose }: { onClose: () => void }) {
             <Sparkles className="w-4 h-4" />
             {spinning ? t("lootCrate.opening") : canAfford ? t("lootCrate.openCrate", { count: CRATE_COST }) : t("lootCrate.notEnoughCredits")}
           </Button>
+
+          {errorMsg && (
+            <p className="text-xs text-center text-red-400">{errorMsg}</p>
+          )}
 
           {!canAfford && !spinning && (
             <p className="text-xs text-center text-muted-foreground">

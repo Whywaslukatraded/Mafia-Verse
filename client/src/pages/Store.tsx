@@ -64,20 +64,43 @@ export default function Store() {
 
   const TIP_TIERS = TIP_TIERS_META.map(tier => ({ ...tier, desc: t(`store.tipTiers.${tier.key}`) }));
 
-  // Fetch real credits from DB
+  // Authoritative account state — always read from the server, never
+  // trusted from URL params or localStorage. Used both on page load and
+  // after a Stripe redirect (see the success-handler effect below).
   const [dbCredits, setDbCredits] = useState<number | null>(null);
-  useEffect(() => {
-    const roomCodes = Object.keys(localStorage).filter(k => k.startsWith("mafia_session_"));
-    if (roomCodes.length === 0) return;
-    const lastRoom = roomCodes[roomCodes.length - 1];
-    const roomCode = lastRoom.replace("mafia_session_", "");
-    const sessionId = localStorage.getItem(lastRoom);
-    if (!sessionId || !roomCode) return;
-    fetch(`/api/players/${encodeURIComponent(sessionId)}/credits?roomCode=${roomCode}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && typeof data.credits === "number") setDbCredits(data.credits); })
-      .catch(() => {});
-  }, []);
+  const refreshAccountState = async () => {
+    try {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const [creditsRes, passRes] = await Promise.all([
+        fetch("/api/account/credits", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/account/syndicate-pass", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (creditsRes.ok) {
+        const { credits } = await creditsRes.json();
+        if (typeof credits === "number") {
+          setDbCredits(credits);
+          // Keep the local cache in sync so other pages reading mafia_stats
+          // stay consistent — this is a cache of server truth, not a grant.
+          try {
+            const s = getStats();
+            s.credits = credits;
+            localStorage.setItem("mafia_stats", JSON.stringify(s));
+            window.dispatchEvent(new Event("storage"));
+          } catch {}
+        }
+      }
+      if (passRes.ok) {
+        const { active } = await passRes.json();
+        setSyndicatePass(!!active);
+        setSyndicatePassState(!!active);
+      }
+    } catch {}
+  };
+  useEffect(() => { refreshAccountState(); }, []);
 
   const displayCredits = dbCredits !== null ? dbCredits : (stats.credits || 0);
 
@@ -90,26 +113,21 @@ export default function Store() {
     return () => window.removeEventListener("storage", handler);
   }, []);
 
-  // Handle Stripe redirect params
+  // Handle Stripe redirect params. Security fix (#5): these query params are
+  // just a hint that a checkout may have completed — they are NOT proof of
+  // payment (anyone can navigate to /store?success=true&item=syndicate by
+  // hand). The actual credits/pass state is only ever granted server-side by
+  // the Stripe webhook, so this just shows a neutral message and re-fetches
+  // the real, authoritative account state — it never grants anything itself.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") {
       const item = params.get("item");
-      const amount = params.get("amount");
-      if (item === "credits" && amount) {
-        const credits = parseInt(amount, 10);
-        addCreditsLocal(credits);
-        setStats(getStats());
-        setFulfillMsg(t("store.creditsAdded", { credits }));
-      } else if (item === "syndicate") {
-        setSyndicatePass(true);
-        setSyndicatePassState(true);
-        setFulfillMsg(t("store.syndicateActivated"));
-      } else if (item === "tip" && amount) {
-        setFulfillMsg(t("store.thankYouTip", { amount: (parseInt(amount, 10) / 100).toFixed(2) }));
-      }
+      setFulfillMsg(t("store.purchaseProcessing", "Thanks! Finishing up your purchase..."));
       window.history.replaceState({}, "", "/store");
+      refreshAccountState();
       setTimeout(() => setFulfillMsg(null), 4000);
+      void item; // kept only for potential future analytics, not trusted for fulfillment
     } else if (params.get("canceled") === "true") {
       toast({ title: t("store.paymentCanceled"), description: t("store.noChargesMade") });
       window.history.replaceState({}, "", "/store");
@@ -135,7 +153,11 @@ export default function Store() {
       }
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+        },
         body: JSON.stringify(body),
       });
       const responseData = await res.json();

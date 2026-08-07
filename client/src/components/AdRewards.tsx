@@ -128,7 +128,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
   }, []);
 
   const startWatch = useCallback(() => {
-    if (locked || watching || remaining <= 0 || !supabaseUserId) return;
+    if (locked || watching || remaining <= 0 || !supabaseUserId || !accessToken) return;
     setAdIndex((prev) => pickAdIndex(prev));
     setLocked(true);
     setWatching(true);
@@ -144,8 +144,8 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
         clearInterval(intervalRef.current!);
         fetch("/api/ad-claim", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ supabaseUserId, roomCode }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ roomCode }),
         })
           .then(r => r.json())
           .then(data => {
@@ -172,7 +172,7 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
           });
       }
     }, 1000);
-  }, [locked, watching, remaining, supabaseUserId, roomCode, t, pickAdIndex]);
+  }, [locked, watching, remaining, supabaseUserId, accessToken, roomCode, t, pickAdIndex]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 

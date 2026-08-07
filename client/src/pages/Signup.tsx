@@ -17,18 +17,19 @@ function getReferralCodeFromURL() {
 }
 
 // Calls the server to record the referral, tied to the new account's real
-// Supabase user id (not localStorage, so it can't be replayed by clearing
-// storage). Credits are NOT awarded immediately anymore — see
+// Supabase user id (verified server-side via the Bearer token below, not
+// trusted from the request body — the server ignores any id sent in the
+// body). Credits are NOT awarded immediately anymore — see
 // tryResolveReferralClaim on the server: they're only paid out once this
 // account has actually played a couple of real games, to stop people from
 // farming credits with throwaway accounts that never play.
-async function claimReferralReward(refCode: string, newSupabaseUserId: string) {
-  if (!refCode || !newSupabaseUserId) return;
+async function claimReferralReward(refCode: string, accessToken: string) {
+  if (!refCode || !accessToken) return;
   try {
     await fetch("/api/rewards/referral/claim", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: refCode, newSupabaseUserId, deviceId: getDeviceId() }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ code: refCode, deviceId: getDeviceId() }),
     });
     // A non-OK response (already claimed, invalid code, denied, etc.) is fine to
     // ignore here — it just means no bonus applies, not a signup failure.
@@ -36,6 +37,8 @@ async function claimReferralReward(refCode: string, newSupabaseUserId: string) {
     // Non-fatal — referral crediting shouldn't block account creation.
   }
 }
+
+const PENDING_REFERRAL_KEY = "mafia_pending_referral";
 
 export default function Signup() {
   const { t } = useTranslation();
@@ -93,8 +96,20 @@ export default function Signup() {
       return;
     }
     if (data.user) {
-      // Claim referral bonus if applicable — tied to the new account's real id
-      await claimReferralReward(refCode, data.user.id);
+      // The server now requires a real Bearer token to claim a referral
+      // (see claimReferralReward above), and this app requires email
+      // confirmation, so signUp() almost never returns a session here yet.
+      // If it did (some Supabase projects skip confirmation), claim now;
+      // otherwise stash the code and let AuthCallback.tsx finish the claim
+      // once a real session exists.
+      if (refCode) {
+        const accessToken = data.session?.access_token;
+        if (accessToken) {
+          await claimReferralReward(refCode, accessToken);
+        } else {
+          try { localStorage.setItem(PENDING_REFERRAL_KEY, refCode); } catch {}
+        }
+      }
       toast({
         title: t("signup.accountCreatedTitle"),
         description: t("signup.accountCreatedDescription"),

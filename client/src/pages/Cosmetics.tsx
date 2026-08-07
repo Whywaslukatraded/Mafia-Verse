@@ -5,6 +5,17 @@ import { ArrowLeft, Sparkles, Lock, Check, Crown, Diamond, Flame, Star } from "l
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { LOOT_ITEMS, TIER_COLORS as LOOT_TIER_COLORS, TIER_BG as LOOT_TIER_BG } from "@/components/LootCrate";
+
+// Loot-crate cosmetics (non-credit items only) — same catalog LootCrate.tsx
+// rolls from, filtered to the types this page can actually display. `emote`
+// and `title` types aren't rendered as equippable cards elsewhere in this
+// file yet, so they're intentionally left out here rather than bolting on
+// unproven new preview UI for them in this pass.
+const LOOT_COSMETICS_META = LOOT_ITEMS.filter(
+  (i) => i.type === "chat_border" || i.type === "name_color" || i.type === "avatar_frame"
+);
 
 const WIN_COSMETICS_META = [
   { id: "border_gold", type: "chat_border", cost: 5, currency: "wins", preview: "border-yellow-500/50 bg-yellow-500/5" },
@@ -75,8 +86,54 @@ export default function Cosmetics() {
     return saved ? JSON.parse(saved) : {};
   });
   const [hasPass, setHasPass] = useState(() => {
+    // Fast-paint cache only — always reconciled against the server below.
     return localStorage.getItem("mafia_syndicate_pass") === "true";
   });
+
+  // Merge in server-authoritative loot-crate ownership (see LootCrate.tsx —
+  // opening a crate is now a real server transaction, not a localStorage
+  // write). Additive only: never removes anything already in `owned`.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/account/cosmetics-owned", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok || cancelled) return;
+        const { owned: serverOwned } = await res.json();
+        if (Array.isArray(serverOwned) && serverOwned.length > 0) {
+          setOwned((prev) => new Set([...Array.from(prev), ...serverOwned]));
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Security fix (#7): hasPass must reflect the server-authoritative record,
+  // not just a localStorage flag that any purchase attempt (successful or
+  // not) used to set directly.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/account/syndicate-pass", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok || cancelled) return;
+        const { active } = await res.json();
+        setHasPass(!!active);
+        localStorage.setItem("mafia_syndicate_pass", active ? "true" : "false");
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const onStorage = () => {
@@ -291,6 +348,85 @@ export default function Cosmetics() {
     );
   };
 
+  const renderLootCosmeticCard = (item: typeof LOOT_COSMETICS_META[0]) => {
+    const isOwned = owned.has(item.id);
+    const isEquipped = equipped[item.type] === item.id;
+    const tierColor = LOOT_TIER_COLORS[item.tier] || LOOT_TIER_COLORS.common;
+    const tierBg = LOOT_TIER_BG[item.tier] || LOOT_TIER_BG.common;
+    const ringColor = tierColor.replace("text-", "border-");
+    const name = t(`lootCrate.items.${item.id}`, item.id);
+
+    return (
+      <motion.div
+        key={item.id}
+        whileHover={isOwned ? { scale: 1.03, y: -4 } : {}}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className={cn(
+          "relative overflow-hidden rounded-2xl border-2 p-0 transition-all",
+          isEquipped ? ringColor : isOwned ? "border-primary/30" : "border-border/60 opacity-70"
+        )}
+      >
+        <div className="relative flex items-center justify-between px-4 pt-4 pb-2">
+          <div className={cn("px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border", tierBg, tierColor)}>
+            {t(`lootCrate.tiers.${item.tier}`, item.tier)}
+          </div>
+          {isEquipped && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/20 text-green-500 text-[10px] font-black uppercase">
+              <Check className="w-3 h-3" /> {t("cosmetics.equipped")}
+            </span>
+          )}
+          {isOwned && !isEquipped && (
+            <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase">{t("cosmetics.owned")}</span>
+          )}
+        </div>
+
+        <div className="relative px-4 pb-4">
+          <div className={cn("rounded-xl flex items-center justify-center min-h-[110px] border border-border/50", isOwned ? tierBg : "bg-gradient-to-b from-muted/30 to-muted/10")}>
+            {item.type === "chat_border" && (
+              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", isOwned ? tierBg : "border-border")}>
+                🔥 {t("cosmetics.chatBorderPreview")}
+              </div>
+            )}
+            {item.type === "name_color" && (
+              <div className="text-center">
+                <div className={cn("text-3xl font-black tracking-tight", isOwned ? tierColor : "text-muted-foreground")}>AGENT_47</div>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("cosmetics.usernamePreview")}</span>
+              </div>
+            )}
+            {item.type === "avatar_frame" && (
+              <div className="relative">
+                <div className="text-5xl relative z-10">🕵️</div>
+                <div className={cn("absolute -inset-3 rounded-full border-[3px]", isOwned ? `${ringColor} animate-pulse` : "border-border")} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-4 pb-2">
+          <h3 className="font-black text-sm text-foreground tracking-tight">{name}</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t("cosmetics.lootCrateOnly", "Only available from Loot Crates.")}</p>
+        </div>
+
+        <div className="px-4 pb-4 pt-2">
+          {!isOwned ? (
+            <Button disabled variant="secondary" className="w-full text-xs font-black h-10 opacity-60">
+              <Lock className="w-4 h-4 mr-2" />
+              {t("cosmetics.notYetUnlocked", "Not Yet Unlocked")}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => handleEquip(item)}
+              variant={isEquipped ? "default" : "outline"}
+              className={cn("w-full text-xs font-black h-10", isEquipped && "bg-primary text-primary-foreground shadow-lg shadow-primary/20")}
+            >
+              {isEquipped ? t("cosmetics.equippedClickToUnequip") : t("cosmetics.equipItem")}
+            </Button>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
   const SECTIONS = [
     { title: t("cosmetics.sections.personas"), icon: "🎭", items: SYNDICATE_COSMETICS.filter(c => c.type === "persona") },
     { title: t("cosmetics.sections.accessories"), icon: "🎧", items: SYNDICATE_COSMETICS.filter(c => c.type === "accessory") },
@@ -350,23 +486,33 @@ export default function Cosmetics() {
                   <Button
                     className="bg-amber-500 hover:bg-amber-600 text-black font-black"
                     onClick={async () => {
+                      if (!isSupabaseReady()) {
+                        return;
+                      }
+                      const supabase = getSupabase();
+                      const { data } = await supabase.auth.getSession();
+                      const token = data.session?.access_token;
+                      if (!token) return;
                       try {
                         const res = await fetch("/api/stripe/syndicate-checkout", {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+                          },
                         });
-                        const data = await res.json();
-                        if (res.ok && data.url) {
-                          window.location.href = data.url;
-                        } else {
-                          // Fallback: demo mode — unlock locally
-                          localStorage.setItem("mafia_syndicate_pass", "true");
-                          setHasPass(true);
+                        const data2 = await res.json();
+                        if (res.ok && data2.url) {
+                          window.location.href = data2.url;
                         }
+                        // No fallback here on purpose — a real purchase only ever
+                        // completes through the Stripe redirect above, then gets
+                        // confirmed by the webhook against account_syndicate_pass.
+                        // Granting the pass locally on any failure would let anyone
+                        // get it for free just by blocking this request.
                       } catch {
-                        // Fallback: demo mode — unlock locally
-                        localStorage.setItem("mafia_syndicate_pass", "true");
-                        setHasPass(true);
+                        // Same as above — no local fallback.
                       }
                     }}
                   >
@@ -404,6 +550,18 @@ export default function Cosmetics() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {WIN_COSMETICS.map((cosmetic) => renderCosmeticCard(cosmetic, false))}
+          </div>
+        </div>
+
+        {/* Loot Crate Collection — earned via LootCrate.tsx, ownership is
+            server-authoritative (see the useEffect near the top of this file) */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Diamond className="w-5 h-5 text-blue-400" />
+            <h2 className="text-lg font-black uppercase tracking-widest text-foreground">{t("cosmetics.lootCrateCollection", "Loot Crate Collection")}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {LOOT_COSMETICS_META.map((item) => renderLootCosmeticCard(item))}
           </div>
         </div>
 

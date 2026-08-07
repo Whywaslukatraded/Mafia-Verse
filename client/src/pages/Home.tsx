@@ -277,7 +277,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 function RecentPlayers() {
   const { t } = useTranslation();
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
-  const [recentPlayers, setRecentPlayers] = useState<{ supabaseUserId: string; name: string; avatar: string }[]>([]);
+  const [recentPlayers, setRecentPlayers] = useState<{ name: string; avatar: string }[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -320,9 +320,9 @@ function RecentPlayers() {
     <div className="mb-6">
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2 px-1">{t("home.recentPlayers.title")}</p>
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {recentPlayers.map((rp) => (
+        {recentPlayers.map((rp, idx) => (
           <button
-            key={rp.supabaseUserId}
+            key={`${rp.name}-${idx}`}
             onClick={() => invite(rp.name)}
             className="shrink-0 flex items-center gap-2 bg-card border border-border rounded-full pl-1.5 pr-3 py-1.5 hover:bg-muted transition-colors"
           >

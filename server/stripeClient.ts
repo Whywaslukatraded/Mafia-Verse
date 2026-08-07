@@ -79,6 +79,22 @@ export async function getStripeSecretKey(): Promise<string> {
   return secretKey;
 }
 
+// Independently verifies a raw webhook payload against Stripe's signature
+// and returns the parsed event. This exists so app-specific logic (granting
+// entitlements like the Syndicate Pass — see webhookHandlers.ts) doesn't
+// need to know anything about stripe-replit-sync's internal table schema;
+// it just reads event.type / event.data.object directly from a
+// cryptographically verified Stripe event, same as any standard Stripe
+// webhook integration.
+export async function verifyStripeWebhookEvent(payload: Buffer, signature: string): Promise<Stripe.Event> {
+  const { secretKey, webhookSecret } = await getStripeCredentials();
+  if (!webhookSecret) {
+    throw new Error("STRIPE_WEBHOOK_SECRET is not set — cannot verify webhook signatures.");
+  }
+  const stripe = new Stripe(secretKey, { apiVersion: "2026-02-25.clover" as any });
+  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+}
+
 // StripeSync singleton for webhook processing
 let stripeSync: StripeSync | null = null;
 

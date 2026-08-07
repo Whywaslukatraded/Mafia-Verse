@@ -7,7 +7,7 @@ import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, 
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { randomUUID, pbkdf2Sync, randomBytes } from "crypto";
+import { randomUUID, pbkdf2Sync, randomBytes, timingSafeEqual, createHmac } from "crypto";
 import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailService";
 import rateLimit from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
@@ -44,6 +44,67 @@ async function getVerifiedSupabaseUserId(req: any): Promise<string | null> {
   }
 }
 
+// Security fix (#1 / #3): a valid Supabase JWT only proves the password was
+// correct — it says nothing about whether this app's own custom 2FA step was
+// completed, because that was previously tracked with nothing but a
+// client-side localStorage flag ("mafia_2fa_passed") that no server code
+// ever read. An attacker with just the password could skip straight past
+// /2fa-verify and use the JWT against any authenticated API.
+//
+// This mints a short-lived, server-signed token when /api/auth/2fa/verify
+// succeeds. requireVerifiedUser() below is a drop-in replacement for
+// getVerifiedSupabaseUserId() that additionally requires that token — via
+// an `x-mfa-token` header — for any account that has 2FA enabled. Accounts
+// without 2FA enabled are unaffected.
+//
+// Applied so far to the Stripe checkout routes (the highest-value target,
+// and ones where both the server route and every client caller are known
+// and updated together in this pass, so nothing breaks silently). Rolling
+// this out to other routes needs the client files that call them, updated
+// in the same pass, or a central fetch wrapper — see the write-up at the
+// end of this security pass for exactly what's needed to extend it further.
+if (!process.env.MFA_TOKEN_SECRET) {
+  console.warn("MFA_TOKEN_SECRET not set — using a random per-boot secret. Set this env var in production so MFA tokens survive a server restart/deploy instead of forcing re-verification.");
+}
+const MFA_TOKEN_SECRET = process.env.MFA_TOKEN_SECRET || randomBytes(32).toString("hex");
+const MFA_TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+function mintMfaToken(supabaseUserId: string): string {
+  const expires = Date.now() + MFA_TOKEN_TTL_MS;
+  const sig = createHmac("sha256", MFA_TOKEN_SECRET).update(`${supabaseUserId}.${expires}`).digest("hex");
+  return `${expires}.${sig}`;
+}
+
+function verifyMfaToken(token: string, supabaseUserId: string): boolean {
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+  const [expiresStr, sig] = parts;
+  const expires = parseInt(expiresStr, 10);
+  if (!Number.isFinite(expires) || Date.now() > expires) return false;
+  const expectedSig = createHmac("sha256", MFA_TOKEN_SECRET).update(`${supabaseUserId}.${expires}`).digest("hex");
+  const a = Buffer.from(sig, "hex");
+  const b = Buffer.from(expectedSig, "hex");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+// Drop-in replacement for getVerifiedSupabaseUserId that also enforces the
+// 2FA-verified-this-session check for accounts that have 2FA enabled.
+// Returns { supabaseUserId } on success, or { status, message } to send
+// straight back as the HTTP response on failure.
+async function requireVerifiedUser(req: any): Promise<{ supabaseUserId: string } | { status: number; message: string }> {
+  const supabaseUserId = await getVerifiedSupabaseUserId(req);
+  if (!supabaseUserId) return { status: 401, message: "Not authenticated" };
+  const [mfa] = await db.select().from(userMfa).where(eq(userMfa.supabaseUserId, supabaseUserId));
+  if (mfa?.isEnabled) {
+    const mfaToken = req.headers?.["x-mfa-token"];
+    if (!mfaToken || typeof mfaToken !== "string" || !verifyMfaToken(mfaToken, supabaseUserId)) {
+      return { status: 401, message: "2FA verification required" };
+    }
+  }
+  return { supabaseUserId };
+}
+
 // Room creation: no more than 10 rooms per IP every 10 minutes — enough for
 // normal use (replays, multiple friend groups) but stops one person from
 // scripting hundreds of rooms.
@@ -75,16 +136,39 @@ const loginLimiter = rateLimit({
 });
 
 // Password hashing helpers
+// Security fix: was 1,000 PBKDF2 iterations (far below current guidance) and
+// a plain `===` comparison (timing side-channel). New hashes use 210,000
+// iterations (OWASP's current PBKDF2-HMAC-SHA512 baseline) in a
+// self-describing "iterations:salt:hash" format. Old hashes — stored as
+// plain "salt:hash" at the old fixed 1,000 iterations — still verify
+// correctly (no existing account gets locked out); see the login route
+// below for the transparent upgrade-on-next-login step.
+const PBKDF2_ITERATIONS = 210_000;
+const LEGACY_PBKDF2_ITERATIONS = 1000;
+
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
-  const hash = pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+  const hash = pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, 64, 'sha512').toString('hex');
+  return `${PBKDF2_ITERATIONS}:${salt}:${hash}`;
 }
 
-function verifyPassword(password: string, hash: string): boolean {
-  const [salt, storedHash] = hash.split(':');
-  const testHash = pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return testHash === storedHash;
+function verifyPassword(password: string, storedValue: string): boolean {
+  const parts = storedValue.split(':');
+  const [iterations, salt, storedHash] = parts.length === 3
+    ? [parseInt(parts[0], 10), parts[1], parts[2]]
+    : [LEGACY_PBKDF2_ITERATIONS, parts[0], parts[1]];
+  if (!salt || !storedHash || !Number.isFinite(iterations)) return false;
+  const testHash = pbkdf2Sync(password, salt, iterations, 64, 'sha512');
+  const stored = Buffer.from(storedHash, 'hex');
+  if (testHash.length !== stored.length) return false;
+  return timingSafeEqual(testHash, stored);
+}
+
+// True if a stored hash is still in the old low-iteration format, so the
+// login route can quietly re-hash it with the new parameters once the
+// plaintext password is available (right after a successful verify).
+function isLegacyPasswordHash(storedValue: string): boolean {
+  return storedValue.split(':').length !== 3;
 }
 
 // Game Logic Helpers
@@ -2037,6 +2121,54 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           credits INT NOT NULL DEFAULT 0
         );
       `);
+      // Security fix (#5/#7): there was previously NO server-side record of
+      // Syndicate Pass ownership anywhere — the client trusted a redirect
+      // query param and a localStorage flag as if they were proof of
+      // payment. This table is the authoritative source of truth; see
+      // /api/account/syndicate-pass below and the note there about the
+      // one remaining piece (the Stripe webhook handler) needed to write to it.
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS account_syndicate_pass (
+          supabase_user_id TEXT PRIMARY KEY,
+          active BOOLEAN NOT NULL DEFAULT true,
+          purchased_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `);
+      // Security fix (#10): loot crate opens used to be entirely client-side
+      // (random roll, credit debit, and cosmetic ownership all computed and
+      // stored in localStorage), so editing localStorage granted unlimited
+      // free crate opens and cosmetics. This table is the authoritative
+      // ownership record; see /api/loot-crate/open below, which now does the
+      // roll and the credit math server-side in one transaction.
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS account_cosmetics_owned (
+          supabase_user_id TEXT NOT NULL,
+          item_id TEXT NOT NULL,
+          acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY (supabase_user_id, item_id)
+        );
+      `);
+
+      // Security fix: these eight tables are created here at boot, outside the
+      // Drizzle schema and outside supabase/migrations, so none of the
+      // project's RLS migrations ever touch them. Supabase grants the
+      // anon/authenticated PostgREST roles access to public-schema tables
+      // by default, so without this they'd be directly readable/writable
+      // via the public Supabase REST API using the anon key the client
+      // already has (see /api/config) — completely bypassing every
+      // getVerifiedSupabaseUserId() check in this file. Every read/write
+      // this app actually performs on these tables goes through the
+      // backend's own Postgres connection below, not PostgREST, so this
+      // does not change any existing behavior in this server.
+      const BACKEND_ONLY_TABLES = [
+        "daily_streaks", "ratings", "referral_links", "referral_claims",
+        "account_activity", "account_credits", "account_syndicate_pass",
+        "account_cosmetics_owned",
+      ];
+      for (const table of BACKEND_ONLY_TABLES) {
+        await bootstrapClient.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`);
+        await bootstrapClient.query(`REVOKE ALL ON ${table} FROM anon, authenticated;`);
+      }
     } finally {
       bootstrapClient.release();
     }
@@ -2096,6 +2228,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!user || !verifyPassword(input.password, user.passwordHash)) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
+      if (isLegacyPasswordHash(user.passwordHash)) {
+        // Password was correct, so we have the plaintext right here — quietly
+        // upgrade the stored hash to the new iteration count. Non-fatal if it
+        // fails; the account still verifies fine against the old hash either way.
+        storage.updateUser(user.id, { passwordHash: hashPassword(input.password) }).catch(() => {});
+      }
 
       if (user.is2FAEnabled) {
         return res.status(200).json({ requires2FA: true, userId: user.id });
@@ -2115,6 +2253,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const user = await storage.getUserByUsername(username);
       if (!user || !verifyPassword(password, user.passwordHash)) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+      if (isLegacyPasswordHash(user.passwordHash)) {
+        storage.updateUser(user.id, { passwordHash: hashPassword(password) }).catch(() => {});
       }
       if (!user.is2FAEnabled || !user.totpSecret) {
         return res.status(400).json({ message: "2FA not enabled" });
@@ -2285,7 +2426,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         }
         // Clear the used code so it can't be replayed, then mark enabled
         await db.update(userMfa).set({ isEnabled: true, emailCode: null, emailCodeExpires: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
-        return res.json({ enabled: true });
+        return res.json({ enabled: true, mfaToken: mintMfaToken(supabaseUserId) });
       }
 
       // Default / "totp" path
@@ -2299,7 +2440,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!isValid) return res.status(400).json({ message: "Invalid code" });
 
       await db.update(userMfa).set({ isEnabled: true }).where(eq(userMfa.supabaseUserId, supabaseUserId));
-      res.json({ enabled: true });
+      res.json({ enabled: true, mfaToken: mintMfaToken(supabaseUserId) });
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please try again shortly." });
@@ -3201,8 +3342,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/stripe/credit-checkout", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to purchase credits." });
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.status === 401 && auth.message === "2FA verification required" ? auth.message : "Sign in to purchase credits." });
+      const { supabaseUserId } = auth;
 
       const { credits } = req.body;
       const amount = CREDIT_PACK_CATALOG[credits];
@@ -3231,8 +3373,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Stripe checkout: Syndicate Pass
   app.post("/api/stripe/syndicate-checkout", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to purchase the Syndicate Pass." });
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.status === 401 && auth.message === "2FA verification required" ? auth.message : "Sign in to purchase the Syndicate Pass." });
+      const { supabaseUserId } = auth;
 
       const { getUncachableStripeClient } = await import("./stripeClient");
       const stripe = await getUncachableStripeClient();
@@ -3259,8 +3402,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // the payment can be attributed to someone.
   app.post("/api/stripe/tip-checkout", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign in to send a tip." });
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.status === 401 && auth.message === "2FA verification required" ? auth.message : "Sign in to send a tip." });
+      const { supabaseUserId } = auth;
 
       const { amount } = req.body;
       if (!amount || amount < 100) return res.status(400).json({ message: "Minimum tip is $1.00" });
@@ -3572,7 +3716,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         );
         const recentPlayers = result.rows
           .sort((a, b) => new Date(b.lastPlayedAt).getTime() - new Date(a.lastPlayedAt).getTime())
-          .slice(0, 8);
+          .slice(0, 8)
+          // Security fix: this row includes other accounts' internal Supabase
+          // user UUIDs (needed for the query above), but the client only ever
+          // needs name/avatar to render an invite chip — never hand out
+          // another account's ID, since that ID is exactly what an
+          // unauthenticated caller could otherwise use as a target elsewhere.
+          .map(({ name, avatar, lastPlayedAt }) => ({ name, avatar, lastPlayedAt }));
         res.json({ recentPlayers });
       } finally {
         client.release();
@@ -3690,6 +3840,234 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
     } catch {
       res.json({ credits: 0 });
+    }
+  });
+
+  // Authoritative Syndicate Pass ownership (#5 / #7 fix). Written by
+  // webhookHandlers.ts on a verified `checkout.session.completed` event —
+  // see handleAppSpecificEvent() there.
+  app.get("/api/account/syndicate-pass", async (req, res) => {
+    try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.json({ active: false });
+      const client = await pool.connect();
+      try {
+        const result = await client.query("SELECT active FROM account_syndicate_pass WHERE supabase_user_id = $1", [supabaseUserId]);
+        res.json({ active: result.rows[0]?.active === true });
+      } finally {
+        client.release();
+      }
+    } catch {
+      res.json({ active: false });
+    }
+  });
+
+  // Security fix (#10): server-side loot table — this MUST mirror
+  // client/src/components/LootCrate.tsx's LOOT_ITEMS exactly (same ids,
+  // types, tiers, weights, credit amounts) since the client still uses its
+  // own copy purely for display (names, icons, tier colors). If you add or
+  // change an item in one, change it in the other, or client and server
+  // odds will drift out of sync (not a security bug, just a confusing one).
+  const LOOT_CRATE_COST = 15;
+  const LOOT_ITEMS_SERVER: { id: string; type: string; tier: string; weight: number; credits?: number }[] = [
+    { id: "lc_border_grey", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_olive", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_tan", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_navy", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_teal", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_mint", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_lav", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_coral", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_peach", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_border_ink", type: "chat_border", tier: "common", weight: 5 },
+    { id: "lc_name_grey", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_olive", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_tan", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_navy", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_teal", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_mint", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_lav", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_coral", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_peach", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_name_ink", type: "name_color", tier: "common", weight: 5 },
+    { id: "lc_1c", credits: 1, type: "credits", tier: "common", weight: 10 },
+    { id: "lc_2c", credits: 2, type: "credits", tier: "common", weight: 8 },
+    { id: "lc_3c", credits: 3, type: "credits", tier: "common", weight: 6 },
+    { id: "lc_4c", credits: 4, type: "credits", tier: "common", weight: 4 },
+    { id: "lc_5c", credits: 5, type: "credits", tier: "common", weight: 3 },
+    { id: "lc_border_gold", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_silver", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_bronze", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_ruby", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_sapphire", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_emerald", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_amethyst", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_amber", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_jade", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_border_onyx", type: "chat_border", tier: "rare", weight: 4 },
+    { id: "lc_name_gold", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_silver", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_bronze", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_ruby", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_sapphire", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_emerald", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_amethyst", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_amber", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_jade", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_name_onyx", type: "name_color", tier: "rare", weight: 4 },
+    { id: "lc_frame_steel", type: "avatar_frame", tier: "rare", weight: 3 },
+    { id: "lc_frame_bronze", type: "avatar_frame", tier: "rare", weight: 3 },
+    { id: "lc_frame_silver", type: "avatar_frame", tier: "rare", weight: 3 },
+    { id: "lc_frame_wood", type: "avatar_frame", tier: "rare", weight: 3 },
+    { id: "lc_frame_ivy", type: "avatar_frame", tier: "rare", weight: 3 },
+    { id: "lc_6c", credits: 6, type: "credits", tier: "rare", weight: 4 },
+    { id: "lc_7c", credits: 7, type: "credits", tier: "rare", weight: 3 },
+    { id: "lc_8c", credits: 8, type: "credits", tier: "rare", weight: 2 },
+    { id: "lc_10c", credits: 10, type: "credits", tier: "rare", weight: 2 },
+    { id: "lc_frame_diamond", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_fire", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_crown", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_ice", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_shadow", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_neon", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_goldleaf", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_frame_cyber", type: "avatar_frame", tier: "epic", weight: 3 },
+    { id: "lc_emote_gun", type: "emote", tier: "epic", weight: 2 },
+    { id: "lc_emote_hood", type: "emote", tier: "epic", weight: 2 },
+    { id: "lc_emote_cigar", type: "emote", tier: "epic", weight: 2 },
+    { id: "lc_emote_glass", type: "emote", tier: "epic", weight: 2 },
+    { id: "lc_emote_ring", type: "emote", tier: "epic", weight: 2 },
+    { id: "lc_12c", credits: 12, type: "credits", tier: "epic", weight: 3 },
+    { id: "lc_15c", credits: 15, type: "credits", tier: "epic", weight: 2 },
+    { id: "lc_20c", credits: 20, type: "credits", tier: "epic", weight: 1 },
+    { id: "lc_frame_dragon", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_angel", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_demon", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_royal", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_thorn", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_legend", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_ghost", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_moon", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_sun", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_frame_void", type: "avatar_frame", tier: "legendary", weight: 2 },
+    { id: "lc_emote_kingpin", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_enforcer", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_mastermind", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_don", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_silencer", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_legend", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_myth", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_boss", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_godfather", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_emote_shadow", type: "emote", tier: "legendary", weight: 2 },
+    { id: "lc_title_made", type: "title", tier: "legendary", weight: 2 },
+    { id: "lc_title_capo", type: "title", tier: "legendary", weight: 2 },
+    { id: "lc_title_consigliere", type: "title", tier: "legendary", weight: 2 },
+    { id: "lc_title_underboss", type: "title", tier: "legendary", weight: 2 },
+    { id: "lc_25c", credits: 25, type: "credits", tier: "legendary", weight: 2 },
+    { id: "lc_30c", credits: 30, type: "credits", tier: "legendary", weight: 1 },
+    { id: "lc_50c", credits: 50, type: "credits", tier: "legendary", weight: 1 },
+    { id: "lc_frame_godfather", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_immortal", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_celestial", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_doom", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_phoenix", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_eclipse", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_nexus", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_overlord", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_titan", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_frame_omega", type: "avatar_frame", tier: "mythic", weight: 1 },
+    { id: "lc_emote_omega", type: "emote", tier: "mythic", weight: 1 },
+    { id: "lc_emote_overlord", type: "emote", tier: "mythic", weight: 1 },
+    { id: "lc_emote_immortal", type: "emote", tier: "mythic", weight: 1 },
+    { id: "lc_emote_celestial", type: "emote", tier: "mythic", weight: 1 },
+    { id: "lc_emote_doom", type: "emote", tier: "mythic", weight: 1 },
+    { id: "lc_title_don", type: "title", tier: "mythic", weight: 1 },
+    { id: "lc_title_godfather", type: "title", tier: "mythic", weight: 1 },
+    { id: "lc_title_overlord", type: "title", tier: "mythic", weight: 1 },
+    { id: "lc_title_immortal", type: "title", tier: "mythic", weight: 1 },
+    { id: "lc_100c", credits: 100, type: "credits", tier: "mythic", weight: 1 },
+    { id: "lc_250c", credits: 250, type: "credits", tier: "mythic", weight: 1 },
+  ];
+
+  function rollLootServer() {
+    const totalWeight = LOOT_ITEMS_SERVER.reduce((sum, i) => sum + i.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const item of LOOT_ITEMS_SERVER) {
+      roll -= item.weight;
+      if (roll <= 0) return item;
+    }
+    return LOOT_ITEMS_SERVER[0];
+  }
+
+  app.post("/api/loot-crate/open", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        // Lock this account's credit row for the duration of the
+        // transaction so two rapid opens can't both read the same starting
+        // balance and both succeed when only one crate was affordable.
+        const balanceResult = await client.query(
+          "SELECT credits FROM account_credits WHERE supabase_user_id = $1 FOR UPDATE",
+          [supabaseUserId]
+        );
+        const currentCredits = balanceResult.rows[0]?.credits ?? 0;
+        if (currentCredits < LOOT_CRATE_COST) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ message: "Not enough credits" });
+        }
+
+        const item = rollLootServer();
+        let newCredits = currentCredits - LOOT_CRATE_COST;
+        if (item.type === "credits") {
+          newCredits += item.credits || 0;
+        }
+
+        await client.query(
+          `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
+           ON CONFLICT (supabase_user_id) DO UPDATE SET credits = $2`,
+          [supabaseUserId, newCredits]
+        );
+        if (item.type !== "credits") {
+          await client.query(
+            `INSERT INTO account_cosmetics_owned (supabase_user_id, item_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING`,
+            [supabaseUserId, item.id]
+          );
+        }
+
+        await client.query("COMMIT");
+        res.json({ item: { id: item.id, type: item.type, tier: item.tier, credits: item.credits }, credits: newCredits });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      console.error("Loot crate open error:", err);
+      res.status(500).json({ message: "Failed to open crate" });
+    }
+  });
+
+  app.get("/api/account/cosmetics-owned", async (req, res) => {
+    try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.json({ owned: [] });
+      const client = await pool.connect();
+      try {
+        const result = await client.query("SELECT item_id FROM account_cosmetics_owned WHERE supabase_user_id = $1", [supabaseUserId]);
+        res.json({ owned: result.rows.map((r: any) => r.item_id) });
+      } finally {
+        client.release();
+      }
+    } catch {
+      res.json({ owned: [] });
     }
   });
 
