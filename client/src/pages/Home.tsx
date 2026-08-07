@@ -472,7 +472,7 @@ export default function Home() {
   const DEFAULT_COUNTS = {
     mafia: 1, detective: 1, doctor: 1, civilian: 3,
     bodyguard: 0, vigilante: 0, mayor: 0, jester: 0,
-    phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
   };
   const [counts, setCounts] = useState(() => {
@@ -500,6 +500,10 @@ export default function Home() {
       bodyguard: preset.bodyguardCount, vigilante: preset.vigilanteCount, mayor: preset.mayorCount, jester: preset.jesterCount,
       phaseDuration: preset.phaseDuration, mafiaDuration: preset.mafiaDuration, doctorDuration: preset.doctorDuration, detectiveDuration: preset.detectiveDuration,
       bodyguardDuration: preset.bodyguardDuration, vigilanteDuration: preset.vigilanteDuration,
+      // Presets don't define a discussion duration yet (rolePresets.ts
+      // predates this feature) — fall back to the preset's phaseDuration so
+      // discussion still starts out sensible for whichever preset was picked.
+      discussionDuration: (preset as any).discussionDuration ?? preset.phaseDuration,
     };
     setCounts(next);
     try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(next)); } catch {}
@@ -588,7 +592,7 @@ export default function Home() {
           doctorCount: counts.doctor, civilianCount: counts.civilian,
           bodyguardCount: counts.bodyguard, vigilanteCount: counts.vigilante,
           mayorCount: counts.mayor, jesterCount: counts.jester,
-          phaseDuration: counts.phaseDuration, mafiaDuration: counts.mafiaDuration,
+          phaseDuration: counts.phaseDuration, discussionDuration: counts.discussionDuration, mafiaDuration: counts.mafiaDuration,
           doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
           bodyguardDuration: counts.bodyguardDuration, vigilanteDuration: counts.vigilanteDuration,
           roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
@@ -615,6 +619,7 @@ export default function Home() {
     { key: 'mayor', label: t("roleBadge.mayor"), icon: Landmark, color: 'text-purple-400', bg: 'bg-purple-500/10' },
     { key: 'jester', label: t("roleBadge.jester"), icon: Drama, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     { key: 'phaseDuration', label: t("home.roles.votingTime"), icon: Timer, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { key: 'discussionDuration', label: t("home.roles.discussionTime", "Discussion Time"), icon: Timer, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
     { key: 'bodyguardDuration', label: t("room.bodyguardNightTime"), icon: ShieldCheck, color: 'text-slate-300', bg: 'bg-slate-400/10' },
     { key: 'mafiaDuration', label: t("home.roles.mafiaNightTime"), icon: Skull, color: 'text-red-400', bg: 'bg-red-400/10' },
     { key: 'vigilanteDuration', label: t("room.vigilanteNightTime"), icon: Crosshair, color: 'text-orange-400', bg: 'bg-orange-500/10' },

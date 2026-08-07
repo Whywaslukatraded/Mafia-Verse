@@ -176,6 +176,13 @@ export const api = {
           jesterCount: z.number().min(0).optional(),
           bodyguardDuration: z.number().min(5).optional(),
           vigilanteDuration: z.number().min(5).optional(),
+          // Feature: Discussion timer. Previously the day phase's
+          // "discussion" and "voting" stages both silently shared
+          // phaseDuration (mislabeled "Voting Time" in the UI even though
+          // it governed both). This lets discussion run on its own
+          // customizable length; falls back to phaseDuration server-side
+          // if omitted so older room-settings payloads still work.
+          discussionDuration: z.number().min(5).optional(),
           // Feature: bot dialogue and server-generated system messages (kill/
           // vote-out reveals, win announcements, notifications) are localized
           // server-side based on this — sent from the client's current i18n

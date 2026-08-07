@@ -2018,6 +2018,11 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
       let duration = (currentRoom.settings as any).phaseDuration * 1000 || PHASE_DURATION;
       if (currentRoom.status === 'night') {
         duration = getNightPhaseDuration(currentRoom.phase, currentRoom.settings as any);
+      } else if (currentRoom.status === 'day' && currentRoom.phase === 'discussion') {
+        // Feature: Discussion timer, separate from voting — falls back to
+        // phaseDuration if a room's settings predate this field.
+        const discussionSettingSeconds = (currentRoom.settings as any).discussionDuration ?? (currentRoom.settings as any).phaseDuration;
+        duration = (discussionSettingSeconds * 1000) || PHASE_DURATION;
       }
       // revealDelayMs is only ever nonzero here when this phase's lastUpdated was
       // itself pushed into the future above (an elimination just happened) — keep
@@ -2650,7 +2655,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (totalRoles > MAX_PLAYERS_PER_ROOM) {
         return res.status(400).json({ message: `Too many people — rooms cap out at ${MAX_PLAYERS_PER_ROOM} players.` });
       }
-      const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
+      const room = await storage.createRoom({
+        ...input.settings,
+        phaseDuration: input.settings.phaseDuration ?? 30,
+        // Feature: Discussion timer — default to phaseDuration when the
+        // client doesn't send one, so discussion and voting start out equal
+        // (matching the old shared-duration behavior) until the host tweaks
+        // discussion on its own.
+        discussionDuration: (input.settings as any).discussionDuration ?? input.settings.phaseDuration ?? 30,
+      } as any);
 
       const sessionId = randomUUID();
       // Security fix (#4): was trusting `input.supabaseUserId` straight from
@@ -3047,6 +3060,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                mafiaCount, detectiveCount, doctorCount, civilianCount,
                bodyguardCount, vigilanteCount, mayorCount, jesterCount,
                phaseDuration: clampInt(incoming.phaseDuration, current.phaseDuration),
+               discussionDuration: clampInt(incoming.discussionDuration, current.discussionDuration ?? current.phaseDuration),
                mafiaDuration: clampInt(incoming.mafiaDuration, current.mafiaDuration),
                doctorDuration: clampInt(incoming.doctorDuration, current.doctorDuration),
                detectiveDuration: clampInt(incoming.detectiveDuration, current.detectiveDuration),

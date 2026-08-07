@@ -114,7 +114,7 @@ export default function Room() {
   const [settingsDraft, setSettingsDraft] = useState({
     mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
     bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
-    phaseDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
     showVoteResults: true, showRoleReveal: true,
     botPersonality: undefined as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
@@ -382,7 +382,8 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
         mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
-        phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
+        phaseDuration: s.phaseDuration ?? 30, discussionDuration: s.discussionDuration ?? s.phaseDuration ?? 30,
+        mafiaDuration: s.mafiaDuration ?? 15,
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
         bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
@@ -400,7 +401,8 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
         mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
-        phaseDuration: s.phaseDuration ?? 30, mafiaDuration: s.mafiaDuration ?? 15,
+        phaseDuration: s.phaseDuration ?? 30, discussionDuration: s.discussionDuration ?? s.phaseDuration ?? 30,
+        mafiaDuration: s.mafiaDuration ?? 15,
         doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
         bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
@@ -412,7 +414,7 @@ export default function Room() {
 
   type NumericSettingKey = "mafiaCount" | "detectiveCount" | "doctorCount" | "civilianCount"
     | "bodyguardCount" | "vigilanteCount" | "mayorCount" | "jesterCount"
-    | "phaseDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration"
+    | "phaseDuration" | "discussionDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration"
     | "bodyguardDuration" | "vigilanteDuration";
   const adjustSetting = (key: NumericSettingKey, delta: number) => {
     setSettingsDraft(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
@@ -490,6 +492,7 @@ export default function Room() {
         mayor: settingsDraft.mayorCount,
         jester: settingsDraft.jesterCount,
         phaseDuration: settingsDraft.phaseDuration,
+        discussionDuration: settingsDraft.discussionDuration,
         mafiaDuration: settingsDraft.mafiaDuration,
         doctorDuration: settingsDraft.doctorDuration,
         detectiveDuration: settingsDraft.detectiveDuration,
@@ -549,6 +552,12 @@ export default function Room() {
         if (room.phase === "doctor") return settings.doctorDuration || 15;
         if (room.phase === "detective") return settings.detectiveDuration || 20;
         return settings.phaseDuration || 30;
+      }
+      // Feature: Discussion timer — discussion and voting used to always
+      // share phaseDuration; discussion now has its own setting (falling
+      // back to phaseDuration for older rooms/settings payloads).
+      if (room.status === "day" && room.phase === "discussion") {
+        return settings.discussionDuration ?? settings.phaseDuration ?? 30;
       }
       return settings.phaseDuration || 30;
     };
@@ -1200,6 +1209,7 @@ export default function Room() {
                         { key: "mayorCount", label: t("roleBadge.mayor"), icon: Landmark, color: "text-purple-400" },
                         { key: "jesterCount", label: t("roleBadge.jester"), icon: Drama, color: "text-pink-400" },
                         { key: "phaseDuration", label: t("home.roles.votingTime"), icon: Timer, color: "text-amber-500" },
+                        { key: "discussionDuration", label: t("home.roles.discussionTime", "Discussion Time"), icon: Timer, color: "text-cyan-400" },
                         { key: "bodyguardDuration", label: t("room.bodyguardNightTime"), icon: ShieldCheck, color: "text-slate-300" },
                         { key: "mafiaDuration", label: t("home.roles.mafiaNightTime"), icon: Skull, color: "text-red-400" },
                         { key: "vigilanteDuration", label: t("room.vigilanteNightTime"), icon: Crosshair, color: "text-orange-400" },

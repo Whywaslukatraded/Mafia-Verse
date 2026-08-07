@@ -71,6 +71,10 @@ export const rooms = pgTable("rooms", {
     jesterCount?: number;
     bodyguardDuration?: number;
     vigilanteDuration?: number;
+    // Feature: Discussion timer. Falls back to phaseDuration server-side if
+    // unset, so this stays optional for backward compatibility with rooms
+    // created before this field existed.
+    discussionDuration?: number;
     // Feature: Bot personality — alters chat tone/behavior tendencies only.
     // Undefined/unset means "use current default behavior" (unchanged).
     botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
@@ -195,6 +199,7 @@ export type CreateRoomRequest = {
     jesterCount?: number;
     bodyguardDuration?: number;
     vigilanteDuration?: number;
+    discussionDuration?: number;
     botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
   };
 };
