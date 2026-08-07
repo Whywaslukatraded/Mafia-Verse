@@ -2431,8 +2431,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/2fa/setup", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#1): was getVerifiedSupabaseUserId — proved the JWT
+      // was valid but not that this session had completed 2FA. Since this
+      // route resets isEnabled to false whenever it's called, an attacker
+      // with just a password JWT could silently disable a victim's existing
+      // 2FA by re-running setup. requireVerifiedUser only demands the extra
+      // x-mfa-token when the account already has 2FA enabled, so first-time
+      // setup (no 2FA yet) is unaffected.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
 
       const { TOTP } = await import("otpauth");
       const secret = new TOTP({
@@ -2465,8 +2473,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // (to confirm the email) and for each subsequent login.
   app.post("/api/auth/2fa/setup-email", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#1): same reasoning as /api/auth/2fa/setup above — this
+      // route also resets isEnabled to false on every call, so it needs the
+      // same requireVerifiedUser gate to stop a password-only attacker from
+      // silently disabling an existing 2FA method.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
       const { email } = req.body;
       if (!email) return res.status(400).json({ message: "Missing email" });
 
@@ -2574,8 +2587,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/2fa/disable", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#1): the highest-value target in this batch — was
+      // getVerifiedSupabaseUserId, which only proves the password was
+      // correct. requireVerifiedUser additionally demands a valid
+      // x-mfa-token for any account with 2FA enabled, so a stolen/leaked
+      // password JWT alone can no longer turn off 2FA.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
 
       await db.update(userMfa).set({ isEnabled: false, totpSecret: null, mfaMethod: "totp", mfaEmail: null, emailCode: null, emailCodeExpires: null }).where(eq(userMfa.supabaseUserId, supabaseUserId));
       res.json({ disabled: true });

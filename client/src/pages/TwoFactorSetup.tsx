@@ -57,9 +57,19 @@ export default function TwoFactorSetup() {
     if (!supabaseUserId) return;
     setMethod("totp");
     try {
+      // Security fix (#1): if this account already has 2FA enabled, the
+      // server now requires proof of a completed 2FA session (not just the
+      // password JWT) before it will let setup run again — since setup
+      // resets isEnabled to false. Accounts without 2FA yet are unaffected
+      // (no token is required in that case).
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/auth/2fa/setup", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ supabaseUserId }),
       });
       const data = await res.json();
@@ -84,9 +94,16 @@ export default function TwoFactorSetup() {
     if (!supabaseUserId || !email.trim()) return;
     setSendingEmail(true);
     try {
+      // Security fix (#1): same as startTotpSetup above — only required
+      // when the account already has 2FA enabled.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/auth/2fa/setup-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ supabaseUserId, email: email.trim() }),
       });
       const data = await res.json();

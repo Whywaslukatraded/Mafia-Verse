@@ -105,9 +105,19 @@ export default function Settings() {
         return;
       }
 
+      // Security fix (#1): the server now also requires proof this session
+      // completed 2FA (not just a valid password JWT) before it will
+      // disable 2FA. TwoFactorVerify.tsx stores that proof here after a
+      // successful login verification.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
+
       const res = await fetch("/api/auth/2fa/disable", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session.access_token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authData.session.access_token}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ supabaseUserId }),
       });
       const data = await res.json();

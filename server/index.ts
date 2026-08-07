@@ -54,6 +54,38 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Security fix (#10): the app previously shipped with no security headers at
+// all (X-Powered-By left on, no CSP/frame protection/HSTS/etc). Hand-rolled
+// here instead of adding the `helmet` dependency, per the "don't add
+// dependencies unless necessary" instruction — this app's needs are simple
+// enough not to need it.
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  // HSTS only makes sense over HTTPS (Render terminates TLS in front of
+  // this app, so req.secure/x-forwarded-proto reflects the real scheme).
+  if (req.secure || req.headers["x-forwarded-proto"] === "https") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  // A single restrictive-but-functional CSP: scripts/styles from self only
+  // (plus the QR code generator img source used by TwoFactorSetup.tsx),
+  // frame-ancestors 'none' as the modern replacement/backup for X-Frame-Options.
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+      "script-src 'self'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https://api.qrserver.com; " +
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co; " +
+      "frame-ancestors 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self'"
+  );
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
