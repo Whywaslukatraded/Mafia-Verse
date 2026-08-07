@@ -463,6 +463,10 @@ const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "�
 
 const MAX_BOTS_PER_ROOM = 5;
 const MAX_SPECIAL_ROLES = 10;
+// Feature: Pre-game ready-up lobby. Once every connected human has hit
+// Ready, this is how long they wait (in case someone wants to un-ready)
+// before bots fill the rest of the room and the game begins.
+const READY_GRACE_PERIOD_MS = 15000;
 // "Play Again" is meant to be a rematch with the same group, not a fresh
 // public game — if fewer than this many real (non-bot) players from the
 // finished match are still connected, we don't attempt it.
@@ -497,6 +501,82 @@ async function fillWithBots(roomId: number, storage: any): Promise<{ added: numb
     });
   }
   return { added: botsNeeded, cappedAtMax: botsNeeded < botsWantedForMin };
+}
+
+// Feature: Pre-game ready-up lobby. Extracted from the old inline
+// WS_EVENTS.START_GAME handler so both a host-initiated start and an
+// automatic ready-up/grace-period start (see tryStartGame below) share the
+// exact same role-assignment + first-night setup path.
+async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const room = await storage.getRoom(roomId);
+  if (!room || room.status !== 'lobby') return;
+
+  const players = await storage.getPlayersInRoom(roomId);
+  const updatedPlayers = assignRoles(players, room.settings);
+  for (const p of updatedPlayers) {
+    await storage.updatePlayer(p.id, { role: p.role });
+  }
+
+  const revealDelayMs = ROLE_REVEAL_MS;
+  const firstNightPlayers = await storage.getPlayersInRoom(roomId);
+  const firstPhase = getFirstNightPhase(firstNightPlayers);
+  await storage.updateRoom(roomId, { status: 'night', phase: firstPhase, turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
+  gameActions.set(roomId, {
+    votes: new Map(),
+    mafiaKills: new Map(),
+    doctorSaves: new Map(),
+    detectiveChecks: new Map(),
+    guards: new Map(),
+    shots: new Map()
+  });
+  gameHistory.set(roomId, []);
+  const bulletsMap = new Map<number, number>();
+  for (const p of firstNightPlayers) {
+    if (p.role === 'vigilante') bulletsMap.set(p.id, 2);
+  }
+  vigilanteBullets.set(roomId, bulletsMap);
+  mayorRevealed.set(roomId, new Set());
+
+  const startSettings = room.settings as any;
+  const duration = getNightPhaseDuration(firstPhase, startSettings);
+  const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
+  phaseTimers.set(roomId, timer);
+  void scheduleBotQuickActions(roomId, wss, storage, roomClients, clients, gameActions);
+  broadcastState(roomId);
+}
+
+// Feature: Pre-game ready-up lobby. Fires when the grace-period timer
+// expires OR the host clicks "Start Now". Guarded by `startingRooms` so the
+// two triggers racing each other (grace timer firing the instant Start Now
+// is clicked) can never both run — the second caller sees the room already
+// claimed and returns immediately. Also re-checks room.status === 'lobby'
+// after clearing the timer as a belt-and-suspenders guard against a
+// double-start, standing in for a conditional
+// `UPDATE rooms SET status='ACTIVE' WHERE id=$1 AND status='LOBBY'` if the
+// storage layer is ever swapped for one that supports it directly.
+async function tryStartGame(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  if (startingRooms.has(roomId)) return;
+  startingRooms.add(roomId);
+  try {
+    clearReadyTimer(roomId);
+
+    const room = await storage.getRoom(roomId);
+    if (!room || room.status !== 'lobby') return;
+
+    // Fill remaining seats with bots (existing instant-bot-fill logic,
+    // reused as the fallback here) up to the room's minimum, then begin.
+    await fillWithBots(roomId, storage);
+    const players = await storage.getPlayersInRoom(roomId);
+    if (players.length < 6) {
+      // Still short even after topping up with bots (e.g. bot cap hit with
+      // very few humans) — stay in the lobby rather than starting broken.
+      broadcastState(roomId);
+      return;
+    }
+    await beginGame(roomId, wss, storage, roomClients, clients, gameActions);
+  } finally {
+    startingRooms.delete(roomId);
+  }
 }
 
 // Tracks each bot's last message so they never repeat themselves back-to-back
@@ -1430,14 +1510,32 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   gameHistory.set(roomId, history);
 
   for (const p of playersInRoom) {
+    const isWinner = winner === 'jester' ? p.role === 'jester' :
+      winner === 'civilians' ? p.role !== 'mafia' :
+      winner === 'mafia' ? p.role === 'mafia' : false;
+
+    // Feature: Per-role stats. p.role is always set by the time a game
+    // reaches finalizeGameEnd (roles are assigned at game start and never
+    // cleared mid-game), so every participant here has a role to attribute
+    // this result to. Existing rows without a roleStats entry yet just
+    // start from { wins: 0, gamesPlayed: 0 } for that role, same shape as
+    // a brand-new player's first game in that role.
+    const currentRoleStats = (p.roleStats as Record<string, { wins: number; gamesPlayed: number }>) || {};
+    const role = p.role || 'unknown';
+    const existing = currentRoleStats[role] || { wins: 0, gamesPlayed: 0 };
+    const newRoleStats = {
+      ...currentRoleStats,
+      [role]: {
+        gamesPlayed: existing.gamesPlayed + 1,
+        wins: existing.wins + (isWinner ? 1 : 0),
+      },
+    };
+
     await storage.updatePlayer(p.id, {
       gameHistory: history,
       gamesPlayed: (p.gamesPlayed || 0) + 1,
-      wins: (p.wins || 0) + (
-        winner === 'jester' ? (p.role === 'jester' ? 1 : 0) :
-        winner === 'civilians' && p.role !== 'mafia' ? 1 :
-        winner === 'mafia' && p.role === 'mafia' ? 1 : 0
-      )
+      wins: (p.wins || 0) + (isWinner ? 1 : 0),
+      roleStats: newRoleStats,
     });
   }
 
@@ -1934,6 +2032,20 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
 
 const clients = new Map<string, WebSocket>();
 const roomClients = new Map<number, Set<string>>();
+// Feature: Pre-game ready-up lobby — per-room grace-period timer + its
+// deadline (for broadcasting a countdown), and an in-process guard against
+// the grace-period timer and a host's "Start Now" click both firing.
+const readyTimers = new Map<number, NodeJS.Timeout>();
+const readyDeadlines = new Map<number, number>();
+const startingRooms = new Set<number>();
+
+function clearReadyTimer(roomId: number) {
+  const timer = readyTimers.get(roomId);
+  if (timer) clearTimeout(timer);
+  readyTimers.delete(roomId);
+  readyDeadlines.delete(roomId);
+}
+
 const gameActions = new Map<number, {
   votes: Map<number, number>,
   mafiaKills: Map<number, number>,
@@ -2025,6 +2137,7 @@ async function broadcastState(roomId: number) {
           myBullets,
           mafiaChatAvailable,
           mafiaTeammatesActedIds,
+          lobbyCountdownEndsAt: room.status === 'lobby' ? (readyDeadlines.get(roomId) ?? null) : null,
         }
       }));
     }
@@ -2522,6 +2635,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         supabaseUserId: (input as any).supabaseUserId || null,
         isSpectator: false,
         isBot: false,
+        isReady: false,
         wins: 0,
         gamesPlayed: 0,
         achievements: [],
@@ -2529,21 +2643,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         credits: 0,
       });
 
+      // Feature: Pre-game ready-up lobby — bots no longer auto-fill the
+      // instant a room is created. The room now waits in the lobby for
+      // real players to ready up (see the ready_toggle/start_now WS
+      // handlers below); instant-bot-fill only kicks in as the fallback
+      // once the host hits "Start Now" or the ready-up grace period ends.
       res.status(201).json({ code: room.code, playerId: player.id, sessionId });
-
-      void setTimeout(() => {
-        (async () => {
-          try {
-            const playersInRoom = await storage.getPlayersInRoom(room.id);
-            if (playersInRoom.length < 6) {
-              await fillWithBots(room.id, storage);
-              await broadcastState(room.id);
-            }
-          } catch (err) {
-            console.error("Error filling bots or broadcasting:", err);
-          }
-        })();
-      }, 1000);
     } catch (err: any) {
       console.error("POST /api/rooms failed:", err);
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
@@ -2578,6 +2683,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         supabaseUserId: (input as any).supabaseUserId || null,
         isSpectator,
         isBot: false,
+        isReady: false,
         wins: 0,
         gamesPlayed: 0,
         achievements: [],
@@ -2587,16 +2693,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       res.json({ code: room.code, playerId: player.id, sessionId });
 
-      setTimeout(async () => {
-        const playersInRoom = await storage.getPlayersInRoom(room.id);
-        const bots = playersInRoom.filter(p => p.isBot);
-        if (playersInRoom.length > 6 && bots.length > 0) {
-          await storage.deletePlayer(bots[0].id);
-        } else if (playersInRoom.length < 6) {
-          await fillWithBots(room.id, storage);
-        }
-        broadcastState(room.id);
-      }, 1000);
+      // No auto-fill here either (see the comment in room creation above) —
+      // just make sure everyone already in the lobby sees the new joiner.
+      broadcastState(room.id);
     } catch (err: any) {
       const isNetwork = err?.message?.includes("EAI_AGAIN") || err?.message?.includes("getaddrinfo") || err?.code === "ECONNREFUSED";
       if (isNetwork) return res.status(503).json({ message: "Server temporarily unavailable. Please wait a moment and try again." });
@@ -2664,45 +2763,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             return;
           }
 
-          const updatedPlayers = assignRoles(players, room.settings);
-          for (const p of updatedPlayers) {
-            await storage.updatePlayer(p.id, { role: p.role });
-          }
-
-          // Every client shows a ~4s "your role is..." overlay on the first night, during
-          // which they can't act. Push lastUpdated (and the matching phase timer) out by
-          // that same amount so the mafia's actual night timer only starts once the reveal
-          // animation ends, instead of quietly eating into their real decision time.
-          // This animation always plays — it's not gated by a setting (showRoleReveal
-          // controls whether a role gets announced on elimination, a separate thing).
-          const revealDelayMs = ROLE_REVEAL_MS;
-
-          const firstNightPlayers = await storage.getPlayersInRoom(myRoomId);
-          const firstPhase = getFirstNightPhase(firstNightPlayers);
-          await storage.updateRoom(myRoomId, { status: 'night', phase: firstPhase, turn: 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
-          gameActions.set(myRoomId, {
-            votes: new Map(),
-            mafiaKills: new Map(),
-            doctorSaves: new Map(),
-            detectiveChecks: new Map(),
-            guards: new Map(),
-            shots: new Map()
-          });
-          gameHistory.set(myRoomId, []);
-          // Vigilante starts with exactly 2 bullets for the whole game.
-          const bulletsMap = new Map<number, number>();
-          for (const p of firstNightPlayers) {
-            if (p.role === 'vigilante') bulletsMap.set(p.id, 2);
-          }
-          vigilanteBullets.set(myRoomId, bulletsMap);
-          mayorRevealed.set(myRoomId, new Set());
-
-          const startSettings = room.settings as any;
-          const duration = getNightPhaseDuration(firstPhase, startSettings);
-          const timer = setTimeout(() => advancePhase(myRoomId!, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
-          phaseTimers.set(myRoomId, timer);
-          void scheduleBotQuickActions(myRoomId, wss, storage, roomClients, clients, gameActions);
-          broadcastState(myRoomId);
+          // Manual host-triggered start (e.g. everyone's already in without
+          // going through ready-up) — cancel any ready-up grace period so it
+          // can't also fire and double-start the game, then share the same
+          // role-assignment/first-night path as the ready-up flow.
+          clearReadyTimer(myRoomId);
+          await beginGame(myRoomId, wss, storage, roomClients, clients, gameActions);
         }
 
         if (msg.type === WS_EVENTS.ACTION) {
@@ -2810,6 +2876,44 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("chatErrorTitle", chatLang), body: sysMsg("chatErrorBody", chatLang) } }));
                }
              }
+             return;
+           }
+
+           if (action.type === 'ready_toggle') {
+             if (room.status !== 'lobby' || me.isBot) return;
+
+             const newReady = !me.isReady;
+             await storage.updatePlayer(me.id, { isReady: newReady });
+
+             const refreshedPlayers = await storage.getPlayersInRoom(myRoomId);
+             const connectedHumans = refreshedPlayers.filter((p: Player) =>
+               !p.isBot && clients.get(p.sessionId)?.readyState === WebSocket.OPEN
+             );
+             const allReady = connectedHumans.length > 0 && connectedHumans.every((p: Player) => p.isReady);
+
+             // Any change re-evaluates the grace period from scratch — un-readying
+             // (or someone new joining/leaving) always cancels a running countdown.
+             clearReadyTimer(myRoomId);
+             if (allReady) {
+               readyDeadlines.set(myRoomId, Date.now() + READY_GRACE_PERIOD_MS);
+               readyTimers.set(myRoomId, setTimeout(() => {
+                 void tryStartGame(myRoomId!, wss, storage, roomClients, clients, gameActions);
+               }, READY_GRACE_PERIOD_MS));
+             }
+             broadcastState(myRoomId);
+             return;
+           }
+
+           if (action.type === 'start_now') {
+             if (!me.isHost) {
+               ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: "Only the host can start now." } }));
+               return;
+             }
+             if (room.status !== 'lobby') return;
+             // tryStartGame clears the grace-period timer itself and guards
+             // against a timer that fires in the same tick as this click —
+             // whichever gets there first wins, the other is a no-op.
+             void tryStartGame(myRoomId, wss, storage, roomClients, clients, gameActions);
              return;
            }
 
@@ -3231,6 +3335,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (mySessionId && myRoomId) {
         roomClients.get(myRoomId)?.delete(mySessionId);
         clients.delete(mySessionId);
+
+        const roomIdAtClose = myRoomId;
+        const sessionIdAtClose = mySessionId;
+        // Feature: Pre-game ready-up lobby — a disconnect during the lobby
+        // phase always clears that player's ready state and cancels any
+        // running grace-period countdown. They resync as "not ready" on
+        // reconnect (use-game.ts just re-fetches state, which reflects this),
+        // so a drop can never silently sail the room through to bot-fill.
+        (async () => {
+          try {
+            const room = await storage.getRoom(roomIdAtClose);
+            if (room?.status !== 'lobby') return;
+            const players = await storage.getPlayersInRoom(roomIdAtClose);
+            const player = players.find((p: Player) => p.sessionId === sessionIdAtClose);
+            if (player && !player.isBot && player.isReady) {
+              await storage.updatePlayer(player.id, { isReady: false });
+            }
+            clearReadyTimer(roomIdAtClose);
+            broadcastState(roomIdAtClose);
+          } catch (err) {
+            console.error("Error resetting ready state on disconnect:", err);
+          }
+        })();
       }
     });
   });

@@ -95,8 +95,21 @@ export const players = pgTable("players", {
   supabaseUserId: text("supabase_user_id"),
   isSpectator: boolean("is_spectator").default(false),
   isBot: boolean("is_bot").default(false),
+  // Feature: Pre-game ready-up lobby. Only meaningful while room.status is
+  // "lobby" — reset to false whenever a player disconnects during the lobby
+  // phase (see routes.ts ws.on('close')), so readiness always reflects
+  // someone actively engaged right now, not a stale click from before a drop.
+  isReady: boolean("is_ready").default(false),
   wins: integer("wins").default(0),
   gamesPlayed: integer("games_played").default(0),
+  // Feature: Per-role stats. Keyed by role ("mafia", "detective", "civilian",
+  // etc.) -> { wins, gamesPlayed } for that role specifically, alongside the
+  // existing all-roles totals above. Defaults to {} for both brand-new
+  // players and every existing player at migration time — the profile page
+  // should treat a missing/empty entry for a role as "not tracked yet"
+  // rather than "0 games", since games played before this feature shipped
+  // aren't retroactively broken out by role.
+  roleStats: jsonb("role_stats").$type<Record<string, { wins: number; gamesPlayed: number }>>().default({}),
   credits: integer("credits").default(0),
   achievements: jsonb("achievements").default([]),
   gameHistory: jsonb("game_history").default([]),
@@ -152,6 +165,7 @@ export type AdClaim = typeof adClaims.$inferSelect;
 
 export type Room = typeof rooms.$inferSelect;
 export type Player = typeof players.$inferSelect;
+export type RoleStatEntry = { wins: number; gamesPlayed: number };
 
 export type CreateRoomRequest = {
   name: string;
@@ -235,7 +249,10 @@ export type GameAction =
   | { type: 'bodyguard_protect'; targetId: number }
   | { type: 'vigilante_shoot'; targetId: number }
   | { type: 'mayor_reveal' }
-  | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any };
+  | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any }
+  // Feature: Pre-game ready-up lobby
+  | { type: 'ready_toggle' }
+  | { type: 'start_now' };
 
 // WebSocket Message Types
 export const WS_EVENTS = {
@@ -256,4 +273,9 @@ export type GameState = {
   myBullets?: number;
   mafiaChatAvailable?: boolean;
   mafiaTeammatesActedIds?: number[];
+  // Feature: Pre-game ready-up lobby. When set, all connected human players
+  // are ready and bots will fill remaining slots + the game will start at
+  // this timestamp (epoch ms) unless the host hits "Start Now" first or
+  // someone un-readies/disconnects, which cancels it (null again).
+  lobbyCountdownEndsAt?: number | null;
 };

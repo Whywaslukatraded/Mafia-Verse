@@ -172,7 +172,13 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
     }
   };
 
-  return { gameState, isConnected, sendAction, startGame };
+  // Feature: Pre-game ready-up lobby. Both just piggyback on the existing
+  // `action` message envelope (like vote/chat/add_bots etc.) rather than
+  // needing their own top-level WS message types.
+  const toggleReady = () => sendAction({ type: "ready_toggle" });
+  const startNow = () => sendAction({ type: "start_now" });
+
+  return { gameState, isConnected, sendAction, startGame, toggleReady, startNow };
 }
 
 export function useCreateRoom() {

@@ -72,7 +72,7 @@ export default function Room() {
   const DEATH_STORIES = t("room.deathStories", { returnObjects: true }) as string[];
 
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
-  const { gameState, isConnected, sendAction, startGame } = useGameSocket(code, sessionId);
+  const { gameState, isConnected, sendAction, startGame, toggleReady, startNow } = useGameSocket(code, sessionId);
 
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("mafia_sound_enabled");
@@ -99,6 +99,7 @@ export default function Room() {
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
+  const [lobbyCountdown, setLobbyCountdown] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showShareCardModal, setShowShareCardModal] = useState(false);
@@ -565,6 +566,25 @@ export default function Room() {
 
     return () => clearInterval(interval);
   }, [room?.status, room?.phase, room?.settings, room?.lastUpdated]);
+
+  // Feature: Pre-game ready-up lobby — countdown to bots-fill-and-start,
+  // driven by the server's lobbyCountdownEndsAt timestamp (set once every
+  // connected human is ready) so it stays accurate across reloads/lag, same
+  // approach as the in-game phase timer above.
+  useEffect(() => {
+    const endsAt = gameState?.lobbyCountdownEndsAt;
+    if (!endsAt || room?.status !== "lobby") {
+      setLobbyCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setLobbyCountdown(remaining);
+    };
+    tick();
+    const interval = setInterval(tick, 250);
+    return () => clearInterval(interval);
+  }, [gameState?.lobbyCountdownEndsAt, room?.status]);
 
   // Feature 7: Detect eliminations (only show once per player per game)
   // Uses aliveHash so this only fires when alive states actually change, not on every broadcast
@@ -1064,12 +1084,12 @@ export default function Room() {
             </Button>
             {isHost && room?.status === "lobby" && (
               <Button
-                onClick={() => startGame()}
-                disabled={players.length < 6}
+                onClick={() => startNow()}
+                disabled={players.filter(p => !p.isBot).length < 1}
                 className="gap-2"
               >
                 <Sparkles className="w-3 h-3" />
-                {t("room.startGame")}
+                {t("room.startNow", "Start Now")}
               </Button>
             )}
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="ml-auto" aria-label={t("room.leaveRoom")}>
@@ -1103,15 +1123,38 @@ export default function Room() {
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-1">{t("room.playerCount", { count: players.length })}</p>
                   <p className="text-xs text-muted-foreground/70 mb-4">{t("room.maxBotsNote", "Up to 5 bots will fill empty seats — the rest need to be real players.")}</p>
+
+                  {lobbyCountdown !== null && (
+                    <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
+                      <Sparkles className="w-4 h-4 flex-shrink-0" />
+                      {t("room.startingIn", "Everyone's ready — starting in {{seconds}}s", { seconds: lobbyCountdown })}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {players.map((p) => (
-                      <div key={p.id} className="flex items-center gap-2 p-2 bg-muted/80 rounded-lg">
+                    {players.filter(p => !p.isBot).map((p) => (
+                      <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg border ${p.isReady ? "bg-primary/10 border-primary/40" : "bg-muted/80 border-transparent"}`}>
                         <span className="text-lg">{p.avatar}</span>
-                        <span className="text-xs font-bold truncate">{p.name}</span>
+                        <span className="text-xs font-bold truncate flex-1">{p.name}</span>
                         {p.isHost && <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">{t("room.host")}</span>}
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${p.isReady ? "bg-primary/20 text-primary" : "text-muted-foreground"}`}>
+                          {p.isReady ? t("room.ready", "Ready") : t("room.notReady", "Not ready")}
+                        </span>
                       </div>
                     ))}
                   </div>
+
+                  {me && !me.isBot && (
+                    <Button
+                      onClick={() => toggleReady()}
+                      variant={me.isReady ? "outline" : "default"}
+                      className="w-full mt-4 gap-2"
+                      data-testid="button-ready-toggle"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {me.isReady ? t("room.cancelReady", "Cancel Ready") : t("room.markReady", "I'm Ready")}
+                    </Button>
+                  )}
 
                   {isHost && showSettingsPanel && (
                     <div className="mt-6 pt-6 border-t border-border space-y-3">
