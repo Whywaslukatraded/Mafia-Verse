@@ -1266,7 +1266,7 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
   const delay = statusAtSchedule === 'day' && phaseAtSchedule === 'voting'
     ? 3000 + Math.floor(Math.random() * 1000)  // ~3s-4s
     : statusAtSchedule === 'night' && phaseAtSchedule !== 'mafia'
-    ? 2000 + Math.floor(Math.random() * 1500)  // ~2s-3.5s
+    ? 4000  // flat 4s — was randomized ~2s-3.5s, which read as too quick
     : 500 + Math.floor(Math.random() * 700);   // ~0.5s-1.2s — mafia stays fast
   setTimeout(async () => {
     const room = await storage.getRoom(roomId);
