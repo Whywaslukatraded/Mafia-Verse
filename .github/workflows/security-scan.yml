@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: Free AppSec Security Scan
 
 on:
@@ -49,3 +50,6 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
           category: trivy
+=======
+
+>>>>>>> 517bbd18aff85084ace614e757ed588b09c3bd6b
