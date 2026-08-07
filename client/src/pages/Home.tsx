@@ -475,17 +475,36 @@ export default function Home() {
     phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
   };
+  // Hard floors so the game can't be configured with a 0s (or near-0s)
+  // phase, which can crash/spiral the timer logic — 10s for discussion,
+  // 5s for voting and every night-action phase. Role counts have no floor
+  // beyond the existing 0.
+  const DURATION_MIN: Partial<Record<keyof typeof DEFAULT_COUNTS, number>> = {
+    phaseDuration: 5, discussionDuration: 10, mafiaDuration: 5, doctorDuration: 5,
+    detectiveDuration: 5, bodyguardDuration: 5, vigilanteDuration: 5,
+  };
+  const clampDurations = (settings: typeof DEFAULT_COUNTS) => {
+    const clamped = { ...settings };
+    for (const key of Object.keys(DURATION_MIN) as (keyof typeof DEFAULT_COUNTS)[]) {
+      const min = DURATION_MIN[key]!;
+      if (clamped[key] < min) clamped[key] = min;
+    }
+    return clamped;
+  };
   const [counts, setCounts] = useState(() => {
     try {
       const saved = localStorage.getItem("mafia_last_room_settings");
-      if (saved) return { ...DEFAULT_COUNTS, ...JSON.parse(saved) };
+      // Clamp on load too — localStorage could still hold a sub-minimum
+      // value saved before this floor was added.
+      if (saved) return clampDurations({ ...DEFAULT_COUNTS, ...JSON.parse(saved) });
     } catch {}
     return DEFAULT_COUNTS;
   });
 
   const adjustCount = (role: keyof typeof counts, delta: number) => {
     setCounts(prev => {
-      const next = { ...prev, [role]: Math.max(0, prev[role] + delta) };
+      const min = DURATION_MIN[role] ?? 0;
+      const next = { ...prev, [role]: Math.max(min, prev[role] + delta) };
       try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(next)); } catch {}
       return next;
     });
@@ -505,8 +524,8 @@ export default function Home() {
       // discussion still starts out sensible for whichever preset was picked.
       discussionDuration: (preset as any).discussionDuration ?? preset.phaseDuration,
     };
-    setCounts(next);
-    try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(next)); } catch {}
+    setCounts(clampDurations(next));
+    try { localStorage.setItem("mafia_last_room_settings", JSON.stringify(clampDurations(next))); } catch {}
   };
 
   const PRESET_META: Record<string, { icon: any; color: string }> = {

@@ -182,7 +182,7 @@ export const api = {
           // it governed both). This lets discussion run on its own
           // customizable length; falls back to phaseDuration server-side
           // if omitted so older room-settings payloads still work.
-          discussionDuration: z.number().min(5).optional(),
+          discussionDuration: z.number().min(10).optional(),
           // Feature: bot dialogue and server-generated system messages (kill/
           // vote-out reveals, win announcements, notifications) are localized
           // server-side based on this — sent from the client's current i18n

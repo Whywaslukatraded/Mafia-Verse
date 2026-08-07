@@ -382,10 +382,10 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
         mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
-        phaseDuration: s.phaseDuration ?? 30, discussionDuration: s.discussionDuration ?? s.phaseDuration ?? 30,
-        mafiaDuration: s.mafiaDuration ?? 15,
-        doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
-        bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
+        phaseDuration: Math.max(5, s.phaseDuration ?? 30), discussionDuration: Math.max(10, s.discussionDuration ?? s.phaseDuration ?? 30),
+        mafiaDuration: Math.max(5, s.mafiaDuration ?? 15),
+        doctorDuration: Math.max(5, s.doctorDuration ?? 15), detectiveDuration: Math.max(5, s.detectiveDuration ?? 15),
+        bodyguardDuration: Math.max(5, s.bodyguardDuration ?? 15), vigilanteDuration: Math.max(5, s.vigilanteDuration ?? 15),
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
       });
     }
@@ -401,10 +401,10 @@ export default function Room() {
         doctorCount: s.doctorCount ?? 1, civilianCount: s.civilianCount ?? 3,
         bodyguardCount: s.bodyguardCount ?? 0, vigilanteCount: s.vigilanteCount ?? 0,
         mayorCount: s.mayorCount ?? 0, jesterCount: s.jesterCount ?? 0,
-        phaseDuration: s.phaseDuration ?? 30, discussionDuration: s.discussionDuration ?? s.phaseDuration ?? 30,
-        mafiaDuration: s.mafiaDuration ?? 15,
-        doctorDuration: s.doctorDuration ?? 15, detectiveDuration: s.detectiveDuration ?? 15,
-        bodyguardDuration: s.bodyguardDuration ?? 15, vigilanteDuration: s.vigilanteDuration ?? 15,
+        phaseDuration: Math.max(5, s.phaseDuration ?? 30), discussionDuration: Math.max(10, s.discussionDuration ?? s.phaseDuration ?? 30),
+        mafiaDuration: Math.max(5, s.mafiaDuration ?? 15),
+        doctorDuration: Math.max(5, s.doctorDuration ?? 15), detectiveDuration: Math.max(5, s.detectiveDuration ?? 15),
+        bodyguardDuration: Math.max(5, s.bodyguardDuration ?? 15), vigilanteDuration: Math.max(5, s.vigilanteDuration ?? 15),
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
         botPersonality: s.botPersonality as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
       });
@@ -416,8 +416,14 @@ export default function Room() {
     | "bodyguardCount" | "vigilanteCount" | "mayorCount" | "jesterCount"
     | "phaseDuration" | "discussionDuration" | "mafiaDuration" | "doctorDuration" | "detectiveDuration"
     | "bodyguardDuration" | "vigilanteDuration";
+  // Hard floors — mirrors the server-side clampInt minimums, so the host
+  // can't even drag a phase down to 0s in the UI before it's sent.
+  const DURATION_MIN: Partial<Record<NumericSettingKey, number>> = {
+    phaseDuration: 5, discussionDuration: 10, mafiaDuration: 5, doctorDuration: 5,
+    detectiveDuration: 5, bodyguardDuration: 5, vigilanteDuration: 5,
+  };
   const adjustSetting = (key: NumericSettingKey, delta: number) => {
-    setSettingsDraft(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
+    setSettingsDraft(prev => ({ ...prev, [key]: Math.max(DURATION_MIN[key] ?? 0, prev[key] + delta) }));
   };
 
   const toggleSetting = (key: "showVoteResults" | "showRoleReveal") => {

@@ -214,7 +214,11 @@ function getNightPhaseDuration(phase: string, settings: any): number {
     doctor: settings.doctorDuration,
     detective: settings.detectiveDuration,
   };
-  return (map[phase] ? map[phase] * 1000 : 0) || 15000;
+  // Floor at 5s even for rooms whose settings predate the hard-minimum
+  // enforcement added at creation/update time (old DB rows could still hold
+  // a 0 or near-0 value) — a near-instant night phase can spiral into rapid
+  // repeated phase advances.
+  return Math.max((map[phase] ? map[phase] * 1000 : 0) || 15000, 5000);
 }
 
 function assignRoles(players: Player[], settings: any) {
@@ -2020,9 +2024,14 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         duration = getNightPhaseDuration(currentRoom.phase, currentRoom.settings as any);
       } else if (currentRoom.status === 'day' && currentRoom.phase === 'discussion') {
         // Feature: Discussion timer, separate from voting — falls back to
-        // phaseDuration if a room's settings predate this field.
+        // phaseDuration if a room's settings predate this field. Floor at
+        // 10s for the same reason getNightPhaseDuration floors at 5s: guard
+        // against stale/low settings on rooms created before the minimum
+        // was enforced.
         const discussionSettingSeconds = (currentRoom.settings as any).discussionDuration ?? (currentRoom.settings as any).phaseDuration;
-        duration = (discussionSettingSeconds * 1000) || PHASE_DURATION;
+        duration = Math.max((discussionSettingSeconds * 1000) || PHASE_DURATION, 10000);
+      } else if (currentRoom.status === 'day' && currentRoom.phase === 'voting') {
+        duration = Math.max(duration, 5000);
       }
       // revealDelayMs is only ever nonzero here when this phase's lastUpdated was
       // itself pushed into the future above (an elimination just happened) — keep
@@ -2657,12 +2666,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       const room = await storage.createRoom({
         ...input.settings,
-        phaseDuration: input.settings.phaseDuration ?? 30,
-        // Feature: Discussion timer — default to phaseDuration when the
-        // client doesn't send one, so discussion and voting start out equal
-        // (matching the old shared-duration behavior) until the host tweaks
-        // discussion on its own.
-        discussionDuration: (input.settings as any).discussionDuration ?? input.settings.phaseDuration ?? 30,
+        // Hard floors — belt-and-suspenders alongside the zod .min() checks
+        // above, in case this endpoint is ever hit directly (bypassing the
+        // validated client). Matches the same 10s discussion / 5s
+        // voting+night-action floors enforced on in-room settings updates.
+        phaseDuration: Math.max(5, input.settings.phaseDuration ?? 30),
+        discussionDuration: Math.max(10, (input.settings as any).discussionDuration ?? input.settings.phaseDuration ?? 30),
+        mafiaDuration: Math.max(5, input.settings.mafiaDuration ?? 15),
+        doctorDuration: Math.max(5, input.settings.doctorDuration ?? 15),
+        detectiveDuration: Math.max(5, input.settings.detectiveDuration ?? 15),
+        bodyguardDuration: Math.max(5, input.settings.bodyguardDuration ?? 15),
+        vigilanteDuration: Math.max(5, input.settings.vigilanteDuration ?? 15),
       } as any);
 
       const sessionId = randomUUID();
@@ -3021,9 +3035,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                return;
              }
              const incoming = (action as any).settings || {};
-             const clampInt = (val: any, fallback: number) => {
+             // Hard floors so a host can't zero out a phase and freeze/crash
+             // the game: 10s minimum for discussion, 5s minimum for voting
+             // and every night-action phase (mafia/doctor/detective/
+             // bodyguard/vigilante). `min` defaults to 0 for role counts.
+             const clampInt = (val: any, fallback: number, min = 0) => {
                const n = parseInt(val, 10);
-               return Number.isFinite(n) && n >= 0 ? n : fallback;
+               if (!Number.isFinite(n)) return Math.max(min, fallback);
+               return Math.max(min, n);
              };
              const current = room.settings as any;
              const mafiaCount = clampInt(incoming.mafiaCount, current.mafiaCount);
@@ -3059,13 +3078,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                ...current,
                mafiaCount, detectiveCount, doctorCount, civilianCount,
                bodyguardCount, vigilanteCount, mayorCount, jesterCount,
-               phaseDuration: clampInt(incoming.phaseDuration, current.phaseDuration),
-               discussionDuration: clampInt(incoming.discussionDuration, current.discussionDuration ?? current.phaseDuration),
-               mafiaDuration: clampInt(incoming.mafiaDuration, current.mafiaDuration),
-               doctorDuration: clampInt(incoming.doctorDuration, current.doctorDuration),
-               detectiveDuration: clampInt(incoming.detectiveDuration, current.detectiveDuration),
-               bodyguardDuration: clampInt(incoming.bodyguardDuration, current.bodyguardDuration || 15),
-               vigilanteDuration: clampInt(incoming.vigilanteDuration, current.vigilanteDuration || 15),
+               phaseDuration: clampInt(incoming.phaseDuration, current.phaseDuration, 5),
+               discussionDuration: clampInt(incoming.discussionDuration, current.discussionDuration ?? current.phaseDuration, 10),
+               mafiaDuration: clampInt(incoming.mafiaDuration, current.mafiaDuration, 5),
+               doctorDuration: clampInt(incoming.doctorDuration, current.doctorDuration, 5),
+               detectiveDuration: clampInt(incoming.detectiveDuration, current.detectiveDuration, 5),
+               bodyguardDuration: clampInt(incoming.bodyguardDuration, current.bodyguardDuration || 15, 5),
+               vigilanteDuration: clampInt(incoming.vigilanteDuration, current.vigilanteDuration || 15, 5),
                showVoteResults: incoming.showVoteResults ?? current.showVoteResults,
                showRoleReveal: incoming.showRoleReveal ?? current.showRoleReveal,
              };
