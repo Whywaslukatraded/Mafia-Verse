@@ -90,6 +90,30 @@ export default function Cosmetics() {
     return localStorage.getItem("mafia_syndicate_pass") === "true";
   });
 
+  // Security fix (#8): wins used to come straight from localStorage
+  // (`mafia_stats`), which handleBuy below also freely decremented on every
+  // purchase — pure client state, unlockable for free via devtools. This
+  // fetches the real, server-computed lifetime win total (sum of `wins`
+  // across every room this account has ever played, from `players`).
+  const [serverWins, setServerWins] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/account/wins", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok || cancelled) return;
+        const { wins } = await res.json();
+        if (typeof wins === "number") setServerWins(wins);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Merge in server-authoritative loot-crate ownership (see LootCrate.tsx —
   // opening a crate is now a real server transaction, not a localStorage
   // write). Additive only: never removes anything already in `owned`.
@@ -149,18 +173,31 @@ export default function Cosmetics() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const handleBuy = (cosmetic: any) => {
-    if (stats.wins >= cosmetic.cost) {
-      const newOwned = new Set(owned);
-      newOwned.add(cosmetic.id);
-      setOwned(newOwned);
-      localStorage.setItem("mafia_cosmetics", JSON.stringify(Array.from(newOwned)));
+  const [buyingId, setBuyingId] = useState<string | null>(null);
 
-      const newStats = { ...stats, wins: stats.wins - cosmetic.cost };
-      setStats(newStats);
-      localStorage.setItem("mafia_stats", JSON.stringify(newStats));
-      window.dispatchEvent(new Event("storage"));
+  const handleBuy = async (cosmetic: any) => {
+    if (owned.has(cosmetic.id) || userWins < cosmetic.cost || buyingId) return;
+    setBuyingId(cosmetic.id);
+    try {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const res = await fetch("/api/account/cosmetics/buy-with-wins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ itemId: cosmetic.id }),
+      });
+      if (res.ok) {
+        const newOwned = new Set(owned);
+        newOwned.add(cosmetic.id);
+        setOwned(newOwned);
+      }
+    } catch {
+      // Non-fatal — the item just stays locked and can be retried.
     }
+    setBuyingId(null);
   };
 
   const handleEquip = (cosmetic: any) => {
@@ -175,7 +212,11 @@ export default function Cosmetics() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const userWins = stats.wins || 0;
+  // Security fix (#8): was `stats.wins || 0` — the same localStorage value
+  // handleBuy used to spend down. Now sourced from the server-computed
+  // lifetime total above; falls back to the local cache only until that
+  // fetch resolves, purely to avoid a 0 flash on first paint.
+  const userWins = serverWins !== null ? serverWins : (stats.wins || 0);
 
   const renderCosmeticCard = (cosmetic: any, isSyndicate: boolean = false) => {
     const isOwned = isSyndicate && hasPass ? true : owned.has(cosmetic.id);
@@ -320,7 +361,7 @@ export default function Cosmetics() {
           ) : !isOwned ? (
             <Button
               onClick={() => handleBuy(cosmetic)}
-              disabled={!canAfford}
+              disabled={!canAfford || buyingId === cosmetic.id}
               className={cn(
                 "w-full text-xs font-black h-10 transition-all",
                 canAfford

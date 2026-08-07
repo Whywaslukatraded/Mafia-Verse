@@ -2262,6 +2262,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         );
       `);
 
+      // Tracks wins already spent on win-gated cosmetics, kept separate from
+      // the actual `wins` column on `players` (which is real match history
+      // and should never be decremented). Available balance is computed as
+      // (lifetime SUM(players.wins) - spent) wherever it's used below.
+      await bootstrapClient.query(`
+        CREATE TABLE IF NOT EXISTS account_win_spending (
+          supabase_user_id TEXT PRIMARY KEY,
+          spent INTEGER NOT NULL DEFAULT 0
+        );
+      `);
+
       // Security fix: these eight tables are created here at boot, outside the
       // Drizzle schema and outside supabase/migrations, so none of the
       // project's RLS migrations ever touch them. Supabase grants the
@@ -2276,7 +2287,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const BACKEND_ONLY_TABLES = [
         "daily_streaks", "ratings", "referral_links", "referral_claims",
         "account_activity", "account_credits", "account_syndicate_pass",
-        "account_cosmetics_owned",
+        "account_cosmetics_owned", "account_win_spending",
       ];
       for (const table of BACKEND_ONLY_TABLES) {
         await bootstrapClient.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`);
@@ -2640,8 +2651,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: `Too many people — rooms cap out at ${MAX_PLAYERS_PER_ROOM} players.` });
       }
       const room = await storage.createRoom({ ...input.settings, phaseDuration: input.settings.phaseDuration ?? 30 } as any);
-      
+
       const sessionId = randomUUID();
+      // Security fix (#4): was trusting `input.supabaseUserId` straight from
+      // the client body with no Authorization check. That value later feeds
+      // account_activity and referral-claim resolution (finalizeGameEnd),
+      // so anyone could spoof another account's UUID onto a player in the
+      // room and corrupt that account's activity/referral state. Now
+      // derived from the verified bearer token if present — guests
+      // (no token) still get a normal anonymous player with a null id.
+      const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
       const player = await storage.createPlayer({
         roomId: room.id,
         name: input.name,
@@ -2651,7 +2670,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isAlive: true,
         isHost: true,
         sessionId,
-        supabaseUserId: (input as any).supabaseUserId || null,
+        supabaseUserId: verifiedSupabaseUserId,
         isSpectator: false,
         isBot: false,
         isReady: false,
@@ -2690,6 +2709,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const sessionId = randomUUID();
       const isSpectator = room.status !== "lobby";
 
+      // Security fix (#4): same reasoning as room creation above.
+      const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
       const player = await storage.createPlayer({
         roomId: room.id,
         name: input.name,
@@ -2699,7 +2720,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         isAlive: !isSpectator,
         isHost: players.length === 0,
         sessionId,
-        supabaseUserId: (input as any).supabaseUserId || null,
+        supabaseUserId: verifiedSupabaseUserId,
         isSpectator,
         isBot: false,
         isReady: false,
@@ -2734,7 +2755,37 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const players = await storage.getPlayersInRoom(room.id);
       const messages = await storage.getMessagesByRoom(room.id);
 
-      res.json({ room, players, messages, me: null });
+      // Security fix (#5): this used to return raw `players` (including the
+      // `role` field for every player, alive or dead, regardless of who was
+      // asking) and raw `messages` (including mafia-only and graveyard-only
+      // chat) to ANY caller with no auth and no session check — room codes
+      // are only 4 letters, so this was enumerable. The WebSocket path
+      // (broadcastState, above) already redacts both correctly per-player;
+      // this mirrors that same logic here, keyed on a `sessionId` query
+      // param that must belong to an actual player in this room. No valid
+      // session = treated as an outside observer: every role hidden, no
+      // private chat at all (not even the lobby/ended-game exemptions).
+      const requestedSessionId = typeof req.query.sessionId === "string" ? req.query.sessionId : null;
+      const me = requestedSessionId ? players.find((p: Player) => p.sessionId === requestedSessionId) ?? null : null;
+
+      const sanitizedPlayers = players.map((p: Player) => {
+        if (room.status === 'lobby' || room.status === 'ended') return p;
+        if (me?.id === p.id) return p;
+        if (me && !me.isAlive) return p;
+        if (!p.isAlive) {
+          return (room.settings as any).showRoleReveal !== false ? p : { ...p, role: 'unknown' };
+        }
+        if (me?.role && me.role !== 'civilian' && p.role === me.role) return p;
+        return { ...p, role: 'unknown' };
+      });
+
+      const visibleMessages = messages.filter((m: Message) => {
+        if ((m as any).isSpectator) return !!me && !me.isAlive;
+        if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
+        return true;
+      });
+
+      res.json({ room, players: sanitizedPlayers, messages: visibleMessages, me: null });
     } catch (err) {
       console.error("GET room error", err);
       res.status(500).json({ message: "Internal server error" });
@@ -4214,6 +4265,203 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
     } catch {
       res.json({ owned: [] });
+    }
+  });
+
+  // Security fix (#8): win-gated cosmetics in Cosmetics.tsx were previously
+  // pure localStorage — reading and decrementing `stats.wins` and writing
+  // straight to `mafia_cosmetics` with no server involvement at all, so
+  // anyone could unlock every item for free via devtools. This catalog
+  // mirrors client/src/pages/Cosmetics.tsx's WIN_COSMETICS_META — if you
+  // add/change an item in one, change it in the other, same caveat as
+  // LOOT_ITEMS_SERVER above.
+  //
+  // Design note: `players.wins` (real match history) is intentionally never
+  // decremented — instead, spending is tracked separately in
+  // account_win_spending, and available balance = lifetime wins - spent
+  // (see getAvailableWins below). Unlocking a 5-win item when you have
+  // exactly 5 wins brings your available balance to 0, same as any other
+  // currency — you need to win more real games to unlock the next item.
+  const WIN_COSMETICS_SERVER: { id: string; cost: number }[] = [
+    { id: "border_gold", cost: 5 },
+    { id: "border_red", cost: 3 },
+    { id: "border_blue", cost: 3 },
+    { id: "name_color_gold", cost: 5 },
+    { id: "name_color_red", cost: 3 },
+    { id: "name_color_cyan", cost: 3 },
+    { id: "frame_diamond", cost: 10 },
+    { id: "frame_fire", cost: 8 },
+    { id: "frame_crown", cost: 7 },
+  ];
+
+  // Design update: wins ARE spent now, same as credits. `players.wins` (real
+  // match history) is never touched — instead we track how much of that
+  // lifetime total has already been spent in account_win_spending, and the
+  // available balance is the difference. Unlocking a 5-win item when you
+  // have exactly 5 wins brings your available balance to 0; you need to win
+  // more real games to unlock anything else.
+  async function getAvailableWins(client: any, supabaseUserId: string): Promise<number> {
+    const totalResult = await client.query(
+      "SELECT COALESCE(SUM(wins), 0)::int AS total FROM players WHERE supabase_user_id = $1",
+      [supabaseUserId]
+    );
+    const total = totalResult.rows[0]?.total ?? 0;
+    const spentResult = await client.query(
+      "SELECT spent FROM account_win_spending WHERE supabase_user_id = $1",
+      [supabaseUserId]
+    );
+    const spent = spentResult.rows[0]?.spent ?? 0;
+    return Math.max(0, total - spent);
+  }
+
+  app.get("/api/account/wins", async (req, res) => {
+    try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.json({ wins: 0 });
+      const client = await pool.connect();
+      try {
+        res.json({ wins: await getAvailableWins(client, supabaseUserId) });
+      } finally {
+        client.release();
+      }
+    } catch {
+      res.json({ wins: 0 });
+    }
+  });
+
+  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
+    try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+
+      const { itemId } = req.body;
+      const item = WIN_COSMETICS_SERVER.find((i) => i.id === itemId);
+      if (!item) return res.status(400).json({ message: "Unknown item" });
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const existing = await client.query(
+          "SELECT 1 FROM account_cosmetics_owned WHERE supabase_user_id = $1 AND item_id = $2",
+          [supabaseUserId, itemId]
+        );
+        if ((existing.rowCount ?? 0) > 0) {
+          await client.query("ROLLBACK");
+          return res.json({ owned: true, itemId });
+        }
+
+        // Lock this account's spending row for the duration of the
+        // transaction, same reasoning as the credits row lock in
+        // /api/loot-crate/open — stops two rapid purchases both reading the
+        // same starting balance and both succeeding when only one was
+        // actually affordable.
+        await client.query(
+          `INSERT INTO account_win_spending (supabase_user_id, spent) VALUES ($1, 0)
+           ON CONFLICT (supabase_user_id) DO NOTHING`,
+          [supabaseUserId]
+        );
+        const spentResult = await client.query(
+          "SELECT spent FROM account_win_spending WHERE supabase_user_id = $1 FOR UPDATE",
+          [supabaseUserId]
+        );
+        const spent = spentResult.rows[0]?.spent ?? 0;
+        const totalResult = await client.query(
+          "SELECT COALESCE(SUM(wins), 0)::int AS total FROM players WHERE supabase_user_id = $1",
+          [supabaseUserId]
+        );
+        const total = totalResult.rows[0]?.total ?? 0;
+        const available = Math.max(0, total - spent);
+
+        if (available < item.cost) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ message: "Not enough wins" });
+        }
+
+        await client.query(
+          "UPDATE account_win_spending SET spent = spent + $2 WHERE supabase_user_id = $1",
+          [supabaseUserId, item.cost]
+        );
+        await client.query(
+          `INSERT INTO account_cosmetics_owned (supabase_user_id, item_id) VALUES ($1, $2)
+           ON CONFLICT DO NOTHING`,
+          [supabaseUserId, itemId]
+        );
+        await client.query("COMMIT");
+        res.json({ owned: true, itemId, winsRemaining: available - item.cost });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      console.error("Buy-with-wins error:", err);
+      res.status(500).json({ message: "Purchase failed" });
+    }
+  });
+
+  // Security fix (#9): Store.tsx's "Underworld Stash" / "Syndicate Vault"
+  // buttons used to validate the credit balance from localStorage and then
+  // deduct locally with no server request at all — a user could trigger the
+  // "unlocked" toast without ever spending a real, server-tracked credit.
+  // This reuses the exact same row-locked deduct-then-grant transaction as
+  // /api/loot-crate/open above, just at these two higher cost tiers, so both
+  // paths share one source of truth for credits and item ownership.
+  const STASH_DROP_COST: Record<string, number> = { underworld: 150, syndicate: 400 };
+
+  app.post("/api/store/stash-drop", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
+
+      const { tier } = req.body;
+      const cost = STASH_DROP_COST[tier];
+      if (!cost) return res.status(400).json({ message: "Unknown tier" });
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const balanceResult = await client.query(
+          "SELECT credits FROM account_credits WHERE supabase_user_id = $1 FOR UPDATE",
+          [supabaseUserId]
+        );
+        const currentCredits = balanceResult.rows[0]?.credits ?? 0;
+        if (currentCredits < cost) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ message: "Not enough credits" });
+        }
+
+        const item = rollLootServer();
+        let newCredits = currentCredits - cost;
+        if (item.type === "credits") {
+          newCredits += item.credits || 0;
+        }
+
+        await client.query(
+          `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
+           ON CONFLICT (supabase_user_id) DO UPDATE SET credits = $2`,
+          [supabaseUserId, newCredits]
+        );
+        if (item.type !== "credits") {
+          await client.query(
+            `INSERT INTO account_cosmetics_owned (supabase_user_id, item_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING`,
+            [supabaseUserId, item.id]
+          );
+        }
+
+        await client.query("COMMIT");
+        res.json({ item: { id: item.id, type: item.type, tier: item.tier, credits: item.credits }, credits: newCredits });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      console.error("Stash drop error:", err);
+      res.status(500).json({ message: "Failed to open stash" });
     }
   });
 

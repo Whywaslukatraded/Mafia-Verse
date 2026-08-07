@@ -32,14 +32,10 @@ function getStats() {
   }
 }
 
-function addCreditsLocal(amount: number) {
-  try {
-    const s = getStats();
-    s.credits = (s.credits || 0) + amount;
-    localStorage.setItem("mafia_stats", JSON.stringify(s));
-    window.dispatchEvent(new Event("storage"));
-  } catch {}
-}
+// Security fix (#9): addCreditsLocal used to be called by the Stash Drop
+// buttons to grant credits with no server involvement — removed along with
+// that call site. Deliberately not kept around as dead code so nothing
+// gets wired back up to it later.
 
 function setSyndicatePass(active: boolean) {
   localStorage.setItem("mafia_syndicate_pass", active ? "true" : "false");
@@ -180,6 +176,50 @@ export default function Store() {
   const buySyndicate = () => { if (!syndicatePass) checkout("/api/stripe/syndicate-checkout", {}); };
   const sendTip = (amountCents: number) => checkout("/api/stripe/tip-checkout", { amount: amountCents });
 
+  // Security fix (#9): these used to just check localStorage and deduct
+  // locally with no server request at all. This now calls a real,
+  // row-locked server transaction (/api/store/stash-drop) that shares its
+  // credit-deduction logic with the loot crate endpoint — credits and the
+  // resulting item are both authoritative on the server, not spoofable from
+  // devtools.
+  const openStash = async (tier: "underworld" | "syndicate") => {
+    setBuying(tier);
+    try {
+      if (!isSupabaseReady()) {
+        toast({ title: t("store.signInRequired", "Sign in to make a purchase."), variant: "destructive" });
+        setBuying(null);
+        return;
+      }
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        toast({ title: t("store.signInRequired", "Sign in to make a purchase."), variant: "destructive" });
+        setBuying(null);
+        return;
+      }
+      const res = await fetch("/api/store/stash-drop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+        },
+        body: JSON.stringify({ tier }),
+      });
+      const responseData = await res.json();
+      if (res.ok) {
+        setDbCredits(responseData.credits);
+        toast({ title: tier === "underworld" ? t("store.stashUnlocked") : t("store.vaultUnlocked") });
+      } else {
+        toast({ title: responseData.message || t("store.insufficientCredits"), variant: "destructive" });
+      }
+    } catch {
+      toast({ title: t("store.checkoutFailed", "Checkout failed. Please try again."), variant: "destructive" });
+    }
+    setBuying(null);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pb-20">
       <div className="max-w-2xl mx-auto">
@@ -315,10 +355,7 @@ export default function Store() {
                 <p className="text-sm font-bold">{t("store.underworldStash")}</p>
                 <p className="text-[11px] text-muted-foreground">{t("store.underworldStashDesc")}</p>
               </div>
-              <Button size="sm" onClick={() => {
-                if ((stats.credits || 0) < 150) return toast({ title: t("store.insufficientCredits"), variant: "destructive" });
-                addCreditsLocal(-150); setStats(getStats()); toast({ title: t("store.stashUnlocked") });
-              }} className="h-8 font-mono bg-neutral-800 text-neutral-200">150 🪙</Button>
+              <Button size="sm" disabled={buying !== null} onClick={() => openStash("underworld")} className="h-8 font-mono bg-neutral-800 text-neutral-200">150 🪙</Button>
             </div>
             <div className="p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 flex items-center justify-between gap-4 text-left relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-purple-500 text-white text-[8px] font-black px-2 py-0.5 uppercase">{t("store.hot")}</div>
@@ -326,10 +363,7 @@ export default function Store() {
                 <p className="text-sm font-bold">{t("store.syndicateVault")}</p>
                 <p className="text-[11px] text-muted-foreground">{t("store.syndicateVaultDesc")}</p>
               </div>
-              <Button size="sm" onClick={() => {
-                if ((stats.credits || 0) < 400) return toast({ title: t("store.insufficientCredits"), variant: "destructive" });
-                addCreditsLocal(-400); setStats(getStats()); toast({ title: t("store.vaultUnlocked") });
-              }} className="h-8 font-mono bg-neutral-800 text-neutral-200">400 🪙</Button>
+              <Button size="sm" disabled={buying !== null} onClick={() => openStash("syndicate")} className="h-8 font-mono bg-neutral-800 text-neutral-200">400 🪙</Button>
             </div>
           </div>
         </section>

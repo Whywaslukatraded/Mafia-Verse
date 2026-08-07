@@ -46,6 +46,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Security fix (#3/#7): this used to cache every successful GET
+  // indiscriminately, including authenticated API responses like
+  // /api/account/credits, /api/rewards/referral, /api/auth/2fa/status, and
+  // /api/rooms/:code. Those responses persisted in Cache Storage even after
+  // sign-out and could be replayed to a later user of the same browser
+  // profile via the offline fallback below. Only the app shell (static
+  // assets, not API responses) should ever be cached.
+  const url = new URL(request.url);
+  const isApiRequest = url.pathname.startsWith('/api/');
+
+  if (isApiRequest) {
+    // Network-only for API calls — never cache, never serve stale/offline
+    // data for authenticated or account-scoped endpoints.
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Network-first: always try to get the latest file from the server.
   // Only fall back to cache if the network request fails (e.g. offline).
   event.respondWith(

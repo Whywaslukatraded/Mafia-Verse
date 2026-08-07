@@ -9,10 +9,21 @@ import { nanoid } from "nanoid";
 const viteLogger = createLogger();
 
 export async function setupVite(server: Server, app: Express) {
+  // Security fix (#11): this used to replace the whole `server` key wholesale,
+  // silently discarding vite.config.ts's `server.fs.strict` / `server.fs.deny`
+  // dotfile protections, and always set `allowedHosts: true`, which disables
+  // Vite's Host-header allowlist (DNS-rebinding protection) unconditionally.
+  // This path only runs outside production, but if NODE_ENV were ever
+  // misconfigured in a real deployment, this would have been the exposed
+  // surface. Now: fs restrictions are preserved by spreading viteConfig.server
+  // first, and allowedHosts is only opened up on Replit (where REPL_ID is set
+  // and requests come through Replit's proxy on an unpredictable subdomain);
+  // everywhere else it's left at Vite's safe default (same-origin only).
   const serverOptions = {
+    ...viteConfig.server,
     middlewareMode: true,
     hmr: { server, path: "/vite-hmr" },
-    allowedHosts: true as const,
+    ...(process.env.REPL_ID !== undefined ? { allowedHosts: true as const } : {}),
   };
 
   const vite = await createViteServer({

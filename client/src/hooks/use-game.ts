@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, buildUrl } from "@shared/routes";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest } from "@shared/schema";
 
@@ -36,7 +37,12 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
     queryKey: [api.rooms.get.path, code],
     queryFn: async () => {
       if (!code) return null;
-      const url = buildUrl(api.rooms.get.path, { code });
+      // Security fix (#5): the server now redacts roles and private chat
+      // based on who's asking, keyed on this sessionId (matching the
+      // identity it already uses for the WebSocket join). Without it, the
+      // server treats this as an outside observer and returns a fully
+      // anonymized view.
+      const url = buildUrl(api.rooms.get.path, { code }) + (sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "");
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch game state");
       return await res.json();
@@ -184,9 +190,21 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
 export function useCreateRoom() {
   return useMutation({
     mutationFn: async (data: CreateRoomRequest) => {
+      // Security fix (#4): the server now derives supabaseUserId from a
+      // verified bearer token instead of trusting it in the body — any
+      // `supabaseUserId` field still in `data` is ignored server-side, but
+      // we send the token here so signed-in users are still correctly
+      // linked (guests with no session just get an anonymous player).
+      const supabase = getSupabase();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
       const res = await fetch(api.rooms.create.path, {
         method: api.rooms.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -201,9 +219,17 @@ export function useCreateRoom() {
 export function useJoinRoom() {
   return useMutation({
     mutationFn: async (data: JoinRoomRequest) => {
+      // Security fix (#4): same reasoning as useCreateRoom above.
+      const supabase = getSupabase();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
       const res = await fetch(api.rooms.join.path, {
         method: api.rooms.join.method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
