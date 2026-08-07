@@ -43,7 +43,7 @@ export default function About() {
 
         <Card className="glass-card border-none bg-card/80 backdrop-blur-xl ring-1 ring-border mb-6">
           <CardContent className="pt-6 pb-6 space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-foreground/90 leading-relaxed">
               {t("about.description")}
             </p>
 
@@ -55,7 +55,7 @@ export default function About() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">{t(`about.highlights.${key}.title`)}</p>
-                    <p className="text-xs text-muted-foreground">{t(`about.highlights.${key}.description`)}</p>
+                    <p className="text-sm text-foreground/80 leading-relaxed">{t(`about.highlights.${key}.description`)}</p>
                   </div>
                 </div>
               ))}

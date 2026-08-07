@@ -952,6 +952,7 @@ export default function Home() {
                       <span className="text-muted-foreground text-xs uppercase tracking-widest font-bold">{t("home.totalPlayers")}</span>
                       <span className="text-xs text-muted-foreground/60 italic">{t("home.minPlayers")}</span>
                       <span className={cn("text-xs italic", totalPlayers > 20 ? "text-destructive font-bold" : "text-muted-foreground/60")}>{t("home.maxPlayersHint")}</span>
+                      <span className="text-xs text-muted-foreground/60 italic">{t("home.maxBotsHint", "Up to 5 bots will fill empty seats — the rest need to be real players.")}</span>
                     </div>
                     <span className={cn("text-3xl font-black font-mono tracking-tighter", totalPlayers > 20 && "text-destructive")}>{totalPlayers}</span>
                   </div>

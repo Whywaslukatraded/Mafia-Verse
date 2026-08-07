@@ -22,8 +22,21 @@ export default function ResetPassword() {
   const [validSession, setValidSession] = useState(true);
 
   useEffect(() => {
+    // main.tsx stashes the real Supabase auth hash in sessionStorage before
+    // the hash router mounts (see the comment there) and rewrites
+    // window.location.hash to a normal "#/reset-password" route — so by the
+    // time this component renders, the tokens live here, not in the URL.
+    const hash = (() => {
+      try {
+        const stashed = sessionStorage.getItem("mafia_auth_hash");
+        if (stashed) {
+          sessionStorage.removeItem("mafia_auth_hash");
+          return stashed;
+        }
+      } catch {}
+      return window.location.hash;
+    })();
     // Check if we have a valid recovery session from the URL
-    const hash = window.location.hash;
     const params = new URLSearchParams(hash.replace("#", "?"));
     const type = params.get("type");
     const accessToken = params.get("access_token");

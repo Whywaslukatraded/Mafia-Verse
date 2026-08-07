@@ -1101,7 +1101,8 @@ export default function Room() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">{t("room.playerCount", { count: players.length })}</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("room.playerCount", { count: players.length })}</p>
+                  <p className="text-xs text-muted-foreground/70 mb-4">{t("room.maxBotsNote", "Up to 5 bots will fill empty seats — the rest need to be real players.")}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {players.map((p) => (
                       <div key={p.id} className="flex items-center gap-2 p-2 bg-muted/80 rounded-lg">

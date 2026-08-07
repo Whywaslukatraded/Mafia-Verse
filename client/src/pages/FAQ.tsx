@@ -46,7 +46,7 @@ export default function FAQ() {
                   <AccordionTrigger className="text-sm font-bold text-foreground text-left hover:no-underline">
                     {t(`faq.questions.${key}.question`)}
                   </AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  <AccordionContent className="text-sm text-foreground/90 leading-relaxed">
                     {t(`faq.questions.${key}.answer`)}
                   </AccordionContent>
                 </AccordionItem>

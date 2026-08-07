@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense, Component, type ReactNode } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -7,6 +7,45 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { engine } from "@/components/GameAudio";
 import Home from "@/pages/Home";
+
+// There was previously no error boundary anywhere in this app, so any
+// unexpected render-time crash (this hash/Supabase-token bug included)
+// unmounted the whole tree with nothing to fall back to — a permanent
+// blank white screen instead of a themed message. This is deliberately
+// tiny and dependency-free.
+class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("Unhandled render error:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background text-center">
+          <div className="max-w-sm space-y-4">
+            <p className="text-2xl font-black font-serif uppercase text-foreground">Something Went Wrong</p>
+            <p className="text-sm text-muted-foreground">
+              An unexpected error stopped the page from loading. Try heading back to the home screen.
+            </p>
+            <button
+              onClick={() => { window.location.hash = "#/"; window.location.reload(); }}
+              className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Everything except Home is lazy-loaded — the initial bundle only needs the
 // code for the page someone actually lands on. Login/Signup/Settings/Store/
@@ -109,7 +148,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router404 />
+        <AppErrorBoundary>
+          <Router404 />
+        </AppErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );

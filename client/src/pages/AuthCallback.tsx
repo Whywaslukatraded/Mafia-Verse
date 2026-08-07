@@ -12,7 +12,20 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const hash = window.location.hash;
+    // main.tsx stashes the real Supabase auth hash in sessionStorage before
+    // the hash router mounts (see the comment there) and rewrites
+    // window.location.hash to a normal "#/auth/callback" route — so by the
+    // time this component renders, the tokens live here, not in the URL.
+    const hash = (() => {
+      try {
+        const stashed = sessionStorage.getItem("mafia_auth_hash");
+        if (stashed) {
+          sessionStorage.removeItem("mafia_auth_hash");
+          return stashed;
+        }
+      } catch {}
+      return window.location.hash;
+    })();
     const params = new URLSearchParams(hash.replace("#", "?"));
     const type = params.get("type");
     const accessToken = params.get("access_token");
