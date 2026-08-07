@@ -5,6 +5,7 @@ import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings } from "l
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 
 const ACHIEVEMENTS = [
   { id: 'first_win', icon: '🩸' },
@@ -40,6 +41,32 @@ export default function Profile() {
   });
   const [dbCredits, setDbCredits] = useState<number | null>(null);
 
+  // Bug fix: this page used to show `stats.wins` straight from localStorage,
+  // which is only ever updated by the specific room/session that wrote it —
+  // it doesn't reflect wins from other rooms or devices. The shop page shows
+  // a DIFFERENT number on purpose (a spendable balance that goes down as you
+  // buy win-gated cosmetics), which is correct for a currency but wrong for
+  // a career stat, so this fetches the server's separate, never-decreasing
+  // lifetime total instead of reusing that spendable one.
+  const [dbTotalWins, setDbTotalWins] = useState<number | null>(null);
+  const [dbGamesPlayed, setDbGamesPlayed] = useState<number | null>(null);
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch("/api/account/wins", { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (typeof body.totalWins === "number") setDbTotalWins(body.totalWins);
+        if (typeof body.gamesPlayed === "number") setDbGamesPlayed(body.gamesPlayed);
+      } catch {}
+    })();
+  }, []);
+
   useEffect(() => {
     const onStorage = () => {
       const saved = localStorage.getItem("mafia_stats");
@@ -64,8 +91,10 @@ export default function Profile() {
   }, []);
 
   const credits = dbCredits !== null ? dbCredits : (stats.credits || 0);
-  const losses = Math.max(0, (stats.gamesPlayed || 0) - (stats.wins || 0));
-  const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
+  const displayWins = dbTotalWins !== null ? dbTotalWins : (stats.wins || 0);
+  const displayGamesPlayed = dbGamesPlayed !== null ? dbGamesPlayed : (stats.gamesPlayed || 0);
+  const losses = Math.max(0, displayGamesPlayed - displayWins);
+  const winRate = displayGamesPlayed > 0 ? Math.round((displayWins / displayGamesPlayed) * 100) : 0;
   const earnedAchievements = new Set(stats.achievements || []);
 
   const ROLE_STATS = [
@@ -117,7 +146,7 @@ export default function Profile() {
               </p>
               <div className="flex gap-2 mt-3">
                 {winRate >= 60 && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t("profile.elite")}</span>}
-                {stats.gamesPlayed >= 5 && <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t("profile.veteran")}</span>}
+                {stats.gamesPlayed >= 5 || displayGamesPlayed >= 5 ? <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t("profile.veteran")}</span> : null}
                 {earnedAchievements.size >= 5 && <span className="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">{t("profile.collector")}</span>}
               </div>
             </div>
@@ -126,9 +155,9 @@ export default function Profile() {
           {/* Stats Grid */}
           <div className="grid grid-cols-5 gap-3">
             {[
-              { icon: Trophy, label: t("profile.wins"), value: stats.wins || 0, color: "text-yellow-500" },
+              { icon: Trophy, label: t("profile.wins"), value: displayWins, color: "text-yellow-500" },
               { icon: Skull, label: t("profile.losses"), value: losses, color: "text-red-500" },
-              { icon: Target, label: t("profile.games"), value: stats.gamesPlayed || 0, color: "text-blue-500" },
+              { icon: Target, label: t("profile.games"), value: displayGamesPlayed, color: "text-blue-500" },
               { icon: TrendingUp, label: t("profile.winPercent"), value: `${winRate}%`, color: "text-emerald-500" },
               { icon: Flame, label: t("profile.credits"), value: credits, color: "text-amber-500" },
             ].map(stat => (
@@ -141,7 +170,7 @@ export default function Profile() {
           </div>
 
           {/* Role Performance */}
-          {stats.gamesPlayed > 0 && (
+          {displayGamesPlayed > 0 && (
             <div className="bg-card/80 backdrop-blur-xl ring-1 ring-border rounded-2xl p-6 space-y-4">
               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("profile.rolePerformance")}</h3>
               <div className="grid grid-cols-2 gap-3">

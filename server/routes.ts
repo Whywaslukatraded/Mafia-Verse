@@ -3113,13 +3113,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                return;
              }
 
+             // Bug fix: this used to hardcode winners = ['civilian', 'doctor',
+             // 'detective'] whenever mafia lost, so bodyguard, vigilante,
+             // mayor, and jester players never got their win credited on a
+             // rematch even when their side won (jester has its own separate
+             // win condition entirely, handled below). Now derives "won" the
+             // same way finalizeGameEnd does: everyone whose role isn't
+             // mafia, when mafia is eliminated.
              const survivors = players.filter((p: Player) => p.isAlive);
              const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
-             const innocentsCount = survivors.length - mafiaCount;
-             
+
              let winners: string[] = [];
-             if (mafiaCount > 0 && innocentsCount === 0) winners = ['mafia'];
-             else if (mafiaCount === 0) winners = ['civilian', 'doctor', 'detective'];
+             if (mafiaCount > 0 && survivors.length - mafiaCount === 0) winners = ['mafia'];
+             else if (mafiaCount === 0) {
+               winners = Array.from(new Set(players.map((p: Player) => p.role).filter((r): r is string => !!r && r !== 'mafia' && r !== 'jester')));
+             }
 
              for (const p of players) {
                if (p.isBot) {
@@ -4333,32 +4341,44 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // available balance is the difference. Unlocking a 5-win item when you
   // have exactly 5 wins brings your available balance to 0; you need to win
   // more real games to unlock anything else.
-  async function getAvailableWins(client: any, supabaseUserId: string): Promise<number> {
+  async function getWinsSummary(client: any, supabaseUserId: string): Promise<{ total: number; gamesPlayed: number; available: number }> {
     const totalResult = await client.query(
-      "SELECT COALESCE(SUM(wins), 0)::int AS total FROM players WHERE supabase_user_id = $1",
+      "SELECT COALESCE(SUM(wins), 0)::int AS total, COALESCE(SUM(games_played), 0)::int AS games_played FROM players WHERE supabase_user_id = $1",
       [supabaseUserId]
     );
     const total = totalResult.rows[0]?.total ?? 0;
+    const gamesPlayed = totalResult.rows[0]?.games_played ?? 0;
     const spentResult = await client.query(
       "SELECT spent FROM account_win_spending WHERE supabase_user_id = $1",
       [supabaseUserId]
     );
     const spent = spentResult.rows[0]?.spent ?? 0;
-    return Math.max(0, total - spent);
+    return { total, gamesPlayed, available: Math.max(0, total - spent) };
+  }
+  async function getAvailableWins(client: any, supabaseUserId: string): Promise<number> {
+    return (await getWinsSummary(client, supabaseUserId)).available;
   }
 
   app.get("/api/account/wins", async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ wins: 0 });
+      if (!supabaseUserId) return res.json({ wins: 0, totalWins: 0, gamesPlayed: 0 });
       const client = await pool.connect();
       try {
-        res.json({ wins: await getAvailableWins(client, supabaseUserId) });
+        // Security fix: was returning only the spendable balance, which the
+        // shop needs but Profile.tsx should NOT use as its "career wins"
+        // stat — that balance drops every time a cosmetic is purchased,
+        // which would make a lifetime achievement number go backwards.
+        // `wins` (spendable, used by Cosmetics.tsx) and `totalWins` (never
+        // decreases, for Profile.tsx) are now both exposed here so each
+        // page can use the right one.
+        const summary = await getWinsSummary(client, supabaseUserId);
+        res.json({ wins: summary.available, totalWins: summary.total, gamesPlayed: summary.gamesPlayed });
       } finally {
         client.release();
       }
     } catch {
-      res.json({ wins: 0 });
+      res.json({ wins: 0, totalWins: 0, gamesPlayed: 0 });
     }
   });
 

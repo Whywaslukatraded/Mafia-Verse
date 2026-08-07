@@ -570,11 +570,22 @@ export default function Room() {
 
     const duration = getDuration();
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
+    const phaseEndsAt = serverPhaseStart + duration * 1000;
     let autoLockedIn = false;
     let lastDisplayed = -1;
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - serverPhaseStart) / 1000);
-      const remaining = Math.min(duration, Math.max(0, duration - elapsed));
+      // Bug fix: this used to floor the elapsed seconds first, then
+      // subtract from duration (`duration - Math.floor(elapsedMs/1000)`).
+      // Any latency at all between the server stamping lastUpdated and this
+      // effect's first tick (a WS round trip, DB write, render — commonly
+      // 100s of ms, sometimes 1s+) meant elapsed could already floor to 1
+      // before the countdown ever painted, so it started at duration-1
+      // instead of duration. Computing remaining milliseconds directly and
+      // ceiling avoids the double-truncation — any fraction of a second
+      // still remaining in the current displayed second keeps showing that
+      // second, matching how a normal countdown reads.
+      const remainingMs = phaseEndsAt - Date.now();
+      const remaining = Math.min(duration, Math.max(0, Math.ceil(remainingMs / 1000)));
       // Checking every 100ms keeps the auto-lock-in timing tight, but the
       // displayed number only actually changes once a second — updating
       // React state on every 100ms tick was forcing 10x more re-renders of
@@ -585,7 +596,7 @@ export default function Room() {
         lastDisplayed = remaining;
         setTimeRemaining(remaining);
       }
-      if (remaining <= 0 && !autoLockedIn) {
+      if (remainingMs <= 0 && !autoLockedIn) {
         autoLockedIn = true;
         pendingActionRef.current && lockInRef.current?.();
       }
