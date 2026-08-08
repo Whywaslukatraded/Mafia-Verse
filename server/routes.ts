@@ -12,6 +12,24 @@ import { sendEmail, generateSixDigitCode, build2FAEmailHtml } from "./emailServi
 import rateLimit from "express-rate-limit";
 import { createClient } from "@supabase/supabase-js";
 
+// Safety net: this file schedules a lot of game logic via bare setTimeout
+// callbacks (phase transitions, bot actions, delayed win-condition
+// broadcasts) with no per-call .catch(). An exception thrown inside any of
+// those becomes an unhandled promise rejection, which on Node's default
+// behavior crashes the entire process — killing every room's in-memory game
+// state at once, not just the one that hit the edge case, and requiring a
+// full redeploy/restart to recover (a client-side reload does nothing,
+// since the room's server-side timer is simply gone). Log instead of
+// crashing so one bad edge case in one room can't take the whole server
+// down; advancePhase (the most impactful spot) additionally retries itself
+// on failure — see the comment there.
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection] Kept server alive despite:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Uncaught Exception] Kept server alive despite:', err);
+});
+
 // Server-side Supabase client used ONLY to verify access tokens (auth.getUser).
 // Uses the service role key when available (bypasses RLS, needed for reliable
 // token verification server-side); falls back to the anon key if that's all
@@ -204,6 +222,46 @@ function getNextNightPhase(currentPhase: string, players: Player[]): string | nu
     if (players.some((p) => p.role === role && p.isAlive)) return role;
   }
   return null;
+}
+
+// Resolves who (if anyone) gets voted out from a day-phase vote tally.
+// Previously this just took whichever target's count was strictly greater
+// than the running max — on an actual tie, that silently elected whoever
+// happened to be inserted into the Map first, instead of the classic Mafia
+// rule that a tie means nobody is eliminated. Fixed here to properly detect
+// ties among the vote leaders.
+//
+// On top of that: if the full tally (humans + bots) is tied, we re-check
+// using only human votes before giving up and calling it a no-elimination
+// tie. Bots vote close to randomly, so with enough of them in a room they
+// can easily pad out a mirrored/split vote that manufactures a tie even
+// when the humans playing clearly agreed on a target — a tie should be a
+// human disagreement, not bot noise.
+function resolveVoteOutcome(roomId: number, voteCounts: Map<number, number>, votesMap: Map<number, number>, players: Player[]): number {
+  let maxVotes = 0;
+  let leaders: number[] = [];
+  voteCounts.forEach((count, id) => {
+    if (count > maxVotes) { maxVotes = count; leaders = [id]; }
+    else if (count === maxVotes && maxVotes > 0) { leaders.push(id); }
+  });
+  if (leaders.length === 0) return -1;
+  if (leaders.length === 1) return leaders[0];
+
+  const humanVoteCounts = new Map<number, number>();
+  votesMap.forEach((targetId: number, voterId: number) => {
+    const voter = players.find((p) => p.id === voterId);
+    if (!voter || voter.isBot) return;
+    const weight = mayorRevealed.get(roomId)?.has(voter.id) ? 2 : 1;
+    humanVoteCounts.set(targetId, (humanVoteCounts.get(targetId) || 0) + weight);
+  });
+  let humanMax = 0;
+  let humanLeaders: number[] = [];
+  for (const id of leaders) {
+    const c = humanVoteCounts.get(id) || 0;
+    if (c > humanMax) { humanMax = c; humanLeaders = [id]; }
+    else if (c === humanMax && humanMax > 0) humanLeaders.push(id);
+  }
+  return humanLeaders.length === 1 ? humanLeaders[0] : -1;
 }
 
 function getNightPhaseDuration(phase: string, settings: any): number {
@@ -1571,7 +1629,25 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   gameActionsMap.delete(roomId);
 }
 
+// Any thrown error inside the phase-transition logic below used to become an
+// unhandled promise rejection (it's invoked from a bare `setTimeout(() =>
+// advancePhase(...))` with no .catch() anywhere). On Node's default
+// unhandled-rejection behavior that crashes the whole process — which wipes
+// every in-memory game/timer Map on restart and leaves whichever room hit
+// the edge case permanently stuck (its phaseTimers entry gone, nothing left
+// to ever call advancePhase for it again) until it's manually reloaded,
+// which doesn't actually unstick anything server-side. Wrap + retry instead.
 async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  try {
+    await advancePhaseInner(roomId, wss, storage, roomClients, clients, gameActions);
+  } catch (err) {
+    console.error(`[Room ${roomId}] advancePhase threw — retrying in 3s instead of leaving the room stuck:`, err);
+    const retryTimer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), 3000);
+    phaseTimers.set(roomId, retryTimer);
+  }
+}
+
+async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   // Whenever a player is actually eliminated in this call, the client shows a
   // ~5s elimination overlay that blocks interaction. Delay the next phase's
   // lastUpdated (and its timer) by that same amount so the overlay doesn't
@@ -1611,12 +1687,9 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         gameHistory.set(roomId, history);
       }
       
-      let topTargetId = -1;
-      let maxVotes = 0;
-      voteCounts.forEach((count, id) => {
-        if (count > maxVotes) { maxVotes = count; topTargetId = id; }
-      });
-      
+      let topTargetId = resolveVoteOutcome(roomId, voteCounts, actions.votes, players);
+      let maxVotes = topTargetId !== -1 ? (voteCounts.get(topTargetId) || 0) : 0;
+
       let gameEnded = false;
       if (topTargetId !== -1) {
         const victim = players.find((p: Player) => p.id === topTargetId);
@@ -1736,11 +1809,8 @@ async function advancePhase(roomId: number, wss: WebSocketServer, storage: any, 
         gameHistory.set(roomId, history);
       }
 
-      let topTargetId = -1;
-      let maxVotes = 0;
-      voteCounts.forEach((count, id) => {
-        if (count > maxVotes) { maxVotes = count; topTargetId = id; }
-      });
+      let topTargetId = resolveVoteOutcome(roomId, voteCounts, actions.votes, players);
+      let maxVotes = topTargetId !== -1 ? (voteCounts.get(topTargetId) || 0) : 0;
 
       let gameEnded = false;
       if (topTargetId !== -1) {

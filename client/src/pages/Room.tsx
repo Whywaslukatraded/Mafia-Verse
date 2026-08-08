@@ -570,22 +570,25 @@ export default function Room() {
 
     const duration = getDuration();
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
-    const phaseEndsAt = serverPhaseStart + duration * 1000;
+    // The very first tick of a fresh phase was reliably showing one second
+    // short (e.g. 14 instead of a selected 15): by the time this effect
+    // actually runs, some amount of latency has already passed between the
+    // server stamping `lastUpdated` and this client receiving/processing
+    // that state_update (DB write time, WS transit, effect scheduling) —
+    // easily enough to cross the 1-second boundary and make it look like a
+    // whole second was already spent before the player ever saw the timer.
+    // Treat a small amount of that drift (<1.2s) as pipeline latency, not
+    // real elapsed time, so a freshly-started phase always starts at its
+    // full duration. Reloading mid-phase still shows the correct remaining
+    // time, since real elapsed time (someone reconnecting well into a
+    // phase) is far larger than this window.
+    const impliedElapsedMs = Date.now() - serverPhaseStart;
+    const effectivePhaseStart = impliedElapsedMs < 1200 ? Date.now() : serverPhaseStart;
     let autoLockedIn = false;
     let lastDisplayed = -1;
     const interval = setInterval(() => {
-      // Bug fix: this used to floor the elapsed seconds first, then
-      // subtract from duration (`duration - Math.floor(elapsedMs/1000)`).
-      // Any latency at all between the server stamping lastUpdated and this
-      // effect's first tick (a WS round trip, DB write, render — commonly
-      // 100s of ms, sometimes 1s+) meant elapsed could already floor to 1
-      // before the countdown ever painted, so it started at duration-1
-      // instead of duration. Computing remaining milliseconds directly and
-      // ceiling avoids the double-truncation — any fraction of a second
-      // still remaining in the current displayed second keeps showing that
-      // second, matching how a normal countdown reads.
-      const remainingMs = phaseEndsAt - Date.now();
-      const remaining = Math.min(duration, Math.max(0, Math.ceil(remainingMs / 1000)));
+      const elapsed = Math.floor((Date.now() - effectivePhaseStart) / 1000);
+      const remaining = Math.min(duration, Math.max(0, duration - elapsed));
       // Checking every 100ms keeps the auto-lock-in timing tight, but the
       // displayed number only actually changes once a second — updating
       // React state on every 100ms tick was forcing 10x more re-renders of
@@ -596,7 +599,7 @@ export default function Room() {
         lastDisplayed = remaining;
         setTimeRemaining(remaining);
       }
-      if (remainingMs <= 0 && !autoLockedIn) {
+      if (remaining <= 0 && !autoLockedIn) {
         autoLockedIn = true;
         pendingActionRef.current && lockInRef.current?.();
       }
@@ -864,6 +867,20 @@ export default function Room() {
                         : t("room.civiliansWonDescription")}
                     </div>
 
+                    {/* Share Result lives here, right under the result — not
+                        stacked against Play Again below, so a tap intending
+                        one doesn't land on the other. */}
+                    <Button
+                      onClick={() => handleGenerateShareCard(latestGameEnd)}
+                      disabled={generatingShareCard}
+                      variant="outline"
+                      className="gap-2 mb-8"
+                      data-testid="button-share-result"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      {generatingShareCard ? t("room.generatingImage") : t("room.shareResult")}
+                    </Button>
+
                     <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
                       <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
                       <div className="grid grid-cols-2 gap-3">
@@ -881,17 +898,6 @@ export default function Room() {
                         ))}
                       </div>
                     </div>
-
-                    <Button
-                      onClick={() => handleGenerateShareCard(latestGameEnd)}
-                      disabled={generatingShareCard}
-                      variant="outline"
-                      className="gap-2 mb-6"
-                      data-testid="button-share-result"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      {generatingShareCard ? t("room.generatingImage") : t("room.shareResult")}
-                    </Button>
 
                     {isHost ? (
                       <>
