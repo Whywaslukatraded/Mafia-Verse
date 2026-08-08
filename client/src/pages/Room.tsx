@@ -160,6 +160,21 @@ export default function Room() {
   const me = gameState?.me;
   const room = gameState?.room;
   const players = gameState?.players || [];
+
+  // Feature: win/lose sound cue. Mirrors the exact isWinner logic
+  // finalizeGameEnd uses server-side, so the sting always matches what the
+  // "Final Roles Revealed" screen shows — null until the match has actually
+  // ended and this player's own gameHistory has recorded a result.
+  const audioOutcome: 'win' | 'lose' | null = (() => {
+    if (room?.status !== 'ended' || !me) return null;
+    const latestGameEnd = [...((me as any)?.gameHistory as any[] || [])].reverse().find((h: any) => h?.type === 'game_end');
+    if (!latestGameEnd) return null;
+    const winner = latestGameEnd.winner;
+    const isWinner = winner === 'jester' ? me.role === 'jester' :
+      winner === 'civilians' ? me.role !== 'mafia' :
+      winner === 'mafia' ? me.role === 'mafia' : false;
+    return isWinner ? 'win' : 'lose';
+  })();
   const { notify } = useNotifications();
   // Stable hash: only changes when alive states actually change (not on every broadcast)
   const aliveHash = players.map(p => `${p.id}:${p.isAlive ? 1 : 0}`).join(',');
@@ -642,7 +657,13 @@ export default function Room() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [room?.status, room?.phase, room?.settings, room?.lastUpdated]);
+  }, [
+    room?.status, room?.phase, room?.lastUpdated,
+    room?.settings?.bodyguardDuration, room?.settings?.mafiaDuration,
+    room?.settings?.vigilanteDuration, room?.settings?.doctorDuration,
+    room?.settings?.detectiveDuration, room?.settings?.phaseDuration,
+    room?.settings?.discussionDuration,
+  ]);
 
   // Feature: Pre-game ready-up lobby — countdown to bots-fill-and-start,
   // driven by the server's lobbyCountdownEndsAt timestamp (set once every
@@ -862,12 +883,19 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto"
+            // Bug fix: this had no overflow/scroll at all, so on any screen
+            // where the content (win graphic, share button, final-roles
+            // grid, Play Again, and the helper text below it) was taller
+            // than the viewport — very common at 100% zoom on a laptop —
+            // flex-centering clipped it evenly top AND bottom with no way
+            // to scroll to the rest. overflow-y-auto plus vertical padding
+            // on the inner wrapper lets it scroll instead of clip.
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.8, y: 40 }}
               animate={{ scale: 1, y: 0 }}
-              className="text-center max-w-2xl px-6 py-8"
+              className="text-center max-w-2xl px-6 py-8 my-auto"
             >
               {(() => {
                 const aliveMafia = players.filter(p => p.isAlive && p.role === "mafia").length;
@@ -1151,7 +1179,7 @@ export default function Room() {
         )}
       </AnimatePresence>
 
-      {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} />}
+      {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} roleRevealing={showRoleReveal} outcome={audioOutcome} />}
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
@@ -1549,9 +1577,24 @@ export default function Room() {
                           revealedRole={
                             room?.status === "ended"
                               ? p.role
-                              : (me?.role && me.role !== "civilian" && p.role === me.role)
+                              : !p.isAlive
+                                // Bug fix: a dead player's role used to only
+                                // ever show in the brief elimination overlay
+                                // — this card fell through to `undefined`
+                                // for everyone except the game-ended and
+                                // same-role-teammate cases, so the moment
+                                // that overlay closed, the role disappeared
+                                // from the persistent player list even
+                                // though the server has been sending their
+                                // true role in every broadcast since they
+                                // died (subject to the room's showRoleReveal
+                                // setting — if that's off, the server itself
+                                // already substitutes 'unknown' for p.role,
+                                // so this stays safe either way).
                                 ? p.role
-                                : undefined
+                                : (me?.role && me.role !== "civilian" && p.role === me.role)
+                                  ? p.role
+                                  : undefined
                           }
                           myBulletsLeft={p.id === me?.id && me?.role === "vigilante" ? myBullets : undefined}
                           myMayorRevealed={p.id === me?.id && me?.role === "mayor" ? iAmRevealedMayor : undefined}
