@@ -4839,8 +4839,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // /api/loot-crate/open above, just at these two higher cost tiers, so both
   // paths share one source of truth for credits and item ownership.
   const STASH_DROP_COST: Record<string, number> = { underworld: 150, syndicate: 400 };
+  const stashDropLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many stash drop requests, please try again later." },
+  });
 
-  app.post("/api/store/stash-drop", async (req, res) => {
+  app.post("/api/store/stash-drop", stashDropLimiter, async (req, res) => {
     try {
       const auth = await requireVerifiedUser(req);
       if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
