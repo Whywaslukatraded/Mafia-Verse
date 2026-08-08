@@ -3230,19 +3230,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              }
 
              // Bug fix: this used to hardcode winners = ['civilian', 'doctor',
-             // 'detective'] whenever mafia lost, so bodyguard, vigilante,
-             // mayor, and jester players never got their win credited on a
-             // rematch even when their side won (jester has its own separate
-             // win condition entirely, handled below). Now derives "won" the
-             // same way finalizeGameEnd does: everyone whose role isn't
-             // mafia, when mafia is eliminated.
-             const survivors = players.filter((p: Player) => p.isAlive);
-             const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
+             // 'detective'] whenever mafia lost, so bodyguard, vigilante, and
+             // mayor players never got their win credited on a rematch even
+             // when their side won. It also had no way to credit a jester
+             // win at all — re-deriving "who won" from `survivors` can't
+             // work for the jester, since winning IS being voted out (dead,
+             // not a survivor) — the exact scenario this recompute treats as
+             // a loss for everyone.
+             //
+             // finalizeGameEnd already recorded the real winner
+             // ('civilians' | 'mafia' | 'jester') in gameHistory when the
+             // game actually ended, using the same per-player isWinner
+             // logic below — read that back instead of guessing from
+             // current player state, which is stale/insufficient for
+             // exactly the case that mattered.
+             const roomHistory = gameHistory.get(myRoomId) || [];
+             const gameEndEntry = [...roomHistory].reverse().find((h: any) => h.type === 'game_end');
+             const recordedWinner: 'civilians' | 'mafia' | 'jester' | null = gameEndEntry?.winner ?? null;
 
-             let winners: string[] = [];
-             if (mafiaCount > 0 && survivors.length - mafiaCount === 0) winners = ['mafia'];
-             else if (mafiaCount === 0) {
-               winners = Array.from(new Set(players.map((p: Player) => p.role).filter((r): r is string => !!r && r !== 'mafia' && r !== 'jester')));
+             let winners: string[] | null = null;
+             if (!recordedWinner) {
+               // Defensive fallback only — every game-ending path calls
+               // finalizeGameEnd, so this shouldn't normally trigger, but
+               // if gameHistory was ever cleared/missing, fall back to the
+               // old best-effort computation rather than crediting no one.
+               const survivors = players.filter((p: Player) => p.isAlive);
+               const mafiaCount = survivors.filter(p => p.role === 'mafia').length;
+               if (mafiaCount > 0 && survivors.length - mafiaCount === 0) winners = ['mafia'];
+               else if (mafiaCount === 0) {
+                 winners = Array.from(new Set(players.map((p: Player) => p.role).filter((r): r is string => !!r && r !== 'mafia' && r !== 'jester')));
+               } else {
+                 winners = [];
+               }
              }
 
              for (const p of players) {
@@ -3250,7 +3269,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  await storage.updatePlayer(p.id, { role: null, isAlive: true, isSpectator: false, gameHistory: [] });
                  continue;
                }
-               const isWinner = p.role && winners.includes(p.role);
+               const isWinner = recordedWinner
+                 ? (recordedWinner === 'jester' ? p.role === 'jester' :
+                    recordedWinner === 'civilians' ? p.role !== 'mafia' :
+                    recordedWinner === 'mafia' ? p.role === 'mafia' : false)
+                 : !!(p.role && winners?.includes(p.role));
                const newWins = (p.wins || 0) + (isWinner ? 1 : 0);
                const newGamesPlayed = (p.gamesPlayed || 0) + 1;
                
