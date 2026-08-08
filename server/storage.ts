@@ -184,11 +184,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateRoomCode(): Promise<string> {
+    // Security fix (#7/#9): was 4 characters (26^4 ≈ 457k combinations),
+    // cheap to enumerate at scale since room lookup/join had no rate limit
+    // of their own (see roomJoinLimiter/roomLookupLimiter added in
+    // routes.ts). 6 characters (26^6 ≈ 309M) is still short enough to read
+    // aloud and type on a phone, but raises the brute-force cost by ~675x,
+    // and combined with rate limiting makes scanning the whole keyspace
+    // impractical rather than merely inconvenient.
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let code = "";
     while (true) {
       code = "";
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 6; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
       }
       const existing = await this.getRoomByCode(code);

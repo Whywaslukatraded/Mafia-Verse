@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+// Security fix (#2): the QR code used to be rendered by embedding the full
+// otpauth:// URI — which contains the raw TOTP shared secret — into a GET
+// request to api.qrserver.com. That sent the account's 2FA seed to a third
+// party in plaintext, where it (and anyone who can see that request: the
+// service itself, its logs, any network intermediary) could generate valid
+// codes for this account indefinitely. Generating the QR code locally in
+// the browser means the secret never leaves the page.
+import QRCode from "qrcode";
 
 type Method = "choose" | "totp" | "email";
 
@@ -18,6 +26,7 @@ export default function TwoFactorSetup() {
   const [method, setMethod] = useState<Method>("choose");
   const [step, setStep] = useState<"loading" | "qr" | "email-entry" | "verify">("loading");
   const [qrUri, setQrUri] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [secret, setSecret] = useState("");
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -79,6 +88,14 @@ export default function TwoFactorSetup() {
       }
       setQrUri(data.qrCodeUri);
       setSecret(data.secret);
+      try {
+        const dataUrl = await QRCode.toDataURL(data.qrCodeUri, { width: 200, margin: 1 });
+        setQrDataUrl(dataUrl);
+      } catch {
+        // Fall through with qrDataUrl empty — the manual secret entry below
+        // the image still works even if local QR rendering fails for some
+        // reason, so this isn't fatal to 2FA setup.
+      }
       setStep("qr");
     } catch {
       toast({ title: t("twoFactor.setupFailedRetry"), variant: "destructive" });
@@ -213,12 +230,18 @@ export default function TwoFactorSetup() {
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">{t("twoFactor.scanQrCode")}</p>
               <div className="flex justify-center">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
-                  alt="2FA QR Code"
-                  className="rounded-lg border border-border"
-                  data-testid="img-qr-code"
-                />
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="2FA QR Code"
+                    className="rounded-lg border border-border"
+                    data-testid="img-qr-code"
+                  />
+                ) : (
+                  <div className="w-[200px] h-[200px] rounded-lg border border-border flex items-center justify-center text-xs text-muted-foreground text-center px-4">
+                    {t("twoFactor.cantScan")}
+                  </div>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">{t("twoFactor.cantScan")}</p>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono text-foreground">{secret}</code>

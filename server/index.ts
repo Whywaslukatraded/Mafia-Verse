@@ -77,7 +77,7 @@ app.use((req, res, next) => {
     "default-src 'self'; " +
       "script-src 'self'; " +
       "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https://api.qrserver.com; " +
+      "img-src 'self' data:; " +
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co; " +
       "frame-ancestors 'none'; " +
       "base-uri 'self'; " +

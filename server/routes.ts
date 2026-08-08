@@ -134,8 +134,27 @@ const roomCreateLimiter = rateLimit({
   message: { message: "Too many rooms created from this network. Please wait a few minutes and try again." },
 });
 
-// 2FA code verification: a 6-digit code only has 1,000,000 possibilities, so
-// this needs to be tight — 5 attempts per 15 minutes per IP.
+// Security fix (#7/#9): room join and room-state lookup had no rate limit
+// at all — only creation did — so even with 6-character codes (see
+// generateRoomCode in storage.ts), scanning was only bounded by how fast an
+// attacker could fire requests. This doesn't stop a slow, patient scan, but
+// it makes the fast bulk-enumeration attack the scan flagged impractical.
+const roomJoinLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many join attempts from this network. Please wait a few minutes and try again." },
+});
+const roomLookupLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please wait a moment and try again." },
+});
+
+
 const twoFaVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -277,6 +296,21 @@ function getNightPhaseDuration(phase: string, settings: any): number {
   // a 0 or near-0 value) — a near-instant night phase can spiral into rapid
   // repeated phase advances.
   return Math.max((map[phase] ? map[phase] * 1000 : 0) || 15000, 5000);
+}
+
+// Security fix (#8): strips sessionId and supabaseUserId from every player
+// except `selfId` (or all of them, if selfId is undefined/null — e.g. the
+// REST endpoint's anonymous-observer case). sessionId is the sole bearer
+// credential for the WS 'join' action and GET /api/players/:sessionId/credits;
+// supabaseUserId is an account identifier. Neither should ever reach anyone
+// but the player they belong to. Used by both broadcastState and
+// GET /api/rooms/:code so the two serialization paths can't drift apart.
+function redactPrivateFields(players: Player[], selfId?: number | null): Player[] {
+  return players.map((p) => {
+    if (selfId != null && p.id === selfId) return p;
+    const { sessionId, supabaseUserId, ...rest } = p as any;
+    return rest as Player;
+  });
 }
 
 function assignRoles(players: Player[], settings: any) {
@@ -2168,7 +2202,7 @@ async function broadcastState(roomId: number) {
         shoot: me.role === 'vigilante' ? actions?.shots.get(me.id) || null : null,
       } : null;
 
-      const sanitizedPlayers = players.map((p: Player) => {
+      const roleSanitizedPlayers = players.map((p: Player) => {
          if (room.status === 'lobby' || room.status === 'ended') return p;
          if (me?.id === p.id) return p;
          if (me && !me.isAlive) return p;
@@ -2185,6 +2219,15 @@ async function broadcastState(roomId: number) {
          if (me?.role && me.role !== 'civilian' && p.role === me.role) return p;
          return { ...p, role: 'unknown' }; 
       });
+      // Security fix (#8): the role redaction above never touched sessionId
+      // or supabaseUserId, so every player in the room received everyone
+      // else's raw sessionId — the SAME value the WS 'join' action and
+      // GET /api/players/:sessionId/credits treat as the sole credential
+      // for that player. Anyone in a room could read every other player's
+      // sessionId straight out of this broadcast and fully impersonate
+      // them (vote, chat, read their private role channel, read their
+      // credits). Stripped from everyone except the recipient's own entry.
+      const sanitizedPlayers = redactPrivateFields(roleSanitizedPlayers, me?.id);
 
       const revealedMayorIds = Array.from(mayorRevealed.get(roomId) || []);
       const myBullets = me?.role === 'vigilante' ? (vigilanteBullets.get(roomId)?.get(me.id) ?? 0) : undefined;
@@ -2793,7 +2836,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post(api.rooms.join.path, async (req, res) => {
+  app.post(api.rooms.join.path, roomJoinLimiter, async (req, res) => {
     try {
       const input = api.rooms.join.input.parse(req.body);
       const room = await storage.getRoomByCode(input.code);
@@ -2841,7 +2884,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.get(api.rooms.get.path, async (req, res) => {
+  app.get(api.rooms.get.path, roomLookupLimiter, async (req, res) => {
     try {
       const code = (req.params as any).code as string;
       if (!code) return res.status(400).json({ message: "Room code required" });
@@ -2865,7 +2908,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const requestedSessionId = typeof req.query.sessionId === "string" ? req.query.sessionId : null;
       const me = requestedSessionId ? players.find((p: Player) => p.sessionId === requestedSessionId) ?? null : null;
 
-      const sanitizedPlayers = players.map((p: Player) => {
+      const roleSanitizedPlayers = players.map((p: Player) => {
         if (room.status === 'lobby' || room.status === 'ended') return p;
         if (me?.id === p.id) return p;
         if (me && !me.isAlive) return p;
@@ -2875,6 +2918,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (me?.role && me.role !== 'civilian' && p.role === me.role) return p;
         return { ...p, role: 'unknown' };
       });
+      // Security fix (#8): see redactPrivateFields' definition for the full
+      // reasoning — same sessionId/supabaseUserId leak existed here too.
+      const sanitizedPlayers = redactPrivateFields(roleSanitizedPlayers, me?.id);
 
       const visibleMessages = messages.filter((m: Message) => {
         if ((m as any).isSpectator) return !!me && !me.isAlive;
