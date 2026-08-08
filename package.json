@@ -86,7 +86,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
-    "zod": "https://npm.aikido.io/201d22b9fd207727eb863/zod@3.25.76-aikido.1",
+    "zod": "^3.24.4",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
