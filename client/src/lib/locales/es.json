@@ -169,6 +169,7 @@
       "mayors": "Alcaldes",
       "jesters": "Bufones",
       "votingTime": "Tiempo de votación (seg)",
+      "discussionTime": "Tiempo de discusión (seg)",
       "mafiaNightTime": "Tiempo nocturno de la mafia (seg)",
       "doctorNightTime": "Tiempo nocturno del médico (seg)",
       "detectiveNightTime": "Tiempo nocturno del detective (seg)"
@@ -258,7 +259,9 @@
       "defaultDescription": "Los bots se comportan como siempre — una mezcla equilibrada de acusar, defenderse y quedarse callados.",
       "chillDescription": "Los bots hablan menos y son más suaves con las acusaciones, dejando que los humanos lleven la conversación.",
       "aggressiveLiarDescription": "Los bots hablan más, acusan más seguido y se defienden con más fuerza cuando los señalan.",
-      "chaoticDescription": "Los bots hablan seguido pero de forma impredecible, saltando entre acusar, defenderse y bromear."
+      "chaoticDescription": "Los bots hablan seguido pero de forma impredecible, saltando entre acusar, defenderse y bromear.",
+      "sharp": "Astuto",
+      "sharpDescription": "Los bots votan estratégicamente, sumándose a quien ya acumula votos en lugar de elegir a ciegas."
     },
     "totalPlayers": "Total de jugadores",
     "minPlayers": "Se requieren al menos 6 jugadores",
@@ -307,6 +310,9 @@
     "matchAlreadyEndedDescription": "Te uniste después de que esta ronda terminó, así que no participaste en ella. Espera un momento: el anfitrión puede iniciar una nueva ronda y tú estarás en ella.",
     "waitingForHostRematch": "Esperando a que el anfitrión inicie una nueva ronda...",
     "shareResult": "Compartir resultado",
+    "crowdFavoriteVote": "Favorito del público",
+    "crowdFavoritePicked": "Tu elección",
+    "crowdFavoriteResult": "Favorito del público: {{name}}",
     "generatingImage": "Generando...",
     "shareResultTitle": "Tu tarjeta de resultado",
     "shareResultSubtitle": "Descárgala o copia un resumen de texto para compartir.",

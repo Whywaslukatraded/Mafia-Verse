@@ -77,7 +77,14 @@ export const rooms = pgTable("rooms", {
     discussionDuration?: number;
     // Feature: Bot personality — alters chat tone/behavior tendencies only.
     // Undefined/unset means "use current default behavior" (unchanged).
-    botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
+    botPersonality?: "chill" | "aggressiveLiar" | "chaotic" | "sharp";
+    // Feature: Private lobbies. When true, only the host and anyone in
+    // invitedSupabaseUserIds can join — the room code alone isn't enough.
+    // Both fields are optional/undefined for every pre-existing room, which
+    // is treated identically to isPrivate: false (fully open, current
+    // behavior unchanged).
+    isPrivate?: boolean;
+    invitedSupabaseUserIds?: string[];
   }>(),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
@@ -154,6 +161,24 @@ export const adClaims = pgTable("ad_claims", {
   lastClaimAt: timestamp("last_claim_at").defaultNow(),
 });
 
+// Feature: Friends list + private lobbies. Keyed by supabaseUserId (not the
+// local numeric users.id or a per-room players.id) since friendship is an
+// account-level relationship that needs to survive across every room and
+// session — an anonymous (non-logged-in) player has no stable identity to
+// hang a friendship off of, so this feature is opt-in to having an account.
+// One row per request; requesterId -> addresseeId direction is preserved so
+// "pending" can be shown correctly to both sides (incoming vs. outgoing)
+// without a second column.
+export const friendships = pgTable("friendships", {
+  id: serial("id").primaryKey(),
+  requesterId: text("requester_id").notNull(),
+  addresseeId: text("addressee_id").notNull(),
+  status: text("status").notNull().default("pending"), // pending | accepted
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Friendship = typeof friendships.$inferSelect;
+
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   timestamp: true,
@@ -200,7 +225,14 @@ export type CreateRoomRequest = {
     bodyguardDuration?: number;
     vigilanteDuration?: number;
     discussionDuration?: number;
-    botPersonality?: "chill" | "aggressiveLiar" | "chaotic";
+    botPersonality?: "chill" | "aggressiveLiar" | "chaotic" | "sharp";
+    // Feature: Private lobbies. When true, only the host and anyone in
+    // invitedSupabaseUserIds can join — the room code alone isn't enough.
+    // Both fields are optional/undefined for every pre-existing room, which
+    // is treated identically to isPrivate: false (fully open, current
+    // behavior unchanged).
+    isPrivate?: boolean;
+    invitedSupabaseUserIds?: string[];
   };
 };
 
@@ -257,7 +289,9 @@ export type GameAction =
   | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any }
   // Feature: Pre-game ready-up lobby
   | { type: 'ready_toggle' }
-  | { type: 'start_now' };
+  | { type: 'start_now' }
+  // Feature: Spectator "Crowd Favorite" ghost vote
+  | { type: 'crowd_favorite_vote'; targetId: number };
 
 // WebSocket Message Types
 export const WS_EVENTS = {

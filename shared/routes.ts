@@ -183,6 +183,8 @@ export const api = {
           // customizable length; falls back to phaseDuration server-side
           // if omitted so older room-settings payloads still work.
           discussionDuration: z.number().min(10).optional(),
+          // Feature: Private lobbies — join requires an invite when true.
+          isPrivate: z.boolean().optional(),
           // Feature: bot dialogue and server-generated system messages (kill/
           // vote-out reveals, win announcements, notifications) are localized
           // server-side based on this — sent from the client's current i18n

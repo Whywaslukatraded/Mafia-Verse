@@ -381,6 +381,11 @@ const mayorRevealed = new Map<number, Set<number>>();                  // roomId
 // target the human already claimed. Cleared every time a new mafia phase starts.
 const mafiaChatHints = new Map<number, { commandTarget?: number; avoidTargets: Set<number> }>();
 const vigilanteGuiltPending = new Map<number, number>();               // roomId -> vigilante playerId who must die from guilt next night
+// Feature: Spectator "Crowd Favorite" vote. Dead players / late-joining
+// spectators have no stake left in the outcome — this gives them something
+// to do besides watch: a cosmetic, non-binding pick for who they think is
+// playing best, tallied and revealed alongside the winner at game end.
+const crowdFavoriteVotes = new Map<number, Map<number, number>>();     // roomId -> voterId -> targetId
 
 // Small dictionary for the recurring system/chat messages that aren't part
 // of the bot dialogue pools (game-end announcements, night summary, etc.)
@@ -632,6 +637,7 @@ async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roo
   }
   vigilanteBullets.set(roomId, bulletsMap);
   mayorRevealed.set(roomId, new Set());
+  crowdFavoriteVotes.set(roomId, new Map());
 
   const startSettings = room.settings as any;
   const duration = getNightPhaseDuration(firstPhase, startSettings);
@@ -1105,7 +1111,7 @@ function buildBotReply(category: keyof typeof BOT_MESSAGES_EN, targetName: strin
 // `undefined` (no personality picked) always resolves to these exact
 // multipliers (all 1, matching the original hardcoded constants), so a room
 // with no personality set behaves identically to before this feature existed.
-type BotPersonality = "chill" | "aggressiveLiar" | "chaotic";
+type BotPersonality = "chill" | "aggressiveLiar" | "chaotic" | "sharp";
 
 const BOT_PERSONALITY_DEFAULTS = {
   // Multiplies how often a bot decides to speak at all (handleBotActions'
@@ -1125,6 +1131,13 @@ const BOT_PERSONALITIES: Record<BotPersonality, typeof BOT_PERSONALITY_DEFAULTS>
   chill: { talkativeness: 0.55, aggression: 0.5, randomness: 1 },
   aggressiveLiar: { talkativeness: 1.4, aggression: 1.7, randomness: 1 },
   chaotic: { talkativeness: 1.2, aggression: 1, randomness: 1.8 },
+  // Feature: Sharp bot difficulty. Talks a bit more than baseline and
+  // leans accusatory (like it's reasoning out loud from evidence), but the
+  // real difference is in handleBotActions' voting logic below (bandwagons
+  // onto whoever's already accumulating votes instead of picking blind) —
+  // randomness is dropped below 1 so its chat category picks stay on the
+  // normal weighted bands instead of flattening toward chaotic/unpredictable.
+  sharp: { talkativeness: 1.1, aggression: 1.25, randomness: 0.5 },
 };
 
 function getBotPersonality(room: any): typeof BOT_PERSONALITY_DEFAULTS {
@@ -1226,6 +1239,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 
   const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
   const personality = getBotPersonality(room);
+  const isSharp = (room.settings as any)?.botPersonality === 'sharp';
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
@@ -1265,6 +1279,27 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
     }
 
     if (room.phase === 'voting') {
+      // Feature: Sharp bot difficulty — instead of the target picked above
+      // (random, mafia-aware but otherwise blind to what anyone else is
+      // doing), a sharp non-mafia bot bandwagons onto whoever already has
+      // the most votes cast so far this phase. Reads as "paying attention
+      // to the room" rather than voting in a vacuum. Mafia bots keep their
+      // own targeting above regardless of personality — they're already
+      // deliberately avoiding/steering votes via mafiaChatHints.
+      if (isSharp && bot.role !== 'mafia') {
+        const tally = new Map<number, number>();
+        actions.votes.forEach((targetId: number) => tally.set(targetId, (tally.get(targetId) || 0) + 1));
+        let leaderId = -1;
+        let leaderCount = 0;
+        tally.forEach((count, id) => {
+          if (id === bot.id) return; // never bandwagon onto yourself
+          if (count > leaderCount) { leaderCount = count; leaderId = id; }
+        });
+        if (leaderId !== -1) {
+          const leader = alivePlayers.find((p: Player) => p.id === leaderId);
+          if (leader) target = leader;
+        }
+      }
       actions.votes.set(bot.id, target.id);
       const allAlivePlayers = players.filter((p: Player) => p.isAlive);
       if (actions.votes.size === allAlivePlayers.length) {
@@ -1591,6 +1626,24 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
     vigilanteGuiltPending.delete(roomId);
   }
 
+  // Feature: Crowd Favorite — tally spectator/ghost votes cast during this
+  // match. Ties broken by "first to reach the top count" (good enough for a
+  // cosmetic, non-competitive stat); no votes at all just omits the field.
+  let crowdFavorite: { id: number; name: string; avatar: string | null; votes: number } | undefined;
+  const favoriteVotes = crowdFavoriteVotes.get(roomId);
+  if (favoriteVotes && favoriteVotes.size > 0) {
+    const tally = new Map<number, number>();
+    favoriteVotes.forEach((targetId) => tally.set(targetId, (tally.get(targetId) || 0) + 1));
+    let topId = -1;
+    let topCount = 0;
+    tally.forEach((count, id) => { if (count > topCount) { topCount = count; topId = id; } });
+    const favoritePlayer = playersInRoom.find((p: Player) => p.id === topId);
+    if (favoritePlayer) {
+      crowdFavorite = { id: favoritePlayer.id, name: favoritePlayer.name, avatar: favoritePlayer.avatar, votes: topCount };
+    }
+  }
+  crowdFavoriteVotes.delete(roomId);
+
   history.push({
     type: 'game_end',
     winner,
@@ -1601,7 +1654,8 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
     // (or desync) the Final Roles Revealed screen. Include everything the
     // client needs (avatar/isAlive/id) so it never has to fall back to the
     // live, mutable players list to render this screen.
-    roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive }))
+    roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive })),
+    crowdFavorite,
   });
   gameHistory.set(roomId, history);
 
@@ -2258,7 +2312,7 @@ async function broadcastState(roomId: number) {
         type: WS_EVENTS.STATE_UPDATE,
         payload: {
           room, players: sanitizedPlayers,
-          me: me ? { ...me, currentAction: myAction } : me,
+          me: me ? { ...me, currentAction: myAction, crowdFavoritePick: crowdFavoriteVotes.get(roomId)?.get(me.id) ?? null } : me,
           messages: visibleMessages,
           revealedMayorIds,
           myBullets,
@@ -2851,6 +2905,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       // Security fix (#4): same reasoning as room creation above.
       const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
+
+      // Feature: Private lobbies — the room code alone isn't enough to join
+      // if the host marked it private. Only the host reconnecting or an
+      // invited friend gets in; everyone else needs an actual invite, not
+      // just a leaked/guessed code. Requires being signed in, since there's
+      // no other stable identity to check against invitedSupabaseUserIds.
+      const roomSettings = room.settings as any;
+      if (roomSettings?.isPrivate) {
+        const invited: string[] = Array.isArray(roomSettings.invitedSupabaseUserIds) ? roomSettings.invitedSupabaseUserIds : [];
+        const alreadyInRoom = verifiedSupabaseUserId && players.some((p: Player) => p.supabaseUserId === verifiedSupabaseUserId);
+        const isInvited = verifiedSupabaseUserId && invited.includes(verifiedSupabaseUserId);
+        if (!alreadyInRoom && !isInvited) {
+          return res.status(403).json({ message: "This is a private lobby. Ask the host for an invite." });
+        }
+      }
+
       const player = await storage.createPlayer({
         roomId: room.id,
         name: input.name,
@@ -3203,6 +3273,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                vigilanteDuration: clampInt(incoming.vigilanteDuration, current.vigilanteDuration || 15, 5),
                showVoteResults: incoming.showVoteResults ?? current.showVoteResults,
                showRoleReveal: incoming.showRoleReveal ?? current.showRoleReveal,
+               // Feature: Private lobbies — host can flip this from the
+               // in-room settings panel too, not just at creation.
+               // invitedSupabaseUserIds is intentionally left untouched here
+               // (managed only via POST /api/rooms/:code/invite) so this
+               // can't be used to clear out already-sent invites.
+               isPrivate: incoming.isPrivate ?? current.isPrivate ?? false,
              };
              await storage.updateRoom(myRoomId, { settings: newSettings } as any);
              broadcastState(myRoomId);
@@ -3295,6 +3371,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              
              gameActions.delete(myRoomId);
              gameHistory.delete(myRoomId);
+             crowdFavoriteVotes.delete(myRoomId);
              if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
              await storage.deleteMessagesByRoom(myRoomId);
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
@@ -3550,6 +3627,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            // 2+ distinct reporters in one game counts as a confirmed incident
            // against that account (see finalizeGameEnd), which blocks any
            // pending referral payout tied to it.
+           if (action.type === 'crowd_favorite_vote') {
+             // Ghosts only — the whole point is it's a spectator's pick with
+             // zero effect on the actual game, so it doesn't touch `actions`
+             // (the real vote/kill/heal/etc. tallies) at all.
+             const target = players.find((p: Player) => p.id === (action as any).targetId);
+             if (myRoomId && me && !me.isAlive && room.status !== 'lobby' && room.status !== 'ended' && target && target.id !== me.id) {
+               if (!crowdFavoriteVotes.has(myRoomId)) crowdFavoriteVotes.set(myRoomId, new Map());
+               crowdFavoriteVotes.get(myRoomId)!.set(me.id, target.id);
+               broadcastState(myRoomId);
+             }
+             return;
+           }
+
            if (action.type === 'report_afk') {
              const target = players.find((p: Player) => p.id === (action as any).targetId);
              if (myRoomId && me?.isAlive && target && target.id !== me.id) {
@@ -3613,6 +3703,155 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Leaderboard
+  // Feature: Friends list + private lobbies. All identified via the
+  // verified bearer token — never a client-supplied supabaseUserId — same
+  // pattern as room creation's verifiedSupabaseUserId above (see the
+  // Security fix #4 comment there for why).
+  app.get("/api/friends", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+
+      const rows = await storage.getFriendshipsForUser(myId);
+      const otherIds = Array.from(new Set(rows.map(r => r.requesterId === myId ? r.addresseeId : r.requesterId)));
+      const users = await Promise.all(otherIds.map(id => storage.getUserBySupabaseId(id)));
+      const userById = new Map(otherIds.map((id, i) => [id, users[i]]));
+
+      const friends: any[] = [];
+      const incoming: any[] = [];
+      const outgoing: any[] = [];
+      for (const r of rows) {
+        const otherId = r.requesterId === myId ? r.addresseeId : r.requesterId;
+        const u = userById.get(otherId);
+        const entry = { friendshipId: r.id, supabaseUserId: otherId, name: u?.name || "Unknown", avatar: u?.avatar || "👤" };
+        if (r.status === "accepted") friends.push(entry);
+        else if (r.requesterId === myId) outgoing.push(entry);
+        else incoming.push(entry);
+      }
+      res.json({ friends, incoming, outgoing });
+    } catch (e) {
+      console.error("GET /api/friends error:", e);
+      res.status(500).json({ message: "Failed to load friends." });
+    }
+  });
+
+  app.post("/api/friends/request", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      const { username } = req.body || {};
+      if (!username || typeof username !== "string") return res.status(400).json({ message: "Username required." });
+
+      const target = await storage.getUserByUsername(username);
+      if (!target || !target.supabaseUserId) return res.status(404).json({ message: "No account found with that username." });
+      if (target.supabaseUserId === myId) return res.status(400).json({ message: "You can't friend yourself." });
+
+      const existing = await storage.getFriendshipBetween(myId, target.supabaseUserId);
+      if (existing) return res.status(400).json({ message: existing.status === "accepted" ? "Already friends." : "A request already exists between you two." });
+
+      const friendship = await storage.createFriendRequest(myId, target.supabaseUserId);
+      res.status(201).json({ friendshipId: friendship.id });
+    } catch (e) {
+      console.error("POST /api/friends/request error:", e);
+      res.status(500).json({ message: "Failed to send friend request." });
+    }
+  });
+
+  app.post("/api/friends/respond", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      const { friendshipId, accept } = req.body || {};
+      if (!friendshipId) return res.status(400).json({ message: "friendshipId required." });
+
+      const rows = await storage.getFriendshipsForUser(myId);
+      const friendship = rows.find(r => r.id === Number(friendshipId));
+      // Only the addressee can accept/decline — the requester waiting on
+      // their own outgoing request has nothing valid to respond to here.
+      if (!friendship || friendship.addresseeId !== myId) return res.status(404).json({ message: "Request not found." });
+
+      if (accept) {
+        await storage.updateFriendshipStatus(friendship.id, "accepted");
+      } else {
+        await storage.deleteFriendship(friendship.id);
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/friends/respond error:", e);
+      res.status(500).json({ message: "Failed to respond to friend request." });
+    }
+  });
+
+  app.post("/api/friends/remove", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      const { friendshipId } = req.body || {};
+      const rows = await storage.getFriendshipsForUser(myId);
+      const friendship = rows.find(r => r.id === Number(friendshipId));
+      if (!friendship) return res.status(404).json({ message: "Not found." });
+      await storage.deleteFriendship(friendship.id);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/friends/remove error:", e);
+      res.status(500).json({ message: "Failed to remove friend." });
+    }
+  });
+
+  // Feature: Private lobbies. Host invites a friend to a specific room —
+  // recorded on the room's own settings (invitedSupabaseUserIds) rather
+  // than a separate notifications table, since there's no push-delivery
+  // system in this app; the invited friend discovers it by checking
+  // GET /api/friends/invites, which their client can poll.
+  app.post("/api/rooms/:code/invite", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to invite friends." });
+      const { friendSupabaseUserId } = req.body || {};
+      if (!friendSupabaseUserId) return res.status(400).json({ message: "friendSupabaseUserId required." });
+
+      const room = await storage.getRoomByCode(req.params.code);
+      if (!room) return res.status(404).json({ message: "Room not found." });
+
+      const roomPlayers = await storage.getPlayersInRoom(room.id);
+      const host = roomPlayers.find(p => p.isHost);
+      if (!host || host.supabaseUserId !== myId) return res.status(403).json({ message: "Only the host can invite." });
+
+      // Must actually be friends — invites aren't a way to message a
+      // stranger a room code.
+      const friendship = await storage.getFriendshipBetween(myId, friendSupabaseUserId);
+      if (!friendship || friendship.status !== "accepted") return res.status(403).json({ message: "You can only invite friends." });
+
+      const currentSettings = room.settings as any;
+      const invited: string[] = Array.isArray(currentSettings.invitedSupabaseUserIds) ? currentSettings.invitedSupabaseUserIds : [];
+      if (!invited.includes(friendSupabaseUserId)) invited.push(friendSupabaseUserId);
+      await storage.updateRoom(room.id, { settings: { ...currentSettings, invitedSupabaseUserIds: invited } });
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/rooms/:code/invite error:", e);
+      res.status(500).json({ message: "Failed to send invite." });
+    }
+  });
+
+  app.get("/api/friends/invites", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+
+      // No index on settings->invitedSupabaseUserIds, so this is a scan —
+      // fine at this app's scale (matches the existing lobby-only, small
+      // active-room-count assumption elsewhere), but would need a real
+      // notifications table if room volume ever grows a lot.
+      const openRooms = await storage.getOpenPrivateRoomsInvitingUser(myId);
+      res.json({
+        invites: openRooms.map(r => ({ code: r.code, roomName: (r.settings as any)?.roomName || null })),
+      });
+    } catch (e) {
+      console.error("GET /api/friends/invites error:", e);
+      res.status(500).json({ message: "Failed to load invites." });
+    }
+  });
+
   app.get("/api/leaderboard", async (_req, res) => {
     try {
       const entries = await storage.getLeaderboard();

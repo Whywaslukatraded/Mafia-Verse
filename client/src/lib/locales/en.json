@@ -169,6 +169,7 @@
       "mayors": "Mayors",
       "jesters": "Jesters",
       "votingTime": "Voting Time (sec)",
+      "discussionTime": "Discussion Time (sec)",
       "mafiaNightTime": "Mafia Night Time (sec)",
       "doctorNightTime": "Doctor Night Time (sec)",
       "detectiveNightTime": "Detective Night Time (sec)"
@@ -258,7 +259,9 @@
       "defaultDescription": "Bots behave the way they always have — a balanced mix of accusing, defending, and staying quiet.",
       "chillDescription": "Bots talk less and go easier on accusations, letting the humans drive the conversation.",
       "aggressiveLiarDescription": "Bots talk more, accuse more often, and defend themselves harder when called out.",
-      "chaoticDescription": "Bots talk often but unpredictably, jumping between accusing, defending, and joking around."
+      "chaoticDescription": "Bots talk often but unpredictably, jumping between accusing, defending, and joking around.",
+      "sharp": "Sharp",
+      "sharpDescription": "Bots vote strategically, bandwagoning onto whoever's already accumulating votes instead of picking blindly."
     },
     "totalPlayers": "Total Players",
     "minPlayers": "Min 6 players required",
@@ -307,6 +310,9 @@
     "matchAlreadyEndedDescription": "You joined after this round ended, so you weren't part of it. Sit tight — the host can start a new round and you'll be right in it.",
     "waitingForHostRematch": "Waiting for the host to start a new round...",
     "shareResult": "Share Result",
+    "crowdFavoriteVote": "Crowd Favorite",
+    "crowdFavoritePicked": "Your Pick",
+    "crowdFavoriteResult": "Crowd Favorite: {{name}}",
     "generatingImage": "Generating...",
     "shareResultTitle": "Your Result Card",
     "shareResultSubtitle": "Download it or copy a text summary to share.",

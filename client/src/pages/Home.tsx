@@ -537,7 +537,7 @@ export default function Home() {
   // Feature: Bot personality — host-configurable at creation too, same
   // optional field the in-room Game Settings panel writes. Undefined means
   // "use current default bot behavior."
-  const [botPersonality, setBotPersonality] = useState<"chill" | "aggressiveLiar" | "chaotic" | undefined>(() => {
+  const [botPersonality, setBotPersonality] = useState<"chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined>(() => {
     try {
       const saved = localStorage.getItem("mafia_last_room_settings");
       if (saved) {
@@ -547,7 +547,7 @@ export default function Home() {
     } catch {}
     return undefined;
   });
-  const updateBotPersonality = (val: "chill" | "aggressiveLiar" | "chaotic" | undefined) => {
+  const updateBotPersonality = (val: "chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined) => {
     setBotPersonality(val);
     try {
       const saved = localStorage.getItem("mafia_last_room_settings");
@@ -1010,7 +1010,7 @@ export default function Home() {
                       >
                         {t("home.botPersonality.default")}
                       </button>
-                      {(["chill", "aggressiveLiar", "chaotic"] as const).map((p) => (
+                      {(["chill", "aggressiveLiar", "chaotic", "sharp"] as const).map((p) => (
                         <button
                           key={p}
                           type="button"

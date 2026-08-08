@@ -128,6 +128,21 @@ export async function runMigrations(): Promise<void> {
           timestamp timestamp DEFAULT now()
         )
       `);
+      // Feature: Friends list. One row per friend request; status starts
+      // 'pending' and flips to 'accepted' — declines/unfriends just delete
+      // the row rather than tracking a third status, since there's nothing
+      // useful to show for a dead request either way.
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS friendships (
+          id serial PRIMARY KEY,
+          requester_id text NOT NULL,
+          addressee_id text NOT NULL,
+          status text NOT NULL DEFAULT 'pending',
+          created_at timestamp DEFAULT now()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships (requester_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships (addressee_id)`);
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();

@@ -117,7 +117,7 @@ export default function Room() {
     phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
     bodyguardDuration: 15, vigilanteDuration: 15,
     showVoteResults: true, showRoleReveal: true,
-    botPersonality: undefined as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
+    botPersonality: undefined as ("chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined),
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
@@ -406,7 +406,7 @@ export default function Room() {
         doctorDuration: Math.max(5, s.doctorDuration ?? 15), detectiveDuration: Math.max(5, s.detectiveDuration ?? 15),
         bodyguardDuration: Math.max(5, s.bodyguardDuration ?? 15), vigilanteDuration: Math.max(5, s.vigilanteDuration ?? 15),
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
-        botPersonality: s.botPersonality as ("chill" | "aggressiveLiar" | "chaotic" | undefined),
+        botPersonality: s.botPersonality as ("chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined),
       });
     }
     setShowSettingsPanel(true);
@@ -704,6 +704,24 @@ export default function Room() {
   )) || false;
 
   const getPlayerButtonState = (targetId: number): { label: string; variant: any; action: GameAction; isNight: boolean } | null => {
+    // Feature: Spectator "Crowd Favorite" vote. Takes priority over the
+    // normal alive-player action states below since a ghost (dead or a
+    // late-joining spectator) never has a real vote/kill/heal/etc. to cast
+    // anyway — `!me.isAlive` already covers both cases (late joiners are
+    // created with isAlive: false server-side).
+    if (me && !me.isAlive && room?.status !== "lobby" && room?.status !== "ended") {
+      if (targetId === me.id) return null; // can't vote for yourself
+      const target = players.find(p => p.id === targetId);
+      if (!target?.isAlive) return null; // only living players are worth rooting for
+      const isPicked = (gameState as any)?.me?.crowdFavoritePick === targetId;
+      return {
+        label: isPicked ? t("room.crowdFavoritePicked", "Your Pick") : t("room.crowdFavoriteVote", "Crowd Favorite"),
+        variant: isPicked ? "secondary" : "outline",
+        action: { type: "crowd_favorite_vote", targetId } as GameAction,
+        isNight: false,
+      };
+    }
+
     if (room?.status === "day" && room?.phase === "voting") {
       const isVoted = (gameState as any)?.me?.currentAction?.vote === targetId;
       return {
@@ -866,6 +884,12 @@ export default function Room() {
                         ? t("room.mafiaWonDescription", { count: aliveMafiaAtEnd })
                         : t("room.civiliansWonDescription")}
                     </div>
+
+                    {latestGameEnd.crowdFavorite && (
+                      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-2 text-sm font-bold text-pink-400">
+                        🌟 {t("room.crowdFavoriteResult", "Crowd Favorite: {{name}}", { name: latestGameEnd.crowdFavorite.name })}
+                      </div>
+                    )}
 
                     {/* Share Result lives here, right under the result — not
                         stacked against Play Again below, so a tap intending
@@ -1301,7 +1325,7 @@ export default function Room() {
                           >
                             {t("home.botPersonality.default")}
                           </button>
-                          {(["chill", "aggressiveLiar", "chaotic"] as const).map((p) => (
+                          {(["chill", "aggressiveLiar", "chaotic", "sharp"] as const).map((p) => (
                             <button
                               key={p}
                               type="button"
@@ -1411,7 +1435,7 @@ export default function Room() {
                         <PlayerCard
                           player={p}
                           isMe={p.id === me?.id}
-                          canInteract={!!buttonState && (me?.isAlive ?? false) && !isSpectator}
+                          canInteract={!!buttonState && ((me?.isAlive ?? false) && !isSpectator || (!!me && !me.isAlive))}
                           interactionLabel={buttonState?.label}
                           interactionVariant={buttonState?.variant}
                           onInteract={() => {

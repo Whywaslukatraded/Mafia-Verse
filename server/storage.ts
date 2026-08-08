@@ -1,12 +1,13 @@
 import { db } from "./db";
-import { users, rooms, players, messages, type User, type Room, type Player, type CreateRoomRequest, type Message } from "@shared/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { users, rooms, players, messages, friendships, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship } from "@shared/schema";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
 export interface IStorage {
   createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
+  getUserBySupabaseId(supabaseUserId: string): Promise<User | undefined>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   getUserByResetToken(token: string): Promise<User | undefined>;
 
@@ -27,6 +28,14 @@ export interface IStorage {
   getLeaderboard(): Promise<{ name: string; avatar: string | null; avatarConfig: any; wins: number; gamesPlayed: number; winRate: number }[]>;
   resetPlayerStatsByName(name: string): Promise<number>;
 
+  // Feature: Friends list + private lobbies
+  createFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship>;
+  getFriendshipBetween(userA: string, userB: string): Promise<Friendship | undefined>;
+  updateFriendshipStatus(id: number, status: string): Promise<Friendship>;
+  deleteFriendship(id: number): Promise<void>;
+  getFriendshipsForUser(supabaseUserId: string): Promise<Friendship[]>;
+  getOpenPrivateRoomsInvitingUser(supabaseUserId: string): Promise<Room[]>;
+
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
 }
@@ -44,6 +53,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserById(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserBySupabaseId(supabaseUserId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.supabaseUserId, supabaseUserId));
     return user;
   }
 
@@ -181,6 +195,58 @@ export class DatabaseStorage implements IStorage {
       gamesPlayed: Number(r.gamesPlayed) || 0,
       winRate: Number(r.gamesPlayed) > 0 ? Math.round((Number(r.wins) / Number(r.gamesPlayed)) * 100) : 0,
     }));
+  }
+
+  // Feature: Friends list + private lobbies
+  async createFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship> {
+    const [friendship] = await db.insert(friendships).values({
+      requesterId,
+      addresseeId,
+      status: "pending",
+    }).returning();
+    return friendship;
+  }
+
+  // Order-independent lookup — a friendship between A and B is the same
+  // relationship regardless of who originally sent the request, so every
+  // caller (duplicate-request checks, accept/decline, unfriend) needs to
+  // find it without caring which side is requester vs. addressee.
+  async getFriendshipBetween(userA: string, userB: string): Promise<Friendship | undefined> {
+    const [friendship] = await db.select().from(friendships).where(
+      or(
+        and(eq(friendships.requesterId, userA), eq(friendships.addresseeId, userB)),
+        and(eq(friendships.requesterId, userB), eq(friendships.addresseeId, userA)),
+      )
+    );
+    return friendship;
+  }
+
+  async updateFriendshipStatus(id: number, status: string): Promise<Friendship> {
+    const [friendship] = await db.update(friendships).set({ status }).where(eq(friendships.id, id)).returning();
+    return friendship;
+  }
+
+  async deleteFriendship(id: number): Promise<void> {
+    await db.delete(friendships).where(eq(friendships.id, id));
+  }
+
+  async getFriendshipsForUser(supabaseUserId: string): Promise<Friendship[]> {
+    return await db.select().from(friendships).where(
+      or(eq(friendships.requesterId, supabaseUserId), eq(friendships.addresseeId, supabaseUserId))
+    );
+  }
+
+  // Feature: Private lobbies. Rooms still in the lobby (not yet started/
+  // ended) whose settings.invitedSupabaseUserIds jsonb array contains this
+  // user's id. `?` is Postgres's jsonb "does this array/object contain this
+  // key/element" operator.
+  async getOpenPrivateRoomsInvitingUser(supabaseUserId: string): Promise<Room[]> {
+    return await db.select().from(rooms).where(
+      and(
+        eq(rooms.status, "lobby"),
+        sql`${rooms.settings} -> 'invitedSupabaseUserIds' @> ${JSON.stringify([supabaseUserId])}::jsonb`
+      )
+    );
   }
 
   async generateRoomCode(): Promise<string> {

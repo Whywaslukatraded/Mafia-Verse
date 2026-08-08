@@ -227,6 +227,130 @@ class AudioEngine {
     osc.start(now);
     osc.stop(now + 0.5);
   }
+
+  // Feature: distinct per-phase cues, so someone listening (not just
+  // watching) can tell discussion just started or which night role is
+  // currently acting, instead of only hearing the generic day/night drone
+  // shift plus the three original vote/mafia/elimination stings.
+
+  // Discussion opening — a warm two-note "town bell" rather than a full
+  // chime, since discussion is the longest/most frequent phase and a loud
+  // cue every single time would get old fast.
+  playDiscussionBell() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    [392, 523.25].forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.value = 0;
+      gain.gain.setValueAtTime(0, now + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.15, now + i * 0.15 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.9);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(now + i * 0.15);
+      osc.stop(now + i * 0.15 + 1);
+    });
+  }
+
+  // Detective — a quick rising "aha" interval, investigative rather than
+  // threatening.
+  playInvestigateChime() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(392, now);
+    osc.frequency.exponentialRampToValueAtTime(587.33, now + 0.25);
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(0.16, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.55);
+  }
+
+  // Doctor — a soft, consonant major-third pad, gentle/reassuring.
+  playHealChime() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    [349.23, 440].forEach((freq) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(now);
+      osc.stop(now + 1.2);
+    });
+  }
+
+  // Bodyguard — a low, solid "thud" + short metallic ring, protective/armored.
+  playShieldChime() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const thud = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(140, now);
+    thud.frequency.exponentialRampToValueAtTime(70, now + 0.2);
+    thudGain.gain.value = 0;
+    thudGain.gain.linearRampToValueAtTime(0.22, now + 0.02);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    thud.connect(thudGain);
+    thudGain.connect(this.masterGain);
+    thud.start(now);
+    thud.stop(now + 0.4);
+
+    const ring = this.ctx.createOscillator();
+    const ringGain = this.ctx.createGain();
+    ring.type = 'triangle';
+    ring.frequency.value = 660;
+    ringGain.gain.value = 0;
+    ringGain.gain.setValueAtTime(0, now + 0.05);
+    ringGain.gain.linearRampToValueAtTime(0.08, now + 0.08);
+    ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    ring.connect(ringGain);
+    ringGain.connect(this.masterGain);
+    ring.start(now + 0.05);
+    ring.stop(now + 0.65);
+  }
+
+  // Vigilante — a tense, dissonant tick building anticipation (this is the
+  // "you might use a bullet tonight" phase), deliberately unresolved rather
+  // than a clean chime.
+  playTensionPulse() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    [220, 233.08].forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      gain.gain.value = 0;
+      gain.gain.setValueAtTime(0, now + i * 0.18);
+      gain.gain.linearRampToValueAtTime(0.07, now + i * 0.18 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.4);
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(now + i * 0.18);
+      osc.stop(now + i * 0.18 + 0.45);
+    });
+  }
 }
 
 const engine = new AudioEngine();
@@ -313,6 +437,16 @@ export function GameAudio({ phase, status }: GameAudioProps) {
       engine.playKillSting();
     } else if (phase === 'elimination' && prevPhaseRef.current !== 'elimination') {
       engine.playEliminationSound();
+    } else if (phase === 'discussion' && prevPhaseRef.current !== 'discussion') {
+      engine.playDiscussionBell();
+    } else if (phase === 'detective' && prevPhaseRef.current !== 'detective') {
+      engine.playInvestigateChime();
+    } else if (phase === 'doctor' && prevPhaseRef.current !== 'doctor') {
+      engine.playHealChime();
+    } else if (phase === 'bodyguard' && prevPhaseRef.current !== 'bodyguard') {
+      engine.playShieldChime();
+    } else if (phase === 'vigilante' && prevPhaseRef.current !== 'vigilante') {
+      engine.playTensionPulse();
     }
 
     prevPhaseRef.current = phase;
