@@ -88,13 +88,21 @@ export default function TwoFactorSetup() {
       }
       setQrUri(data.qrCodeUri);
       setSecret(data.secret);
-      try {
-        const dataUrl = await QRCode.toDataURL(data.qrCodeUri, { width: 200, margin: 1 });
-        setQrDataUrl(dataUrl);
-      } catch {
-        // Fall through with qrDataUrl empty — the manual secret entry below
-        // the image still works even if local QR rendering fails for some
-        // reason, so this isn't fatal to 2FA setup.
+      if (!data.qrCodeUri) {
+        console.error("2FA setup: server response had no qrCodeUri", data);
+        toast({ title: t("twoFactor.qrGenerationFailed", "Couldn't generate the QR code — use the manual code below instead."), variant: "destructive" });
+      } else {
+        try {
+          const dataUrl = await QRCode.toDataURL(data.qrCodeUri, { width: 200, margin: 1 });
+          setQrDataUrl(dataUrl);
+        } catch (qrErr) {
+          // Bug fix: this used to fail completely silently — no console
+          // error, no toast — so a broken QR render looked identical to
+          // "still loading" with zero way to diagnose it. Now it actually
+          // says something.
+          console.error("QRCode.toDataURL failed:", qrErr);
+          toast({ title: t("twoFactor.qrGenerationFailed", "Couldn't generate the QR code — use the manual code below instead."), variant: "destructive" });
+        }
       }
       setStep("qr");
     } catch {
