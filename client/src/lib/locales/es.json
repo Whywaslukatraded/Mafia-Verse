@@ -390,6 +390,12 @@
     "maxBotsNote": "Hasta 5 bots ocuparán los espacios vacíos — el resto deben ser jugadores reales.",
     "host": "ANFITRIÓN",
     "startNow": "Iniciar ahora",
+    "inviteFriends": "Invitar amigos",
+    "invite": "Invitar",
+    "invited": "Invitado",
+    "noFriendsToInvite": "Aún no tienes amigos, o no has iniciado sesión.",
+    "inviteWorksAnyway": "Esta sala no es privada — cualquiera con el código puede unirse igual, pero los amigos invitados también lo verán en sus Invitaciones de sala.",
+    "privateLobbyLabel": "Sala privada",
     "ready": "Listo",
     "notReady": "No listo",
     "markReady": "Estoy listo",
@@ -1383,5 +1389,22 @@
     "disclaimer": "Los créditos desbloquean cosméticos, cofres de botín y funciones premium. Sin reembolsos.",
     "creditsAdded": "¡Créditos agregados!",
     "spendInShop": "Gástalos en la tienda"
+  },
+  "friends": {
+    "title": "Amigos",
+    "signInRequired": "Inicia sesión para agregar amigos y recibir invitaciones a salas privadas.",
+    "addFriend": "Agregar un amigo",
+    "usernamePlaceholder": "Su nombre de usuario",
+    "requestSent": "Solicitud de amistad enviada",
+    "requestFailed": "No se pudo enviar la solicitud",
+    "actionFailed": "Algo salió mal",
+    "loadError": "No se pudieron cargar los amigos",
+    "lobbyInvites": "Invitaciones de sala",
+    "aPrivateLobby": "Una sala privada",
+    "join": "Unirse",
+    "incomingRequests": "Solicitudes",
+    "yourFriends": "Tus amigos",
+    "noFriendsYet": "Aún no tienes amigos — agrega uno arriba.",
+    "pending": "Pendiente"
   }
 }

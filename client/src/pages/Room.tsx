@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
@@ -10,6 +10,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { RoleBadge } from "@/components/RoleBadge";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MafiaHandbook } from "@/components/MafiaHandbook";
+import { authFetch, authFetchJson } from "@/lib/authFetch";
 import { GameAudio } from "@/components/GameAudio";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -111,6 +112,37 @@ export default function Room() {
   // Feature: Edit game settings from the lobby (e.g. after a replay, once more
   // players have joined) instead of being locked to whatever was picked at creation.
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  // Feature: Friends list + private lobbies — host's "Invite Friends" panel
+  const [showInvitePanel, setShowInvitePanel] = useState(false);
+  const [inviteFriends, setInviteFriends] = useState<{ friendshipId: number; supabaseUserId: string; name: string; avatar: string }[]>([]);
+  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const [loadingInviteFriends, setLoadingInviteFriends] = useState(false);
+
+  const openInvitePanel = async () => {
+    setShowInvitePanel(true);
+    setLoadingInviteFriends(true);
+    try {
+      const data = await authFetchJson<{ friends: typeof inviteFriends }>("/api/friends");
+      setInviteFriends(data.friends);
+    } catch {
+      // Not signed in / request failed — panel just shows empty with the
+      // sign-in nudge below rather than a toast for what's a soft feature.
+    } finally {
+      setLoadingInviteFriends(false);
+    }
+  };
+
+  const inviteFriendToRoom = async (friendSupabaseUserId: string) => {
+    if (!code) return;
+    try {
+      await authFetch(`/api/rooms/${code}/invite`, { method: "POST", body: JSON.stringify({ friendSupabaseUserId }) });
+      setInvitedIds(prev => new Set(prev).add(friendSupabaseUserId));
+    } catch {
+      // Silently ignore — the button just won't show as "invited" and the
+      // host can try again.
+    }
+  };
+
   const [settingsDraft, setSettingsDraft] = useState({
     mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
     bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
@@ -118,6 +150,8 @@ export default function Room() {
     bodyguardDuration: 15, vigilanteDuration: 15,
     showVoteResults: true, showRoleReveal: true,
     botPersonality: undefined as ("chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined),
+    // Feature: Private lobbies
+    isPrivate: false,
   });
 
   const prevPlayersRef = useRef<Record<number, boolean>>({});
@@ -387,6 +421,7 @@ export default function Room() {
         doctorDuration: Math.max(5, s.doctorDuration ?? 15), detectiveDuration: Math.max(5, s.detectiveDuration ?? 15),
         bodyguardDuration: Math.max(5, s.bodyguardDuration ?? 15), vigilanteDuration: Math.max(5, s.vigilanteDuration ?? 15),
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
+        isPrivate: s.isPrivate === true,
       });
     }
   }, [room?.status, room?.settings]);
@@ -407,6 +442,7 @@ export default function Room() {
         bodyguardDuration: Math.max(5, s.bodyguardDuration ?? 15), vigilanteDuration: Math.max(5, s.vigilanteDuration ?? 15),
         showVoteResults: s.showVoteResults === true, showRoleReveal: s.showRoleReveal !== false,
         botPersonality: s.botPersonality as ("chill" | "aggressiveLiar" | "chaotic" | "sharp" | undefined),
+        isPrivate: s.isPrivate === true,
       });
     }
     setShowSettingsPanel(true);
@@ -426,7 +462,7 @@ export default function Room() {
     setSettingsDraft(prev => ({ ...prev, [key]: Math.max(DURATION_MIN[key] ?? 0, prev[key] + delta) }));
   };
 
-  const toggleSetting = (key: "showVoteResults" | "showRoleReveal") => {
+  const toggleSetting = (key: "showVoteResults" | "showRoleReveal" | "isPrivate") => {
     setSettingsDraft(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -1151,6 +1187,12 @@ export default function Room() {
               {t("room.share")}
             </Button>
             {isHost && room?.status === "lobby" && (
+              <Button variant="outline" size="sm" onClick={openInvitePanel} className="gap-2" data-testid="button-invite-friends">
+                <UserPlus className="w-3.5 h-3.5" />
+                {t("room.inviteFriends", "Invite Friends")}
+              </Button>
+            )}
+            {isHost && room?.status === "lobby" && (
               <Button
                 onClick={() => startNow()}
                 disabled={players.filter(p => !p.isBot).length < 1}
@@ -1166,6 +1208,53 @@ export default function Room() {
           </div>
         </div>
       </header>
+
+      {/* Feature: Friends list + private lobbies — host's invite panel */}
+      {showInvitePanel && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowInvitePanel(false)}>
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full max-h-[70vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black uppercase tracking-wider text-sm text-foreground">{t("room.inviteFriends", "Invite Friends")}</h3>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowInvitePanel(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            {loadingInviteFriends ? (
+              <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
+            ) : inviteFriends.length === 0 ? (
+              <div className="text-sm text-muted-foreground space-y-3">
+                <p>{t("room.noFriendsToInvite", "No friends yet, or you're not signed in.")}</p>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/friends")}>{t("friends.title", "Friends")}</Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {inviteFriends.map((f) => (
+                  <div key={f.friendshipId} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{f.avatar}</span>
+                      <span className="text-sm font-bold text-foreground">{f.name}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={invitedIds.has(f.supabaseUserId) ? "secondary" : "default"}
+                      disabled={invitedIds.has(f.supabaseUserId)}
+                      onClick={() => inviteFriendToRoom(f.supabaseUserId)}
+                      data-testid={`button-invite-${f.friendshipId}`}
+                    >
+                      {invitedIds.has(f.supabaseUserId) ? t("room.invited", "Invited") : t("room.invite", "Invite")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!(room?.settings as any)?.isPrivate && (
+              <p className="text-[10px] text-muted-foreground/70 mt-4">
+                {t("room.inviteWorksAnyway", "This room isn't private — anyone with the code can still join, but invited friends will also see it under their Lobby Invites.")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-4 py-6">
         <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} timeRemaining={timeRemaining} />
@@ -1304,6 +1393,14 @@ export default function Room() {
                             settingsDraft.showRoleReveal ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
                         >
                           {settingsDraft.showRoleReveal ? `✓ ${t("room.roleRevealLabel")}` : t("room.roleRevealLabel")}
+                        </button>
+                        <button
+                          onClick={() => toggleSetting("isPrivate")}
+                          className={cn("text-xs px-3 py-2 rounded-lg border font-bold uppercase tracking-wider transition-all col-span-2",
+                            settingsDraft.isPrivate ? "bg-pink-500/20 border-pink-500/40 text-pink-400" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                          data-testid="button-toggle-private"
+                        >
+                          {settingsDraft.isPrivate ? `✓ ${t("room.privateLobbyLabel", "Private Lobby")}` : t("room.privateLobbyLabel", "Private Lobby")}
                         </button>
                       </div>
                       <p className="text-[10px] text-muted-foreground/70">

@@ -356,6 +356,12 @@
     "maxBotsNote": "Up to 5 bots will fill empty seats — the rest need to be real players.",
     "host": "HOST",
     "startNow": "Start Now",
+    "inviteFriends": "Invite Friends",
+    "invite": "Invite",
+    "invited": "Invited",
+    "noFriendsToInvite": "No friends yet, or you're not signed in.",
+    "inviteWorksAnyway": "This room isn't private — anyone with the code can still join, but invited friends will also see it under their Lobby Invites.",
+    "privateLobbyLabel": "Private Lobby",
     "ready": "Ready",
     "notReady": "Not ready",
     "markReady": "I'm Ready",
@@ -1383,5 +1389,22 @@
     "disclaimer": "Credits unlock cosmetics, loot crates, and premium features. No refunds.",
     "creditsAdded": "Credits Added!",
     "spendInShop": "Spend them in the shop"
+  },
+  "friends": {
+    "title": "Friends",
+    "signInRequired": "Sign in to add friends and get invited to private lobbies.",
+    "addFriend": "Add a Friend",
+    "usernamePlaceholder": "Their username",
+    "requestSent": "Friend request sent",
+    "requestFailed": "Couldn't send request",
+    "actionFailed": "Something went wrong",
+    "loadError": "Couldn't load friends",
+    "lobbyInvites": "Lobby Invites",
+    "aPrivateLobby": "A private lobby",
+    "join": "Join",
+    "incomingRequests": "Requests",
+    "yourFriends": "Your Friends",
+    "noFriendsYet": "No friends yet — add one above.",
+    "pending": "Pending"
   }
 }
