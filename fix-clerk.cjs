@@ -46,15 +46,20 @@ function cleanAllNested(dir) {
   try {
     const entries = fs.readdirSync(dir);
     for (const entry of entries) {
-      const full = path.join(dir, entry);
+      const full = path.resolve(dir, entry);
+      const relative = path.relative(dir, full);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) continue;
       try {
         if (fs.lstatSync(full).isDirectory()) {
           if (entry === 'node_modules') {
             cleanDotDirs(full);
             try {
               for (const sub of fs.readdirSync(full)) {
+                const subFull = path.resolve(full, sub);
+                const subRelative = path.relative(full, subFull);
+                if (subRelative.startsWith('..') || path.isAbsolute(subRelative)) continue;
                 if (sub.startsWith('@')) {
-                  cleanDotDirs(path.join(full, sub));
+                  cleanDotDirs(subFull);
                 }
               }
             } catch(e) {}

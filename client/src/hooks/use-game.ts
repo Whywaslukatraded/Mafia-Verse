@@ -8,6 +8,20 @@ import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest 
 
 const RECONNECT_DELAY = 1000;
 
+function buildValidatedUrl(baseUrl: string, sessionId?: string): string {
+  try {
+    const url = new URL(baseUrl);
+    
+    if (sessionId) {
+      url.searchParams.set('sessionId', sessionId);
+    }
+    
+    return url.href;
+  } catch {
+    throw new Error('Invalid URL');
+  }
+}
+
 async function safeErrorMessage(res: Response): Promise<string> {
   try {
     const text = await res.text();
@@ -42,7 +56,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
       // identity it already uses for the WebSocket join). Without it, the
       // server treats this as an outside observer and returns a fully
       // anonymized view.
-      const url = buildUrl(api.rooms.get.path, { code }) + (sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : "");
+      const url = buildValidatedUrl(buildUrl(api.rooms.get.path, { code }), sessionId);
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch game state");
       return await res.json();

@@ -11,8 +11,12 @@ function readdirSafe(d) {
 function copyRecursive(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   for (const entry of readdirSafe(src)) {
-    const s = path.join(src, entry);
-    const d = path.join(dest, entry);
+    const s = path.resolve(src, entry);
+    const relS = path.relative(src, s);
+    if (relS.startsWith('..') || path.isAbsolute(relS)) continue;
+    const d = path.resolve(dest, entry);
+    const relD = path.relative(dest, d);
+    if (relD.startsWith('..') || path.isAbsolute(relD)) continue;
     try {
       const stat = fs.lstatSync(s);
       if (stat.isSymbolicLink()) {
@@ -30,7 +34,9 @@ function copyRecursive(src, dest) {
 
 function rmrf(dir) {
   for (const entry of readdirSafe(dir)) {
-    const full = path.join(dir, entry);
+    const full = path.resolve(dir, entry);
+    const rel = path.relative(dir, full);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) continue;
     try {
       if (fs.lstatSync(full).isDirectory()) rmrf(full);
       else fs.unlinkSync(full);
@@ -44,9 +50,13 @@ function swapTempDirs(dir) {
   for (const entry of readdirSafe(dir)) {
     const m = entry.match(tempPattern);
     if (!m) continue;
-    const tempPath = path.join(dir, entry);
+    const tempPath = path.resolve(dir, entry);
+    const relTemp = path.relative(dir, tempPath);
+    if (relTemp.startsWith('..') || path.isAbsolute(relTemp)) continue;
     const realName = m[1];
-    const realPath = path.join(dir, realName);
+    const realPath = path.resolve(dir, realName);
+    const relReal = path.relative(dir, realPath);
+    if (relReal.startsWith('..') || path.isAbsolute(relReal)) continue;
     try {
       // Copy temp -> real (overwrite)
       copyRecursive(tempPath, realPath);

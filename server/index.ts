@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -8,6 +9,7 @@ const app = express();
 // Render sits behind a proxy — without this, req.ip would always be Render's
 // internal address instead of the actual visitor's IP.
 app.set("trust proxy", 1);
+app.use(helmet());
 const httpServer = createServer(app);
 
 // Global crash protection: don't let unhandled errors kill the dev server

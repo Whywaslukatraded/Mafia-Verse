@@ -34,6 +34,25 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+function buildValidatedUrl(baseUrl) {
+  try {
+    const url = new URL(baseUrl);
+    
+    // Only allow same-origin requests to prevent SSRF
+    if (url.origin !== self.location.origin) {
+      throw new Error('Invalid host');
+    }
+    
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+    
+    return url.href;
+  } catch {
+    throw new Error('Invalid URL');
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -59,30 +78,40 @@ self.addEventListener('fetch', (event) => {
   if (isApiRequest) {
     // Network-only for API calls — never cache, never serve stale/offline
     // data for authenticated or account-scoped endpoints.
-    event.respondWith(fetch(request));
+    try {
+      const validatedUrl = buildValidatedUrl(request.url);
+      event.respondWith(fetch(validatedUrl));
+    } catch {
+      event.respondWith(new Response('Invalid URL', { status: 400 }));
+    }
     return;
   }
 
   // Network-first: always try to get the latest file from the server.
   // Only fall back to cache if the network request fails (e.g. offline).
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (!response || response.status !== 200 || response.type === 'error') {
+  try {
+    const validatedUrl = buildValidatedUrl(request.url);
+    event.respondWith(
+      fetch(validatedUrl)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type === 'error') {
+            return response;
+          }
+
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+
           return response;
-        }
-
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
-
-        return response;
-      })
-      .catch(() => {
-        return caches.match(request).then((cachedResponse) => {
-          return cachedResponse || caches.match('/');
-        });
-      })
-  );
+        })
+        .catch(() => {
+          return caches.match(request).then((cachedResponse) => {
+            return cachedResponse || caches.match('/');
+          });
+        })
+    );
+  } catch {
+    event.respondWith(new Response('Invalid URL', { status: 400 }));
+  }
 });
