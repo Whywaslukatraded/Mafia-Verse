@@ -15,7 +15,7 @@ const PROFANITY_LIST = [
   "lolita", "jailbait", "child porn", "cp", "csam", "snuff", "gore", "beheading",
   "fuckwad", "fucktard", "fuckface", "fuckboy", "fuckhead", "dickhead", "dickwad",
   "shithead", "shitface", "shitstain", "cumslut", "cocksucker", "motherfucker",
-  "asswipe", "asshat", "assclown", "buttface", "butthole", "butt plug", "douche",
+  "asswipe", "asshat", "assclown", "buttface", "butthole", "butt plug", "ass", "douche",
   "douchebag", "scumbag", "jackass", "dumbass", "smartass", "lazyass", "hardass",
   "piss off", "pissed", "wank", "wanking", "spank", "spanking", "orgasm", "masturbate",
   "masturbation", "jerk off", "jizz", "splooge", "sperm", "semen", "erection",
