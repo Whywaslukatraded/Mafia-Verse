@@ -36,14 +36,27 @@ export default function TwoFactorVerify() {
         const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!res.ok) {
+          // Bug fix: this used to fall through silently on any non-2xx
+          // response — status.method would just be undefined, defaulting
+          // to the TOTP UI even for an account actually set up for email
+          // 2FA. That left no code-send button and no code in an
+          // authenticator app that was never set up, with zero indication
+          // anything had gone wrong.
+          const body = await res.json().catch(() => null);
+          console.error("2FA status check failed:", res.status, body);
+          toast({ title: body?.message || t("twoFactor.statusCheckFailed", "Couldn't check your 2FA method — try refreshing the page."), variant: "destructive" });
+          return;
+        }
         const status = await res.json();
         const userMethod = status.method === "email" ? "email" : "totp";
         setMethod(userMethod);
         if (userMethod === "email") {
           await sendLoginCode(id, token);
         }
-      } catch {
-        // fall back to totp UI if status check fails
+      } catch (err) {
+        console.error("2FA status check errored:", err);
+        toast({ title: t("twoFactor.statusCheckFailed", "Couldn't check your 2FA method — try refreshing the page."), variant: "destructive" });
       }
     }
     init();
