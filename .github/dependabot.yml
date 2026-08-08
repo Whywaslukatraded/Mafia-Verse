@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly" # Checks once a week to minimize noise
+      day: "sunday"      # Bundles everything on the weekend
+    open-pull-requests-limit: 3
+    versioning-strategy: increase-if-necessary
+
+    # --- BUNDLE PACKAGES TOGETHER ---
+    groups:
+      frontend-packages:
+        patterns:
+          - "*" # Catches all regular framework version updates
