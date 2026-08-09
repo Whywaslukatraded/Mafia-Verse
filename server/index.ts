@@ -1,5 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -9,7 +8,6 @@ const app = express();
 // Render sits behind a proxy — without this, req.ip would always be Render's
 // internal address instead of the actual visitor's IP.
 app.set("trust proxy", 1);
-app.use(helmet());
 const httpServer = createServer(app);
 
 // Global crash protection: don't let unhandled errors kill the dev server
@@ -78,8 +76,18 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     "default-src 'self'; " +
       "script-src 'self'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data:; " +
+      // Bug fix: 'self' 'unsafe-inline' alone blocked the Google Fonts
+      // stylesheet the app actually loads (fonts.googleapis.com) — this
+      // isn't a script, so unsafe-inline doesn't cover it; it needs its
+      // own explicit allowance.
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+      // The stylesheet above only supplies @font-face rules pointing at
+      // the actual font files on a different Google host — those need
+      // font-src, not style-src or img-src.
+      "font-src 'self' https://fonts.gstatic.com; " +
+      // Bug fix: also blocked a background texture image the app loads
+      // from transparenttextures.com.
+      "img-src 'self' data: https://www.transparenttextures.com; " +
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co; " +
       "frame-ancestors 'none'; " +
       "base-uri 'self'; " +
