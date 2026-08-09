@@ -7,20 +7,17 @@ export function initSupabase(url: string, key: string) {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      // Bug fix: the implicit flow (default) puts a raw, immediately-valid
-      // access_token directly in the confirmation/recovery/email-change
-      // link's URL. Many email clients (Gmail notably) automatically
-      // pre-visit links in incoming mail to scan them for phishing/malware
-      // BEFORE the user ever clicks — which silently consumes that token,
-      // so the link looks "invalid" or "expired" the moment the real user
-      // clicks it, even seconds after the email arrived. PKCE fixes this:
-      // the link instead carries a one-time `code` that only redeems
-      // successfully when exchanged from the SAME browser that initiated
-      // the flow (matched against a `code_verifier` stored in that
-      // browser's localStorage) — a scanner bot's pre-visit fails
-      // harmlessly since it has no verifier, leaving the code still valid
-      // for the actual user.
       flowType: "pkce",
+      // Bug fix: Supabase auto-detects window.localStorage, but that
+      // detection can silently fail in some bundler/build setups and fall
+      // back to an in-memory-only store instead. That's invisible within a
+      // single page — session state and the PKCE verifier both still
+      // "work" — but a real browser navigation (e.g. clicking a
+      // confirmation link, which fully reloads the page rather than doing
+      // a client-side route change) wipes it completely, since nothing was
+      // ever actually written to persistent storage. Passing this
+      // explicitly removes the guesswork.
+      storage: window.localStorage,
     },
   });
 }
