@@ -83,7 +83,7 @@ export default function Signup() {
       password,
       options: {
         data: { display_name: displayName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
       },
     });
     setLoading(false);

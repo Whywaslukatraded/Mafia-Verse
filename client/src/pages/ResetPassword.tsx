@@ -22,6 +22,31 @@ export default function ResetPassword() {
   const [validSession, setValidSession] = useState(true);
 
   useEffect(() => {
+    // Security fix: PKCE flow (see lib/supabase.ts) — checked first since
+    // it's now this app's default for new recovery links. See
+    // AuthCallback.tsx for the fuller explanation of why (email link
+    // scanners consuming implicit-flow tokens before the real user clicks).
+    const searchParams = new URLSearchParams(window.location.search);
+    const pkceCode = searchParams.get("code");
+    if (pkceCode) {
+      try {
+        window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+      } catch {}
+      const supabase = getSupabase();
+      supabase.auth.exchangeCodeForSession(pkceCode).then(({ error }) => {
+        if (error) {
+          setValidSession(false);
+          toast({
+            title: t("resetPassword.invalidLinkTitle"),
+            description: t("resetPassword.expiredLinkDescription"),
+            variant: "destructive",
+          });
+        }
+      });
+      return;
+    }
+
+    // --- Fallback: old implicit-flow handling (access_token in the hash).
     // main.tsx stashes the real Supabase auth hash in sessionStorage before
     // the hash router mounts (see the comment there) and rewrites
     // window.location.hash to a normal "#/reset-password" route — so by the

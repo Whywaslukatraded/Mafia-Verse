@@ -22,14 +22,28 @@ import "./index.css";
 // /auth/callback).
 function normalizeSupabaseAuthHash() {
   const hash = window.location.hash;
-  if (!hash) return;
-  const looksLikeSupabaseAuthHash = /(^#?access_token=)|(&access_token=)|(^#?error_description=)|(&error_description=)/.test(hash);
-  if (!looksLikeSupabaseAuthHash) return;
-  try {
-    sessionStorage.setItem("mafia_auth_hash", hash);
-  } catch {
-    // If sessionStorage is unavailable, the page falling through to a
-    // themed 404 is still far better than the previous blank white screen.
+  const looksLikeSupabaseAuthHash = !!hash && /(^#?access_token=)|(&access_token=)|(^#?error_description=)|(&error_description=)/.test(hash);
+
+  // Bug fix: PKCE-flow links (see supabase.ts) redirect to a plain query
+  // string — "yoursite.com/auth/callback?type=signup&code=xxx" — with NO
+  // hash fragment at all. This app's router only ever looks at
+  // location.hash, so with an empty hash it falls back to the home route
+  // and AuthCallback.tsx never mounts; the code param just sits unused in
+  // location.search forever. Detected separately from the implicit-flow
+  // case above since there's nothing to stash here — query strings aren't
+  // touched by rewriting the hash, so AuthCallback can read `code` straight
+  // off window.location.search once it mounts.
+  const looksLikePkceCallback = !!window.location.search && /(^\?code=)|(&code=)/.test(window.location.search);
+
+  if (!looksLikeSupabaseAuthHash && !looksLikePkceCallback) return;
+
+  if (looksLikeSupabaseAuthHash) {
+    try {
+      sessionStorage.setItem("mafia_auth_hash", hash);
+    } catch {
+      // If sessionStorage is unavailable, the page falling through to a
+      // themed 404 is still far better than the previous blank white screen.
+    }
   }
   window.location.hash = "#" + (window.location.pathname || "/auth/callback");
 }

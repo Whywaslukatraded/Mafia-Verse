@@ -12,6 +12,110 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Shared post-signup-auth logic: claim any pending referral now that a
+    // real session/token exists, then route to 2FA setup/verify as needed.
+    // Used by both the new PKCE path and the old implicit-flow fallback
+    // below, so they can't drift apart.
+    async function finishSignupAuth(supabaseId: string | undefined, accessToken: string | undefined) {
+      toast({
+        title: t("authCallback.emailVerified"),
+        description: t("authCallback.welcomeMessage"),
+      });
+
+      const pendingRefCode = (() => { try { return localStorage.getItem("mafia_pending_referral"); } catch { return null; } })();
+      if (pendingRefCode && accessToken) {
+        try {
+          await fetch("/api/rewards/referral/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ code: pendingRefCode }),
+          });
+        } catch {
+          // Non-fatal — referral crediting shouldn't block login.
+        } finally {
+          try { localStorage.removeItem("mafia_pending_referral"); } catch {}
+        }
+      }
+
+      if (supabaseId && accessToken) {
+        try {
+          const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const status = await res.json();
+          if (status.isEnabled) {
+            setLocation("/2fa-verify");
+            return;
+          }
+          setLocation("/2fa-setup");
+          return;
+        } catch {
+          setLocation("/");
+          return;
+        }
+      }
+      setLocation("/");
+    }
+
+    // Security fix: PKCE flow (see supabase.ts) — Supabase now redirects
+    // here with a plain "?code=..." query string instead of a token
+    // sitting directly in the URL. Checked first since PKCE is now this
+    // app's default for every new confirmation/recovery/email-change link;
+    // the hash-based branches below only matter for any old-style links
+    // already sent out before this change, or if PKCE is ever disabled.
+    const searchParams = new URLSearchParams(window.location.search);
+    const pkceCode = searchParams.get("code");
+    const pkceType = searchParams.get("type");
+    const pkceErrorDescription = searchParams.get("error_description");
+
+    if (pkceErrorDescription) {
+      setError(pkceErrorDescription);
+      toast({ title: t("authCallback.authFailed"), description: pkceErrorDescription, variant: "destructive" });
+      setTimeout(() => setLocation("/"), 3000);
+      return;
+    }
+
+    if (pkceCode) {
+      const supabase = getSupabase();
+      // Clean the one-time code out of the visible URL/history immediately
+      // — it's already been handed to exchangeCodeForSession below, no
+      // reason to leave it sitting in the address bar or back button.
+      try {
+        window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+      } catch {}
+
+      supabase.auth.exchangeCodeForSession(pkceCode).then(async ({ data, error }) => {
+        if (error) {
+          setError(error.message);
+          toast({
+            title: pkceType === "email_change" ? t("authCallback.emailChangeFailed") : t("authCallback.emailVerificationFailed"),
+            description: error.message,
+            variant: "destructive",
+          });
+          setTimeout(() => setLocation("/"), 3000);
+          return;
+        }
+
+        if (pkceType === "recovery") {
+          setLocation("/reset-password");
+          return;
+        }
+        if (pkceType === "email_change") {
+          toast({ title: t("authCallback.emailUpdated"), description: t("authCallback.emailUpdatedDescription") });
+          setLocation("/");
+          return;
+        }
+        // Default to the signup path (matches the previous behavior, and
+        // covers a bare ?code= with no ?type= — e.g. if some other trigger
+        // point hasn't been updated yet to tag its redirect URL).
+        await finishSignupAuth(data.session?.user?.id, data.session?.access_token);
+      });
+      return;
+    }
+
+    // --- Fallback: old implicit-flow handling (access_token in the hash).
+    // Kept for any already-sent links using the previous flow; new links
+    // all go through the PKCE branch above.
     // main.tsx stashes the real Supabase auth hash in sessionStorage before
     // the hash router mounts (see the comment there) and rewrites
     // window.location.hash to a normal "#/auth/callback" route — so by the
@@ -58,50 +162,7 @@ export default function AuthCallback() {
           });
           setTimeout(() => setLocation("/"), 3000);
         } else {
-          toast({
-            title: t("authCallback.emailVerified"),
-            description: t("authCallback.welcomeMessage"),
-          });
-          const supabaseId = data.session?.user?.id;
-          const accessToken = data.session?.access_token;
-
-          // Fix (#4): Signup.tsx couldn't claim a pending referral because no
-          // session/token existed yet at that point (email confirmation was
-          // still pending) — the server requires a real Bearer token now, so
-          // finish that claim here where one actually exists.
-          const pendingRefCode = (() => { try { return localStorage.getItem("mafia_pending_referral"); } catch { return null; } })();
-          if (pendingRefCode && accessToken) {
-            try {
-              await fetch("/api/rewards/referral/claim", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-                body: JSON.stringify({ code: pendingRefCode }),
-              });
-            } catch {
-              // Non-fatal — referral crediting shouldn't block login.
-            } finally {
-              try { localStorage.removeItem("mafia_pending_referral"); } catch {}
-            }
-          }
-
-          if (supabaseId && accessToken) {
-            try {
-              const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
-              const status = await res.json();
-              if (status.isEnabled) {
-                setLocation("/2fa-verify");
-                return;
-              }
-              setLocation("/2fa-setup");
-              return;
-            } catch {
-              setLocation("/");
-              return;
-            }
-          }
-          setLocation("/");
+          await finishSignupAuth(data.session?.user?.id, data.session?.access_token);
         }
       });
     } else if (type === "recovery" && accessToken) {
