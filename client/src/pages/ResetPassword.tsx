@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import { Search, KeyRound, Eye, EyeOff, CircleCheck as CheckCircle2 } from "lucide-react";
@@ -20,8 +20,17 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [validSession, setValidSession] = useState(true);
+  // Bug fix: same reasoning as AuthCallback.tsx — this effect depends on
+  // `toast`, which isn't guaranteed stable across renders, so a re-render
+  // triggered from inside the effect (e.g. setValidSession/toast itself)
+  // could re-run it and call exchangeCodeForSession a second time with an
+  // already-consumed code.
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     // Security fix: PKCE flow (see lib/supabase.ts) — checked first since
     // it's now this app's default for new recovery links. See
     // AuthCallback.tsx for the fuller explanation of why (email link

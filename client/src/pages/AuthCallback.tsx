@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { getSupabase } from "@/lib/supabase";
@@ -10,8 +10,25 @@ export default function AuthCallback() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  // Bug fix: the effect below depends on `toast` and `t`, which aren't
+  // guaranteed to be stable references across renders — if either changes
+  // identity (a re-render triggered from inside this same effect, e.g. via
+  // setError/setLocation/toast itself), the whole effect re-runs, calling
+  // exchangeCodeForSession a SECOND time with the same code. The first
+  // call already consumed the code and verifier and genuinely created a
+  // session (so you actually do end up logged in) — but the second call's
+  // "verifier not found" failure is what visibly renders, and since that
+  // runs down the error branch, the 2FA-forcing redirect in
+  // finishSignupAuth() never fires, even though a real session exists.
+  // This ref ensures the exchange (and the whole handler) only ever
+  // actually runs once per page load, no matter how many times the effect
+  // itself re-fires.
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     // Shared post-signup-auth logic: claim any pending referral now that a
     // real session/token exists, then route to 2FA setup/verify as needed.
     // Used by both the new PKCE path and the old implicit-flow fallback
