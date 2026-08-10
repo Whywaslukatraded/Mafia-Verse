@@ -102,7 +102,22 @@ export default function AuthCallback() {
       } catch {}
 
       supabase.auth.exchangeCodeForSession(pkceCode).then(async ({ data, error }) => {
-        if (error) {
+        // Bug fix: exchangeCodeForSession can report a "PKCE code verifier
+        // not found" error while having ALREADY successfully created and
+        // persisted a real session as a side effect earlier in the same
+        // call (confirmed directly — a valid sb-*-auth-token with a real
+        // access_token was present in localStorage at the exact moment
+        // this error rendered). Trusting `error` alone was discarding a
+        // perfectly good session and sending the user back to square one.
+        // Falling back to an explicit getSession() check makes the actual
+        // session state the source of truth instead.
+        let session = data.session;
+        if (error && !session) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          session = sessionData.session;
+        }
+
+        if (error && !session) {
           setError(error.message);
           toast({
             title: pkceType === "email_change" ? t("authCallback.emailChangeFailed") : t("authCallback.emailVerificationFailed"),
@@ -125,7 +140,7 @@ export default function AuthCallback() {
         // Default to the signup path (matches the previous behavior, and
         // covers a bare ?code= with no ?type= — e.g. if some other trigger
         // point hasn't been updated yet to tag its redirect URL).
-        await finishSignupAuth(data.session?.user?.id, data.session?.access_token);
+        await finishSignupAuth(session?.user?.id, session?.access_token);
       });
       return;
     }

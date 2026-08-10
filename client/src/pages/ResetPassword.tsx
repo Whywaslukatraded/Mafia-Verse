@@ -42,8 +42,17 @@ export default function ResetPassword() {
         window.history.replaceState(null, "", window.location.pathname + window.location.hash);
       } catch {}
       const supabase = getSupabase();
-      supabase.auth.exchangeCodeForSession(pkceCode).then(({ error }) => {
-        if (error) {
+      supabase.auth.exchangeCodeForSession(pkceCode).then(async ({ data, error }) => {
+        // Bug fix: same as AuthCallback.tsx — exchangeCodeForSession can
+        // report an error while having already established a real session
+        // as a side effect. Confirm actual session state before treating
+        // this as a failure.
+        let session = data.session;
+        if (error && !session) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          session = sessionData.session;
+        }
+        if (error && !session) {
           setValidSession(false);
           toast({
             title: t("resetPassword.invalidLinkTitle"),
