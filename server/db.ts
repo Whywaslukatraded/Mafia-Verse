@@ -54,6 +54,24 @@ export async function runMigrations(): Promise<void> {
     try {
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS credits integer NOT NULL DEFAULT 0`);
+      // Bug fix: users table was missing several columns that schema.ts (and
+      // every query built from it, e.g. getUserByUsername) already expects —
+      // same schema-drift pattern as the other ALTERs in this file. Only
+      // password_hash was confirmed missing via a production error, but the
+      // rest are guarded with IF NOT EXISTS too since drift here has
+      // historically hit more than one column at a time.
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_config jsonb`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS wins integer DEFAULT 0`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS games_played integer DEFAULT 0`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS supabase_user_id text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS achievements jsonb DEFAULT '[]'`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires timestamp`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret text`);
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled boolean DEFAULT false`);
       // Feature: Pre-game ready-up lobby
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready boolean DEFAULT false`);
       // Feature: Per-role player stats
