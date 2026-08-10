@@ -815,11 +815,17 @@ export default function Home() {
                     </button>
                   </div>
                   {/* Row 3 */}
-                  <div className="grid grid-cols-2 gap-2 w-full">
+                  <div className="grid grid-cols-3 gap-2 w-full">
                     <button onClick={() => setLocation("/leaderboard")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer">
                       <Medal className="w-4 h-4 text-yellow-400" />
                       <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.leaderboard")}</span>
+                    </button>
+                    <button onClick={() => setLocation("/friends")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer"
+                      data-testid="button-friends-nav">
+                      <UserPlus className="w-4 h-4 text-pink-400" />
+                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("friends.title", "Friends")}</span>
                     </button>
                     <button onClick={() => setShowHowToPlay(true)}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer">

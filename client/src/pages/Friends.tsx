@@ -132,7 +132,7 @@ export default function Friends() {
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") sendRequest(); }}
-                  placeholder={t("friends.usernamePlaceholder", "Their username")}
+                  placeholder={t("friends.usernamePlaceholder", "Their account username (not their in-game name)")}
                   data-testid="input-friend-username"
                 />
                 <Button onClick={sendRequest} disabled={sending || !usernameInput.trim()} data-testid="button-send-friend-request">

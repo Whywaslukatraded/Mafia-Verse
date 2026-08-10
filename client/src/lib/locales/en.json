@@ -1394,7 +1394,7 @@
     "title": "Friends",
     "signInRequired": "Sign in to add friends and get invited to private lobbies.",
     "addFriend": "Add a Friend",
-    "usernamePlaceholder": "Their username",
+    "usernamePlaceholder": "Their account username (not their in-game name)",
     "requestSent": "Friend request sent",
     "requestFailed": "Couldn't send request",
     "actionFailed": "Something went wrong",

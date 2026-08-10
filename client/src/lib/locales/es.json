@@ -1394,7 +1394,7 @@
     "title": "Amigos",
     "signInRequired": "Inicia sesión para agregar amigos y recibir invitaciones a salas privadas.",
     "addFriend": "Agregar un amigo",
-    "usernamePlaceholder": "Su nombre de usuario",
+    "usernamePlaceholder": "Su nombre de usuario de cuenta (no su nombre en el juego)",
     "requestSent": "Solicitud de amistad enviada",
     "requestFailed": "No se pudo enviar la solicitud",
     "actionFailed": "Algo salió mal",

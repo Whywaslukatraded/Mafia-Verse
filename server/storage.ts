@@ -1,7 +1,49 @@
 import { db } from "./db";
+import { pool } from "./db";
 import { users, rooms, players, messages, friendships, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship } from "@shared/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
+
+// Diagnostic fix: POST /api/friends/request was 500ing for every user, even
+// ones that clearly exist. runMigrations() (db.ts) creates the friendships
+// table via CREATE TABLE IF NOT EXISTS, but that function is only ever
+// awaited from the server's entrypoint at boot — it isn't called anywhere
+// in routes.ts or storage.ts, so if that boot-time call silently failed,
+// was skipped, or hasn't shipped to the running deployment yet, every
+// friendship query throws "relation \"friendships\" does not exist"
+// (Postgres error 42P01), which the route handlers just report as a bare
+// 500. This makes every friendship-table method self-healing: the first
+// time any of them hits a missing-table error, it creates the table (and
+// indexes) itself and retries once, instead of depending on a startup step
+// happening somewhere out of view.
+let friendshipsTableEnsured = false;
+async function ensureFriendshipsTable(): Promise<void> {
+  if (friendshipsTableEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS friendships (
+      id serial PRIMARY KEY,
+      requester_id text NOT NULL,
+      addressee_id text NOT NULL,
+      status text NOT NULL DEFAULT 'pending',
+      created_at timestamp DEFAULT now()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships (requester_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships (addressee_id)`);
+  friendshipsTableEnsured = true;
+}
+async function withFriendshipsTable<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    if (err?.code === "42P01") {
+      console.warn("[DB] friendships table missing — creating it now instead of failing this request");
+      await ensureFriendshipsTable();
+      return await fn();
+    }
+    throw err;
+  }
+}
 
 export interface IStorage {
   createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
@@ -199,12 +241,14 @@ export class DatabaseStorage implements IStorage {
 
   // Feature: Friends list + private lobbies
   async createFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship> {
-    const [friendship] = await db.insert(friendships).values({
-      requesterId,
-      addresseeId,
-      status: "pending",
-    }).returning();
-    return friendship;
+    return withFriendshipsTable(async () => {
+      const [friendship] = await db.insert(friendships).values({
+        requesterId,
+        addresseeId,
+        status: "pending",
+      }).returning();
+      return friendship;
+    });
   }
 
   // Order-independent lookup — a friendship between A and B is the same
@@ -212,28 +256,36 @@ export class DatabaseStorage implements IStorage {
   // caller (duplicate-request checks, accept/decline, unfriend) needs to
   // find it without caring which side is requester vs. addressee.
   async getFriendshipBetween(userA: string, userB: string): Promise<Friendship | undefined> {
-    const [friendship] = await db.select().from(friendships).where(
-      or(
-        and(eq(friendships.requesterId, userA), eq(friendships.addresseeId, userB)),
-        and(eq(friendships.requesterId, userB), eq(friendships.addresseeId, userA)),
-      )
-    );
-    return friendship;
+    return withFriendshipsTable(async () => {
+      const [friendship] = await db.select().from(friendships).where(
+        or(
+          and(eq(friendships.requesterId, userA), eq(friendships.addresseeId, userB)),
+          and(eq(friendships.requesterId, userB), eq(friendships.addresseeId, userA)),
+        )
+      );
+      return friendship;
+    });
   }
 
   async updateFriendshipStatus(id: number, status: string): Promise<Friendship> {
-    const [friendship] = await db.update(friendships).set({ status }).where(eq(friendships.id, id)).returning();
-    return friendship;
+    return withFriendshipsTable(async () => {
+      const [friendship] = await db.update(friendships).set({ status }).where(eq(friendships.id, id)).returning();
+      return friendship;
+    });
   }
 
   async deleteFriendship(id: number): Promise<void> {
-    await db.delete(friendships).where(eq(friendships.id, id));
+    return withFriendshipsTable(async () => {
+      await db.delete(friendships).where(eq(friendships.id, id));
+    });
   }
 
   async getFriendshipsForUser(supabaseUserId: string): Promise<Friendship[]> {
-    return await db.select().from(friendships).where(
-      or(eq(friendships.requesterId, supabaseUserId), eq(friendships.addresseeId, supabaseUserId))
-    );
+    return withFriendshipsTable(async () => {
+      return await db.select().from(friendships).where(
+        or(eq(friendships.requesterId, supabaseUserId), eq(friendships.addresseeId, supabaseUserId))
+      );
+    });
   }
 
   // Feature: Private lobbies. Rooms still in the lobby (not yet started/
