@@ -3707,6 +3707,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // verified bearer token — never a client-supplied supabaseUserId — same
   // pattern as room creation's verifiedSupabaseUserId above (see the
   // Security fix #4 comment there for why).
+  // Feature: syncs a `users` row from the verified Supabase session.
+  // Real accounts previously existed only in Supabase auth — nothing ever
+  // wrote a matching row into this app's own `users` table, so friend
+  // requests (which look someone up by username in that table) could never
+  // find a real account. Called from AuthCallback.tsx and Login.tsx right
+  // after a session exists; safe to call repeatedly (idempotent upsert).
+  app.post("/api/auth/sync-profile", async (req, res) => {
+    try {
+      const supabaseUserId = await getVerifiedSupabaseUserId(req);
+      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      if (!supabaseAdmin) return res.status(500).json({ message: "Auth not configured" });
+
+      const authHeader = req.headers?.authorization || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      const { data } = await supabaseAdmin.auth.getUser(token);
+      const displayName =
+        (data?.user?.user_metadata as any)?.display_name ||
+        (typeof req.body?.displayName === "string" ? req.body.displayName : "") ||
+        "Player";
+      const email = data?.user?.email ?? null;
+
+      const user = await storage.upsertUserFromAuth(supabaseUserId, displayName, email);
+      res.json({ id: user.id, username: user.username, name: user.name });
+    } catch (e) {
+      console.error("POST /api/auth/sync-profile error:", e);
+      res.status(500).json({ message: "Failed to sync profile." });
+    }
+  });
+
   app.get("/api/friends", async (req, res) => {
     try {
       const myId = await getVerifiedSupabaseUserId(req);

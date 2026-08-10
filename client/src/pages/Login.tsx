@@ -66,6 +66,16 @@ export default function Login() {
       // Check if 2FA is required
       const supabaseId = data.session.user.id;
       const accessToken = data.session.access_token;
+      // Bug fix: same sync as AuthCallback.tsx, run on every login (not
+      // just right after signup) so accounts created before this fix — or
+      // ones that never made it through the AuthCallback flow — still get
+      // a `users` row created/kept current. Non-fatal on failure.
+      try {
+        await fetch("/api/auth/sync-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        });
+      } catch {}
       try {
         const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },

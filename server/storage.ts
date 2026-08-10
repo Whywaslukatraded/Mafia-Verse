@@ -52,6 +52,14 @@ export interface IStorage {
   getUserBySupabaseId(supabaseUserId: string): Promise<User | undefined>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  // Feature: sync a users row from the verified Supabase session, since
+  // signup/login never wrote one before — see routes.ts POST
+  // /api/auth/sync-profile. Creates the row on first call for an account,
+  // and keeps `name` current on every later call (e.g. if the person
+  // changes their display name in Supabase). `username` is derived once
+  // from displayName and left stable after that, since friend requests key
+  // off it — changing it later would break existing friend lookups by name.
+  upsertUserFromAuth(supabaseUserId: string, displayName: string, email?: string | null): Promise<User>;
 
   createRoom(settings: CreateRoomRequest["settings"]): Promise<Room>;
   getRoomByCode(code: string): Promise<Room | undefined>;
@@ -111,6 +119,46 @@ export class DatabaseStorage implements IStorage {
   async getUserByResetToken(token: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.resetToken, token));
     return user;
+  }
+
+  // Feature: sync a users row from the verified Supabase session. Real
+  // accounts previously only ever existed in Supabase — signup/login never
+  // wrote a matching `users` row, so getUserByUsername() (used by friend
+  // requests) could never find anyone real. This backfills that row on
+  // first sync and refreshes `name` on every later one.
+  async upsertUserFromAuth(supabaseUserId: string, displayName: string, email?: string | null): Promise<User> {
+    const cleanName = (displayName || "").trim().slice(0, 50) || `Player${supabaseUserId.slice(0, 6)}`;
+    const existing = await this.getUserBySupabaseId(supabaseUserId);
+    if (existing) {
+      if (existing.name === cleanName) return existing;
+      const [updated] = await db.update(users).set({ name: cleanName }).where(eq(users.id, existing.id)).returning();
+      return updated;
+    }
+
+    // username is what friend search matches on, so it needs to be unique.
+    // Start from the display name; if that's taken, append a short piece
+    // of the supabase id (stable per-account, so retries are idempotent)
+    // and only fall back to a numeric suffix in the rare case that's also
+    // taken (e.g. two different accounts colliding after truncation).
+    let username = cleanName;
+    if (await this.getUserByUsername(username)) {
+      username = `${cleanName.slice(0, 42)}_${supabaseUserId.slice(0, 6)}`;
+      let suffix = 1;
+      while (await this.getUserByUsername(username)) {
+        suffix++;
+        username = `${cleanName.slice(0, 40)}_${supabaseUserId.slice(0, 6)}${suffix}`;
+      }
+    }
+
+    const [created] = await db.insert(users).values({
+      username,
+      email: email || null,
+      passwordHash: "",
+      name: cleanName,
+      avatar: "👤",
+      supabaseUserId,
+    } as any).returning();
+    return created;
   }
 
   async createRoom(settings: CreateRoomRequest["settings"]): Promise<Room> {

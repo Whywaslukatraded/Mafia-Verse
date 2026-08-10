@@ -39,6 +39,20 @@ export default function AuthCallback() {
         description: t("authCallback.welcomeMessage"),
       });
 
+      // Bug fix: signup never wrote a row into the app's own `users` table
+      // (only Supabase auth knew this account existed), so friend requests
+      // by username always 404'd and Profile showed a placeholder name
+      // instead of the real one. This creates/updates that row now that a
+      // real session exists. Non-fatal on failure — shouldn't block login.
+      if (accessToken) {
+        try {
+          await fetch("/api/auth/sync-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          });
+        } catch {}
+      }
+
       const pendingRefCode = (() => { try { return localStorage.getItem("mafia_pending_referral"); } catch { return null; } })();
       if (pendingRefCode && accessToken) {
         try {

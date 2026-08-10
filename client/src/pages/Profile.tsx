@@ -33,6 +33,35 @@ export default function Profile() {
   };
 
   const [name] = useState(() => safeParse("mafia_profile_name", t("profile.unknownAgent")));
+  // Bug fix: this page showed `name` from localStorage only, which never
+  // reflects a logged-in account's actual name — it's just whatever was
+  // typed into a room join form on this device, so a real account showed
+  // "Unknown Agent" here even while properly signed in. dbName holds the
+  // real synced name from the server (see sync-profile call below) and
+  // takes priority over the localStorage fallback whenever we have one.
+  const [dbName, setDbName] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseReady()) return;
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      try {
+        // POST, not a plain GET — this endpoint also upserts the users row
+        // (see routes.ts), which is exactly what we want here too: it
+        // keeps the row in sync even for someone who's been sitting on
+        // this page since before a display-name change, not just at login.
+        const res = await fetch("/api/auth/sync-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (typeof body.name === "string" && body.name) setDbName(body.name);
+      } catch {}
+    })();
+  }, []);
   const [avatar] = useState(() => safeParse("mafia_profile_avatar", "👤"));
   const [config] = useState(() => safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: "bg-primary/10" }));
   const [stats, setStats] = useState(() => {
@@ -145,7 +174,7 @@ export default function Profile() {
               {config.clothing !== "None" && <span className="absolute bottom-3 text-2xl z-20 opacity-90">{config.clothing}</span>}
             </div>
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-foreground">{name}</h2>
+              <h2 className="text-3xl font-black tracking-tight text-foreground">{dbName || name}</h2>
               <p className="text-muted-foreground text-sm font-mono uppercase tracking-widest mt-1">
                 {t("profile.badgesCount", { earned: earnedAchievements.size, total: ACHIEVEMENTS.length })}
               </p>
