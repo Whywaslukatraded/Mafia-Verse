@@ -27,12 +27,54 @@ export default function Friends() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseReady()) { setIsLoggedIn(false); setLoading(false); return; }
-    const supabase = getSupabase();
-    supabase.auth.getSession().then(({ data }: any) => {
-      setIsLoggedIn(!!data.session);
-      if (!data.session) setLoading(false);
-    });
+    let cancelled = false;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let unsubscribe: (() => void) | null = null;
+
+    const attach = () => {
+      const supabase = getSupabase();
+      supabase.auth.getSession().then(({ data }: any) => {
+        if (cancelled) return;
+        setIsLoggedIn(!!data.session);
+        if (!data.session) setLoading(false);
+      });
+      // Also react to auth state resolving/changing after mount — a
+      // one-shot getSession() check right on mount can lose a race against
+      // Supabase still finishing its own initial session hydration, which
+      // would otherwise permanently show "sign in required" even though
+      // the person actually is logged in.
+      const { data: sub } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+        if (cancelled) return;
+        setIsLoggedIn(!!session);
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
+    };
+
+    if (isSupabaseReady()) {
+      attach();
+    } else {
+      // Supabase client not initialized yet at mount time — poll briefly
+      // instead of immediately concluding "logged out", since initSupabase()
+      // may still be running (e.g. fetching config) when this page loads.
+      let attempts = 0;
+      pollInterval = setInterval(() => {
+        attempts++;
+        if (isSupabaseReady()) {
+          if (pollInterval) clearInterval(pollInterval);
+          attach();
+        } else if (attempts > 20) { // ~4s
+          if (pollInterval) clearInterval(pollInterval);
+          setIsLoggedIn(false);
+          setLoading(false);
+        }
+      }, 200);
+    }
+
+    return () => {
+      cancelled = true;
+      if (pollInterval) clearInterval(pollInterval);
+      unsubscribe?.();
+    };
   }, []);
 
   const loadFriends = useCallback(async () => {

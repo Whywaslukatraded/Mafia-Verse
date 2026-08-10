@@ -817,20 +817,20 @@ export default function Home() {
                   {/* Row 3 */}
                   <div className="grid grid-cols-3 gap-2 w-full">
                     <button onClick={() => setLocation("/leaderboard")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer">
-                      <Medal className="w-4 h-4 text-yellow-400" />
-                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.leaderboard")}</span>
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
+                      <Medal className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.leaderboard")}</span>
                     </button>
                     <button onClick={() => setLocation("/friends")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer"
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
                       data-testid="button-friends-nav">
-                      <UserPlus className="w-4 h-4 text-pink-400" />
-                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("friends.title", "Friends")}</span>
+                      <UserPlus className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("friends.title", "Friends")}</span>
                     </button>
                     <button onClick={() => setShowHowToPlay(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-row items-center justify-center gap-2 hover:bg-muted cursor-pointer">
-                      <BookOpen className="w-4 h-4 text-primary" />
-                      <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">{t("home.howToPlay")}</span>
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
+                      <BookOpen className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.howToPlay")}</span>
                     </button>
                   </div>
                 </div>
