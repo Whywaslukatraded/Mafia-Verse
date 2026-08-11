@@ -633,8 +633,23 @@ export default function Room() {
     // full duration. Reloading mid-phase still shows the correct remaining
     // time, since real elapsed time (someone reconnecting well into a
     // phase) is far larger than this window.
+    //
+    // Bug fix: this used to be `impliedElapsedMs < 1200` with no lower
+    // bound, which also caught the (large, negative) drift produced when
+    // the server deliberately schedules lastUpdated into the future — done
+    // on purpose after a role-reveal or elimination overlay (see
+    // ROLE_REVEAL_MS/revealDelayMs in routes.ts) specifically so the
+    // countdown doesn't start until that overlay clears. Treating that
+    // negative drift as "just latency" reset it to right now instead,
+    // silently discarding the server's buffer: the visible timer started
+    // ticking immediately behind the overlay, showing ~5s less than the
+    // selected duration, and then sitting at 0 for several seconds waiting
+    // for the real (unmoved) server deadline to actually arrive. Only
+    // small, non-negative drift is pipeline latency — a negative value
+    // means the server start time is still ahead of us on purpose, so it
+    // should be honored, not discarded.
     const impliedElapsedMs = Date.now() - serverPhaseStart;
-    const effectivePhaseStart = impliedElapsedMs < 1200 ? Date.now() : serverPhaseStart;
+    const effectivePhaseStart = (impliedElapsedMs >= 0 && impliedElapsedMs < 1200) ? Date.now() : serverPhaseStart;
     let autoLockedIn = false;
     let lastDisplayed = -1;
     const interval = setInterval(() => {
@@ -937,10 +952,19 @@ export default function Room() {
 
                 return (
                   <>
-                    <div className={`text-8xl font-black mb-2 ${jesterWon ? "text-pink-400" : mafiaWon ? "text-red-500" : "text-green-500"}`}>
+                    {/* Bug fix: text-8xl/text-5xl were flat sizes with no
+                        responsive scaling, so on narrower viewports (most
+                        phones, laptops below 100% zoom) the winner banner
+                        overflowed the fixed-width container horizontally —
+                        this overlay only scrolls vertically, so anything
+                        wider than the viewport just got clipped at the
+                        edges instead of shrinking to fit. break-words is a
+                        second line of defense in case a long translated
+                        label still doesn't fit even at the smallest size. */}
+                    <div className={`text-5xl sm:text-6xl md:text-8xl font-black mb-2 break-words px-2 ${jesterWon ? "text-pink-400" : mafiaWon ? "text-red-500" : "text-green-500"}`}>
                       {jesterWon ? `🃏 ${t("room.jesterLabel")}` : mafiaWon ? `🔴 ${t("room.mafiaLabel")}` : `✨ ${t("room.civiliansLabel")}`}
                     </div>
-                    <div className="text-5xl font-black mb-6 text-foreground">{t("room.wins")}</div>
+                    <div className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 text-foreground">{t("room.wins")}</div>
                     <div className="mb-8 text-muted-foreground text-lg font-semibold">
                       {jesterWon
                         ? t("room.jesterWonDescription", { name: jesterName || t("chat.someone") })
@@ -962,10 +986,10 @@ export default function Room() {
                       onClick={() => handleGenerateShareCard(latestGameEnd)}
                       disabled={generatingShareCard}
                       variant="outline"
-                      className="gap-2 mb-8"
+                      className="gap-2 mb-8 flex-wrap justify-center"
                       data-testid="button-share-result"
                     >
-                      <Share2 className="w-4 h-4" />
+                      <Share2 className="w-4 h-4 shrink-0" />
                       {generatingShareCard ? t("room.generatingImage") : t("room.shareResult")}
                     </Button>
 
@@ -991,9 +1015,9 @@ export default function Room() {
                       <>
                         <Button
                           onClick={() => sendAction({ type: "replay" } as any)}
-                          className="gap-3 px-10 py-4 text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse"
+                          className="gap-3 px-6 sm:px-10 py-4 text-base sm:text-lg font-black bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 border-2 border-purple-400 shadow-lg shadow-purple-500/50 animate-pulse flex-wrap justify-center max-w-full"
                         >
-                          <RotateCcw className="w-6 h-6" />
+                          <RotateCcw className="w-6 h-6 shrink-0" />
                           {t("room.playAgain")}
                         </Button>
                         <div className="mt-3 text-xs text-muted-foreground">{t("room.playAgainHelper")}</div>

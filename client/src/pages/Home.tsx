@@ -95,6 +95,27 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 
       if (id && token) {
         await loadStats(id, token);
+        // Bug fix: the pre-game name field only ever read
+        // localStorage("mafia_profile_name"), which starts empty for every
+        // browser/device — so a real signed-in account still showed up in
+        // the room as "Unknown"/blank until someone manually typed a name
+        // in this exact browser. Only fill it in when the field is still
+        // untouched (empty); once someone has set an in-game name here,
+        // that choice is deliberate and shouldn't be overwritten by the
+        // account name on every load.
+        try {
+          const res = await fetch("/api/auth/sync-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const body = await res.json();
+            if (cancelled) return;
+            if (typeof body.name === "string" && body.name) {
+              setName((current) => (current ? current : body.name));
+            }
+          }
+        } catch {}
       } else {
         setLoadingStats(false);
       }
