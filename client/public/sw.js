@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mafia-game-v3';
+const CACHE_NAME = 'mafia-game-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -78,9 +78,23 @@ self.addEventListener('fetch', (event) => {
   if (isApiRequest) {
     // Network-only for API calls — never cache, never serve stale/offline
     // data for authenticated or account-scoped endpoints.
+    //
+    // Bug fix: this used to call fetch(validatedUrl) — a bare string —
+    // which builds a brand-new request from scratch and silently drops
+    // every header the original request had, including Authorization.
+    // That meant any GET API call intercepted by this service worker
+    // reached the server with no bearer token at all, even though the
+    // page genuinely sent one, and the server correctly (from its point of
+    // view) responded 401. This looked exactly like "I'm signed in but
+    // the server says I'm not" — intermittent, GET-only (POST requests
+    // are ignored above and go straight to network untouched), and
+    // dependent on whether this service worker happened to be controlling
+    // the page. buildValidatedUrl is kept as a same-origin/protocol check
+    // (defense in depth), but the actual fetch now uses the real `request`
+    // object so headers, credentials, and everything else survive intact.
     try {
-      const validatedUrl = buildValidatedUrl(request.url);
-      event.respondWith(fetch(validatedUrl));
+      buildValidatedUrl(request.url);
+      event.respondWith(fetch(request));
     } catch {
       event.respondWith(new Response('Invalid URL', { status: 400 }));
     }
@@ -90,9 +104,9 @@ self.addEventListener('fetch', (event) => {
   // Network-first: always try to get the latest file from the server.
   // Only fall back to cache if the network request fails (e.g. offline).
   try {
-    const validatedUrl = buildValidatedUrl(request.url);
+    buildValidatedUrl(request.url);
     event.respondWith(
-      fetch(validatedUrl)
+      fetch(request)
         .then((response) => {
           if (!response || response.status !== 200 || response.type === 'error') {
             return response;

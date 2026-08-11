@@ -81,7 +81,15 @@ export async function runMigrations(): Promise<void> {
       // real account died here — which is also why friend requests always
       // 404'd ("no account found"): the row was never actually created in
       // the first place, on either side.
-      await client.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL`);
+      // Bug fix: sync-profile inserts were failing with "duplicate key
+      // value violates unique constraint users_email_key" for any account
+      // whose email happened to already exist in this table under a
+      // different supabase_user_id. supabase_user_id is this table's real
+      // identity key (see upsertUserFromAuth in storage.ts, which looks
+      // rows up by supabase_user_id, never by email) — nothing about this
+      // app's actual account model requires email to be globally unique
+      // here, so enforcing it was just silently breaking real accounts.
+      await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key`);
       // Feature: Pre-game ready-up lobby
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready boolean DEFAULT false`);
       // Feature: Per-role player stats
