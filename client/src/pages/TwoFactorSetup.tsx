@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { authFetch } from "@/lib/authFetch";
 // Security fix (#2): the QR code used to be rendered by embedding the full
 // otpauth:// URI — which contains the raw TOTP shared secret — into a GET
 // request to api.qrserver.com. That sent the account's 2FA seed to a third
@@ -71,12 +72,16 @@ export default function TwoFactorSetup() {
       // password JWT) before it will let setup run again — since setup
       // resets isEnabled to false. Accounts without 2FA yet are unaffected
       // (no token is required in that case).
+      // Bug fix: this used to send the accessToken captured once into state
+      // on mount, which goes stale if it expires (or is already close to
+      // expiring) before this call fires — same class of bug fixed in
+      // authFetch.ts for Friends. authFetch checks expiry, refreshes when
+      // needed, and retries once on a 401, instead of us hand-managing a
+      // token that can silently rot.
       const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
-      const res = await fetch("/api/auth/2fa/setup", {
+      const res = await authFetch("/api/auth/2fa/setup", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
           ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
         },
         body: JSON.stringify({ supabaseUserId }),
@@ -122,11 +127,9 @@ export default function TwoFactorSetup() {
       // Security fix (#1): same as startTotpSetup above — only required
       // when the account already has 2FA enabled.
       const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
-      const res = await fetch("/api/auth/2fa/setup-email", {
+      const res = await authFetch("/api/auth/2fa/setup-email", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
           ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
         },
         body: JSON.stringify({ supabaseUserId, email: email.trim() }),
@@ -152,9 +155,8 @@ export default function TwoFactorSetup() {
     }
     setVerifying(true);
     try {
-      const res = await fetch("/api/auth/2fa/verify", {
+      const res = await authFetch("/api/auth/2fa/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ supabaseUserId, code }),
       });
       const data = await res.json();

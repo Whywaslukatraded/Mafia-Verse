@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { authFetch } from "@/lib/authFetch";
 
 export default function TwoFactorVerify() {
   const { t } = useTranslation();
@@ -33,9 +34,7 @@ export default function TwoFactorVerify() {
       setAccessToken(token);
 
       try {
-        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authFetch(`/api/auth/2fa/status?supabaseUserId=${id}`);
         if (!res.ok) {
           // Bug fix: this used to fall through silently on any non-2xx
           // response — status.method would just be undefined, defaulting
@@ -66,9 +65,8 @@ export default function TwoFactorVerify() {
   const sendLoginCode = async (id: string, token: string) => {
     setSendingCode(true);
     try {
-      const res = await fetch("/api/auth/2fa/send-login-code", {
+      const res = await authFetch("/api/auth/2fa/send-login-code", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ supabaseUserId: id }),
       });
       const data = await res.json();
@@ -96,11 +94,9 @@ export default function TwoFactorVerify() {
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
     const supabaseId = sessionData.session?.user?.id;
-    const token = sessionData.session?.access_token;
     try {
-      const res = await fetch("/api/auth/2fa/verify", {
+      const res = await authFetch("/api/auth/2fa/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ supabaseUserId: supabaseId, code }),
       });
       const data = await res.json();
