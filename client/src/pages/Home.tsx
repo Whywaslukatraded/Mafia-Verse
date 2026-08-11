@@ -19,6 +19,7 @@ import { AdRewards } from "@/components/AdRewards";
 import { RatingSystem } from "@/components/RatingSystem";
 import { HowToPlay } from "@/components/HowToPlay";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { authFetchJson } from "@/lib/authFetch";
 import { getDeviceId } from "@/lib/deviceId";
 
 const AVATARS = [
@@ -95,27 +96,6 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
 
       if (id && token) {
         await loadStats(id, token);
-        // Bug fix: the pre-game name field only ever read
-        // localStorage("mafia_profile_name"), which starts empty for every
-        // browser/device — so a real signed-in account still showed up in
-        // the room as "Unknown"/blank until someone manually typed a name
-        // in this exact browser. Only fill it in when the field is still
-        // untouched (empty); once someone has set an in-game name here,
-        // that choice is deliberate and shouldn't be overwritten by the
-        // account name on every load.
-        try {
-          const res = await fetch("/api/auth/sync-profile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const body = await res.json();
-            if (cancelled) return;
-            if (typeof body.name === "string" && body.name) {
-              setName((current) => (current ? current : body.name));
-            }
-          }
-        } catch {}
       } else {
         setLoadingStats(false);
       }
@@ -424,16 +404,27 @@ export default function Home() {
     } catch { return fallback; }
   };
 
+  // Bug fix: this key was shared across every account that ever logged
+  // into this browser, with no per-account scoping at all. Whichever
+  // account's name was written here most recently stuck around for every
+  // other account afterward too — e.g. logging into Account B after
+  // Account A made Account A's profile show Account B's name on the next
+  // visit, since nothing here ever distinguished whose name it actually
+  // was. profileKey below scopes storage to the signed-in account (falls
+  // back to the old shared key for a guest/anonymous session, where
+  // there's no account to scope by anyway).
+  const profileKey = (suffix: string) => (user?.id ? `mafia_profile_${suffix}:${user.id}` : `mafia_profile_${suffix}`);
+
   const [name, setName] = useState(() => {
-    const raw = safeParse("mafia_profile_name", "");
+    const raw = safeParse(profileKey("name"), "");
     return typeof raw === "string" ? raw : "";
   });
   const [avatar, setAvatar] = useState(() => {
-    const raw = safeParse("mafia_profile_avatar", AVATARS[0]);
+    const raw = safeParse(profileKey("avatar"), AVATARS[0]);
     return typeof raw === "string" ? raw : AVATARS[0];
   });
   const [config, setConfig] = useState(() => {
-    const raw = safeParse("mafia_profile_config", { accessory: "None", clothing: "None", bg: BGS[0] });
+    const raw = safeParse(profileKey("config"), { accessory: "None", clothing: "None", bg: BGS[0] });
     return raw && typeof raw === "object" ? raw : { accessory: "None", clothing: "None", bg: BGS[0] };
   });
   const [stats, setStats] = useState(() => {
@@ -442,11 +433,30 @@ export default function Home() {
     return { wins: 0, gamesPlayed: 0, achievements: [] };
   });
 
+  // Bug fix: a signed-in account's name should always reflect the real
+  // account (see profile.tsx and Settings), not a per-device leftover.
+  // This fetches the authoritative name from the server and — for a
+  // logged-in account specifically — always applies it, rather than only
+  // filling in an empty field. That guarantees switching accounts on one
+  // browser can't leave one account displaying another's name.
   useEffect(() => {
-    localStorage.setItem("mafia_profile_name", name);
-    localStorage.setItem("mafia_profile_avatar", avatar);
-    localStorage.setItem("mafia_profile_config", JSON.stringify(config));
-  }, [name, avatar, config]);
+    if (!isSignedIn || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const body = await authFetchJson<{ name?: string }>("/api/auth/sync-profile", { method: "POST" });
+        if (cancelled) return;
+        if (typeof body.name === "string" && body.name) setName(body.name);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [isSignedIn, user?.id]);
+
+  useEffect(() => {
+    localStorage.setItem(profileKey("name"), name);
+    localStorage.setItem(profileKey("avatar"), avatar);
+    localStorage.setItem(profileKey("config"), JSON.stringify(config));
+  }, [name, avatar, config, user?.id]);
 
   useEffect(() => {
     const onStorage = () => {
