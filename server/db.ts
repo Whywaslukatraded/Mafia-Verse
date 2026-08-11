@@ -71,7 +71,17 @@ export async function runMigrations(): Promise<void> {
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token text`);
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires timestamp`);
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret text`);
-      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled boolean DEFAULT false`);
+      // Bug fix: sync-profile inserts into `users` were failing 100% of the
+      // time with "null value in column \"password\" violates not-null
+      // constraint" — a legacy column literally named `password` (not
+      // password_hash, a completely different column schema.ts doesn't
+      // even know exists anymore) still has a NOT NULL constraint with no
+      // default from before Supabase auth existed. Nothing in the current
+      // app has ever set it, so every attempt to create a users row for a
+      // real account died here — which is also why friend requests always
+      // 404'd ("no account found"): the row was never actually created in
+      // the first place, on either side.
+      await client.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL`);
       // Feature: Pre-game ready-up lobby
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready boolean DEFAULT false`);
       // Feature: Per-role player stats
