@@ -118,7 +118,15 @@ export default function TwoFactorVerify() {
       }
       localStorage.setItem("mafia_2fa_passed", "true");
       toast({ title: t("twoFactor.welcomeBack") });
-      setLocation("/");
+      // Bug fix: this always went home, so a caller that sent someone here
+      // specifically to refresh their MFA token (e.g. Settings, when
+      // disabling 2FA fails because the stored token is stale/missing) lost
+      // them back to the homepage instead of returning to what they were
+      // doing. returnTo is only ever a same-origin app path we set
+      // ourselves (see Settings.tsx), never taken from anywhere untrusted.
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo");
+      setLocation(returnTo && returnTo.startsWith("/") ? returnTo : "/");
     } catch (e) {
       toast({ title: t("twoFactor.verificationFailed"), variant: "destructive" });
       setVerifying(false);

@@ -126,6 +126,16 @@ export default function Settings() {
         setShowDisableForm(false);
         setDisablePassword("");
         toast({ title: t("settings.twoFADisabledTitle"), description: t("settings.twoFADisabledDescription") });
+      } else if (res.status === 401 && data.message === "2FA verification required") {
+        // Bug fix: this is the server telling us the stored MFA token is
+        // missing or stale — a fresh password re-auth (above) can't satisfy
+        // that on its own, only actually completing the 2FA code check can.
+        // Previously this just showed the raw server message as a dead-end
+        // error with no way to recover short of clearing storage. Sending
+        // the person to re-verify (then straight back here) mints a fresh
+        // token and lets the disable action just work on return.
+        toast({ title: t("settings.reverifyNeededTitle", "Please re-verify"), description: t("settings.reverifyNeededDescription", "For your security, confirm your 2FA code again to continue.") });
+        setLocation("/2fa-verify?returnTo=/settings");
       } else {
         toast({ title: t("settings.errorTitle"), description: data.message || t("settings.couldNotDisable2FA"), variant: "destructive" });
       }
