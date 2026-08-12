@@ -69,10 +69,22 @@ export default function AuthCallback() {
       }
 
       if (supabaseId && accessToken) {
+        // Bug fix: this used to fall back to setLocation("/") on any
+        // failure here — a transient network hiccup or a session that
+        // isn't fully warm yet seconds after signup — which silently
+        // skipped 2FA setup entirely with no error shown. For this
+        // specific path (a signup that just completed), the account
+        // cannot possibly already have 2FA enabled — it didn't exist
+        // until this call — so there's no ambiguity: any failure here
+        // should send the person to set it up, never home unverified.
         try {
           const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${supabaseId}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
+          if (!res.ok) {
+            setLocation("/2fa-setup");
+            return;
+          }
           const status = await res.json();
           if (status.isEnabled) {
             setLocation("/2fa-verify");
@@ -81,7 +93,7 @@ export default function AuthCallback() {
           setLocation("/2fa-setup");
           return;
         } catch {
-          setLocation("/");
+          setLocation("/2fa-setup");
           return;
         }
       }
