@@ -179,6 +179,23 @@ export async function runMigrations(): Promise<void> {
       `);
       await client.query(`CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships (requester_id)`);
       await client.query(`CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships (addressee_id)`);
+      // Bug fix: createFriendRequest used to be a plain check-then-insert
+      // (getFriendshipBetween, then insert if nothing came back) — a
+      // classic race. Two requests arriving close together (a double-click,
+      // or two different people friending each other at the same moment
+      // from two different browsers) could both pass the "does this exist
+      // yet" check before either insert actually landed, producing two rows
+      // for the same pair. A frontend disable-while-sending guard (see
+      // Friends.tsx) only prevents the single-browser double-click case —
+      // it can't stop two different clients racing each other. This index
+      // is the real fix: LEAST/GREATEST makes the pair order-independent
+      // (A→B and B→A collide on the same index entry), so Postgres itself
+      // rejects the second insert outright regardless of which side
+      // initiated it or how close together they arrived.
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS friendships_unique_pair_idx
+        ON friendships (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))
+      `);
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();

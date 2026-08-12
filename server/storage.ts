@@ -30,6 +30,12 @@ async function ensureFriendshipsTable(): Promise<void> {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships (requester_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships (addressee_id)`);
+  // Keep this in sync with the CREATE UNIQUE INDEX in db.ts's
+  // runMigrations — see the comment there for why this exists.
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS friendships_unique_pair_idx
+    ON friendships (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))
+  `);
   friendshipsTableEnsured = true;
 }
 async function withFriendshipsTable<T>(fn: () => Promise<T>): Promise<T> {
@@ -127,7 +133,14 @@ export class DatabaseStorage implements IStorage {
   // requests) could never find anyone real. This backfills that row on
   // first sync and refreshes `name` on every later one.
   async upsertUserFromAuth(supabaseUserId: string, displayName: string, email?: string | null): Promise<User> {
-    const cleanName = (displayName || "").trim().slice(0, 50) || `Player${supabaseUserId.slice(0, 6)}`;
+    // Defense-in-depth: React already renders names as plain text (no
+    // dangerouslySetInnerHTML anywhere touches this), so this isn't fixing
+    // an active XSS — but display_name is fully unrestricted free text
+    // from Supabase, and control/formatting characters (bidi overrides,
+    // zero-width chars, etc.) can still cause real UI weirdness even
+    // though they can't execute as code.
+    const stripped = (displayName || "").replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E]/g, "");
+    const cleanName = stripped.trim().slice(0, 50) || `Player${supabaseUserId.slice(0, 6)}`;
     const existing = await this.getUserBySupabaseId(supabaseUserId);
     if (existing) {
       if (existing.name === cleanName) return existing;
@@ -290,12 +303,27 @@ export class DatabaseStorage implements IStorage {
   // Feature: Friends list + private lobbies
   async createFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship> {
     return withFriendshipsTable(async () => {
-      const [friendship] = await db.insert(friendships).values({
-        requesterId,
-        addresseeId,
-        status: "pending",
-      }).returning();
-      return friendship;
+      try {
+        const [friendship] = await db.insert(friendships).values({
+          requesterId,
+          addresseeId,
+          status: "pending",
+        }).returning();
+        return friendship;
+      } catch (err: any) {
+        // Bug fix: the unique-pair index (see db.ts) is what actually
+        // stops a race between two simultaneous requests — this turns
+        // that DB-level rejection into the same "already exists" outcome
+        // the normal check-then-insert path returns, so the route handler
+        // (and the person on the other end) sees a clean, expected result
+        // instead of a raw 500 on the rare occasion the race is actually
+        // hit.
+        if (err?.code === "23505" && err?.constraint === "friendships_unique_pair_idx") {
+          const existing = await this.getFriendshipBetween(requesterId, addresseeId);
+          if (existing) return existing;
+        }
+        throw err;
+      }
     });
   }
 

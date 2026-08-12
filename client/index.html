@@ -30,7 +30,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,300..700;1,300..700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,300..700;1,300..700&display=swap" media="print" onload="this.media='all'">
+    <!-- Bug fix: this used to be a media="print" link with an inline
+         onload="this.media='all'" attribute — the classic non-blocking-CSS
+         trick. That's a real inline event handler, which the app's CSP
+         (script-src-attr, no 'unsafe-inline') correctly blocks, so the
+         swap to media="all" never ran and the fonts stylesheet silently
+         stayed inert for every JS-enabled visitor. Swapping is now done by
+         an external, same-origin script (fonts-swap.js), which script-src
+         'self' already permits — same non-blocking behavior, no inline
+         code. id="fonts-stylesheet" lets that script target this exact
+         link without guessing. -->
+    <link id="fonts-stylesheet" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,300..700;1,300..700&display=swap" media="print">
+    <script src="/fonts-swap.js" defer></script>
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:ital,wght@0,300..700;1,300..700&display=swap"></noscript>
   </head>
   <body>

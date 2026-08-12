@@ -3779,6 +3779,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (existing) return res.status(400).json({ message: existing.status === "accepted" ? "Already friends." : "A request already exists between you two." });
 
       const friendship = await storage.createFriendRequest(myId, target.supabaseUserId);
+      // createFriendRequest returns the pre-existing row (not a new one)
+      // when it catches the DB-level race — friendship.id existing already
+      // isn't itself distinguishable here, but returning 201 either way is
+      // fine: the end state (a pending/accepted request exists) is correct
+      // regardless of which of the two racing requests "won."
       res.status(201).json({ friendshipId: friendship.id });
     } catch (e) {
       console.error("POST /api/friends/request error:", e);
