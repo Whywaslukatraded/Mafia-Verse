@@ -6,6 +6,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { engine } from "@/components/GameAudio";
+import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { authFetch } from "@/lib/authFetch";
 import Home from "@/pages/Home";
 
 // There was previously no error boundary anywhere in this app, so any
@@ -145,6 +147,78 @@ function App() {
       window.removeEventListener("keydown", unlockAudio, true);
     };
   }, [unlockAudio]);
+
+  // Feature: Friends online status, app-wide. Sends a lightweight "still
+  // here" heartbeat every 20s no matter which page is open (Room, Settings,
+  // Profile, etc.) — not just the Friends or Home page — so a friend shows
+  // as online while someone is actually mid-game, not only while they
+  // happen to be looking at the friends list. The server just stamps a
+  // timestamp (see POST /api/presence/ping); if these pings ever stop —
+  // tab closed, phone died, connection lost — the person simply ages out to
+  // "offline" on their own after a bit. Nothing here needs to detect
+  // disconnects directly, which is what makes it immune to the "ghost
+  // online" bug a WebSocket-close-event approach would have.
+  useEffect(() => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let unsubscribe: (() => void) | null = null;
+
+    const ping = () => {
+      authFetch("/api/presence/ping", { method: "POST" }).catch(() => {
+        // Non-critical — a missed ping just delays going offline slightly,
+        // not worth surfacing to the user.
+      });
+    };
+
+    const startHeartbeatIfLoggedIn = (isLoggedIn: boolean) => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+      if (isLoggedIn) {
+        ping();
+        interval = setInterval(ping, 20_000);
+      }
+    };
+
+    const attach = () => {
+      const supabase = getSupabase();
+      supabase.auth.getSession().then(({ data }: any) => {
+        if (cancelled) return;
+        startHeartbeatIfLoggedIn(!!data.session);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+        if (cancelled) return;
+        startHeartbeatIfLoggedIn(!!session);
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
+    };
+
+    if (isSupabaseReady()) {
+      attach();
+    } else {
+      // Supabase client may still be initializing at app mount — poll
+      // briefly rather than assuming logged-out (same pattern as
+      // Friends.tsx's own login check).
+      let attempts = 0;
+      const poll = setInterval(() => {
+        attempts++;
+        if (isSupabaseReady()) {
+          clearInterval(poll);
+          attach();
+        } else if (attempts > 20) { // ~4s
+          clearInterval(poll);
+        }
+      }, 200);
+      return () => clearInterval(poll);
+    }
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+      unsubscribe?.();
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

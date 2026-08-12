@@ -67,6 +67,12 @@ export interface IStorage {
   // off it — changing it later would break existing friend lookups by name.
   upsertUserFromAuth(supabaseUserId: string, displayName: string, email?: string | null): Promise<User>;
 
+  // Feature: Friends online status. Called from POST /api/presence/ping —
+  // just stamps "this account was active right now." No-op (doesn't throw)
+  // if the account has no users row yet, since a heartbeat firing slightly
+  // before sync-profile completes shouldn't be treated as an error.
+  touchUserPresence(supabaseUserId: string): Promise<void>;
+
   createRoom(settings: CreateRoomRequest["settings"]): Promise<Room>;
   getRoomByCode(code: string): Promise<Room | undefined>;
   getRoom(id: number): Promise<Room | undefined>;
@@ -125,6 +131,11 @@ export class DatabaseStorage implements IStorage {
   async getUserByResetToken(token: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.resetToken, token));
     return user;
+  }
+
+  // Feature: Friends online status
+  async touchUserPresence(supabaseUserId: string): Promise<void> {
+    await db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.supabaseUserId, supabaseUserId));
   }
 
   // Feature: sync a users row from the verified Supabase session. Real

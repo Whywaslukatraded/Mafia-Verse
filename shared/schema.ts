@@ -42,6 +42,16 @@ export const users = pgTable("users", {
   // Two-factor auth
   totpSecret: text("totp_secret"),
   is2FAEnabled: boolean("is_2fa_enabled").default(false),
+  // Feature: Friends online status. Updated by a periodic heartbeat ping
+  // from the browser (see POST /api/presence/ping in routes.ts) rather than
+  // tracked via WebSocket connect/disconnect events — disconnect events are
+  // unreliable (a dropped connection, closed laptop lid, or dead phone
+  // doesn't always fire a clean close), so instead a user is simply
+  // considered "online" if this timestamp is recent. If the heartbeat stops
+  // (tab closed, app killed, connection lost), this timestamp just stops
+  // updating and the person silently ages out to "offline" — no disconnect
+  // detection required.
+  lastSeenAt: timestamp("last_seen_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

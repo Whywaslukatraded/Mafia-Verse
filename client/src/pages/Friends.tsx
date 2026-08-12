@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 import { authFetch, authFetchJson } from "@/lib/authFetch";
 
-type FriendEntry = { friendshipId: number; supabaseUserId: string; name: string; avatar: string };
+type FriendEntry = { friendshipId: number; supabaseUserId: string; name: string; avatar: string; isOnline?: boolean };
 type RoomInvite = { code: string; roomName: string | null };
 
 export default function Friends() {
@@ -106,6 +106,18 @@ export default function Friends() {
       setLoading(false);
     })();
   }, [isLoggedIn, loadFriends, loadInvites]);
+
+  // Feature: Friends online status. The actual "still here" heartbeat now
+  // runs app-wide in App.tsx (covers every page, not just this one) — this
+  // just re-fetches the friends list on the same cadence so the green/gray
+  // dots shown here stay current without a manual refresh.
+  useEffect(() => {
+    if (isLoggedIn !== true) return;
+    const interval = setInterval(() => {
+      loadFriends();
+    }, 20_000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, loadFriends]);
 
   const sendRequest = async () => {
     const username = usernameInput.trim();
@@ -238,7 +250,14 @@ export default function Friends() {
                     {friends.map((f) => (
                       <motion.div key={f.friendshipId} exit={{ opacity: 0, x: -20 }} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">{f.avatar}</span>
+                          <div className="relative">
+                            <span className="text-xl">{f.avatar}</span>
+                            <span
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background ${f.isOnline ? "bg-green-500" : "bg-muted-foreground/40"}`}
+                              title={f.isOnline ? t("friends.online", "Online") : t("friends.offline", "Offline")}
+                              data-testid={`status-dot-${f.friendshipId}`}
+                            />
+                          </div>
                           <span className="text-sm font-bold text-foreground">{f.name}</span>
                         </div>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => removeFriend(f.friendshipId)} data-testid={`button-remove-${f.friendshipId}`}>

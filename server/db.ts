@@ -196,6 +196,8 @@ export async function runMigrations(): Promise<void> {
         CREATE UNIQUE INDEX IF NOT EXISTS friendships_unique_pair_idx
         ON friendships (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))
       `);
+      // Feature: Friends online status (heartbeat-based, see schema.ts)
+      await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at timestamp`);
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();

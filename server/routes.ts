@@ -3736,6 +3736,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Feature: Friends online status. A friend is considered online if their
+  // last heartbeat (see POST /api/presence/ping below) landed within this
+  // window. 45s gives a comfortable margin around the 20s ping interval the
+  // client uses, so one missed/delayed ping doesn't flicker someone offline.
+  const ONLINE_WINDOW_MS = 45_000;
+
   app.get("/api/friends", async (req, res) => {
     try {
       const myId = await getVerifiedSupabaseUserId(req);
@@ -3752,7 +3758,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       for (const r of rows) {
         const otherId = r.requesterId === myId ? r.addresseeId : r.requesterId;
         const u = userById.get(otherId);
-        const entry = { friendshipId: r.id, supabaseUserId: otherId, name: u?.name || "Unknown", avatar: u?.avatar || "👤" };
+        const lastSeenAt = u?.lastSeenAt ? new Date(u.lastSeenAt as any).getTime() : 0;
+        const isOnline = Date.now() - lastSeenAt < ONLINE_WINDOW_MS;
+        const entry = { friendshipId: r.id, supabaseUserId: otherId, name: u?.name || "Unknown", avatar: u?.avatar || "👤", isOnline };
         if (r.status === "accepted") friends.push(entry);
         else if (r.requesterId === myId) outgoing.push(entry);
         else incoming.push(entry);
@@ -3761,6 +3769,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) {
       console.error("GET /api/friends error:", e);
       res.status(500).json({ message: "Failed to load friends." });
+    }
+  });
+
+  // Feature: Friends online status. The client calls this every ~20s while
+  // the app is open (see Friends.tsx) — just stamps "active right now."
+  // Deliberately dumb and cheap: no WebSocket, no disconnect-tracking, so it
+  // can't produce "ghost" online users the way an unreliable disconnect
+  // event can. If the pings stop for any reason, the person just ages out
+  // of the ONLINE_WINDOW_MS above on their own.
+  app.post("/api/presence/ping", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Not authenticated" });
+      await storage.touchUserPresence(myId);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/presence/ping error:", e);
+      res.status(500).json({ message: "Failed to record presence." });
     }
   });
 
