@@ -356,6 +356,9 @@ export default function Home() {
     const joinParam = params.get("join");
     return joinParam ? joinParam.toUpperCase() : "";
   });
+  // Feature: deliberate "Join as Spectator" — lets someone watch a room on
+  // purpose instead of only ever spectating by accident (joining late).
+  const [joinAsSpectator, setJoinAsSpectator] = useState(false);
   const [showDailyRewards, setShowDailyRewards] = useState(false);
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
@@ -600,7 +603,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, supabaseUserId: user?.id } as any);
+      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, asSpectator: joinAsSpectator, supabaseUserId: user?.id } as any);
       localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
       localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
       setLocation(`/room/${res.code}`);
@@ -945,6 +948,18 @@ export default function Home() {
                       maxLength={4}
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setJoinAsSpectator(v => !v)}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                      joinAsSpectator ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                    )}
+                    data-testid="checkbox-join-as-spectator"
+                  >
+                    <Tv className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-bold">{t("home.joinAsSpectator")}</span>
+                  </button>
                   <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
                     disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">
                     {joinRoom.isPending ? t("home.joining") : t("home.enterAbyss")}

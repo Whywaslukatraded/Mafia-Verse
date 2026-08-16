@@ -279,6 +279,8 @@ export type JoinRoomRequest = {
     clothing?: string;
     bg?: string;
   };
+  // Feature: deliberate "Join as Spectator" toggle on the Home join form
+  asSpectator?: boolean;
 };
 
 export type GameAction = 

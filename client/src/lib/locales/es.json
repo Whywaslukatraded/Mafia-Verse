@@ -117,6 +117,7 @@
     "codeSentCheckInbox": "Se ha enviado un código a tu correo electrónico."
   },
   "home": {
+    "joinAsSpectator": "Unirse como espectador (solo mirar)",
     "leaderboard": "Clasificación",
     "howToPlay": "Cómo jugar",
     "recentPlayers": {

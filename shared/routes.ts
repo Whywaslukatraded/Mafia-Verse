@@ -209,6 +209,9 @@ export const api = {
         code: z.string().min(4),
         name: z.string().min(1),
         avatar: z.string().min(1),
+        // Feature: deliberate "Join as Spectator" — lets someone opt into
+        // watching a room on purpose, not just by joining after it started.
+        asSpectator: z.boolean().optional(),
       }),
       responses: {
         200: z.object({

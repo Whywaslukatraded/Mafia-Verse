@@ -117,6 +117,7 @@
     "codeSentCheckInbox": "A code has been sent to your email."
   },
   "home": {
+    "joinAsSpectator": "Join as Spectator (just watch)",
     "leaderboard": "Leaderboard",
     "howToPlay": "How to Play",
     "recentPlayers": {

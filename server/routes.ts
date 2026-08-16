@@ -613,7 +613,11 @@ async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roo
   if (!room || room.status !== 'lobby') return;
 
   const players = await storage.getPlayersInRoom(roomId);
-  const updatedPlayers = assignRoles(players, room.settings);
+  // Deliberate spectators (see JoinRoomRequest.asSpectator) can now sit in
+  // the lobby before a game starts, which previously wasn't possible — a
+  // spectator must never receive a real role or be treated as a player.
+  const activePlayers = players.filter((p: Player) => !p.isSpectator);
+  const updatedPlayers = assignRoles(activePlayers, room.settings);
   for (const p of updatedPlayers) {
     await storage.updatePlayer(p.id, { role: p.role });
   }
@@ -669,7 +673,8 @@ async function tryStartGame(roomId: number, wss: WebSocketServer, storage: any, 
     // reused as the fallback here) up to the room's minimum, then begin.
     await fillWithBots(roomId, storage);
     const players = await storage.getPlayersInRoom(roomId);
-    if (players.length < 6) {
+    const activePlayerCount = players.filter((p: Player) => !p.isSpectator).length;
+    if (activePlayerCount < 6) {
       // Still short even after topping up with bots (e.g. bot cap hit with
       // very few humans) — stay in the lobby rather than starting broken.
       broadcastState(roomId);
@@ -2901,7 +2906,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: `Room is full (max ${MAX_PLAYERS_PER_ROOM} players).` });
       }
       const sessionId = randomUUID();
-      const isSpectator = room.status !== "lobby";
+      // Feature: deliberate "Join as Spectator" — a player is a spectator
+      // either because the game already started (existing behavior) OR
+      // because they explicitly chose to watch via the Home join form's
+      // toggle. Once a room is in progress this is moot (isSpectator would
+      // already be true), so the flag only actually changes anything for a
+      // still-in-lobby room.
+      const isSpectator = room.status !== "lobby" || input.asSpectator === true;
 
       // Security fix (#4): same reasoning as room creation above.
       const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
@@ -3163,14 +3174,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
            }
 
            if (action.type === 'ready_toggle') {
-             if (room.status !== 'lobby' || me.isBot) return;
+             // Spectators (whether auto-assigned or deliberately joined via
+             // the Home "Join as Spectator" toggle) aren't playing, so they
+             // shouldn't be able to ready up, and must not count toward
+             // "is everyone ready" below — otherwise a lobby with a
+             // spectator in it could never auto-start.
+             if (room.status !== 'lobby' || me.isBot || me.isSpectator) return;
 
              const newReady = !me.isReady;
              await storage.updatePlayer(me.id, { isReady: newReady });
 
              const refreshedPlayers = await storage.getPlayersInRoom(myRoomId);
              const connectedHumans = refreshedPlayers.filter((p: Player) =>
-               !p.isBot && clients.get(p.sessionId)?.readyState === WebSocket.OPEN
+               !p.isBot && !p.isSpectator && clients.get(p.sessionId)?.readyState === WebSocket.OPEN
              );
              const allReady = connectedHumans.length > 0 && connectedHumans.every((p: Player) => p.isReady);
 
