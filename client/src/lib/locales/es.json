@@ -1433,5 +1433,30 @@
     "scanOrCopy": "Escanea el código o copia el enlace",
     "recapQrCode": "Código QR del resumen",
     "recapNotFound": "No se pudo encontrar este resumen."
+  },
+  "tutorial": {
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "done": "Entendido",
+    "phase": {
+      "title": "Sigue la fase",
+      "body": "Esto muestra si es de día o de noche, y cuánto tiempo queda para actuar."
+    },
+    "players": {
+      "title": "Vota y actúa aquí",
+      "body": "Toca la tarjeta de un jugador para votar durante el día, o para usar la acción nocturna de tu rol cuando sea tu turno."
+    },
+    "chat": {
+      "title": "Habla con todos",
+      "body": "Chatea con todos aquí. Si eres mafia, también tendrás un canal privado con tus compañeros por la noche."
+    },
+    "handbook": {
+      "title": "¿Olvidaste un rol?",
+      "body": "Abre el manual en cualquier momento para ver qué hace cada rol."
+    },
+    "notifications": {
+      "title": "No te pierdas tu turno",
+      "body": "Actívalo para recibir un aviso cuando sea tu turno, incluso si cambiaste de pestaña."
+    }
   }
 }

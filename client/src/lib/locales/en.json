@@ -1433,5 +1433,30 @@
     "scanOrCopy": "Scan the code or copy the link",
     "recapQrCode": "Recap QR code",
     "recapNotFound": "This recap couldn't be found."
+  },
+  "tutorial": {
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Got it",
+    "phase": {
+      "title": "Track the phase",
+      "body": "This shows whether it's day or night, and how much time is left to act."
+    },
+    "players": {
+      "title": "Vote and act here",
+      "body": "Tap a player's card to vote during the day, or to use your role's night action when it's your turn."
+    },
+    "chat": {
+      "title": "Talk it out",
+      "body": "Chat with everyone here. If you're mafia, you'll also get a private channel with your teammates at night."
+    },
+    "handbook": {
+      "title": "Forget a role?",
+      "body": "Open the handbook anytime to check what every role does."
+    },
+    "notifications": {
+      "title": "Don't miss your turn",
+      "body": "Turn this on to get notified when it's your turn, even if you've switched tabs."
+    }
   }
 }

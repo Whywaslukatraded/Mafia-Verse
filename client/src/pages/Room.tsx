@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { generateShareCard, type ShareCardHighlight } from "@/lib/shareCard";
+import { TutorialOverlay } from "@/components/TutorialOverlay";
 
 // --- Confetti ---
 const CONFETTI_COLORS = ["#ffd700", "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7", "#ff9ff3", "#54a0ff"];
@@ -820,6 +821,26 @@ export default function Room() {
     }
   }, [notificationsEnabled, room?.turn, room?.status, room?.phase, me?.isAlive, me?.role, isSpectator, myBullets, notify, t]);
 
+  // Feature: Tutorial overlay. A live walkthrough over the real Room UI —
+  // separate from the static HowToPlay rules modal on Home. Fires once per
+  // browser, the first time someone reaches an actual playing phase (not
+  // the lobby, and not as a spectator, who don't get vote/action cards).
+  // Waits for hasRevealed so it never competes with the role-reveal modal
+  // for attention on turn 1.
+  const [showTutorial, setShowTutorial] = useState(false);
+  useEffect(() => {
+    if (!room || isSpectator) return;
+    if (room.status === "lobby" || room.status === "ended") return;
+    if (!hasRevealed) return;
+    const seen = localStorage.getItem("mafia_seen_room_tutorial");
+    if (!seen) setShowTutorial(true);
+  }, [room?.status, isSpectator, hasRevealed]);
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    try { localStorage.setItem("mafia_seen_room_tutorial", "1"); } catch {}
+  };
+
+
   const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];
   const iAmRevealedMayor = !!(me && revealedMayorIds.includes(me.id));
 
@@ -1289,10 +1310,12 @@ export default function Room() {
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleNotifications} aria-label={notificationsEnabled ? t("room.disableNotifications", "Turn off turn notifications") : t("room.enableNotifications", "Get notified when it's your turn")} data-testid="button-toggle-notifications">
+            <Button variant="ghost" size="icon" onClick={toggleNotifications} aria-label={notificationsEnabled ? t("room.disableNotifications", "Turn off turn notifications") : t("room.enableNotifications", "Get notified when it's your turn")} data-testid="button-toggle-notifications" data-tutorial="notifications">
               {notificationsEnabled ? <Bell className="w-4 h-4 text-amber-400" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
             </Button>
-            <MafiaHandbook />
+            <div data-tutorial="handbook">
+              <MafiaHandbook />
+            </div>
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
               <Share2 className="w-3 h-3" />
               {t("room.share")}
@@ -1368,7 +1391,9 @@ export default function Room() {
       )}
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} timeRemaining={timeRemaining} />
+        <div data-tutorial="phase-indicator">
+          <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} timeRemaining={timeRemaining} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           <div className="lg:col-span-2 space-y-8">
@@ -1634,7 +1659,7 @@ export default function Room() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+                <div data-tutorial="player-grid" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
                   {players.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
                     const canReportAfk = room?.status === "day" && me?.isAlive && p.id !== me?.id && p.isAlive && !isSpectator;
@@ -1895,7 +1920,7 @@ export default function Room() {
             )}
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6" data-tutorial="chat">
             <ChatWindow
               messages={gameState?.messages || []}
               onSendMessage={(content, channel) => sendAction({ type: "chat", content, channel } as any)}
@@ -1908,6 +1933,10 @@ export default function Room() {
           </div>
         </div>
       </main>
+
+      <AnimatePresence>
+        {showTutorial && <TutorialOverlay onClose={closeTutorial} />}
+      </AnimatePresence>
     </div>
   );
 }
