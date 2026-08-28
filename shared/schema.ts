@@ -189,6 +189,36 @@ export const friendships = pgTable("friendships", {
 
 export type Friendship = typeof friendships.$inferSelect;
 
+// Feature: Game history + share. A permanent, standalone snapshot of one
+// finished match — written once by finalizeGameEnd() in routes.ts and never
+// updated after. This is deliberately separate from players.gameHistory
+// (which only ever holds the MOST RECENT match a player was in, overwritten
+// every time a new game ends in the same room) — that column still powers
+// the live end-of-game screen's win/lose sound cue and "Final Roles
+// Revealed" card, and is left untouched. This table is what lets someone
+// browse older matches later and share any one of them.
+// shareId is a short public code (same alphabet/length approach as room
+// codes) baked into the /recap/:shareId URL — anyone with the link can view
+// that one recap with no login required, same as a room's join link.
+// participantSupabaseUserIds is only used to answer "which of my games do I
+// show in my history list" — guest/bot players simply never appear there,
+// same tradeoff friendships already makes; the recap itself has no other
+// access restriction.
+export const gameRecaps = pgTable("game_recaps", {
+  id: serial("id").primaryKey(),
+  shareId: text("share_id").notNull().unique(),
+  roomCode: text("room_code").notNull(),
+  roomName: text("room_name"),
+  winner: text("winner").notNull(), // civilians | mafia | jester
+  roles: jsonb("roles").notNull().$type<{ id: number; name: string; role: string | null; avatar: string | null; isAlive: boolean }[]>(),
+  chronicle: jsonb("chronicle").notNull().$type<any[]>(),
+  crowdFavorite: jsonb("crowd_favorite").$type<{ id: number; name: string; avatar: string | null; votes: number } | null>(),
+  participantSupabaseUserIds: jsonb("participant_supabase_user_ids").notNull().$type<string[]>().default([]),
+  endedAt: timestamp("ended_at").defaultNow(),
+});
+
+export type GameRecap = typeof gameRecaps.$inferSelect;
+
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   timestamp: true,

@@ -1664,6 +1664,27 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   });
   gameHistory.set(roomId, history);
 
+  // Feature: Game history + share. A permanent recap row, separate from the
+  // gameHistory column below (which gets overwritten every time a new game
+  // ends in this same room). Best-effort: a failure here shouldn't stop the
+  // game from actually ending or wins/losses from being recorded.
+  try {
+    const room = await storage.getRoom(roomId);
+    if (room) {
+      await storage.createGameRecap({
+        roomCode: room.code,
+        roomName: (room.settings as any)?.roomName || null,
+        winner,
+        roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive })),
+        chronicle: history,
+        crowdFavorite: crowdFavorite || null,
+        participantSupabaseUserIds: Array.from(new Set(playersInRoom.filter((p: Player) => p.supabaseUserId).map((p: Player) => p.supabaseUserId as string))),
+      });
+    }
+  } catch (err) {
+    console.error("createGameRecap error:", err);
+  }
+
   for (const p of playersInRoom) {
     const isWinner = winner === 'jester' ? p.role === 'jester' :
       winner === 'civilians' ? p.role !== 'mafia' :
@@ -3925,6 +3946,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) {
       console.error("GET /api/friends/invites error:", e);
       res.status(500).json({ message: "Failed to load invites." });
+    }
+  });
+
+  // Feature: Game history + share. "Mine" requires sign-in (same as
+  // friends) since it's keyed off participantSupabaseUserIds. The
+  // individual recap fetch below is deliberately public — that's what
+  // makes a Discord/WhatsApp link actually openable by someone who wasn't
+  // in the match and isn't signed in, same as a room join link.
+  app.get("/api/recaps", async (req, res) => {
+    try {
+      const myId = await getVerifiedSupabaseUserId(req);
+      if (!myId) return res.status(401).json({ message: "Sign in to see your game history." });
+      const recaps = await storage.getRecapsForUser(myId);
+      res.json({ recaps });
+    } catch (e) {
+      console.error("GET /api/recaps error:", e);
+      res.status(500).json({ message: "Failed to load game history." });
+    }
+  });
+
+  app.get("/api/recaps/:shareId", async (req, res) => {
+    try {
+      const recap = await storage.getRecapByShareId(req.params.shareId.toUpperCase());
+      if (!recap) return res.status(404).json({ message: "Recap not found." });
+      res.json({ recap });
+    } catch (e) {
+      console.error("GET /api/recaps/:shareId error:", e);
+      res.status(500).json({ message: "Failed to load recap." });
     }
   });
 

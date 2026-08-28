@@ -182,7 +182,14 @@
     "clothing": "Clothing",
     "background": "Background",
     "selectBackgroundColor": "Select {{color}} background",
-    "bgColorNames": ["violet", "red", "blue", "emerald", "amber", "purple"],
+    "bgColorNames": [
+      "violet",
+      "red",
+      "blue",
+      "emerald",
+      "amber",
+      "purple"
+    ],
     "mafiaHandle": "Your Mafia Handle",
     "chooseNamePlaceholder": "CHOOSE A NAME...",
     "pickPersona": "Pick Your Persona",
@@ -357,7 +364,6 @@
     "maxBotsNote": "Up to 5 bots will fill empty seats — the rest need to be real players.",
     "host": "HOST",
     "startNow": "Start Now",
-    "inviteFriends": "Invite Friends",
     "invite": "Invite",
     "invited": "Invited",
     "noFriendsToInvite": "No friends yet, or you're not signed in.",
@@ -489,7 +495,8 @@
     "bodyguardDiedProtecting": "{{target}} the Bodyguard died protecting their target.",
     "attackerRetaliatedDied": "{{target}} died in the retaliation.",
     "vigilanteGuiltDiedHistory": "{{target}} the Vigilante died of guilt after shooting an innocent player.",
-    "detectiveFoundResult": "The Detective investigated {{target}} and found: {{result}}."
+    "detectiveFoundResult": "The Detective investigated {{target}} and found: {{result}}.",
+    "mafiaWonDescription": "The mafia outnumbered the town — {{count}} mafia member(s) remain."
   },
   "settings": {
     "title": "Settings",
@@ -1407,5 +1414,17 @@
     "yourFriends": "Your Friends",
     "noFriendsYet": "No friends yet — add one above.",
     "pending": "Pending"
+  },
+  "history": {
+    "title": "Game History",
+    "loadError": "Couldn't load game history",
+    "empty": "No finished games yet — play a match to see it here.",
+    "share": "Share",
+    "shareRecap": "Share This Match",
+    "shareTitle": "Mafia Verse — Match Recap",
+    "shareText": "Check out how this match went",
+    "scanOrCopy": "Scan the code or copy the link",
+    "recapQrCode": "Recap QR code",
+    "recapNotFound": "This recap couldn't be found."
   }
 }

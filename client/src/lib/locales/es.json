@@ -182,7 +182,14 @@
     "clothing": "Ropa",
     "background": "Fondo",
     "selectBackgroundColor": "Seleccionar fondo {{color}}",
-    "bgColorNames": ["violeta", "rojo", "azul", "esmeralda", "ámbar", "morado"],
+    "bgColorNames": [
+      "violeta",
+      "rojo",
+      "azul",
+      "esmeralda",
+      "ámbar",
+      "morado"
+    ],
     "mafiaHandle": "Tu alias de la mafia",
     "chooseNamePlaceholder": "ELIGE UN NOMBRE...",
     "pickPersona": "Elige tu personaje",
@@ -391,7 +398,6 @@
     "maxBotsNote": "Hasta 5 bots ocuparán los espacios vacíos — el resto deben ser jugadores reales.",
     "host": "ANFITRIÓN",
     "startNow": "Iniciar ahora",
-    "inviteFriends": "Invitar amigos",
     "invite": "Invitar",
     "invited": "Invitado",
     "noFriendsToInvite": "Aún no tienes amigos, o no has iniciado sesión.",
@@ -489,7 +495,8 @@
     "bodyguardDiedProtecting": "{{target}}, el Guardaespaldas, murió protegiendo a su objetivo.",
     "attackerRetaliatedDied": "{{target}} murió en la represalia.",
     "vigilanteGuiltDiedHistory": "{{target}}, el Vigilante, murió de culpa tras dispararle a un jugador inocente.",
-    "detectiveFoundResult": "El Detective investigó a {{target}} y descubrió: {{result}}."
+    "detectiveFoundResult": "El Detective investigó a {{target}} y descubrió: {{result}}.",
+    "mafiaWonDescription": "La mafia superó en número al pueblo — quedan {{count}} miembro(s) de la mafia."
   },
   "settings": {
     "title": "Ajustes",
@@ -1407,5 +1414,17 @@
     "yourFriends": "Tus amigos",
     "noFriendsYet": "Aún no tienes amigos — agrega uno arriba.",
     "pending": "Pendiente"
+  },
+  "history": {
+    "title": "Historial de Partidas",
+    "loadError": "No se pudo cargar el historial de partidas",
+    "empty": "Aún no hay partidas terminadas — juega una para verla aquí.",
+    "share": "Compartir",
+    "shareRecap": "Compartir Esta Partida",
+    "shareTitle": "Mafia Verse — Resumen de Partida",
+    "shareText": "Mira cómo fue esta partida",
+    "scanOrCopy": "Escanea el código o copia el enlace",
+    "recapQrCode": "Código QR del resumen",
+    "recapNotFound": "No se pudo encontrar este resumen."
   }
 }

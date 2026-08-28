@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame, History, Check, Share2 } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
@@ -275,6 +275,171 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type RecapEntry = {
+  shareId: string;
+  roomCode: string;
+  roomName: string | null;
+  winner: "civilians" | "mafia" | "jester";
+  roles: { id: number; name: string; role: string | null; avatar: string | null; isAlive: boolean }[];
+  crowdFavorite: { name: string } | null;
+  endedAt: string;
+};
+
+// Feature: Game history + share. Lists this account's past matches (a
+// GameRecap is only ever created once per finished game, independent of the
+// live room/player rows — see finalizeGameEnd in routes.ts) and lets any of
+// them be shared via a public /recap/:shareId link. Mirrors Room.tsx's own
+// share pattern exactly (Web Share API first, QR + copy-link modal as the
+// fallback) so sharing a past match feels identical to sharing a room.
+function GameHistoryPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [recaps, setRecaps] = useState<RecapEntry[]>([]);
+  const [shareTarget, setShareTarget] = useState<RecapEntry | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await authFetchJson<{ recaps: RecapEntry[] }>("/api/recaps");
+        setRecaps(data.recaps);
+      } catch (e: any) {
+        toast({ title: t("history.loadError", "Couldn't load game history"), description: e.message, variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [t, toast]);
+
+  const recapUrl = (recap: RecapEntry) => `${window.location.origin}${window.location.pathname}#/recap/${recap.shareId}`;
+
+  const shareRecap = async (recap: RecapEntry) => {
+    const shareData = {
+      title: t("history.shareTitle", "Mafia Verse — Match Recap"),
+      text: recap.roomName || t("history.shareText", "Check out how this match went"),
+      url: recapUrl(recap),
+    };
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share(shareData);
+        return;
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") return;
+      }
+    }
+    setShareTarget(recap);
+  };
+
+  const copyRecapLink = () => {
+    if (!shareTarget) return;
+    navigator.clipboard.writeText(recapUrl(shareTarget));
+    setLinkCopied(true);
+    toast({ title: t("common.copied", "Copied") });
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const qrCodeUrl = shareTarget
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(recapUrl(shareTarget))}`
+    : "";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-background/90 backdrop-blur-xl px-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-card border border-border rounded-2xl p-6 relative shadow-2xl max-h-[80vh] overflow-y-auto"
+      >
+        <button onClick={onClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label={t("common.close")}>
+          <X className="w-5 h-5" />
+        </button>
+        <h3 className="font-serif font-bold text-xl text-primary mb-4 flex items-center gap-2">
+          <History className="w-5 h-5" /> {t("history.title", "Game History")}
+        </h3>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
+        ) : recaps.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">{t("history.empty", "No finished games yet — play a match to see it here.")}</p>
+        ) : (
+          <div className="space-y-3">
+            {recaps.map((r) => (
+              <div key={r.shareId} className="bg-muted/50 rounded-xl p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-foreground truncate">
+                    {r.roomName || r.roomCode}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {r.winner === "jester" ? `🃏 ${t("room.jesterLabel")}` : r.winner === "mafia" ? `🔴 ${t("room.mafiaLabel")}` : `✨ ${t("room.civiliansLabel")}`}
+                    {" · "}
+                    {new Date(r.endedAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="gap-2 shrink-0" onClick={() => shareRecap(r)} data-testid={`button-share-recap-${r.shareId}`}>
+                  <Share2 className="w-4 h-4" />
+                  {t("history.share", "Share")}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      <AnimatePresence>
+        {shareTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-xl px-4"
+            onClick={() => setShareTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 text-center relative shadow-2xl"
+            >
+              <button
+                onClick={() => setShareTarget(null)}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={t("common.close")}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="font-serif font-bold text-xl text-primary mb-1">{t("history.shareRecap", "Share This Match")}</h3>
+              <p className="text-xs text-muted-foreground mb-5">{t("history.scanOrCopy", "Scan the code or copy the link")}</p>
+
+              {qrCodeUrl && (
+                <div className="flex justify-center mb-5">
+                  <div className="bg-white p-3 rounded-xl">
+                    <img src={qrCodeUrl} alt={t("history.recapQrCode", "Recap QR code")} width={180} height={180} className="rounded-lg" />
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={copyRecapLink} variant="outline" className="w-full gap-2">
+                {linkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {linkCopied ? t("common.copied") : t("room.copyLink")}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 function RecentPlayers() {
   const { t } = useTranslation();
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
@@ -363,6 +528,7 @@ export default function Home() {
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
+  const [showGameHistory, setShowGameHistory] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(() => {
     try {
       return !localStorage.getItem("mafia_seen_onboarding");
@@ -849,7 +1015,7 @@ export default function Home() {
                     </button>
                   </div>
                   {/* Row 3 */}
-                  <div className="grid grid-cols-3 gap-2 w-full">
+                  <div className="grid grid-cols-4 gap-2 w-full">
                     <button onClick={() => setLocation("/leaderboard")}
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
                       <Medal className="w-5 h-5 text-yellow-400 flex-shrink-0" />
@@ -865,6 +1031,12 @@ export default function Home() {
                       className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
                       <BookOpen className="w-5 h-5 text-primary flex-shrink-0" />
                       <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.howToPlay")}</span>
+                    </button>
+                    <button onClick={() => isSignedIn ? setShowGameHistory(true) : setLocation("/login")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="button-game-history-nav">
+                      <History className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("history.title", "Game History")}</span>
                     </button>
                   </div>
                 </div>
@@ -1096,6 +1268,7 @@ export default function Home() {
         {showAdRewards && <AdRewards onClose={() => setShowAdRewards(false)} />}
         {showRating && <RatingSystem onClose={() => setShowRating(false)} />}
         {showReferral && <ReferralModal onClose={() => setShowReferral(false)} />}
+        {showGameHistory && <GameHistoryPanel onClose={() => setShowGameHistory(false)} />}
         {showHowToPlay && <HowToPlay onClose={closeHowToPlay} />}
       </AnimatePresence>
     </div>

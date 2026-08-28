@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { pool } from "./db";
-import { users, rooms, players, messages, friendships, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship } from "@shared/schema";
+import { users, rooms, players, messages, friendships, gameRecaps, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap } from "@shared/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
@@ -45,6 +45,46 @@ async function withFriendshipsTable<T>(fn: () => Promise<T>): Promise<T> {
     if (err?.code === "42P01") {
       console.warn("[DB] friendships table missing — creating it now instead of failing this request");
       await ensureFriendshipsTable();
+      return await fn();
+    }
+    throw err;
+  }
+}
+
+// Feature: Game history + share. Same self-healing pattern as
+// ensureFriendshipsTable above — if runMigrations() hasn't created this
+// table yet on a given deployment, the first game_recaps query creates it
+// and retries once instead of every game-end request 500ing.
+let gameRecapsTableEnsured = false;
+async function ensureGameRecapsTable(): Promise<void> {
+  if (gameRecapsTableEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS game_recaps (
+      id serial PRIMARY KEY,
+      share_id text NOT NULL UNIQUE,
+      room_code text NOT NULL,
+      room_name text,
+      winner text NOT NULL,
+      roles jsonb NOT NULL,
+      chronicle jsonb NOT NULL,
+      crowd_favorite jsonb,
+      participant_supabase_user_ids jsonb NOT NULL DEFAULT '[]',
+      ended_at timestamp DEFAULT now()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS game_recaps_share_id_idx ON game_recaps (share_id)`);
+  // GIN index so "my history" (participantSupabaseUserIds @> [myId]) doesn't
+  // scan every recap ever created as this table grows.
+  await pool.query(`CREATE INDEX IF NOT EXISTS game_recaps_participants_idx ON game_recaps USING GIN (participant_supabase_user_ids)`);
+  gameRecapsTableEnsured = true;
+}
+async function withGameRecapsTable<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    if (err?.code === "42P01") {
+      console.warn("[DB] game_recaps table missing — creating it now instead of failing this request");
+      await ensureGameRecapsTable();
       return await fn();
     }
     throw err;
@@ -97,6 +137,11 @@ export interface IStorage {
   deleteFriendship(id: number): Promise<void>;
   getFriendshipsForUser(supabaseUserId: string): Promise<Friendship[]>;
   getOpenPrivateRoomsInvitingUser(supabaseUserId: string): Promise<Room[]>;
+
+  // Feature: Game history + share
+  createGameRecap(recap: Omit<GameRecap, "id" | "shareId" | "endedAt">): Promise<GameRecap>;
+  getRecapByShareId(shareId: string): Promise<GameRecap | undefined>;
+  getRecapsForUser(supabaseUserId: string): Promise<GameRecap[]>;
 
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
@@ -386,6 +431,48 @@ export class DatabaseStorage implements IStorage {
         sql`${rooms.settings} -> 'invitedSupabaseUserIds' @> ${JSON.stringify([supabaseUserId])}::jsonb`
       )
     );
+  }
+
+  // Feature: Game history + share
+  async createGameRecap(recap: Omit<GameRecap, "id" | "shareId" | "endedAt">): Promise<GameRecap> {
+    return withGameRecapsTable(async () => {
+      const shareId = await this.generateRecapShareId();
+      const [created] = await db.insert(gameRecaps).values({ ...recap, shareId }).returning();
+      return created;
+    });
+  }
+
+  async getRecapByShareId(shareId: string): Promise<GameRecap | undefined> {
+    return withGameRecapsTable(async () => {
+      const [recap] = await db.select().from(gameRecaps).where(eq(gameRecaps.shareId, shareId));
+      return recap;
+    });
+  }
+
+  // Newest first — a "my history" list is almost always read most-recent-game-first.
+  async getRecapsForUser(supabaseUserId: string): Promise<GameRecap[]> {
+    return withGameRecapsTable(async () => {
+      return await db.select().from(gameRecaps).where(
+        sql`${gameRecaps.participantSupabaseUserIds} @> ${JSON.stringify([supabaseUserId])}::jsonb`
+      ).orderBy(desc(gameRecaps.endedAt));
+    });
+  }
+
+  // Same alphabet/length as room codes, but distinct so a recap link and a
+  // room code are never visually confusable at a glance. Collision-checked
+  // the same way generateRoomCode() is.
+  async generateRecapShareId(): Promise<string> {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let shareId = "";
+    while (true) {
+      shareId = "";
+      for (let i = 0; i < 8; i++) {
+        shareId += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const existing = await this.getRecapByShareId(shareId);
+      if (!existing) break;
+    }
+    return shareId;
   }
 
   async generateRoomCode(): Promise<string> {
