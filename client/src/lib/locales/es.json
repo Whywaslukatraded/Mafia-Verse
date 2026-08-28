@@ -496,7 +496,14 @@
     "attackerRetaliatedDied": "{{target}} murió en la represalia.",
     "vigilanteGuiltDiedHistory": "{{target}}, el Vigilante, murió de culpa tras dispararle a un jugador inocente.",
     "detectiveFoundResult": "El Detective investigó a {{target}} y descubrió: {{result}}.",
-    "mafiaWonDescription": "La mafia superó en número al pueblo — quedan {{count}} miembro(s) de la mafia."
+    "mafiaWonDescription": "La mafia superó en número al pueblo — quedan {{count}} miembro(s) de la mafia.",
+    "notificationsBlocked": "Notificaciones bloqueadas",
+    "notificationsBlockedDesc": "Permite las notificaciones de este sitio en la configuración de tu navegador para usar esto.",
+    "disableNotifications": "Desactivar notificaciones de turno",
+    "enableNotifications": "Recibe un aviso cuando sea tu turno",
+    "yourTurnNotifTitle": "Es tu turno",
+    "yourTurnNotifVote": "Hora de votar.",
+    "yourTurnNotifAction": "Hora de usar tu acción nocturna."
   },
   "settings": {
     "title": "Ajustes",

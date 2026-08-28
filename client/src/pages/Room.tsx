@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Bell, BellOff, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
@@ -89,7 +89,7 @@ export default function Room() {
     return () => window.removeEventListener("storage", syncSound);
   }, []);
 
-  const [showRoleReveal, setShowRoleReveal] = useState(false);
+
   const [hasRevealed, setHasRevealed] = useState(false);
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);
   const pendingActionRef = useRef(pendingNightAction);
@@ -764,6 +764,62 @@ export default function Room() {
   };
 
   const myBullets: number | undefined = (gameState as any)?.myBullets;
+
+  // Feature: Turn notifications. Mirrors the soundEnabled localStorage
+  // pattern above so it's readable/toggleable from anywhere (e.g. a future
+  // Settings page checkbox), not just this button. Defaults to false
+  // (unlike sound) since a browser permission prompt firing unprompted on
+  // first room join would be surprising — it only turns on once the
+  // person explicitly clicks the bell.
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem("mafia_notifications_enabled");
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  const { notify, requestPermission } = useNotifications();
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await requestPermission();
+      if (!granted) {
+        toast({ title: t("room.notificationsBlocked", "Notifications blocked"), description: t("room.notificationsBlockedDesc", "Allow notifications for this site in your browser settings to use this."), variant: "destructive" });
+        return;
+      }
+    }
+    const next = !notificationsEnabled;
+    localStorage.setItem("mafia_notifications_enabled", JSON.stringify(next));
+    setNotificationsEnabled(next);
+  };
+
+  // Fires once per phase — not once per render — by remembering the last
+  // phase this already notified for. A raw [room.phase] dependency without
+  // this guard would refire on every unrelated state update that happens
+  // to land while still in the same phase (a chat message, a vote count
+  // ticking up, a reconnect), which would spam the OS notification tray
+  // instead of announcing the phase change exactly once.
+  const lastNotifiedPhaseKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!notificationsEnabled || !room || !me?.isAlive || isSpectator) return;
+    const phaseKey = `${room.turn}-${room.status}-${room.phase}`;
+    if (lastNotifiedPhaseKey.current === phaseKey) return;
+
+    const myTurn =
+      (room.status === "day" && room.phase === "voting") ||
+      (room.status === "night" && room.phase === "bodyguard" && me.role === "bodyguard") ||
+      (room.status === "night" && room.phase === "mafia" && me.role === "mafia") ||
+      (room.status === "night" && room.phase === "doctor" && me.role === "doctor") ||
+      (room.status === "night" && room.phase === "vigilante" && me.role === "vigilante" && (myBullets ?? 0) > 0) ||
+      (room.status === "night" && room.phase === "detective" && me.role === "detective");
+
+    if (myTurn) {
+      lastNotifiedPhaseKey.current = phaseKey;
+      notify(t("room.yourTurnNotifTitle", "It's your turn"), {
+        body: room.status === "day" && room.phase === "voting"
+          ? t("room.yourTurnNotifVote", "Time to vote.")
+          : t("room.yourTurnNotifAction", "Time to use your night action."),
+        tag: "mafia-turn",
+      });
+    }
+  }, [notificationsEnabled, room?.turn, room?.status, room?.phase, me?.isAlive, me?.role, isSpectator, myBullets, notify, t]);
+
   const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];
   const iAmRevealedMayor = !!(me && revealedMayorIds.includes(me.id));
 
@@ -1232,6 +1288,9 @@ export default function Room() {
           <div className="flex gap-2 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleNotifications} aria-label={notificationsEnabled ? t("room.disableNotifications", "Turn off turn notifications") : t("room.enableNotifications", "Get notified when it's your turn")} data-testid="button-toggle-notifications">
+              {notificationsEnabled ? <Bell className="w-4 h-4 text-amber-400" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
             </Button>
             <MafiaHandbook />
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">

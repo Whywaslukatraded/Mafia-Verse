@@ -496,7 +496,14 @@
     "attackerRetaliatedDied": "{{target}} died in the retaliation.",
     "vigilanteGuiltDiedHistory": "{{target}} the Vigilante died of guilt after shooting an innocent player.",
     "detectiveFoundResult": "The Detective investigated {{target}} and found: {{result}}.",
-    "mafiaWonDescription": "The mafia outnumbered the town — {{count}} mafia member(s) remain."
+    "mafiaWonDescription": "The mafia outnumbered the town — {{count}} mafia member(s) remain.",
+    "notificationsBlocked": "Notifications blocked",
+    "notificationsBlockedDesc": "Allow notifications for this site in your browser settings to use this.",
+    "disableNotifications": "Turn off turn notifications",
+    "enableNotifications": "Get notified when it's your turn",
+    "yourTurnNotifTitle": "It's your turn",
+    "yourTurnNotifVote": "Time to vote.",
+    "yourTurnNotifAction": "Time to use your night action."
   },
   "settings": {
     "title": "Settings",
