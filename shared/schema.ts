@@ -131,6 +131,13 @@ export const players = pgTable("players", {
   // rather than "0 games", since games played before this feature shipped
   // aren't retroactively broken out by role.
   roleStats: jsonb("role_stats").$type<Record<string, { wins: number; gamesPlayed: number }>>().default({}),
+  // Feature: MVP badge. Lifetime count, same shape as wins/gamesPlayed above
+  // (a simple never-decreasing counter, aggregated across every room this
+  // account has played in via getWinsSummary in routes.ts). Incremented once
+  // per finished game in finalizeGameEnd, for whichever player that game's
+  // MVP calculation picked — see the comment on computeMvp in routes.ts for
+  // exactly what "MVP" means here.
+  mvpCount: integer("mvp_count").default(0),
   credits: integer("credits").default(0),
   achievements: jsonb("achievements").default([]),
   gameHistory: jsonb("game_history").default([]),
@@ -213,6 +220,7 @@ export const gameRecaps = pgTable("game_recaps", {
   roles: jsonb("roles").notNull().$type<{ id: number; name: string; role: string | null; avatar: string | null; isAlive: boolean }[]>(),
   chronicle: jsonb("chronicle").notNull().$type<any[]>(),
   crowdFavorite: jsonb("crowd_favorite").$type<{ id: number; name: string; avatar: string | null; votes: number } | null>(),
+  mvp: jsonb("mvp").$type<{ id: number; name: string; avatar: string | null; role: string | null } | null>(),
   participantSupabaseUserIds: jsonb("participant_supabase_user_ids").notNull().$type<string[]>().default([]),
   endedAt: timestamp("ended_at").defaultNow(),
 });

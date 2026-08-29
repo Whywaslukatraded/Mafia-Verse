@@ -24,6 +24,7 @@ type Recap = {
   roles: RecapRoleEntry[];
   chronicle: any[];
   crowdFavorite: { name: string } | null;
+  mvp: { id: number; name: string; avatar: string | null; role: string | null } | null;
   endedAt: string;
 };
 
@@ -97,13 +98,21 @@ export default function RecapView() {
               🌟 {t("room.crowdFavoriteResult", "Crowd Favorite: {{name}}", { name: recap.crowdFavorite.name })}
             </div>
           )}
+          {recap.mvp && (
+            <div className="mt-4 ml-2 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-bold text-yellow-400">
+              🏆 {t("room.mvpResult", "MVP: {{name}}", { name: recap.mvp.name })}
+            </div>
+          )}
         </div>
 
         <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
           <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
           <div className="grid grid-cols-2 gap-3">
             {recap.roles.map((p) => (
-              <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+              <div key={p.id} className={`relative flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                {recap.mvp?.id === p.id && (
+                  <span className="absolute -top-2 -left-2 text-base" title={t("room.mvpLabel", "MVP")}>🏆</span>
+                )}
                 <span className="text-2xl">{p.avatar || "👤"}</span>
                 <div className="text-left flex-1">
                   <div className="text-foreground font-bold text-sm">{p.name}</div>

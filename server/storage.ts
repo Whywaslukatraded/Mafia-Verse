@@ -68,10 +68,16 @@ async function ensureGameRecapsTable(): Promise<void> {
       roles jsonb NOT NULL,
       chronicle jsonb NOT NULL,
       crowd_favorite jsonb,
+      mvp jsonb,
       participant_supabase_user_ids jsonb NOT NULL DEFAULT '[]',
       ended_at timestamp DEFAULT now()
     )
   `);
+  // Defensive ALTER for deployments where this table was already created by
+  // an earlier version of this code, before the mvp column existed — the
+  // CREATE TABLE IF NOT EXISTS above is a no-op on those, so this is what
+  // actually adds it there.
+  await pool.query(`ALTER TABLE game_recaps ADD COLUMN IF NOT EXISTS mvp jsonb`);
   await pool.query(`CREATE INDEX IF NOT EXISTS game_recaps_share_id_idx ON game_recaps (share_id)`);
   // GIN index so "my history" (participantSupabaseUserIds @> [myId]) doesn't
   // scan every recap ever created as this table grows.

@@ -41,13 +41,6 @@ export const ROOM_TUTORIAL_STEPS: TutorialStep[] = [
     bodyKey: "tutorial.handbook.body",
     bodyFallback: "Open the handbook anytime to check what every role does.",
   },
-  {
-    target: "notifications",
-    titleKey: "tutorial.notifications.title",
-    titleFallback: "Don't miss your turn",
-    bodyKey: "tutorial.notifications.body",
-    bodyFallback: "Turn this on to get notified when it's your turn, even if you've switched tabs.",
-  },
 ];
 
 // Feature: Tutorial overlay. A live spotlight walkthrough over the actual

@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { Player } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { getRoleColors } from "@/lib/roleColors";
+import { useColorblindMode } from "@/hooks/use-colorblind-mode";
 
 interface PlayerCardProps {
   player: Player;
@@ -19,71 +21,15 @@ interface PlayerCardProps {
   myMayorRevealed?: boolean;
 }
 
-const ROLE_COSMETICS_META: Record<string, { border: string; glow: string; bg: string; icon: any; iconColor: string; labelKey: string }> = {
-  mafia: {
-    border: "border-red-500/60",
-    glow: "shadow-[0_0_20px_rgba(239,68,68,0.25)]",
-    bg: "bg-red-950/30",
-    icon: Skull,
-    iconColor: "text-red-400",
-    labelKey: "mafia"
-  },
-  detective: {
-    border: "border-blue-500/60",
-    glow: "shadow-[0_0_20px_rgba(59,130,246,0.25)]",
-    bg: "bg-blue-950/30",
-    icon: Shield,
-    iconColor: "text-blue-400",
-    labelKey: "detective"
-  },
-  doctor: {
-    border: "border-emerald-500/60",
-    glow: "shadow-[0_0_20px_rgba(16,185,129,0.25)]",
-    bg: "bg-emerald-950/30",
-    icon: Heart,
-    iconColor: "text-emerald-400",
-    labelKey: "doctor"
-  },
-  civilian: {
-    border: "border-white/20",
-    glow: "",
-    bg: "bg-card/50",
-    icon: null,
-    iconColor: "text-muted-foreground/40",
-    labelKey: "civilian"
-  },
-  bodyguard: {
-    border: "border-slate-400/60",
-    glow: "shadow-[0_0_20px_rgba(148,163,184,0.25)]",
-    bg: "bg-slate-800/30",
-    icon: ShieldCheck,
-    iconColor: "text-slate-300",
-    labelKey: "bodyguard"
-  },
-  vigilante: {
-    border: "border-orange-500/60",
-    glow: "shadow-[0_0_20px_rgba(249,115,22,0.25)]",
-    bg: "bg-orange-950/30",
-    icon: Crosshair,
-    iconColor: "text-orange-400",
-    labelKey: "vigilante"
-  },
-  mayor: {
-    border: "border-purple-500/60",
-    glow: "shadow-[0_0_20px_rgba(168,85,247,0.25)]",
-    bg: "bg-purple-950/30",
-    icon: Landmark,
-    iconColor: "text-purple-400",
-    labelKey: "mayor"
-  },
-  jester: {
-    border: "border-pink-500/60",
-    glow: "shadow-[0_0_20px_rgba(236,72,153,0.25)]",
-    bg: "bg-pink-950/30",
-    icon: Drama,
-    iconColor: "text-pink-400",
-    labelKey: "jester"
-  },
+const ROLE_ICONS: Record<string, any> = {
+  mafia: Skull,
+  detective: Shield,
+  doctor: Heart,
+  civilian: null,
+  bodyguard: ShieldCheck,
+  vigilante: Crosshair,
+  mayor: Landmark,
+  jester: Drama,
 };
 
 export function PlayerCard({ 
@@ -99,12 +45,15 @@ export function PlayerCard({
   myMayorRevealed,
 }: PlayerCardProps) {
   const { t } = useTranslation();
+  const colorblindMode = useColorblindMode();
   // Determine which role cosmetic to apply
   // Server sends real roles for: self, teammates, dead players, ended games; 'unknown' for hidden roles
   const knownRole = revealedRole?.toLowerCase()
     || (player.role && player.role !== "unknown" ? player.role.toLowerCase() : null);
-  const cosmeticMeta = knownRole && ROLE_COSMETICS_META[knownRole] ? ROLE_COSMETICS_META[knownRole] : null;
-  const cosmetic = cosmeticMeta ? { ...cosmeticMeta, label: t(`playerCard.roleLabels.${cosmeticMeta.labelKey}`) } : null;
+  const colors = getRoleColors(knownRole, colorblindMode);
+  const cosmetic = colors && knownRole
+    ? { ...colors, icon: ROLE_ICONS[knownRole] ?? null, label: t(`playerCard.roleLabels.${knownRole}`) }
+    : null;
   const RoleIcon = cosmetic?.icon;
 
   const displayRole = revealedRole || (player.role && player.role !== "unknown" ? player.role : null);

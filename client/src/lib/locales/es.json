@@ -503,7 +503,9 @@
     "enableNotifications": "Recibe un aviso cuando sea tu turno",
     "yourTurnNotifTitle": "Es tu turno",
     "yourTurnNotifVote": "Hora de votar.",
-    "yourTurnNotifAction": "Hora de usar tu acción nocturna."
+    "yourTurnNotifAction": "Hora de usar tu acción nocturna.",
+    "mvpResult": "MVP: {{name}}",
+    "mvpLabel": "MVP"
   },
   "settings": {
     "title": "Ajustes",
@@ -540,7 +542,8 @@
     "errorTitle": "Error",
     "couldNotDisable2FA": "No se pudo desactivar 2FA",
     "somethingWentWrong": "Algo salió mal",
-    "incorrectPassword": "Contraseña incorrecta"
+    "incorrectPassword": "Contraseña incorrecta",
+    "colorblindMode": "Roles Aptos para Daltónicos"
   },
   "notFound": {
     "title": "Callejón sin salida",
@@ -627,7 +630,8 @@
     "currentStreak": "Racha actual",
     "bestStreak": "Mejor racha",
     "achievementHall": "Salón de logros",
-    "notYetUnlocked": "Aún no desbloqueado"
+    "notYetUnlocked": "Aún no desbloqueado",
+    "mvpCount": "MVPs"
   },
   "authCallback": {
     "authFailed": "Error de autenticación",

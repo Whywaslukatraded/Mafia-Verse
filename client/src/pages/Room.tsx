@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Bell, BellOff, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
@@ -766,29 +766,16 @@ export default function Room() {
 
   const myBullets: number | undefined = (gameState as any)?.myBullets;
 
-  // Feature: Turn notifications. Mirrors the soundEnabled localStorage
-  // pattern above so it's readable/toggleable from anywhere (e.g. a future
-  // Settings page checkbox), not just this button. Defaults to false
-  // (unlike sound) since a browser permission prompt firing unprompted on
-  // first room join would be surprising — it only turns on once the
-  // person explicitly clicks the bell.
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    const saved = localStorage.getItem("mafia_notifications_enabled");
-    return saved !== null ? JSON.parse(saved) : false;
-  });
-  const { notify, requestPermission } = useNotifications();
-  const toggleNotifications = async () => {
-    if (!notificationsEnabled) {
-      const granted = await requestPermission();
-      if (!granted) {
-        toast({ title: t("room.notificationsBlocked", "Notifications blocked"), description: t("room.notificationsBlockedDesc", "Allow notifications for this site in your browser settings to use this."), variant: "destructive" });
-        return;
-      }
-    }
-    const next = !notificationsEnabled;
-    localStorage.setItem("mafia_notifications_enabled", JSON.stringify(next));
-    setNotificationsEnabled(next);
-  };
+  // Feature: Turn notifications. Deliberately does NOT keep its own
+  // enabled/disabled state or button — Settings.tsx already owns
+  // mafia_notifications_enabled (a general app-wide notifications toggle,
+  // defaults on, already requests permission on enable) and useNotifications()
+  // itself already checks that same flag plus permission plus tab-visibility
+  // before ever actually showing anything. Duplicating that here as a second
+  // toggle would just be two controls fighting over one flag with different
+  // defaults — this only needs to decide *when* to call notify(), not
+  // whether notifications are allowed at all.
+  const { notify } = useNotifications();
 
   // Fires once per phase — not once per render — by remembering the last
   // phase this already notified for. A raw [room.phase] dependency without
@@ -798,7 +785,7 @@ export default function Room() {
   // instead of announcing the phase change exactly once.
   const lastNotifiedPhaseKey = useRef<string | null>(null);
   useEffect(() => {
-    if (!notificationsEnabled || !room || !me?.isAlive || isSpectator) return;
+    if (!room || !me?.isAlive || isSpectator) return;
     const phaseKey = `${room.turn}-${room.status}-${room.phase}`;
     if (lastNotifiedPhaseKey.current === phaseKey) return;
 
@@ -819,7 +806,7 @@ export default function Room() {
         tag: "mafia-turn",
       });
     }
-  }, [notificationsEnabled, room?.turn, room?.status, room?.phase, me?.isAlive, me?.role, isSpectator, myBullets, notify, t]);
+  }, [room?.turn, room?.status, room?.phase, me?.isAlive, me?.role, isSpectator, myBullets, notify, t]);
 
   // Feature: Tutorial overlay. A live walkthrough over the real Room UI —
   // separate from the static HowToPlay rules modal on Home. Fires once per
@@ -1055,6 +1042,11 @@ export default function Room() {
                         🌟 {t("room.crowdFavoriteResult", "Crowd Favorite: {{name}}", { name: latestGameEnd.crowdFavorite.name })}
                       </div>
                     )}
+                    {latestGameEnd.mvp && (
+                      <div className="mb-6 ml-2 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-bold text-yellow-400">
+                        🏆 {t("room.mvpResult", "MVP: {{name}}", { name: latestGameEnd.mvp.name })}
+                      </div>
+                    )}
 
                     {/* Share Result lives here, right under the result — not
                         stacked against Play Again below, so a tap intending
@@ -1074,7 +1066,10 @@ export default function Room() {
                       <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {finalRoles.map((p) => (
-                          <div key={p.id} className={`flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                          <div key={p.id} className={`relative flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                            {latestGameEnd.mvp?.id === p.id && (
+                              <span className="absolute -top-2 -left-2 text-base" title={t("room.mvpLabel", "MVP")}>🏆</span>
+                            )}
                             <span className="text-2xl">{p.avatar || "👤"}</span>
                             <div className="text-left flex-1">
                               <div className="text-foreground font-bold text-sm">{p.name}</div>
@@ -1309,9 +1304,6 @@ export default function Room() {
           <div className="flex gap-2 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={toggleNotifications} aria-label={notificationsEnabled ? t("room.disableNotifications", "Turn off turn notifications") : t("room.enableNotifications", "Get notified when it's your turn")} data-testid="button-toggle-notifications" data-tutorial="notifications">
-              {notificationsEnabled ? <Bell className="w-4 h-4 text-amber-400" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
             </Button>
             <div data-tutorial="handbook">
               <MafiaHandbook />

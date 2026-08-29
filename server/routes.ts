@@ -1612,6 +1612,34 @@ async function tryResolveReferralClaim(referredUserId: string): Promise<void> {
   }
 }
 
+// Feature: MVP badge. Deliberately a simple, transparent, always-computable
+// rule rather than a fine-grained action-correctness score — the chronicle
+// (`history`) only records display-friendly event summaries (names, not
+// actor ids for every action), so a rigorous "who played best" score isn't
+// reliably derivable from it. Instead: if the jester won, the jester IS the
+// MVP (their entire win condition is "get voted out", so there's no other
+// candidate). Otherwise, MVP is the surviving player on the winning side
+// whose role is generally the most impactful/rare, using a fixed priority
+// order — not a popularity vote (that's Crowd Favorite, a separate,
+// spectator-driven stat) and not a claim about actual in-game skill.
+const MVP_ROLE_PRIORITY = ["mafia", "detective", "bodyguard", "vigilante", "mayor", "doctor", "civilian"];
+function computeMvp(playersInRoom: Player[], winner: 'civilians' | 'mafia' | 'jester'): { id: number; name: string; avatar: string | null; role: string | null } | null {
+  if (winner === 'jester') {
+    const jester = playersInRoom.find((p) => p.role === 'jester');
+    return jester ? { id: jester.id, name: jester.name, avatar: jester.avatar, role: jester.role } : null;
+  }
+  const winningRoles = winner === 'mafia' ? ['mafia'] : ['detective', 'doctor', 'civilian', 'bodyguard', 'vigilante', 'mayor'];
+  let survivors = playersInRoom.filter((p) => p.isAlive && p.role && winningRoles.includes(p.role));
+  // Fallback for the edge case where everyone on the winning side died in
+  // the same resolution the win was detected in — still pick someone from
+  // that side rather than showing no MVP at all.
+  if (survivors.length === 0) survivors = playersInRoom.filter((p) => p.role && winningRoles.includes(p.role));
+  if (survivors.length === 0) return null;
+  survivors.sort((a, b) => MVP_ROLE_PRIORITY.indexOf(a.role || 'civilian') - MVP_ROLE_PRIORITY.indexOf(b.role || 'civilian') || a.id - b.id);
+  const mvp = survivors[0];
+  return { id: mvp.id, name: mvp.name, avatar: mvp.avatar, role: mvp.role };
+}
+
 async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians' | 'mafia' | 'jester', gameActionsMap: Map<number, any>) {
   const history = gameHistory.get(roomId) || [];
   const playersInRoom = await storage.getPlayersInRoom(roomId);
@@ -1649,6 +1677,8 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
   }
   crowdFavoriteVotes.delete(roomId);
 
+  const mvp = computeMvp(playersInRoom, winner);
+
   history.push({
     type: 'game_end',
     winner,
@@ -1661,8 +1691,21 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
     // live, mutable players list to render this screen.
     roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive })),
     crowdFavorite,
+    mvp,
   });
   gameHistory.set(roomId, history);
+
+  // Feature: MVP badge. Lifetime counter, incremented once per finished
+  // game — best-effort, same as the recap write below; a failure here
+  // shouldn't stop the game from actually ending.
+  if (mvp) {
+    try {
+      const mvpPlayer = playersInRoom.find((p: Player) => p.id === mvp.id);
+      await storage.updatePlayer(mvp.id, { mvpCount: (mvpPlayer?.mvpCount || 0) + 1 });
+    } catch (err) {
+      console.error("mvpCount update error:", err);
+    }
+  }
 
   // Feature: Game history + share. A permanent recap row, separate from the
   // gameHistory column below (which gets overwritten every time a new game
@@ -1678,6 +1721,7 @@ async function finalizeGameEnd(roomId: number, storage: any, winner: 'civilians'
         roles: playersInRoom.map((p: Player) => ({ id: p.id, name: p.name, role: p.role, avatar: p.avatar, isAlive: p.isAlive })),
         chronicle: history,
         crowdFavorite: crowdFavorite || null,
+        mvp: mvp || null,
         participantSupabaseUserIds: Array.from(new Set(playersInRoom.filter((p: Player) => p.supabaseUserId).map((p: Player) => p.supabaseUserId as string))),
       });
     }
@@ -4844,19 +4888,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // available balance is the difference. Unlocking a 5-win item when you
   // have exactly 5 wins brings your available balance to 0; you need to win
   // more real games to unlock anything else.
-  async function getWinsSummary(client: any, supabaseUserId: string): Promise<{ total: number; gamesPlayed: number; available: number }> {
+  async function getWinsSummary(client: any, supabaseUserId: string): Promise<{ total: number; gamesPlayed: number; available: number; mvpCount: number }> {
     const totalResult = await client.query(
-      "SELECT COALESCE(SUM(wins), 0)::int AS total, COALESCE(SUM(games_played), 0)::int AS games_played FROM players WHERE supabase_user_id = $1",
+      "SELECT COALESCE(SUM(wins), 0)::int AS total, COALESCE(SUM(games_played), 0)::int AS games_played, COALESCE(SUM(mvp_count), 0)::int AS mvp_count FROM players WHERE supabase_user_id = $1",
       [supabaseUserId]
     );
     const total = totalResult.rows[0]?.total ?? 0;
     const gamesPlayed = totalResult.rows[0]?.games_played ?? 0;
+    const mvpCount = totalResult.rows[0]?.mvp_count ?? 0;
     const spentResult = await client.query(
       "SELECT spent FROM account_win_spending WHERE supabase_user_id = $1",
       [supabaseUserId]
     );
     const spent = spentResult.rows[0]?.spent ?? 0;
-    return { total, gamesPlayed, available: Math.max(0, total - spent) };
+    return { total, gamesPlayed, available: Math.max(0, total - spent), mvpCount };
   }
   async function getAvailableWins(client: any, supabaseUserId: string): Promise<number> {
     return (await getWinsSummary(client, supabaseUserId)).available;
@@ -4865,7 +4910,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/account/wins", async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ wins: 0, totalWins: 0, gamesPlayed: 0 });
+      if (!supabaseUserId) return res.json({ wins: 0, totalWins: 0, gamesPlayed: 0, mvpCount: 0 });
       const client = await pool.connect();
       try {
         // Security fix: was returning only the spendable balance, which the
@@ -4876,12 +4921,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         // decreases, for Profile.tsx) are now both exposed here so each
         // page can use the right one.
         const summary = await getWinsSummary(client, supabaseUserId);
-        res.json({ wins: summary.available, totalWins: summary.total, gamesPlayed: summary.gamesPlayed });
+        res.json({ wins: summary.available, totalWins: summary.total, gamesPlayed: summary.gamesPlayed, mvpCount: summary.mvpCount });
       } finally {
         client.release();
       }
     } catch {
-      res.json({ wins: 0, totalWins: 0, gamesPlayed: 0 });
+      res.json({ wins: 0, totalWins: 0, gamesPlayed: 0, mvpCount: 0 });
     }
   });
 

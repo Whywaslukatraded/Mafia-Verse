@@ -503,7 +503,9 @@
     "enableNotifications": "Get notified when it's your turn",
     "yourTurnNotifTitle": "It's your turn",
     "yourTurnNotifVote": "Time to vote.",
-    "yourTurnNotifAction": "Time to use your night action."
+    "yourTurnNotifAction": "Time to use your night action.",
+    "mvpResult": "MVP: {{name}}",
+    "mvpLabel": "MVP"
   },
   "settings": {
     "title": "Settings",
@@ -540,7 +542,8 @@
     "errorTitle": "Error",
     "couldNotDisable2FA": "Could not disable 2FA",
     "somethingWentWrong": "Something went wrong",
-    "incorrectPassword": "Incorrect password"
+    "incorrectPassword": "Incorrect password",
+    "colorblindMode": "Colorblind-Safe Roles"
   },
   "notFound": {
     "title": "Dead End",
@@ -627,7 +630,8 @@
     "currentStreak": "Current Streak",
     "bestStreak": "Best Streak",
     "achievementHall": "Achievement Hall",
-    "notYetUnlocked": "Not yet unlocked"
+    "notYetUnlocked": "Not yet unlocked",
+    "mvpCount": "MVPs"
   },
   "authCallback": {
     "authFailed": "Authentication failed",

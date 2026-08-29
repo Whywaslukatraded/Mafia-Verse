@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings, Users } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings, Users, Crown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -79,6 +79,7 @@ export default function Profile() {
   // lifetime total instead of reusing that spendable one.
   const [dbTotalWins, setDbTotalWins] = useState<number | null>(null);
   const [dbGamesPlayed, setDbGamesPlayed] = useState<number | null>(null);
+  const [dbMvpCount, setDbMvpCount] = useState<number | null>(null);
   useEffect(() => {
     (async () => {
       if (!isSupabaseReady()) return;
@@ -92,6 +93,7 @@ export default function Profile() {
         const body = await res.json();
         if (typeof body.totalWins === "number") setDbTotalWins(body.totalWins);
         if (typeof body.gamesPlayed === "number") setDbGamesPlayed(body.gamesPlayed);
+        if (typeof body.mvpCount === "number") setDbMvpCount(body.mvpCount);
       } catch {}
     })();
   }, []);
@@ -124,6 +126,7 @@ export default function Profile() {
   const displayGamesPlayed = dbGamesPlayed !== null ? dbGamesPlayed : (stats.gamesPlayed || 0);
   const losses = Math.max(0, displayGamesPlayed - displayWins);
   const winRate = displayGamesPlayed > 0 ? Math.round((displayWins / displayGamesPlayed) * 100) : 0;
+  const mvpCount = dbMvpCount ?? 0;
   const earnedAchievements = new Set(stats.achievements || []);
 
   const ROLE_STATS = [
@@ -187,13 +190,14 @@ export default function Profile() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {[
               { icon: Trophy, label: t("profile.wins"), value: displayWins, color: "text-yellow-500" },
               { icon: Skull, label: t("profile.losses"), value: losses, color: "text-red-500" },
               { icon: Target, label: t("profile.games"), value: displayGamesPlayed, color: "text-blue-500" },
               { icon: TrendingUp, label: t("profile.winPercent"), value: `${winRate}%`, color: "text-emerald-500" },
               { icon: Flame, label: t("profile.credits"), value: credits, color: "text-amber-500" },
+              { icon: Crown, label: t("profile.mvpCount", "MVPs"), value: mvpCount, color: "text-yellow-400" },
             ].map(stat => (
               <div key={stat.label} className="bg-card/80 ring-1 ring-border rounded-xl p-3 flex flex-col items-center gap-1.5">
                 <stat.icon className={cn("w-4 h-4", stat.color)} />

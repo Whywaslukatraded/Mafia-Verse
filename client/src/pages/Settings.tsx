@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, CheckCircle2, AlertTriangle, Loader2, Play, Languages, Mail, Smartphone } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Volume2, VolumeX, Bell, BellOff, Shield, CheckCircle2, AlertTriangle, Loader2, Play, Languages, Mail, Smartphone, Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,13 @@ export default function Settings() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     const saved = localStorage.getItem("mafia_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
+  });
+  // Feature: Colorblind-safe roles. Same on/off shape as darkMode above;
+  // consumed by PlayerCard.tsx and RoleBadge.tsx via useColorblindMode(),
+  // which reads this exact key.
+  const [colorblindMode, setColorblindMode] = useState(() => {
+    const saved = localStorage.getItem("mafia_colorblind_mode");
+    return saved !== null ? JSON.parse(saved) : false;
   });
   // Feature fix: 2FA status/disable now checks the Supabase-based system
   // (userMfa table) that TwoFactorSetup/TwoFactorVerify actually use, instead
@@ -248,6 +255,36 @@ export default function Settings() {
                   className={cn(
                     "inline-block h-6 w-6 transform rounded-full bg-white transition-transform",
                     darkMode ? "translate-x-7" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                <Palette className="w-5 h-5 text-teal-400" />
+                <div>
+                  <p className="text-sm font-bold text-foreground">{t("settings.colorblindMode", "Colorblind-Safe Roles")}</p>
+                  <p className="text-xs text-muted-foreground">{colorblindMode ? t("settings.on") : t("settings.off")}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !colorblindMode;
+                  setColorblindMode(next);
+                  localStorage.setItem("mafia_colorblind_mode", JSON.stringify(next));
+                  window.dispatchEvent(new Event("storage"));
+                }}
+                className={cn(
+                  "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
+                  colorblindMode ? "bg-teal-600" : "bg-gray-300"
+                )}
+                data-testid="toggle-colorblind-mode"
+              >
+                <span
+                  className={cn(
+                    "inline-block h-6 w-6 transform rounded-full bg-white transition-transform",
+                    colorblindMode ? "translate-x-7" : "translate-x-1"
                   )}
                 />
               </button>
