@@ -2042,6 +2042,7 @@ export default function Room() {
               isSpectator={(isSpectator ?? false) || !(me?.isAlive ?? true)}
               players={players}
               mafiaChatAvailable={gameState?.mafiaChatAvailable ?? false}
+              gameEnded={room.status === "ended"}
             />
           </div>
         </div>

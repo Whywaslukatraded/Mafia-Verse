@@ -2407,13 +2407,20 @@ async function broadcastState(roomId: number) {
       const revealedMayorIds = Array.from(mayorRevealed.get(roomId) || []);
       const myBullets = me?.role === 'vigilante' ? (vigilanteBullets.get(roomId)?.get(me.id) ?? 0) : undefined;
 
-      // Graveyard chat: messages tagged isSpectator (sent by dead players)
-      // are only visible to other dead players — anyone still alive in the
-      // game only sees the normal in-game chat.
+      // Graveyard chat: messages tagged isSpectator (sent by dead players and
+      // regular spectators — anyone with isAlive: false) are only visible to
+      // other dead players/spectators while the match is still live. Once
+      // room.status is 'ended', it opens up to everyone — same principle as
+      // Final Roles Revealed showing everyone's role regardless of who
+      // survived, since there's no more strategic advantage to hiding it
+      // after the game is actually over.
       // Mafia chat: messages tagged isMafiaChat are only sent to alive mafia
-      // players — never to the rest of the room, not even at the network level.
+      // players — never to the rest of the room, not even at the network level,
+      // and never reopens after the game ends (unlike graveyard chat above) —
+      // it was a means to an end during play, not something meant to be a
+      // post-game reveal the way the graveyard's conversation is.
       const visibleMessages = messages.filter((m: Message) => {
-        if ((m as any).isSpectator) return !!me && !me.isAlive;
+        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive);
         if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
         return true;
       });
@@ -3091,7 +3098,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         rooms: openRooms.map(({ room, playerCount }) => ({
           code: room.code,
           roomName: (room.settings as any)?.roomName || null,
-          status: room.status,
+          // Normalized to exactly 'lobby' | 'in-progress' — the browser UI
+          // only ever needs to draw that binary distinction (joinable vs.
+          // spectate-only), not the underlying day/night/voting phase.
+          status: room.status === "lobby" ? "lobby" : "in-progress",
           playerCount,
           maxPlayers: MAX_PLAYERS_PER_ROOM,
         })),
@@ -3202,8 +3212,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // reasoning — same sessionId/supabaseUserId leak existed here too.
       const sanitizedPlayers = redactPrivateFields(roleSanitizedPlayers, me?.id);
 
+      // Graveyard chat: same rule as broadcastState above — visible to dead
+      // players/spectators during play, and to everyone once room.status is
+      // 'ended'. Mafia chat never reopens post-game.
       const visibleMessages = messages.filter((m: Message) => {
-        if ((m as any).isSpectator) return !!me && !me.isAlive;
+        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive);
         if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
         return true;
       });

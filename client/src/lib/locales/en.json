@@ -286,11 +286,11 @@
     "matching": "Matching...",
     "noOpenRooms": "No open public rooms right now — try Quick Match to start one.",
     "inLobby": "In lobby",
-    "inProgress": "In progress — join as spectator",
     "join": "Join",
     "watch": "Watch",
     "needNameTitle": "Enter a name first",
-    "quickMatchFailed": "Quick Match failed"
+    "quickMatchFailed": "Quick Match failed",
+    "spectateOnly": "Spectate Only"
   },
   "room": {
     "linkCopied": "Link copied!",

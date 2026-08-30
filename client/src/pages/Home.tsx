@@ -1219,7 +1219,7 @@ export default function Home() {
                           <div className="min-w-0">
                             <div className="text-sm font-bold text-foreground truncate">{r.roomName || r.code}</div>
                             <div className="text-xs text-muted-foreground">
-                              {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.inProgress", "In progress — join as spectator")}
+                              {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.spectateOnly", "Spectate Only")}
                               {" · "}{r.playerCount}/{r.maxPlayers}
                             </div>
                           </div>

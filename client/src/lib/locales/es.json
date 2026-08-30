@@ -286,11 +286,11 @@
     "matching": "Buscando...",
     "noOpenRooms": "No hay salas públicas abiertas ahora — prueba Partida Rápida para crear una.",
     "inLobby": "En espera",
-    "inProgress": "En curso — únete como espectador",
     "join": "Unirse",
     "watch": "Ver",
     "needNameTitle": "Ingresa un nombre primero",
-    "quickMatchFailed": "Partida Rápida falló"
+    "quickMatchFailed": "Partida Rápida falló",
+    "spectateOnly": "Solo Espectador"
   },
   "room": {
     "linkCopied": "¡Enlace copiado!",

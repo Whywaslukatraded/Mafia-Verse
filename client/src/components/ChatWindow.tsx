@@ -20,11 +20,17 @@ interface ChatWindowProps {
     players?: any[];
     notify?: (title: string, options?: NotificationOptions) => void;
     mafiaChatAvailable?: boolean;
+    // Feature: graveyard chat opens to everyone once the game is over —
+    // room.status === 'ended' on the Room.tsx side. Kept as its own prop
+    // rather than folding into isSpectator so "can view the graveyard" and
+    // "was actually in the graveyard" stay distinguishable below (a
+    // survivor can look, but never gets to post into it).
+    gameEnded?: boolean;
 }
 
 type Reactions = Record<number, Record<string, Set<number>>>;
 
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable, gameEnded }: ChatWindowProps) {
     const { t } = useTranslation();
     // Quick chat templates live in translation files so the messages sent match
     // whichever language the sender has selected.
@@ -54,13 +60,20 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const gameMessages = useMemo(() => messages.filter(msg => !msg.isSpectator && !(msg as any).isMafiaChat), [messages]);
     const graveyardMessages = useMemo(() => messages.filter(msg => msg.isSpectator), [messages]);
     const mafiaMessages = useMemo(() => messages.filter(msg => (msg as any).isMafiaChat), [messages]);
+    // Can VIEW the graveyard tab: actual spectators/eliminated players any
+    // time, or anyone at all once the game has ended. Only real spectators
+    // can POST into it — checked separately below wherever posting is
+    // gated, so a survivor looking back after the game can read it but
+    // never write into what was, at the time, a conversation they weren't
+    // part of.
+    const canViewGraveyard = !!isSpectator || !!gameEnded;
     const filteredMessages = useMemo(() => (
         mafiaChatAvailable && activeTab === "mafia"
             ? mafiaMessages
-            : isSpectator
+            : canViewGraveyard
                 ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
                 : gameMessages
-    ), [mafiaChatAvailable, activeTab, mafiaMessages, isSpectator, graveyardMessages, gameMessages]);
+    ), [mafiaChatAvailable, activeTab, mafiaMessages, canViewGraveyard, graveyardMessages, gameMessages]);
 
     // Persist reactions in localStorage to survive state updates
     useEffect(() => {
@@ -199,6 +212,13 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
       }
     };
 
+    // Posting is blocked on the game tab for actual spectators (read-only,
+    // pre-existing rule), and on the graveyard tab for anyone who ISN'T an
+    // actual spectator — a survivor can look back at graveyard chat once
+    // gameEnded, but never gets to post into a conversation they weren't
+    // part of at the time.
+    const canPostHere = !((isSpectator && activeTab === "game") || (activeTab === "graveyard" && !isSpectator));
+
     return (
         <div className="flex flex-col h-[400px] border rounded-lg bg-card overflow-hidden">
             <div className="border-b bg-muted/50">
@@ -226,6 +246,31 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                             <Ghost className="w-3.5 h-3.5" />
                             {t("chat.graveyardChat")}
                             <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">{t("chat.secret")}</span>
+                        </button>
+                    </div>
+                ) : gameEnded ? (
+                    <div className="flex">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("game")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "game" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {t("chat.roomChat")}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("graveyard")}
+                            className={cn(
+                                "flex-1 p-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors border-b-2",
+                                activeTab === "graveyard" ? "border-blue-400 text-blue-400" : "border-transparent text-muted-foreground hover:text-blue-400"
+                            )}
+                        >
+                            <Ghost className="w-3.5 h-3.5" />
+                            {t("chat.graveyardChat")}
                         </button>
                     </div>
                 ) : mafiaChatAvailable ? (
@@ -360,13 +405,13 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 </div>
             </ScrollArea>
       <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
-        {isSpectator && activeTab === "game" && (
+        {!canPostHere && (
             <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">{t("chat.gameChatReadOnly")}</p>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Popover open={presetPopoverOpen} onOpenChange={(open) => { setPresetPopoverOpen(open); if (!open) setPendingPresetMsg(null); }}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={(isSpectator && activeTab === "game") || !currentPlayerId}>
+              <Button type="button" variant="outline" size="icon" className="shrink-0 h-10 w-10" disabled={!canPostHere || !currentPlayerId}>
                 <MessageSquare className="w-4 h-4" />
               </Button>
             </PopoverTrigger>
@@ -433,14 +478,14 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             placeholder={
                 mafiaChatAvailable && activeTab === "mafia"
                     ? t("chat.mafiaTypeAMessage")
-                    : isSpectator
-                        ? (activeTab === "game" ? t("chat.gameChatReadOnly") : t("chat.typeAMessage"))
+                    : !canPostHere
+                        ? t("chat.gameChatReadOnly")
                         : (!currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage"))
             }
             className="bg-background h-10"
-            disabled={(isSpectator && activeTab === "game") || !currentPlayerId}
+            disabled={!canPostHere || !currentPlayerId}
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || (isSpectator && activeTab === "game") || !currentPlayerId} className="shrink-0 h-10 w-10">
+          <Button type="submit" size="icon" disabled={!input.trim() || !canPostHere || !currentPlayerId} className="shrink-0 h-10 w-10">
             <Send className="w-4 h-4" />
           </Button>
         </form>
