@@ -3,6 +3,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 interface GameAudioProps {
   phase: string;
   status: string;
+  // Feature: vote/night-action countdown tick. Optional and defaults to
+  // undefined-safe below — existing callers that don't pass it (if any)
+  // simply get no ticking, same as before this feature existed.
+  timeRemaining?: number;
 }
 
 // Web Audio API synthesizer - no external files needed
@@ -351,16 +355,44 @@ class AudioEngine {
       osc.stop(now + i * 0.18 + 0.45);
     });
   }
+  // Feature: countdown tick — a short, dry, unobtrusive click (not a full
+  // chime like the phase-transition cues above) meant to be heard once per
+  // second in the last few seconds of a timed phase, so it can't feel like
+  // it's competing with those cues for attention. Pitch rises slightly as
+  // secondsLeft counts down toward 0, a small extra urgency cue on top of
+  // the rhythm itself.
+  playCountdownTick(secondsLeft: number) {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    const pitch = secondsLeft <= 1 ? 1200 : secondsLeft <= 3 ? 1000 : 850;
+    osc.frequency.value = pitch;
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
 }
 
 const engine = new AudioEngine();
 
-export function GameAudio({ phase, status }: GameAudioProps) {
+export function GameAudio({ phase, status, timeRemaining }: GameAudioProps) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundVolume, setSoundVolume] = useState(0.7);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const prevStatusRef = useRef<string>("");
   const prevPhaseRef = useRef<string>("");
+  // Feature: countdown tick. Tracks the last whole-second value already
+  // ticked for, so a re-render that doesn't actually cross a new second
+  // boundary (timeRemaining is often reported with sub-second precision)
+  // can't fire the same tick twice.
+  const lastTickedSecondRef = useRef<number | null>(null);
 
   // Sync settings from localStorage
   useEffect(() => {
@@ -451,6 +483,28 @@ export function GameAudio({ phase, status }: GameAudioProps) {
 
     prevPhaseRef.current = phase;
   }, [phase, soundEnabled, audioUnlocked]);
+
+  // Feature: countdown tick. Only during phases where someone might
+  // actually need to act before time runs out — voting and the night-role
+  // action phases — deliberately not discussion (its timer is much longer
+  // and less consequential to miss) or lobby/ended (no countdown that
+  // matters there). Resets lastTickedSecondRef whenever the phase changes
+  // so a tick from the previous phase's final seconds can't leak into a
+  // freshly-started phase that happens to also be at a low second count.
+  const TICKABLE_PHASES = ["voting", "mafia", "doctor", "detective", "bodyguard", "vigilante"];
+  useEffect(() => {
+    lastTickedSecondRef.current = null;
+  }, [phase]);
+  useEffect(() => {
+    if (!soundEnabled || !audioUnlocked) return;
+    if (typeof timeRemaining !== "number") return;
+    if (!TICKABLE_PHASES.includes(phase)) return;
+    const secondsLeft = Math.ceil(timeRemaining);
+    if (secondsLeft < 0 || secondsLeft > 5) return;
+    if (lastTickedSecondRef.current === secondsLeft) return;
+    lastTickedSecondRef.current = secondsLeft;
+    if (secondsLeft > 0) engine.playCountdownTick(secondsLeft);
+  }, [timeRemaining, phase, soundEnabled, audioUnlocked]);
 
   return null;
 }

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { pool } from "./db";
-import { users, rooms, players, messages, friendships, gameRecaps, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap } from "@shared/schema";
+import { users, rooms, players, messages, friendships, gameRecaps, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
@@ -148,6 +148,10 @@ export interface IStorage {
   createGameRecap(recap: Omit<GameRecap, "id" | "shareId" | "endedAt">): Promise<GameRecap>;
   getRecapByShareId(shareId: string): Promise<GameRecap | undefined>;
   getRecapsForUser(supabaseUserId: string): Promise<GameRecap[]>;
+
+  // Feature: public room browser + matchmaking
+  getOpenPublicRooms(): Promise<{ room: Room; playerCount: number }[]>;
+  findQuickMatchRoom(): Promise<Room | undefined>;
 
   // Helper to generate unique room code
   generateRoomCode(): Promise<string>;
@@ -298,6 +302,33 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayersInRoom(roomId: number): Promise<Player[]> {
     return await db.select().from(players).where(eq(players.roomId, roomId));
+  }
+
+  // Feature: public room browser + matchmaking. Both queries only ever look
+  // at rooms with no isPrivate flag set — a private lobby should never
+  // surface here even if a browser page happens to load right as one gets
+  // created, same enforcement the join endpoint already does at the door.
+  // Ended rooms are excluded outright: nothing to browse into or spectate
+  // once a match is over.
+  async getOpenPublicRooms(): Promise<{ room: Room; playerCount: number }[]> {
+    const allRooms = await db.select().from(rooms).where(sql`(${rooms.settings}->>'isPrivate') IS DISTINCT FROM 'true'`);
+    const openRooms = allRooms.filter((r) => r.status !== "ended");
+    const counts = await Promise.all(openRooms.map(async (r) => ({
+      room: r,
+      playerCount: (await db.select().from(players).where(eq(players.roomId, r.id))).length,
+    })));
+    // Lobby rooms only count as "open" while there's still a free seat;
+    // in-progress rooms are always listed since spectating has no seat cap.
+    return counts.filter(({ room, playerCount }) => room.status !== "lobby" || playerCount < MAX_PLAYERS_PER_ROOM);
+  }
+
+  // Oldest eligible lobby first (by id, which is insertion order) — keeps
+  // Quick Match from always funneling everyone into the exact same freshly
+  // created room while an older, still-open one sits ignored.
+  async findQuickMatchRoom(): Promise<Room | undefined> {
+    const openLobbies = (await this.getOpenPublicRooms()).filter(({ room }) => room.status === "lobby");
+    openLobbies.sort((a, b) => a.room.id - b.room.id);
+    return openLobbies[0]?.room;
   }
 
   async deletePlayer(id: number): Promise<void> {

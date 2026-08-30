@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, users, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
+import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, users, MAX_PLAYERS_PER_ROOM, END_SCREEN_REACTIONS } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -2297,13 +2297,64 @@ const gameActions = new Map<number, {
   shots: Map<number, number>
 }>();
 
+// Feature: End-screen reactions. Ephemeral — not stored anywhere, not part
+// of GameState, just relayed to whoever's currently connected to this room
+// via the same roomClients/clients session index broadcastState uses.
+// Anyone connected after this fires simply never sees it, which is correct
+// for a live "flair" reaction, not a replay of past reactions.
+function broadcastReaction(roomId: number, payload: { id: string; emoji: string; playerName: string }) {
+  const sessions = roomClients.get(roomId);
+  if (!sessions || sessions.size === 0) return;
+  sessions.forEach((sessionId) => {
+    const ws = clients.get(sessionId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: WS_EVENTS.REACTION, payload }));
+    }
+  });
+}
+
+// Feature: Player title tags. wins/gamesPlayed/mvpCount on a Player row are
+// per-room-session counters, not lifetime totals (see getWinsSummary above,
+// which SUMs across every room row for an account) — so a tier computed
+// straight from a single player row would reset every time someone joins a
+// new room. This does one batched query for every distinct supabaseUserId
+// currently in the room and attaches the resulting lifetime tier directly
+// onto each player object before it's sent to clients. Guests/bots (no
+// supabaseUserId) simply get titleTier: null — title tags are opt-in to
+// having an account, same tradeoff friendships and private-lobby invites
+// already make.
+const TITLE_TIERS = [
+  { id: "legend", minWins: 20, minMvp: 5 },
+  { id: "veteran", minWins: 5, minMvp: 0 },
+] as const;
+async function attachTitleTiers<T extends Player>(players: T[]): Promise<(T & { titleTier: string | null })[]> {
+  const ids = Array.from(new Set(players.map((p) => p.supabaseUserId).filter((id): id is string => !!id)));
+  if (ids.length === 0) return players.map((p) => ({ ...p, titleTier: null }));
+  try {
+    const result = await pool.query(
+      "SELECT supabase_user_id, COALESCE(SUM(wins), 0)::int AS total_wins, COALESCE(SUM(mvp_count), 0)::int AS total_mvp FROM players WHERE supabase_user_id = ANY($1) GROUP BY supabase_user_id",
+      [ids]
+    );
+    const byId = new Map(result.rows.map((r: any) => [r.supabase_user_id, { wins: r.total_wins, mvp: r.total_mvp }]));
+    return players.map((p) => {
+      const totals = p.supabaseUserId ? byId.get(p.supabaseUserId) : null;
+      if (!totals) return { ...p, titleTier: null };
+      const tier = TITLE_TIERS.find((t) => totals.wins >= t.minWins || totals.mvp >= t.minMvp);
+      return { ...p, titleTier: tier?.id ?? null };
+    });
+  } catch (err) {
+    console.error("attachTitleTiers error:", err);
+    return players.map((p) => ({ ...p, titleTier: null }));
+  }
+}
+
 async function broadcastState(roomId: number) {
   const sessions = roomClients.get(roomId);
   if (!sessions || sessions.size === 0) return;
 
   const room = await storage.getRoom(roomId);
   if (!room) return;
-  const players = await storage.getPlayersInRoom(roomId);
+  const players = await attachTitleTiers(await storage.getPlayersInRoom(roomId));
   
   let messages: Message[] = [];
   try {
@@ -3030,6 +3081,89 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Feature: public room browser. Deliberately unauthenticated (like the
+  // recap-by-shareId route) — browsing what's open is meant to be as easy
+  // as looking at a lobby list in any other party game, no sign-in wall.
+  app.get("/api/rooms/public", roomLookupLimiter, async (_req, res) => {
+    try {
+      const openRooms = await storage.getOpenPublicRooms();
+      res.json({
+        rooms: openRooms.map(({ room, playerCount }) => ({
+          code: room.code,
+          roomName: (room.settings as any)?.roomName || null,
+          status: room.status,
+          playerCount,
+          maxPlayers: MAX_PLAYERS_PER_ROOM,
+        })),
+      });
+    } catch (err) {
+      console.error("GET /api/rooms/public error:", err);
+      res.status(500).json({ message: "Failed to load open rooms." });
+    }
+  });
+
+  // Feature: Quick Match. Finds the oldest open public lobby with a free
+  // seat and joins it; if none exist, creates a brand-new public room
+  // (same default role counts Home.tsx's own create-room form starts with)
+  // with this player as host. Either way returns the same {code, playerId,
+  // sessionId} shape room creation does, so the client can reuse its
+  // existing "just joined, now navigate to the room" flow without a
+  // separate response shape to handle.
+  app.post("/api/rooms/quick-match", roomJoinLimiter, async (req, res) => {
+    try {
+      const name = typeof req.body?.name === "string" ? req.body.name.slice(0, 40) : "Player";
+      const avatar = typeof req.body?.avatar === "string" ? req.body.avatar : "🙂";
+      const avatarConfig = req.body?.avatarConfig || {};
+      const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
+
+      let room = await storage.findQuickMatchRoom();
+      let isHost = false;
+      if (!room) {
+        room = await storage.createRoom({
+          mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
+          bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
+          phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+          bodyguardDuration: 15, vigilanteDuration: 15,
+          roomName: `${name}'s Quick Match`,
+          isPrivate: false,
+        } as any);
+        isHost = true;
+      }
+
+      const existingPlayers = await storage.getPlayersInRoom(room.id);
+      if (existingPlayers.length >= MAX_PLAYERS_PER_ROOM) {
+        return res.status(409).json({ message: "That room just filled up — try again." });
+      }
+
+      const sessionId = randomUUID();
+      const player = await storage.createPlayer({
+        roomId: room.id,
+        name,
+        avatar,
+        avatarConfig,
+        role: null,
+        isAlive: room.status === "lobby",
+        isHost: isHost || existingPlayers.length === 0,
+        sessionId,
+        supabaseUserId: verifiedSupabaseUserId,
+        isSpectator: room.status !== "lobby",
+        isBot: false,
+        isReady: false,
+        wins: 0,
+        gamesPlayed: 0,
+        achievements: [],
+        gameHistory: [],
+        credits: 0,
+      });
+
+      res.json({ code: room.code, playerId: player.id, sessionId });
+      broadcastState(room.id);
+    } catch (err: any) {
+      console.error("POST /api/rooms/quick-match error:", err);
+      res.status(500).json({ message: "Quick Match failed. Please try again." });
+    }
+  });
+
   app.get(api.rooms.get.path, roomLookupLimiter, async (req, res) => {
     try {
       const code = (req.params as any).code as string;
@@ -3038,7 +3172,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const room = await storage.getRoomByCode(code);
       if (!room) return res.status(404).json({ message: "Room not found" });
 
-      const players = await storage.getPlayersInRoom(room.id);
+      const players = await attachTitleTiers(await storage.getPlayersInRoom(room.id));
       const messages = await storage.getMessagesByRoom(room.id);
 
       // Security fix (#5): this used to return raw `players` (including the
@@ -3717,6 +3851,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                if (!crowdFavoriteVotes.has(myRoomId)) crowdFavoriteVotes.set(myRoomId, new Map());
                crowdFavoriteVotes.get(myRoomId)!.set(me.id, target.id);
                broadcastState(myRoomId);
+             }
+             return;
+           }
+
+           if (action.type === 'end_screen_reaction') {
+             // Only makes sense once a game has actually ended, and the
+             // emoji is checked against the same fixed whitelist the client
+             // buttons are built from — never trust the client not to send
+             // something else here.
+             const emoji = (action as any).emoji;
+             if (myRoomId && me && room.status === 'ended' && END_SCREEN_REACTIONS.includes(emoji)) {
+               broadcastReaction(myRoomId, { id: `${me.id}-${Date.now()}`, emoji, playerName: me.name });
              }
              return;
            }

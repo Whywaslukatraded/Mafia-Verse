@@ -524,6 +524,67 @@ export default function Home() {
   // Feature: deliberate "Join as Spectator" — lets someone watch a room on
   // purpose instead of only ever spectating by accident (joining late).
   const [joinAsSpectator, setJoinAsSpectator] = useState(false);
+
+  // Feature: public room browser + Quick Match.
+  const [publicRooms, setPublicRooms] = useState<{ code: string; roomName: string | null; status: string; playerCount: number; maxPlayers: number }[]>([]);
+  const [loadingPublicRooms, setLoadingPublicRooms] = useState(true);
+  const [quickMatching, setQuickMatching] = useState(false);
+  const loadPublicRooms = async () => {
+    try {
+      const res = await fetch("/api/rooms/public");
+      const data = await res.json();
+      setPublicRooms(data.rooms || []);
+    } catch {
+      // Non-critical — the list just stays empty/stale rather than
+      // surfacing a toast for what's essentially a background refresh.
+    } finally {
+      setLoadingPublicRooms(false);
+    }
+  };
+  useEffect(() => {
+    loadPublicRooms();
+  }, []);
+  const handleQuickMatch = async () => {
+    if (!name) {
+      toast({ title: t("home.needNameTitle", "Enter a name first"), variant: "destructive" });
+      return;
+    }
+    setQuickMatching(true);
+    try {
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const res = await fetch("/api/rooms/quick-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ name: name.trim(), avatar, avatarConfig: config }),
+      });
+      if (!res.ok) throw new Error((await res.json())?.message || "Quick Match failed");
+      const result = await res.json();
+      localStorage.setItem(`mafia_session_${result.code}`, result.sessionId);
+      localStorage.setItem(`mafia_player_${result.code}`, result.playerId.toString());
+      setLocation(`/room/${result.code}`);
+    } catch (err: any) {
+      toast({ title: t("home.quickMatchFailed", "Quick Match failed"), description: err?.message, variant: "destructive" });
+    } finally {
+      setQuickMatching(false);
+    }
+  };
+  const handleJoinPublicRoom = async (code: string) => {
+    if (!name) {
+      toast({ title: t("home.needNameTitle", "Enter a name first"), variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await joinRoom.mutateAsync({ name, avatar, code, avatarConfig: config, asSpectator: false, supabaseUserId: user?.id } as any);
+      localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
+      localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      setLocation(`/room/${res.code}`);
+    } catch (err: any) {
+      toast({ title: t("home.failedToJoin", "Couldn't join that room"), description: err?.message, variant: "destructive" });
+    }
+  };
+
   const [showDailyRewards, setShowDailyRewards] = useState(false);
   const [showAdRewards, setShowAdRewards] = useState(false);
   const [showRating, setShowRating] = useState(false);
@@ -1137,6 +1198,39 @@ export default function Home() {
                     {joinRoom.isPending ? t("home.joining") : t("home.enterAbyss")}
                   </Button>
                 </form>
+
+                {/* Feature: public room browser + Quick Match */}
+                <div className="mt-6 pt-6 border-t border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t("home.findAGame", "Find a Game")}</h3>
+                    <Button size="sm" onClick={handleQuickMatch} disabled={quickMatching || !name} className="gap-2" data-testid="button-quick-match">
+                      <Sparkles className="w-4 h-4" />
+                      {quickMatching ? t("home.matching", "Matching...") : t("home.quickMatch", "Quick Match")}
+                    </Button>
+                  </div>
+                  {loadingPublicRooms ? (
+                    <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
+                  ) : publicRooms.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">{t("home.noOpenRooms", "No open public rooms right now — try Quick Match to start one.")}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {publicRooms.map((r) => (
+                        <div key={r.code} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{r.roomName || r.code}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.inProgress", "In progress — join as spectator")}
+                              {" · "}{r.playerCount}/{r.maxPlayers}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(r.code)} disabled={!name} data-testid={`button-join-public-${r.code}`}>
+                            {r.status === "lobby" ? t("home.join", "Join") : t("home.watch", "Watch")}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

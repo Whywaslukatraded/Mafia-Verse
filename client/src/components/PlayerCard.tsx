@@ -8,7 +8,7 @@ import { getRoleColors } from "@/lib/roleColors";
 import { useColorblindMode } from "@/hooks/use-colorblind-mode";
 
 interface PlayerCardProps {
-  player: Player;
+  player: Player & { titleTier?: string | null };
   isMe: boolean;
   canInteract: boolean;
   interactionLabel?: string;
@@ -30,6 +30,11 @@ const ROLE_ICONS: Record<string, any> = {
   vigilante: Crosshair,
   mayor: Landmark,
   jester: Drama,
+};
+
+const TITLE_TIER_META: Record<string, { labelKey: string; className: string }> = {
+  veteran: { labelKey: "veteran", className: "bg-slate-400/20 text-slate-300" },
+  legend: { labelKey: "legend", className: "bg-amber-400/20 text-amber-300" },
 };
 
 export function PlayerCard({ 
@@ -128,6 +133,11 @@ export function PlayerCard({
         )}>
           <span className="break-words line-clamp-2">{player.name}</span>
           {player.isBot && <span className="text-[8px] bg-muted px-1 rounded text-muted-foreground font-normal">{t("playerCard.bot")}</span>}
+          {player.titleTier && TITLE_TIER_META[player.titleTier] && (
+            <span className={cn("text-[8px] px-1 py-0.5 rounded-full font-bold uppercase tracking-wide", TITLE_TIER_META[player.titleTier].className)}>
+              {t(`playerCard.titleTiers.${TITLE_TIER_META[player.titleTier].labelKey}`)}
+            </span>
+          )}
           {isMe && <span className="ml-0.5 text-[10px] text-muted-foreground font-normal">{t("playerCard.you")}</span>}
           {isMe && typeof myBulletsLeft === "number" && (
             <span className="ml-0.5 text-[8px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded-full font-bold">

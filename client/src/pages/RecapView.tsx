@@ -71,6 +71,18 @@ export default function RecapView() {
   const jesterName = jesterWon ? recap.roles.find((r) => r.role === "jester")?.name : undefined;
   const aliveMafiaAtEnd = recap.roles.filter((r) => r.role === "mafia" && r.isAlive).length;
 
+  // Feature: Detective's Report — same shape as Room.tsx's version, shown
+  // to everyone viewing this public recap since it's historical fact by
+  // this point, not a private insight tied to who's looking at it.
+  const detectivePlayer = recap.roles.find((r) => r.role === "detective");
+  const detectiveChecks: { turn: number; target: string; isMafia: boolean }[] = detectivePlayer
+    ? recap.chronicle
+        .filter((entry: any) => entry?.type === "night" && entry.events)
+        .flatMap((entry: any) => entry.events
+          .filter((ev: any) => ev.type === "detective_check")
+          .map((ev: any) => ({ turn: entry.turn, target: ev.target, isMafia: !!ev.isMafia })))
+    : [];
+
   return (
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -125,6 +137,28 @@ export default function RecapView() {
             ))}
           </div>
         </div>
+
+        {detectivePlayer && detectiveChecks.length > 0 && (
+          <Card className="bg-card border-border mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl font-serif">
+                <Search className="w-5 h-5 text-blue-400" />
+                {t("room.detectiveReport", "Detective's Report — {{name}}", { name: detectivePlayer.name })}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {detectiveChecks.map((c, i) => (
+                <div key={i} className="text-sm flex items-center gap-2">
+                  <span className="text-muted-foreground">{t("room.nightN", { turn: c.turn })}:</span>
+                  <span className="font-bold text-foreground">{c.target}</span>
+                  <span className={c.isMafia ? "text-red-400 font-bold" : "text-muted-foreground"}>
+                    {c.isMafia ? t("room.mafiaLabel") : t("roleBadge.civilian")}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="bg-card border-border">
           <CardHeader>

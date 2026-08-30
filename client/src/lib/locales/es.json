@@ -147,7 +147,7 @@
     },
     "inappropriateName": "Nombre inapropiado",
     "inappropriateNameDescription": "Tu nombre contiene lenguaje inapropiado.",
-    "failedToJoin": "No se pudo unir",
+    "failedToJoin": "No se pudo unir a esa sala",
     "nameRequired": "Se requiere un nombre",
     "nameRequiredDescription": "Ingresa tu nombre antes de crear una sala.",
     "needMafia": "Necesitas un Mafioso",
@@ -280,7 +280,17 @@
     "voteAnonymityExplainer": "La votación es anónima de forma predeterminada — todos ven quién murió y a quién eliminaron por votación, pero no quién votó por quién. Activa \"Resultados de votación\" para revelar cada voto.",
     "roleRevealExplainer": "Revelar rol muestra el rol de quien sea eliminado por votación o asesinado por la mafia (por ejemplo, \"Médico\"). Desactívalo para mostrar solo que fue eliminado, manteniendo todos los roles en secreto.",
     "preparing": "PREPARANDO...",
-    "createRoomButton": "CREAR SALA"
+    "createRoomButton": "CREAR SALA",
+    "findAGame": "Buscar Partida",
+    "quickMatch": "Partida Rápida",
+    "matching": "Buscando...",
+    "noOpenRooms": "No hay salas públicas abiertas ahora — prueba Partida Rápida para crear una.",
+    "inLobby": "En espera",
+    "inProgress": "En curso — únete como espectador",
+    "join": "Unirse",
+    "watch": "Ver",
+    "needNameTitle": "Ingresa un nombre primero",
+    "quickMatchFailed": "Partida Rápida falló"
   },
   "room": {
     "linkCopied": "¡Enlace copiado!",
@@ -505,7 +515,9 @@
     "yourTurnNotifVote": "Hora de votar.",
     "yourTurnNotifAction": "Hora de usar tu acción nocturna.",
     "mvpResult": "MVP: {{name}}",
-    "mvpLabel": "MVP"
+    "mvpLabel": "MVP",
+    "myVoteRecord": "Votaste por la mafia {{correct}} de {{total}} veces.",
+    "detectiveReport": "Informe del Detective — {{name}}"
   },
   "settings": {
     "title": "Ajustes",
@@ -894,7 +906,11 @@
     "you": "(Tú)",
     "roleEliminated": "{{role}} — Eliminado",
     "eliminated": "Eliminado",
-    "revealed": "Revelado"
+    "revealed": "Revelado",
+    "titleTiers": {
+      "veteran": "Veterano",
+      "legend": "Leyenda"
+    }
   },
   "chat": {
     "quickMessages": [

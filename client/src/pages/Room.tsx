@@ -15,6 +15,7 @@ import { GameAudio } from "@/components/GameAudio";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/use-notifications";
 import type { GameAction } from "@shared/schema";
+import { END_SCREEN_REACTIONS } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -74,7 +75,7 @@ export default function Room() {
   const DEATH_STORIES = t("room.deathStories", { returnObjects: true }) as string[];
 
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
-  const { gameState, isConnected, sendAction, startGame, toggleReady, startNow } = useGameSocket(code, sessionId);
+  const { gameState, isConnected, sendAction, startGame, toggleReady, startNow, reactions } = useGameSocket(code, sessionId);
 
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("mafia_sound_enabled");
@@ -923,6 +924,45 @@ export default function Room() {
     return null;
   };
 
+  // Feature: keyboard shortcuts for voting. Number keys 1-9 target the
+  // player in that grid position (same grid order players.map renders,
+  // matching what's actually on screen), Enter locks in whatever's
+  // currently pending — via lockInRef rather than calling handleLockIn
+  // directly, since that's declared further down and referencing it here
+  // would hit the same "used before declaration" problem the turn-
+  // notifications effect above already had to work around. Ignored
+  // whenever focus is in a text input (chat) so typing "1" there doesn't
+  // accidentally cast a vote.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+
+      if (e.key === "Enter") {
+        if (pendingActionRef.current) lockInRef.current?.();
+        return;
+      }
+
+      const digit = parseInt(e.key, 10);
+      if (!Number.isInteger(digit) || digit < 1 || digit > 9) return;
+      const targetPlayer = players[digit - 1];
+      if (!targetPlayer) return;
+      const buttonState = getPlayerButtonState(targetPlayer.id);
+      if (!buttonState) return;
+      const canInteract = (me?.isAlive ?? false) && !isSpectator || (!!me && !me.isAlive);
+      if (!canInteract) return;
+
+      if (buttonState.isNight) {
+        setPendingNightAction({ targetId: targetPlayer.id, targetName: targetPlayer.name, actionType: room?.phase || "" });
+      } else {
+        sendAction(buttonState.action);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, me?.isAlive, me?.id, isSpectator, room?.phase]);
+
   const handleLockIn = () => {
     if (!pendingNightAction) return;
     const actionTypeMap: Record<string, GameAction["type"]> = { bodyguard: "bodyguard_protect", mafia: "kill", vigilante: "vigilante_shoot", doctor: "heal", detective: "check" };
@@ -1014,6 +1054,42 @@ export default function Room() {
                 const jesterName = jesterWon ? finalRoles.find((r: any) => r.role === "jester")?.name : undefined;
                 const aliveMafiaAtEnd = finalRoles.filter((r: any) => r.role === "mafia" && r.isAlive).length;
 
+                // Feature: personal vote-history stat. Own votes only —
+                // matched by voter name against this chronicle's own vote
+                // entries, "correct" meaning the target turned out to be
+                // mafia per the frozen final-roles snapshot above. null
+                // (not 0/0) when this player never actually cast a vote
+                // (spectator, or eliminated turn 1), so the stat can be
+                // hidden entirely instead of showing a misleading "0/0".
+                const myVoteStats = (() => {
+                  const chronicle = ((me as any)?.gameHistory as any[]) || [];
+                  let correct = 0, total = 0;
+                  for (const entry of chronicle) {
+                    if (entry?.type !== "vote") continue;
+                    const myVote = entry.results?.find((r: any) => r.voterName === me?.name);
+                    if (!myVote) continue;
+                    total++;
+                    if (finalRoles.find((r: any) => r.name === myVote.targetName)?.role === "mafia") correct++;
+                  }
+                  return total > 0 ? { correct, total } : null;
+                })();
+
+                // Feature: Detective's Report. Shown to everyone, not just
+                // the detective — like Final Roles Revealed, this is
+                // historical fact once the game's over, not a private
+                // insight. Every player's gameHistory holds the identical
+                // shared chronicle (see finalizeGameEnd in routes.ts), so
+                // this works the same regardless of who's looking at it.
+                const detectivePlayer = finalRoles.find((r: any) => r.role === "detective");
+                const detectiveChecks: { turn: number; target: string; isMafia: boolean }[] = detectivePlayer
+                  ? (((me as any)?.gameHistory as any[]) || [])
+                      .filter((entry: any) => entry?.type === "night" && entry.events)
+                      .flatMap((entry: any) => entry.events
+                        .filter((ev: any) => ev.type === "detective_check")
+                        .map((ev: any) => ({ turn: entry.turn, target: ev.target, isMafia: !!ev.isMafia })))
+                  : [];
+
+
                 return (
                   <>
                     {/* Bug fix: text-8xl/text-5xl were flat sizes with no
@@ -1047,6 +1123,22 @@ export default function Room() {
                         🏆 {t("room.mvpResult", "MVP: {{name}}", { name: latestGameEnd.mvp.name })}
                       </div>
                     )}
+
+                    {/* Feature: End-screen reactions. Ephemeral flair, not
+                        saved anywhere — every connected player/spectator
+                        sees the same burst live, then it's gone. */}
+                    <div className="mb-6 flex items-center justify-center gap-2">
+                      {END_SCREEN_REACTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => sendAction({ type: "end_screen_reaction", emoji } as any)}
+                          className="text-2xl w-11 h-11 rounded-full bg-muted/50 border border-border hover:bg-muted hover:scale-110 transition-all flex items-center justify-center"
+                          data-testid={`button-reaction-${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
 
                     {/* Share Result lives here, right under the result — not
                         stacked against Play Again below, so a tap intending
@@ -1275,7 +1367,7 @@ export default function Room() {
         )}
       </AnimatePresence>
 
-      {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} roleRevealing={showRoleReveal} outcome={audioOutcome} />}
+      {soundEnabled && <GameAudio phase={room.phase || ""} status={room.status} roleRevealing={showRoleReveal} outcome={audioOutcome} timeRemaining={timeRemaining} />}
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
@@ -1815,6 +1907,35 @@ export default function Room() {
                     <div className="text-xs text-muted-foreground">{t("room.playAgainHelper")}</div>
                   </div>
                 )}
+
+                {myVoteStats && (
+                  <div className="mb-6 text-sm text-muted-foreground">
+                    {t("room.myVoteRecord", "You voted for the mafia {{correct}} out of {{total}} times.", { correct: myVoteStats.correct, total: myVoteStats.total })}
+                  </div>
+                )}
+
+                {detectivePlayer && detectiveChecks.length > 0 && (
+                  <Card className="bg-card border-border mb-8">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl font-serif">
+                        <Search className="w-5 h-5 text-blue-400" />
+                        {t("room.detectiveReport", "Detective's Report — {{name}}", { name: detectivePlayer.name })}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {detectiveChecks.map((c, i) => (
+                        <div key={i} className="text-sm flex items-center gap-2">
+                          <span className="text-muted-foreground">{t("room.nightN", { turn: c.turn })}:</span>
+                          <span className="font-bold text-foreground">{c.target}</span>
+                          <span className={c.isMafia ? "text-red-400 font-bold" : "text-muted-foreground"}>
+                            {c.isMafia ? t("room.mafiaLabel") : t("roleBadge.civilian")}
+                          </span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card className="bg-card border-border mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -1929,6 +2050,28 @@ export default function Room() {
       <AnimatePresence>
         {showTutorial && <TutorialOverlay onClose={closeTutorial} />}
       </AnimatePresence>
+
+      {/* Feature: End-screen reactions — floating bubbles, purely visual,
+          no interaction. Each reaction only ever mounts once (key={id}),
+          rises and fades via its own animate/exit, and the hook itself
+          removes it from the array after REACTION_LIFETIME_MS — this just
+          renders whatever's currently in that array. */}
+      <div className="fixed inset-x-0 bottom-24 pointer-events-none z-[300] flex justify-center">
+        <AnimatePresence>
+          {reactions.map((r) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 0, x: (Math.random() - 0.5) * 160 }}
+              animate={{ opacity: 1, y: -120 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2.2, ease: "easeOut" }}
+              className="absolute text-4xl"
+            >
+              {r.emoji}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
