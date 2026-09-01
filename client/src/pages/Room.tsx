@@ -776,7 +776,6 @@ export default function Room() {
   // toggle would just be two controls fighting over one flag with different
   // defaults — this only needs to decide *when* to call notify(), not
   // whether notifications are allowed at all.
-  const { notify } = useNotifications();
 
   // Fires once per phase — not once per render — by remembering the last
   // phase this already notified for. A raw [room.phase] dependency without
