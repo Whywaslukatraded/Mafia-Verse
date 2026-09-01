@@ -321,6 +321,12 @@ export type JoinRoomRequest = {
   asSpectator?: boolean;
 };
 
+// Feature: End-screen reactions. Ephemeral flair, not saved anywhere —
+// every connected player/spectator sees the same burst live, then it's
+// gone. See the reaction buttons in Room.tsx's end-screen for where this
+// renders.
+export const END_SCREEN_REACTIONS = ["👏", "😂", "😮", "🔥", "❤️", "💀"] as const;
+
 export type GameAction = 
   | { type: 'vote'; targetId: number }
   | { type: 'kill'; targetId: number }
@@ -337,11 +343,14 @@ export type GameAction =
   | { type: 'vigilante_shoot'; targetId: number }
   | { type: 'mayor_reveal' }
   | { type: 'update_profile'; name?: string; avatar?: string; avatarConfig?: any }
+  | { type: 'update_settings'; settings: Partial<Room['settings']> }
   // Feature: Pre-game ready-up lobby
   | { type: 'ready_toggle' }
   | { type: 'start_now' }
   // Feature: Spectator "Crowd Favorite" ghost vote
-  | { type: 'crowd_favorite_vote'; targetId: number };
+  | { type: 'crowd_favorite_vote'; targetId: number }
+  // Feature: End-screen reactions
+  | { type: 'end_screen_reaction'; emoji: typeof END_SCREEN_REACTIONS[number] };
 
 // WebSocket Message Types
 export const WS_EVENTS = {

@@ -533,7 +533,7 @@ export default function Room() {
       });
       return;
     }
-    sendAction({ type: "update_settings", settings: settingsDraft } as any);
+    sendAction({ type: "update_settings", settings: settingsDraft });
     // Keep Home.tsx's "last used settings" in sync with whatever was actually
     // saved here — otherwise changing role counts mid-room never carried over
     // to the next room you create, and Home kept showing stale counts.
@@ -1130,7 +1130,7 @@ export default function Room() {
                       {END_SCREEN_REACTIONS.map((emoji) => (
                         <button
                           key={emoji}
-                          onClick={() => sendAction({ type: "end_screen_reaction", emoji } as any)}
+                          onClick={() => sendAction({ type: "end_screen_reaction", emoji })}
                           className="text-2xl w-11 h-11 rounded-full bg-muted/50 border border-border hover:bg-muted hover:scale-110 transition-all flex items-center justify-center"
                           data-testid={`button-reaction-${emoji}`}
                         >

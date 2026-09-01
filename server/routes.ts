@@ -3501,6 +3501,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                vigilanteDuration: clampInt(incoming.vigilanteDuration, current.vigilanteDuration || 15, 5),
                showVoteResults: incoming.showVoteResults ?? current.showVoteResults,
                showRoleReveal: incoming.showRoleReveal ?? current.showRoleReveal,
+               // Feature: Bot personality. Only ever previously settable at
+               // room creation — this lets the host change it later from
+               // the same in-room settings panel that already edits every
+               // other field here.
+               botPersonality: incoming.botPersonality ?? current.botPersonality,
                // Feature: Private lobbies — host can flip this from the
                // in-room settings panel too, not just at creation.
                // invitedSupabaseUserIds is intentionally left untouched here
