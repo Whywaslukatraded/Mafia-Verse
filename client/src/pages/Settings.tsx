@@ -12,6 +12,10 @@ import { getSupabase, isSupabaseReady } from "@/lib/supabase";
 const LANGUAGES = [
   { code: "en", label: "English", flag: "🇺🇸" },
   { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "zh-CN", label: "简体中文", flag: "🇨🇳" },
+  { code: "zh-TW", label: "繁體中文", flag: "🇹🇼" },
+  { code: "pt-BR", label: "Português (BR)", flag: "🇧🇷" },
 ];
 
 export default function Settings() {

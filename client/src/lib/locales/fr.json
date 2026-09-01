@@ -1,0 +1,1482 @@
+{
+ "common": {
+  "back": "Retour",
+  "backToHome": "Retour à l'accueil",
+  "email": "E-mail",
+  "password": "Mot de passe",
+  "sending": "Envoi en cours...",
+  "cancel": "Annuler",
+  "save": "Enregistrer",
+  "close": "Fermer",
+  "loading": "Chargement...",
+  "copy": "Copier",
+  "copied": "Copié !",
+  "connectionLostTitle": "Connexion perdue",
+  "connectionLostDescription": "Tentative de reconnexion...",
+  "reconnectingTitle": "Reconnexion en cours",
+  "reconnectingPlayAgainDescription": "Patientez un instant, puis appuyez à nouveau sur Rejouer."
+ },
+ "login": {
+  "subtitle": "Connectez-vous pour continuer",
+  "resetFailedTitle": "Échec de la réinitialisation",
+  "resetSentTitle": "Lien de réinitialisation envoyé",
+  "resetSentDescription": "Consultez vos emails pour trouver le lien de réinitialisation du mot de passe.",
+  "loginFailedTitle": "Échec de la connexion",
+  "resetPasswordTitle": "Réinitialiser le mot de passe",
+  "resetPasswordSubtitle": "Nous vous enverrons un lien de récupération",
+  "checkEmail": "Consultez vos emails !",
+  "resetLinkSentTo": "Un lien de réinitialisation a été envoyé à {{email}}",
+  "sendResetLink": "Envoyer le lien de réinitialisation",
+  "signingIn": "Connexion en cours...",
+  "signIn": "Se connecter",
+  "forgotPassword": "Mot de passe oublié ?",
+  "noAccount": "Pas de compte ?",
+  "signUp": "S'inscrire"
+ },
+ "signup": {
+  "subtitle": "Créez votre compte",
+  "passwordTooShortTitle": "Mot de passe trop court",
+  "passwordTooShortDescription": "Le mot de passe doit contenir au moins 6 caractères",
+  "inappropriateNameTitle": "Nom d'affichage inapproprié",
+  "inappropriateNameDescription": "Votre nom d'affichage contient un langage inapproprié.",
+  "inappropriatePasswordTitle": "Mot de passe inapproprié",
+  "inappropriatePasswordDescription": "Votre mot de passe contient un langage inapproprié. Veuillez choisir un autre mot de passe.",
+  "signupFailedTitle": "Échec de l'inscription",
+  "accountCreatedTitle": "Compte créé !",
+  "accountCreatedDescription": "Consultez vos emails pour confirmer, puis connectez-vous.",
+  "displayName": "Nom d'affichage",
+  "displayNamePlaceholder": "Votre pseudo de mafia",
+  "passwordPlaceholder": "Au moins 6 caractères",
+  "creating": "Création en cours...",
+  "createAccount": "Créer un compte",
+  "alreadyHaveAccount": "Vous avez déjà un compte ?",
+  "signIn": "Se connecter"
+ },
+ "resetPassword": {
+  "title": "Réinitialiser le mot de passe",
+  "subtitle": "Choisissez un nouveau mot de passe",
+  "invalidLinkTitle": "Lien invalide ou expiré",
+  "expiredLinkDescription": "Ce lien de réinitialisation a expiré. Veuillez en demander un nouveau.",
+  "invalidLinkTitleShort": "Lien invalide",
+  "missingTokensDescription": "Ce lien de réinitialisation ne contient pas les jetons requis.",
+  "mismatchTitle": "Les mots de passe ne correspondent pas",
+  "mismatchDescription": "Veuillez vérifier que les deux mots de passe correspondent.",
+  "failedTitle": "Échec de la réinitialisation du mot de passe",
+  "successTitle": "Mot de passe réinitialisé avec succès",
+  "successDescription": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+  "invalidOrExpired": "Lien invalide ou expiré",
+  "invalidOrExpiredDescription": "Ce lien de réinitialisation n'est plus valide. Veuillez en demander un nouveau.",
+  "goToLogin": "Aller à la connexion",
+  "updated": "Mot de passe mis à jour !",
+  "redirecting": "Redirection vers la connexion...",
+  "newPassword": "Nouveau mot de passe",
+  "confirmPassword": "Confirmer le mot de passe",
+  "retypePassword": "Retapez votre mot de passe",
+  "updating": "Mise à jour en cours...",
+  "backToLogin": "Retour à la connexion"
+ },
+ "twoFactor": {
+  "title": "Authentification à deux facteurs",
+  "verifySubtitle": "Entrez le code de votre application d'authentification",
+  "enterSixDigit": "Entrez le code à 6 chiffres",
+  "authNotReady": "Le service d'authentification n'est pas prêt. Veuillez actualiser la page.",
+  "invalidCode": "Code invalide",
+  "welcomeBack": "Content de vous revoir !",
+  "verificationFailed": "Échec de la vérification",
+  "sixDigitCode": "Code à 6 chiffres",
+  "verifying": "Vérification en cours...",
+  "verify": "Vérifier",
+  "pleaseLogInFirst": "Veuillez d'abord vous connecter",
+  "setupFailed": "Échec de la configuration",
+  "setupFailedRetry": "Échec de la configuration. Veuillez réessayer.",
+  "enabledSuccess": "Authentification à deux facteurs activée ! Votre compte est sécurisé.",
+  "loadingSetup": "Chargement de la configuration 2FA...",
+  "secureAccount": "Sécurisez votre compte",
+  "required": "Authentification à deux facteurs requise",
+  "scanQrCode": "Scannez ce code QR avec Google Authenticator",
+  "cantScan": "Impossible de scanner ? Entrez ce code manuellement :",
+  "scannedIt": "Je l'ai scanné",
+  "enterCodeLabel": "Entrez le code à 6 chiffres de votre application d'authentification",
+  "verifyAndEnable": "Vérifier et activer",
+  "backToQr": "Retour au code QR",
+  "chooseMethod": "Comment souhaitez-vous recevoir vos codes de vérification ?",
+  "authenticatorApp": "Ouvrez l'application Google Authenticator",
+  "authenticatorAppDescription": "Scannez un code QR avec Google Authenticator pour obtenir des codes à 6 chiffres",
+  "emailCode": "Code par email",
+  "emailCodeDescription": "Recevez un code par email",
+  "chooseDifferentMethod": "Choisir une autre méthode",
+  "sendCodeToEmail": "Envoyer le code à cet email",
+  "sendingCode": "Envoi du code en cours...",
+  "sendCode": "Envoyer le code",
+  "emailSendFailed": "Impossible d'envoyer l'email de vérification",
+  "codeSentTitle": "Code envoyé",
+  "codeSentDescription": "Consultez {{email}} pour trouver votre code de vérification.",
+  "enterEmailCodeLabel": "Entrez le code à 6 chiffres que nous vous avons envoyé par email",
+  "resendCode": "Renvoyer le code",
+  "checkYourEmail": "Consultez vos emails pour trouver un code",
+  "codeSentCheckInbox": "Un code a été envoyé à votre adresse email."
+ },
+ "home": {
+  "joinAsSpectator": "Rejoindre en tant que spectateur (juste regarder)",
+  "leaderboard": "Classement",
+  "howToPlay": "Comment jouer",
+  "recentPlayers": {
+   "title": "Rejouer avec eux",
+   "invite": "Inviter",
+   "inviteMessage": "Salut {{name}}, rejoins-moi pour une partie de Mafia Verse ! {{link}}"
+  },
+  "referral": {
+   "title": "Parrainer un ami",
+   "subtitle": "Gagnez 25 crédits par parrainage",
+   "shareDescription1": "Partagez votre lien d'invitation unique avec vos amis. Quand ils rejoignent et jouent leur première partie, vous gagnez tous les deux",
+   "shareDescription2": "25 crédits bonus",
+   "yourInviteLink": "Votre lien d'invitation",
+   "yourCode": "Votre code",
+   "reward": "Récompense",
+   "perFriend": "Par ami",
+   "each": "Chacun",
+   "gotACode": "Vous avez un code d'un ami ?",
+   "codePlaceholder": "ENTREZ LE CODE",
+   "redeem": "Valider",
+   "redeemSuccess": "Code validé ! Vous avez tous les deux gagné {{count}} crédits.",
+   "redeemPending": "Code accepté ! Jouez {{count}} partie(s) de plus pour débloquer les crédits pour vous deux.",
+   "redeemAlreadyUsed": "Vous avez déjà utilisé un code de parrainage auparavant.",
+   "redeemSelf": "Vous ne pouvez pas utiliser votre propre code.",
+   "redeemSameDevice": "Cela ressemble au même appareil ou réseau que le compte du parrain.",
+   "redeemInvalid": "Ce code n'est pas valide. Vérifiez-le et réessayez."
+  },
+  "inappropriateName": "Nom inapproprié",
+  "inappropriateNameDescription": "Votre nom contient un langage inapproprié.",
+  "failedToJoin": "Impossible de rejoindre cette salle",
+  "nameRequired": "Nom requis",
+  "nameRequiredDescription": "Veuillez entrer votre nom avant de créer une salle.",
+  "needMafia": "Vous avez besoin d'un membre de la Mafia",
+  "needMafiaDescription": "Chaque salle a besoin d'au moins 1 membre de la Mafia pour jouer.",
+  "needCivilian": "Vous avez besoin d'un Civil",
+  "needCivilianDescription": "Chaque salle a besoin d'au moins 1 Civil pour jouer.",
+  "tooManyPlayers": "Trop de monde",
+  "tooManyPlayersDescription": "Les salles sont limitées à 20 joueurs — réduisez le nombre de rôles pour continuer.",
+  "tooManySpecialRoles": "Trop de rôles spéciaux",
+  "tooManySpecialRolesDescription": "Les rôles spéciaux sont limités à 10, même dans les grandes parties, pour garder l'équilibre.",
+  "failedToCreate": "Échec de la création de la salle",
+  "somethingWentWrong": "Une erreur s'est produite.",
+  "roles": {
+   "mafias": "Mafias",
+   "detectives": "Détectives",
+   "doctors": "Médecins",
+   "civilians": "Civils",
+   "bodyguards": "Gardes du corps",
+   "vigilantes": "Justiciers",
+   "mayors": "Maires",
+   "jesters": "Bouffons",
+   "votingTime": "Temps de vote (sec)",
+   "discussionTime": "Temps de discussion (sec)",
+   "mafiaNightTime": "Temps de nuit de la Mafia (sec)",
+   "doctorNightTime": "Temps de nuit du Médecin (sec)",
+   "detectiveNightTime": "Temps de nuit du Détective (sec)"
+  },
+  "logout": "Déconnexion",
+  "loginSignup": "Connexion / Inscription",
+  "tagline": "Ne faites confiance à personne • Trouvez la vérité • Survivez à la nuit",
+  "accessory": "Accessoire",
+  "clothing": "Tenue",
+  "background": "Arrière-plan",
+  "selectBackgroundColor": "Sélectionner l'arrière-plan {{color}}",
+  "bgColorNames": [
+   "violet",
+   "rouge",
+   "bleu",
+   "émeraude",
+   "ambre",
+   "pourpre"
+  ],
+  "mafiaHandle": "Votre nom de code Mafia",
+  "chooseNamePlaceholder": "CHOISISSEZ UN NOM...",
+  "pickPersona": "Choisissez votre personnage",
+  "wins": "Victoires",
+  "store": "Boutique",
+  "shop": "Boutique",
+  "daily": "Quotidien",
+  "free": "Gratuit",
+  "rate": "Noter",
+  "refer": "Parrainer",
+  "settings": "Paramètres",
+  "joinDiscord": "Rejoignez notre Discord",
+  "systemCore": "Noyau système : 2 900+ lignes de code source",
+  "aboutLink": "À propos",
+  "faqLink": "FAQ",
+  "achievementsLabel": "Succès",
+  "achievements": {
+   "first_win": {
+    "name": "Premier Sang",
+    "description": "Gagnez votre première partie"
+   },
+   "mafia_master": {
+    "name": "Parrain de la Ville",
+    "description": "Gagnez 5 parties en tant que Mafia"
+   },
+   "savior": {
+    "name": "Sauveur de vies",
+    "description": "Sauvez 3 joueurs en tant que Médecin"
+   },
+   "truth_seeker": {
+    "name": "Œil de Faucon",
+    "description": "Trouvez 3 membres de la Mafia en tant que Détective"
+   },
+   "survivor": {
+    "name": "Dernier Rempart",
+    "description": "Gagnez en tant que dernier Civil en vie"
+   },
+   "quick_thinker": {
+    "name": "Esprit Vif",
+    "description": "Gagnez une partie avec des phases courtes"
+   },
+   "ghost_whisperer": {
+    "name": "Chuchoteur de Fantômes",
+    "description": "Discutez 50 fois dans le chat des spectateurs"
+   },
+   "night_owl": {
+    "name": "Oiseau de Nuit",
+    "description": "Jouez 10 parties pendant la phase de nuit"
+   },
+   "fashionista": {
+    "name": "Fashionista",
+    "description": "Débloquez 10 tenues de profil rares personnalisées ou skins limités."
+   }
+  },
+  "joinGameTab": "REJOINDRE",
+  "createRoomTab": "CRÉER UNE SALLE",
+  "roomCode": "Code de la salle",
+  "roomCodePlaceholder": "EX. A4X9",
+  "joining": "CONNEXION...",
+  "enterAbyss": "ENTRER DANS L'ABÎME",
+  "roomNameOptional": "Nom de la salle (optionnel)",
+  "roomNamePlaceholder": "ex. La Table du Parrain",
+  "presets": {
+   "label": "Préréglages rapides",
+   "classic": "Classique",
+   "chaos": "Chaos",
+   "beginner": "Adapté aux débutants"
+  },
+  "botPersonality": {
+   "label": "Personnalité des bots",
+   "default": "Par défaut",
+   "chill": "Détendu",
+   "aggressiveLiar": "Menteur agressif",
+   "chaotic": "Chaotique",
+   "defaultDescription": "Les bots se comportent comme d'habitude — un mélange équilibré d'accusations, de défense et de silence.",
+   "chillDescription": "Les bots parlent moins et sont plus modérés dans leurs accusations, laissant les humains mener la conversation.",
+   "aggressiveLiarDescription": "Les bots parlent plus, accusent plus souvent, et se défendent plus fermement quand ils sont mis en cause.",
+   "chaoticDescription": "Les bots parlent souvent mais de façon imprévisible, passant de l'accusation à la défense en plaisantant.",
+   "sharp": "Perspicace",
+   "sharpDescription": "Les bots votent stratégiquement, en suivant le mouvement vers celui qui accumule déjà des votes plutôt qu'en choisissant au hasard."
+  },
+  "totalPlayers": "Total des joueurs",
+  "minPlayers": "Minimum 6 joueurs requis",
+  "maxPlayersHint": "20 joueurs maximum",
+  "maxBotsHint": "Jusqu'à 5 bots rempliront les places vides — le reste doit être de vrais joueurs.",
+  "voteResults": "Résultats du vote",
+  "roleReveal": "Révélation des rôles",
+  "voteAnonymityExplainer": "Le vote est anonyme par défaut — tout le monde voit qui est mort et qui a été éliminé par vote, mais pas qui a voté pour qui. Activez « Résultats du vote » pour révéler chaque vote.",
+  "roleRevealExplainer": "La Révélation des rôles affiche le rôle de la personne éliminée par vote ou par la Mafia (par ex. « Médecin »). Désactivez-la pour simplement indiquer qu'elle a été éliminée, gardant chaque rôle secret.",
+  "preparing": "PRÉPARATION...",
+  "createRoomButton": "CRÉER LA SALLE",
+  "findAGame": "Trouver une partie",
+  "quickMatch": "Partie rapide",
+  "matching": "Recherche en cours...",
+  "noOpenRooms": "Aucune salle publique ouverte pour le moment — essayez la Partie rapide pour en créer une.",
+  "inLobby": "En salon",
+  "join": "Rejoindre",
+  "watch": "Regarder",
+  "needNameTitle": "Entrez d'abord un nom",
+  "quickMatchFailed": "La Partie rapide a échoué",
+  "spectateOnly": "Observateur uniquement"
+ },
+ "room": {
+  "linkCopied": "Lien copié !",
+  "sendToFriends": "Envoyez-le à vos amis.",
+  "shareTitleNamed": "Rejoignez {{roomName}} sur Mafia Verse",
+  "shareTitleDefault": "Rejoignez ma partie de Mafia Verse",
+  "shareText": "Rejoignez ma partie de Mafia Verse ! Appuyez sur le lien pour vous lancer.",
+  "joinTheRoom": "Rejoindre la salle",
+  "enterNameToJoin": "Entrez votre nom pour rejoindre.",
+  "connecting": "Connexion...",
+  "actions": {
+   "kill": "Tuer",
+   "protect": "Protéger",
+   "investigate": "Enquêter",
+   "shoot": "Tirer",
+   "act": "Agir"
+  },
+  "voted": "Voté",
+  "vote": "Voter",
+  "selected": "Sélectionné",
+  "select": "Sélectionner",
+  "actionLockedIn": "Action validée !",
+  "actionLockedInDescription": "{{verb}} {{name}}...",
+  "mafiaLabel": "MAFIA",
+  "civiliansLabel": "CIVILS",
+  "jesterLabel": "BOUFFON",
+  "wins": "GAGNE !",
+  "mafiaWonDescription_one": "La Mafia a pris le contrôle avec {{count}} membre restant",
+  "mafiaWonDescription_other": "La Mafia a pris le contrôle avec {{count}} membres restants",
+  "civiliansWonDescription": "La ville a éliminé toute la Mafia !",
+  "jesterWonDescription": "{{name}} voulait être éliminé par vote — et ça a marché !",
+  "finalRolesRevealed": "Rôles finaux révélés",
+  "playAgainHelper": "Démarre une nouvelle manche avec ce même groupe — pas une nouvelle partie publique.",
+  "matchAlreadyEndedTitle": "Cette partie est déjà terminée",
+  "matchAlreadyEndedDescription": "Vous avez rejoint après la fin de cette manche, donc vous n'en faisiez pas partie. Patientez — l'hôte peut démarrer une nouvelle manche et vous y participerez directement.",
+  "waitingForHostRematch": "En attente que l'hôte démarre une nouvelle manche...",
+  "shareResult": "Partager le résultat",
+  "crowdFavoriteVote": "Chouchou du public",
+  "crowdFavoritePicked": "Votre choix",
+  "crowdFavoriteResult": "Chouchou du public : {{name}}",
+  "generatingImage": "Génération...",
+  "shareResultTitle": "Votre carte de résultat",
+  "shareResultSubtitle": "Téléchargez-la ou copiez un résumé texte à partager.",
+  "downloadImage": "Télécharger l'image",
+  "copyResultText": "Copier le texte du résultat",
+  "resultTextCopiedDescription": "Collez-le n'importe où pour partager votre résultat.",
+  "shareResultSummary": "J'ai joué à Mafia Verse en tant que {{role}} — {{result}} 🕵️‍♂️🔪",
+  "shareResultLinkNote": "Cette carte est un instantané juste pour vous — partager le lien de votre salle ne montrera pas les résultats de cette partie aux autres.",
+  "shareCardErrorTitle": "Impossible de générer la carte",
+  "shareCardErrorDescription": "Une erreur s'est produite lors de la création de votre carte de résultat. Réessayez.",
+  "youWon": "VOUS AVEZ GAGNÉ",
+  "youLost": "VOUS AVEZ PERDU",
+  "playAgain": "Rejouer",
+  "eliminated": "Éliminé",
+  "wasRole": "était {{role}}",
+  "yourSecretIdentity": "Votre identité secrète",
+  "roleFlavor": {
+   "mafia": "Opérez dans l'ombre. Éliminez tous les autres.",
+   "detective": "Cherchez la vérité. Trouvez la Mafia.",
+   "doctor": "Protégez les innocents. Sauvez une vie cette nuit.",
+   "civilian": "Restez vigilant. Survivez à la nuit.",
+   "bodyguard": "Protégez la ville. Prenez le coup à la place de quelqu'un d'autre.",
+   "vigilante": "Faites justice vous-même.",
+   "mayor": "Dirigez la ville. Faites compter votre vote double.",
+   "jester": "Convainquez tout le monde de voter contre vous."
+  },
+  "inviteFriends": "Inviter des amis",
+  "scanOrCopy": "Scannez le code ou copiez le lien vers la salle {{code}}",
+  "roomQrCode": "Code QR de la salle",
+  "copyLink": "Copier le lien",
+  "roomLabel": "Salle",
+  "share": "Partager",
+  "startGame": "Démarrer la partie",
+  "muteSound": "Couper le son",
+  "unmuteSound": "Réactiver le son",
+  "leaveRoom": "Quitter la salle",
+  "decreaseSetting": "Diminuer {{label}}",
+  "increaseSetting": "Augmenter {{label}}",
+  "waitingForPlayers": "En attente de joueurs",
+  "playerCount": "{{count}} / 6+ joueurs",
+  "maxBotsNote": "Jusqu'à 5 bots rempliront les places vides — le reste doit être de vrais joueurs.",
+  "host": "HÔTE",
+  "startNow": "Démarrer maintenant",
+  "invite": "Inviter",
+  "invited": "Invité",
+  "noFriendsToInvite": "Pas encore d'amis, ou vous n'êtes pas connecté(e).",
+  "inviteWorksAnyway": "Cette salle n'est pas privée — n'importe qui avec le code peut quand même la rejoindre, mais les amis invités la verront aussi dans leurs Invitations de salon.",
+  "privateLobbyLabel": "Salon privé",
+  "ready": "Prêt",
+  "notReady": "Pas prêt",
+  "markReady": "Je suis prêt",
+  "cancelReady": "Annuler prêt",
+  "startingIn": "Tout le monde est prêt — démarrage dans {{seconds}}s",
+  "reset": "Réinitialiser",
+  "lockIn": "Valider",
+  "readyToLockIn": "Sélectionnez un nom et validez votre réponse",
+  "actionLockedInShort": "Action validée",
+  "waitingForOthers": "En attente des autres joueurs...",
+  "yourRole": "Votre rôle",
+  "spectating": "Vous observez...",
+  "voteToEliminate": "Votez pour éliminer !",
+  "nightPhaseInProgress": "Phase de nuit en cours...",
+  "youHaveBeenEliminated": "Vous avez été éliminé(e).",
+  "gameChronicle": "Chronique de la partie",
+  "voteResultsVisible": "Résultats du vote visibles",
+  "voteResultsLabel": "Résultats du vote",
+  "roleRevealLabel": "Révélation des rôles",
+  "saveSettings": "Enregistrer les paramètres",
+  "mafiaTeammatesTitle": "Vos coéquipiers de la Mafia",
+  "mafiaNoTeammates": "Vous êtes le seul membre de la Mafia cette partie — personne d'autre avec qui vous coordonner.",
+  "teammatesTitle": "Vos autres {{role}}s",
+  "noTeammates": "Vous êtes le seul à avoir ce rôle cette partie — personne d'autre avec qui vous coordonner.",
+  "teammateLockedIn": "A verrouillé une cible",
+  "teammateStillDeciding": "Encore en train de choisir",
+  "mayorRevealButton": "Vous révéler en tant que Maire",
+  "roleGoals": {
+   "mafia": {
+    "title": "Éliminer la Ville",
+    "body": "Travaillez avec vos coéquipiers de la Mafia la nuit pour éliminer la Ville un par un. Fondez-vous dans la masse le jour pour que personne ne découvre qui vous êtes."
+   },
+   "detective": {
+    "title": "Démasquer la Mafia",
+    "body": "Enquêtez sur un joueur chaque nuit pour découvrir son véritable rôle. Utilisez ce que vous trouvez pour guider les votes de la Ville sans vous exposer trop tôt."
+   },
+   "doctor": {
+    "title": "Protéger les innocents",
+    "body": "Choisissez un joueur à sauver chaque nuit. Vous ne saurez pas toujours qui est en danger, alors faites confiance à votre lecture de la discussion du jour."
+   },
+   "civilian": {
+    "title": "Trouver la Mafia",
+    "body": "Vous n'avez aucun pouvoir spécial — juste votre voix et votre vote. Soyez attentif, posez des questions, et aidez la Ville à voter contre la Mafia avant qu'il ne soit trop tard."
+   },
+   "bodyguard": {
+    "title": "Protégez votre cible",
+    "body": "Gardez un joueur chaque nuit. S'il est attaqué, vous prendrez le coup à sa place — alors choisissez avec soin, cela pourrait vous coûter la vie."
+   },
+   "vigilante": {
+    "title": "Faites justice vous-même",
+    "body": "Vous disposez d'un nombre limité de balles. Utilisez-les pour tirer sur quelqu'un que vous pensez être de la Mafia — mais si vous vous trompez, la culpabilité vous coûtera cher."
+   },
+   "mayor": {
+    "title": "Dirigez la Ville",
+    "body": "Votre vote compte double une fois révélé — mais vous révéler fait aussi de vous une cible. Choisissez le bon moment."
+   },
+   "jester": {
+    "title": "Faites-vous éliminer par vote",
+    "body": "Vous gagnez au moment où la Ville vous élimine par vote. Agissez de façon suspecte, semez le doute, et convainquez tout le monde que vous êtes la menace."
+   }
+  },
+  "gameSettings": "Paramètres de la partie",
+  "closeSettings": "Fermer les paramètres",
+  "bodyguardNightTime": "Temps de nuit du Garde du corps (sec)",
+  "vigilanteNightTime": "Temps de nuit du Justicier (sec)",
+  "reportAfk": "Signaler AFK / inactif",
+  "afkReported": "Signalé comme AFK",
+  "afkReportedTapToUndo": "Signalé comme AFK — appuyez pour annuler",
+  "afkFlagExplainer": "Signalez les joueurs inactifs — appuyez à nouveau pour annuler. 2 signalements ou plus affectent l'historique d'activité de leur compte.",
+  "voteAnonymityExplainer": "Le vote est anonyme par défaut — tout le monde voit qui est mort et qui a été éliminé par vote, mais pas qui a voté pour qui. Activez « Résultats du vote » pour révéler chaque vote.",
+  "roleRevealExplainer": "La Révélation des rôles affiche le rôle de la personne éliminée par vote ou par la Mafia (par ex. « Médecin »). Désactivez-la pour simplement indiquer qu'elle a été éliminée, gardant chaque rôle secret.",
+  "gameEnded": "Partie terminée",
+  "mafiaWinsExclaim": "LA MAFIA GAGNE !",
+  "jesterWinsExclaim": "LE BOUFFON GAGNE !",
+  "civiliansWinExclaim": "LES CIVILS GAGNENT !",
+  "finalRolesColon": "Rôles finaux :",
+  "was": "était",
+  "nightN": "Nuit {{turn}}",
+  "dayN": "Jour {{turn}}",
+  "votedFor": "a voté pour",
+  "voteResultsHidden": "Résultats du vote masqués",
+  "wasEliminated": "{{target}} a été éliminé(e).",
+  "wasProtected": "{{target}} a été protégé(e).",
+  "detectiveInvestigated": "Le détective a enquêté sur {{target}}.",
+  "playerEliminated": "{{name}} a été éliminé(e)",
+  "deathStories": [
+   "{name} skiait sur la montagne et est tombé(e) dans une crevasse, disparaissant à jamais.",
+   "Alors que {name} faisait un saut en parachute, celui-ci ne s'est pas ouvert.",
+   "{name} est allé(e) nager dans des eaux infestées de requins et est devenu(e) un en-cas de minuit.",
+   "{name} a essayé de caresser un « chat » errant qui s'est avéré être un puma très affamé.",
+   "{name} a accidentellement participé à une course de dragsters clandestine à bord d'une voiturette de golf.",
+   "{name} a confondu un transformateur à haute tension avec une cabine téléphonique publique.",
+   "En chassant les fantômes, {name} a trébuché et est tombé(e) dans un puits profond et oublié.",
+   "{name} a décidé de défier un catcheur professionnel dans un match « amical ».",
+   "Un immense piano à queue est tombé du troisième étage, atterrissant exactement sur {name}.",
+   "{name} a tenté de reproduire un célèbre tour de cracheur de feu avec du rhum très fort.",
+   "Pendant un safari, {name} a oublié qu'il fallait garder les vitres fermées près des lions.",
+   "{name} a participé à un concours de tarte contre un grizzly et a perdu de façon spectaculaire.",
+   "Un accident de bowling insolite a envoyé {name} glisser sur la piste jusque dans la machinerie.",
+   "{name} pensait pouvoir échapper à un essaim de frelons furieux en sautant dans un cactus.",
+   "En prenant un selfie au bord d'une falaise, {name} a perdu l'équilibre — et son téléphone.",
+   "{name} a essayé de tailler ses haies avec une tondeuse à gazon, avec des résultats désastreux.",
+   "Un ballon météo expérimental a atterri directement sur la tente de {name} pendant la nuit.",
+   "{name} a découvert que les panneaux « danger » sur les chantiers ne sont pas de simples suggestions.",
+   "En explorant une vieille grotte, {name} a réveillé une colonie de chauves-souris très territoriales.",
+   "{name} a tenté de surfer un tsunami sur une planche de contreplaqué."
+  ],
+  "jesterGoalTitle": "Objectif : se faire exécuter",
+  "jesterGoalBody": "Vous gagnez au moment où la ville vous élimine par vote — vous n'avez pas besoin de survivre jusqu'à la fin.",
+  "tooManySpecialRoles": "Trop de rôles spéciaux",
+  "tooManySpecialRolesDescription": "Laissez de la place pour au moins un civil, selon le nombre actuel de joueurs.",
+  "tooManySpecialRolesCapDescription": "Les rôles spéciaux sont limités à 10, même dans les grandes parties, pour garder l'équilibre.",
+  "needCivilian": "Vous avez besoin d'un Civil",
+  "needCivilianDescription": "Chaque salle a besoin d'au moins 1 Civil pour jouer.",
+  "needMafia": "Vous avez besoin d'un membre de la Mafia",
+  "needMafiaDescription": "Chaque salle a besoin d'au moins 1 membre de la Mafia pour jouer.",
+  "settingsUpdated": "Paramètres mis à jour",
+  "specialRolesCount": "Rôles spéciaux : {{count}} / {{total}} joueurs",
+  "leaveRoomForCivilian": "Laissez de la place pour au moins 1 civil",
+  "specialRolesCapHint": "Les rôles spéciaux sont limités à 10",
+  "wasVotedOutWithRole": "{{target}} a été éliminé(e) par vote. Il/Elle était {{role}}.",
+  "noOneVotedOut": "Personne n'a été éliminé(e) par vote.",
+  "wasEliminatedWithRole": "{{target}} a été tué(e) pendant la nuit. Il/Elle était {{role}}.",
+  "bodyguardDiedProtecting": "{{target}} le Garde du corps est mort(e) en protégeant sa cible.",
+  "attackerRetaliatedDied": "{{target}} est mort(e) dans les représailles.",
+  "vigilanteGuiltDiedHistory": "{{target}} le Justicier est mort(e) de culpabilité après avoir tiré sur un joueur innocent.",
+  "detectiveFoundResult": "Le Détective a enquêté sur {{target}} et a découvert : {{result}}.",
+  "mafiaWonDescription": "La mafia a surpassé la ville en nombre — il reste {{count}} membre(s) de la mafia.",
+  "notificationsBlocked": "Notifications bloquées",
+  "notificationsBlockedDesc": "Autorisez les notifications pour ce site dans les paramètres de votre navigateur pour utiliser cette fonctionnalité.",
+  "disableNotifications": "Désactiver les notifications de tour",
+  "enableNotifications": "Recevoir une notification quand c'est votre tour",
+  "yourTurnNotifTitle": "C'est votre tour",
+  "yourTurnNotifVote": "Il est temps de voter.",
+  "yourTurnNotifAction": "Il est temps d'utiliser votre action nocturne.",
+  "mvpResult": "MVP : {{name}}",
+  "mvpLabel": "MVP",
+  "myVoteRecord": "Vous avez voté pour la mafia {{correct}} fois sur {{total}}.",
+  "detectiveReport": "Rapport du Détective — {{name}}"
+ },
+ "settings": {
+  "title": "Paramètres",
+  "language": "Langue",
+  "display": "Affichage",
+  "darkMode": "Mode sombre",
+  "on": "Activé",
+  "off": "Désactivé",
+  "audio": "Audio",
+  "soundEffects": "Effets sonores",
+  "enabled": "Activé",
+  "disabled": "Désactivé",
+  "volume": "Volume",
+  "playTestSound": "Jouer un son test",
+  "notifications": "Notifications",
+  "chatAlerts": "Alertes de chat",
+  "notificationsDescription": "Recevez une notification quand quelqu'un envoie un message pendant la partie",
+  "security": "Sécurité",
+  "twoFAEnabled": "Authentification à deux facteurs activée",
+  "twoFANotSetUp": "Authentification à deux facteurs non configurée",
+  "accountProtected": "Votre compte est protégé par TOTP.",
+  "addExtraLayer": "Ajoutez une couche de sécurité supplémentaire à votre compte.",
+  "enterPasswordToDisable": "Entrez votre mot de passe pour confirmer la désactivation de la 2FA.",
+  "yourPassword": "Votre mot de passe",
+  "disabling": "Désactivation en cours...",
+  "confirmDisable": "Confirmer la désactivation",
+  "disable2FA": "Désactiver la 2FA",
+  "setUp2FA": "Configurer l'authentification à deux facteurs",
+  "forgotPassword": "Mot de passe oublié",
+  "generateResetToken": "Générer un jeton de réinitialisation",
+  "reset": "Réinitialiser",
+  "twoFADisabledTitle": "2FA désactivée",
+  "twoFADisabledDescription": "L'authentification à deux facteurs a été désactivée.",
+  "errorTitle": "Erreur",
+  "couldNotDisable2FA": "Impossible de désactiver la 2FA",
+  "somethingWentWrong": "Une erreur s'est produite",
+  "incorrectPassword": "Mot de passe incorrect",
+  "colorblindMode": "Rôles adaptés au daltonisme"
+ },
+ "notFound": {
+  "title": "Impasse",
+  "tagline": "Cette rue n'existe pas",
+  "description": "Ce que vous cherchiez n'est pas ici — peut-être que ça n'a jamais existé. Même la Mafia ne peut pas trouver une salle sur une rue qui n'existe pas.",
+  "backHome": "Retour en ville"
+ },
+ "about": {
+  "title": "À propos de Mafia Verse",
+  "description": "Mafia Verse est un jeu de déduction sociale fait de mensonges, d'alliances et de calcul froid. Réunissez votre équipe, ne faites confiance à personne, et découvrez qui est de la Mafia avant que la ville ne soit à court de nuits.",
+  "highlights": {
+   "bots": {
+    "title": "Jouez à tout moment, quel que soit le nombre de joueurs",
+    "description": "Des bots IA remplissent les places vides pour qu'une partie démarre toujours, même si votre équipe est petite."
+   },
+   "graveyard": {
+    "title": "Les morts parlent encore",
+    "description": "Les joueurs éliminés ont leur propre chat des fantômes pour continuer à suivre le chaos."
+   },
+   "community": {
+    "title": "Construit avec la communauté",
+    "description": "Les retours des vrais joueurs façonnent les nouveaux rôles, paramètres et fonctionnalités."
+   }
+  }
+ },
+ "faq": {
+  "title": "F.A.Q.",
+  "subtitle": "Questions venues de la rue",
+  "questions": {
+   "howToPlay": {
+    "question": "Comment jouer ?",
+    "answer": "Mafia Verse alterne entre la Nuit, où les rôles spéciaux agissent en secret, et le Jour, où tout le monde discute puis vote pour éliminer quelqu'un. La partie se termine quand un camp gagne. Ouvrez le Manuel de la Mafia depuis une salle pendant une partie pour un résumé complet de chaque rôle."
+   },
+   "credits": {
+    "question": "À quoi servent les crédits, et dois-je payer ?",
+    "answer": "Les crédits servent à acheter des caisses et des cosmétiques — comme des personnages, des accessoires et des arrière-plans. Ils sont entièrement facultatifs et n'affectent pas le gameplay ; vous pouvez jouer à chaque partie gratuitement sans jamais acheter de crédits."
+   },
+   "botAutoFill": {
+    "question": "Comment fonctionne le remplissage automatique par bots ?",
+    "answer": "Des bots IA remplissent les places vides pour qu'une partie démarre toujours, même si votre équipe est petite. Si votre salle ne se remplit pas de vrais joueurs à temps, les bots prennent automatiquement les places restantes pour que vous ne restiez jamais bloqué dans un salon vide."
+   },
+   "syndicatePass": {
+    "question": "Qu'inclut le Pass Syndicat ?",
+    "answer": "Le Pass Syndicat débloque plus de 20 cosmétiques exclusifs, dont des personnages légendaires, des accessoires de rang doré et des arrière-plans réservés au syndicat, ainsi qu'un pack premium de kit de rue mystère et un badge de salon permanent."
+   },
+   "afkFlag": {
+    "question": "Que se passe-t-il si je suis signalé pour inactivité ?",
+    "answer": "Ce drapeau jaune sur la carte d'un joueur n'est pas un marqueur de « suspicion » — il signale quelqu'un comme absent/inactif. Cela n'affecte pas la partie elle-même, mais si un joueur reçoit 2 signalements ou plus dans une partie, cela est enregistré dans l'historique d'activité de son compte."
+   }
+  }
+ },
+ "leaderboard": {
+  "title": "Salon de l'Infamie",
+  "subtitle": "Classement mondial",
+  "second": "2e",
+  "first": "1er",
+  "third": "3e",
+  "winsAbbrev": "{{count}}V",
+  "player": "Joueur",
+  "wins": "Victoires",
+  "rate": "Taux",
+  "noGamesYet": "Aucune partie jouée pour l'instant",
+  "playFirstGame": "Jouez votre première partie pour apparaître ici !",
+  "gamesCount_one": "{{count}} partie",
+  "gamesCount_other": "{{count}} parties"
+ },
+ "profile": {
+  "unknownAgent": "Agent inconnu",
+  "title": "Profil de l'agent",
+  "badgesCount": "{{earned}}/{{total}} badges",
+  "elite": "Élite",
+  "veteran": "Vétéran",
+  "collector": "Collectionneur",
+  "wins": "Victoires",
+  "losses": "Défaites",
+  "games": "Parties",
+  "winPercent": "% de victoires",
+  "credits": "Crédits",
+  "rolePerformance": "Performance par rôle",
+  "winsCount_one": "{{count}} victoire",
+  "winsCount_other": "{{count}} victoires",
+  "roleRecord": "{{wins}}V / {{games}}P ({{rate}}%)",
+  "roleNotPlayed": "Pas encore joué",
+  "currentStreak": "Série en cours",
+  "bestStreak": "Meilleure série",
+  "achievementHall": "Salle des accomplissements",
+  "notYetUnlocked": "Pas encore débloqué",
+  "mvpCount": "MVP"
+ },
+ "authCallback": {
+  "authFailed": "Échec de l'authentification",
+  "emailVerificationFailed": "Échec de la vérification de l'e-mail",
+  "emailVerified": "E-mail vérifié",
+  "welcomeMessage": "Votre e-mail a été confirmé. Bienvenue sur Mafia Verse !",
+  "emailChangeFailed": "Échec du changement d'e-mail",
+  "emailUpdated": "E-mail mis à jour",
+  "emailUpdatedDescription": "Votre e-mail a été modifié avec succès.",
+  "redirecting": "Redirection en cours...",
+  "processingLogin": "Traitement de votre connexion..."
+ },
+ "store": {
+  "title": "Boutique",
+  "subtitle": "Soutenez le jeu et débloquez des avantages",
+  "creditsAdded": "+{{credits}} crédits ajoutés !",
+  "syndicateActivated": "Pass Syndicat activé !",
+  "thankYouTip": "Merci pour votre pourboire de {{amount}} $ !",
+  "paymentCanceled": "Paiement annulé",
+  "noChargesMade": "Aucun montant n'a été débité.",
+  "creditsLabel": "{{count}} crédits",
+  "syndicatePassName": "Le Pass Syndicat",
+  "tipLabel": "Pourboire de {{amount}} $",
+  "creditPacks": "Packs de crédits",
+  "popular": "Populaire",
+  "spendOnCrates": "À dépenser en caisses et cosmétiques",
+  "syndicateActive": "Pass Syndicat actif",
+  "allPremiumUnlocked": "Vous avez accès à tous les cosmétiques premium",
+  "perk1": "Débloquez 16 cosmétiques exclusifs et des personas légendaires",
+  "perk2": "Recevez instantanément un pack mystère premium de tenue de rue",
+  "perk3": "Obtenez un statut prioritaire permanent en salon de jeu et un badge",
+  "supportTheDevs": "Soutenir les développeurs",
+  "tipTiers": {
+   "buyCoffee": "Offrez-nous un café",
+   "powerServers": "Alimentez les serveurs",
+   "majorSupporter": "Grand soutien",
+   "becomeLegend": "Devenez une légende"
+  },
+  "customAmount": "Ou saisissez un montant personnalisé (1 $ minimum)",
+  "enterAmount": "Saisissez un montant",
+  "tipAmount": "Pourboire de {{amount}} $",
+  "capsuleStashDrops": "Caisses Capsule",
+  "underworldStash": "Caisse des Bas-Fonds",
+  "underworldStashDesc": "Contient de l'équipement de rue commun à rare.",
+  "insufficientCredits": "Crédits insuffisants",
+  "stashUnlocked": "Caisse débloquée !",
+  "hot": "TENDANCE",
+  "syndicateVault": "Coffre du Syndicat",
+  "syndicateVaultDesc": "Forte chance d'obtenir des tenues épiques.",
+  "vaultUnlocked": "Coffre débloqué !",
+  "secureCheckout": "Paiement sécurisé",
+  "cardNumber": "Numéro de carte",
+  "expiry": "Expiration (MM/AA)",
+  "cvc": "CVC",
+  "processing": "Traitement en cours...",
+  "payAmount": "Payer {{amount}} $"
+ },
+ "cosmetics": {
+  "title": "Boutique de cosmétiques",
+  "tiers": {
+   "legendary": "LÉGENDAIRE",
+   "gold": "OR",
+   "silver": "ARGENT"
+  },
+  "equipped": "Équipé",
+  "owned": "Possédé",
+  "chatBorderPreview": "Salut tout le monde, je crois savoir qui est dans la mafia...",
+  "usernamePreview": "Aperçu du nom d'utilisateur",
+  "types": {
+   "accessory": "accessoire",
+   "clothing": "vêtement",
+   "background": "Arrière-plan de profil",
+   "banner": "Bannière de victoire",
+   "persona": "Persona légendaire"
+  },
+  "requiresPass": "Nécessite le Pass Syndicat",
+  "unlockForWins_one": "Débloquer avec {{count}} victoire",
+  "unlockForWins_other": "Débloquer avec {{count}} victoires",
+  "equippedClickToUnequip": "Équipé — Cliquez pour retirer",
+  "equipItem": "Équiper l'objet",
+  "sections": {
+   "personas": "Personas",
+   "accessories": "Accessoires",
+   "clothing": "Vêtements",
+   "backgrounds": "Arrière-plans",
+   "banners": "Bannières"
+  },
+  "availableWins": "Victoires disponibles",
+  "premium": "Premium",
+  "unlockPassTitle": "Débloquez le Pass Syndicat",
+  "unlockPassDescription": "Accédez à plus de 20 cosmétiques exclusifs, dont des personas légendaires, des accessoires de rang or et des arrière-plans réservés au Syndicat.",
+  "twoLegendaryPersonas": "2 personas légendaires",
+  "eightGoldItems": "8 objets or",
+  "tenSilverItems": "10 objets argent",
+  "unlockPassButton": "Débloquer le Pass (4,99 $)",
+  "passActiveAllUnlocked": "Pass Syndicat actif — Tous les objets débloqués",
+  "winUnlockables": "Objets à débloquer par victoire",
+  "items": {
+   "border_gold": {
+    "name": "Bordure de chat dorée",
+    "description": "Une bordure dorée luxueuse pour vos messages de chat"
+   },
+   "border_red": {
+    "name": "Bordure de chat rouge",
+    "description": "Une bordure rouge menaçante - parfaite pour le rôle de Mafia"
+   },
+   "border_blue": {
+    "name": "Bordure de chat bleue",
+    "description": "Le bleu emblématique du détective"
+   },
+   "name_color_gold": {
+    "name": "Couleur de nom dorée",
+    "description": "Démarquez-vous avec un texte doré"
+   },
+   "name_color_red": {
+    "name": "Couleur de nom rouge",
+    "description": "Un nom d'utilisateur rouge menaçant"
+   },
+   "name_color_cyan": {
+    "name": "Couleur de nom cyan",
+    "description": "Un cyan futuriste"
+   },
+   "frame_diamond": {
+    "name": "Cadre d'avatar diamant",
+    "description": "Un cadre en diamant premium pour votre avatar"
+   },
+   "frame_fire": {
+    "name": "Cadre d'avatar en feu",
+    "description": "Un cadre d'avatar brûlant"
+   },
+   "frame_crown": {
+    "name": "Cadre d'avatar couronne",
+    "description": "Un cadre en forme de couronne royale"
+   },
+   "synd_acc_mask": {
+    "name": "Masque fantôme",
+    "description": "Un masque mystérieux réservé au cercle restreint"
+   },
+   "synd_acc_cigar": {
+    "name": "Cigare du parrain",
+    "description": "La fumée de l'autorité"
+   },
+   "synd_acc_scar": {
+    "name": "Cicatrice de combat",
+    "description": "Gagnée dans la rue"
+   },
+   "synd_acc_chain": {
+    "name": "Chaîne en or",
+    "description": "De l'or massif, sans mytho"
+   },
+   "synd_cloak": {
+    "name": "Cape de l'ombre",
+    "description": "Fondu dans la nuit"
+   },
+   "synd_suit": {
+    "name": "Costume de Don",
+    "description": "Un trois-pièces qui impose le respect"
+   },
+   "synd_trench": {
+    "name": "Trench-coat",
+    "description": "Une ambiance de détective, façon film noir"
+   },
+   "synd_hoodie": {
+    "name": "Sweat à capuche du Syndicat",
+    "description": "Représentez la famille"
+   },
+   "synd_bg_smoke": {
+    "name": "Fumée de cigare",
+    "description": "Une fumée épaisse dans une arrière-salle"
+   },
+   "synd_bg_vault": {
+    "name": "Or du coffre",
+    "description": "Des piles de lingots d'or"
+   },
+   "synd_bg_neon": {
+    "name": "Ruelle néon",
+    "description": "Des rues néon luisantes de pluie"
+   },
+   "synd_bg_cell": {
+    "name": "La Cellule",
+    "description": "Murs en béton, lumière tamisée"
+   },
+   "synd_banner_kingpin": {
+    "name": "Bannière du Caïd",
+    "description": "Couronnez le roi de la ville"
+   },
+   "synd_banner_mercenary": {
+    "name": "Bannière du Mercenaire",
+    "description": "Homme de main redouté de tous"
+   },
+   "synd_banner_informant": {
+    "name": "Bannière de l'Informateur",
+    "description": "Des murmures dans l'obscurité"
+   },
+   "synd_banner_cleaner": {
+    "name": "Bannière du Nettoyeur",
+    "description": "Pas de preuve, pas de problème"
+   },
+   "synd_persona_godfather": {
+    "name": "Le Parrain",
+    "description": "Le respect, c'est tout. Le silence, c'est le pouvoir."
+   },
+   "synd_persona_fixer": {
+    "name": "L'Arrangeur",
+    "description": "Les problèmes disparaissent. Pas les questions."
+   },
+   "synd_persona_enforcer": {
+    "name": "L'Exécuteur",
+    "description": "La loyauté par la force."
+   },
+   "synd_persona_snitch": {
+    "name": "Le Mouchard",
+    "description": "L'information est une monnaie d'échange."
+   }
+  }
+ },
+ "roleBadge": {
+  "mafia": "Mafia",
+  "detective": "Détective",
+  "doctor": "Médecin",
+  "civilian": "Civil",
+  "bodyguard": "Garde du corps",
+  "vigilante": "Justicier",
+  "mayor": "Maire",
+  "jester": "Bouffon"
+ },
+ "phaseIndicator": {
+  "waitingLobby": "Salon d'attente",
+  "waitingForPlayers": "En attente d'autres joueurs...",
+  "gameOver": "Partie terminée",
+  "gameHasEnded": "La partie est terminée.",
+  "discussDescription": "Discutez pour trouver qui est de la Mafia.",
+  "votingDescription": "Votez pour éliminer un suspect.",
+  "nightDescription": "La Mafia et les rôles agissent...",
+  "phases": {
+   "discussion": "discussion",
+   "voting": "vote",
+   "mafia": "mafia",
+   "doctor": "médecin",
+   "detective": "détective",
+   "bodyguard": "garde du corps",
+   "vigilante": "justicier"
+  }
+ },
+ "playerCard": {
+  "removeBot": "Retirer le bot",
+  "roleLabels": {
+   "mafia": "MAFIA",
+   "detective": "DÉTECTIVE",
+   "doctor": "MÉDECIN",
+   "civilian": "CIVIL",
+   "bodyguard": "Garde du corps",
+   "vigilante": "Justicier",
+   "mayor": "Maire",
+   "jester": "Bouffon"
+  },
+  "unknown": "Inconnu",
+  "host": "Hôte",
+  "bot": "BOT",
+  "you": "(Vous)",
+  "roleEliminated": "{{role}} — Éliminé",
+  "eliminated": "Éliminé",
+  "revealed": "Révélé",
+  "titleTiers": {
+   "veteran": "Vétéran",
+   "legend": "Légende"
+  }
+ },
+ "chat": {
+  "quickMessages": [
+   "Je pense que {name} est de la Mafia",
+   "Je suis innocent(e) !",
+   "Qui a tué cette nuit ?",
+   "Je fais confiance à {name}",
+   "Ne votez pas contre moi !",
+   "{name} semble suspect(e)",
+   "J'ai un mauvais pressentiment à propos de {name}",
+   "{name} se comporte bizarrement",
+   "Laissez-moi m'expliquer",
+   "Je suis le médecin et je protège {name}",
+   "Ça n'a pas de sens",
+   "Attendez, {name} a dit quoi ?",
+   "Je crois {name}",
+   "Il y a quelque chose de louche chez {name}",
+   "Pour qui votez-vous ?"
+  ],
+  "mafiaQuickMessages": [
+   "Éliminons {name} cette nuit",
+   "Je propose qu'on s'en prenne à {name}",
+   "Attendez, pas {name} — trop risqué",
+   "D'accord",
+   "Je te soutiens pour le vote",
+   "Quelqu'un nous a repérés, restons discrets",
+   "{name} est sur le point de comprendre",
+   "Faisons profil bas ce tour-ci",
+   "Bon coup cette nuit",
+   "Accusons {name} pendant le jour"
+  ],
+  "messageBlocked": "Message bloqué",
+  "inappropriateLanguage": "Le langage inapproprié n'est pas autorisé.",
+  "spectatorChat": "Chat des spectateurs",
+  "roomChat": "Chat de la salle",
+  "graveyardChat": "Chat des fantômes",
+  "mafiaChat": "Chat de la Mafia",
+  "mafiaTacticalComms": "Communications tactiques de la Mafia",
+  "mafiaTypeAMessage": "Écrivez un message à vos complices...",
+  "gameChatReadOnly": "Lecture seule — passez au Chat des fantômes pour parler",
+  "secret": "SECRET",
+  "graveyardDiscordPrompt": "Vous vous ennuyez en attendant ? Rejoignez le Discord pour discuter et partager vos retours.",
+  "reactedBy_one": "Réagi par {{count}} joueur",
+  "reactedBy_other": "Réagi par {{count}} joueurs",
+  "deadCannotSpeak": "Les morts ne peuvent pas parler",
+  "tacticalComms": "Communications tactiques",
+  "someone": "quelqu'un",
+  "deadPlayersCannotSpeak": "Les joueurs éliminés ne peuvent pas parler...",
+  "typeAMessage": "Écrivez un message...",
+  "selectTarget": "Choisissez une cible"
+ },
+ "howToPlay": {
+  "title": "Comment jouer",
+  "gotIt": "Compris !",
+  "next": "Suivant",
+  "steps": {
+   "loop": {
+    "title": "Le déroulement de base",
+    "body": "Mafia Verse alterne entre la Nuit (les rôles spéciaux agissent en secret) et le Jour (tout le monde discute, puis vote pour éliminer quelqu'un). La partie se termine quand un camp l'emporte."
+   },
+   "mafia": {
+    "title": "Mafia",
+    "body": "Chaque nuit, la Mafia choisit secrètement un joueur à éliminer. Elle gagne dès qu'elle est à égalité ou en supériorité numérique face au reste de la ville."
+   },
+   "detective": {
+    "title": "Détective",
+    "body": "Chaque nuit, enquêtez sur un joueur pour savoir s'il fait partie de la Mafia. Utilisez ce que vous apprenez pour orienter les votes de la ville, sans révéler que vous êtes le Détective."
+   },
+   "doctor": {
+    "title": "Médecin",
+    "body": "Chaque nuit, protégez un joueur de l'attaque de la Mafia. Vous pouvez vous protéger vous-même, mais réfléchissez bien à qui a vraiment besoin d'être sauvé."
+   },
+   "civilian": {
+    "title": "Civil",
+    "body": "Vous n'avez aucune capacité de nuit, mais votre vote et votre voix comptent le plus pendant le Jour — écoutez attentivement et aidez la ville à démasquer la Mafia."
+   },
+   "bodyguard": {
+    "title": "Garde du corps",
+    "body": "Chaque nuit, protégez un joueur. Si la Mafia s'en prend à la personne que vous gardez, c'est vous qui encaissez le coup et mourez à sa place."
+   },
+   "vigilante": {
+    "title": "Justicier",
+    "body": "Vous disposez de 2 balles pour toute la partie. N'importe quelle nuit, vous pouvez tirer sur un joueur que vous soupçonnez. Mais si vous tuez un innocent, la culpabilité finira par vous rattraper."
+   },
+   "mayor": {
+    "title": "Maire",
+    "body": "Une fois par partie, vous pouvez vous révéler pour doubler le poids de votre vote — mais cela indique aussi exactement à la Mafia qui vous êtes."
+   },
+   "jester": {
+    "title": "Bouffon",
+    "body": "Vous voulez vous faire éliminer par vote ! Si la ville vote contre vous pendant le Jour, vous gagnez instantanément et la partie se termine aussitôt."
+   },
+   "vote": {
+    "title": "Le vote du Jour",
+    "body": "Après la discussion, tout le monde vote pour désigner qui éliminer. Le joueur qui reçoit le plus de votes est éliminé — en cas d'égalité, personne n'est éliminé."
+   }
+  }
+ },
+ "dailyRewards": {
+  "title": "Récompenses quotidiennes",
+  "subtitle": "Revenez chaque jour",
+  "ariaClaimed": "Jour {{day}}, déjà récupéré",
+  "ariaClaimNow": "Récupérer la récompense du jour {{day}}, {{count}} crédits",
+  "ariaLocked": "Jour {{day}}, verrouillé",
+  "currentStreak": "Série actuelle",
+  "dayStreak_one": "Série de {{count}} jour",
+  "dayStreak_other": "Série de {{count}} jours",
+  "best": "Record : {{count}}",
+  "dayN": "Jour {{day}}",
+  "bonus": "BONUS",
+  "plusCredits_one": "+{{count}} crédit",
+  "plusCredits_other": "+{{count}} crédits",
+  "claimed": "Récupéré",
+  "claim": "Récupérer",
+  "rewardClaimed": "Récompense récupérée !"
+ },
+ "rating": {
+  "title": "Notez le jeu",
+  "subtitle": "Votre avis façonne l'avenir du jeu",
+  "earnCreditsBanner": "Notez-nous une fois et gagnez {{count}} crédits gratuits !",
+  "howWouldYouRate": "Comment évalueriez-vous votre expérience ?",
+  "amazing": "Incroyable !",
+  "great": "Très bien !",
+  "good": "Bien",
+  "okay": "Correct",
+  "needsWork": "À améliorer",
+  "submitAndEarn": "Envoyer et gagner {{count}} crédits",
+  "updateRating": "Modifier la note",
+  "thanksForRating": "Merci pour votre avis !",
+  "creditsAwarded": "+{{count}} crédits ajoutés à votre compte !",
+  "alreadyRated": "Vous avez déjà noté ce jeu.",
+  "editAvailableIn_one": "Vous pourrez modifier votre note dans {{count}} jour",
+  "editAvailableIn_other": "Vous pourrez modifier votre note dans {{count}} jours",
+  "editAvailableInOneDay": "Vous pourrez modifier votre note dans 1 jour"
+ },
+ "referralSystem": {
+  "title": "Inviter des amis",
+  "subtitle": "Gagnez des crédits pour chaque joueur invité",
+  "yourReferralLink": "Votre lien de parrainage",
+  "invited": "Invités",
+  "joined": "Inscrits",
+  "credits": "Crédits",
+  "creditsPerFriend": "{{count}} crédits par ami",
+  "theyJoinYouGetRewarded": "Ils rejoignent une partie, vous êtes récompensé",
+  "loadFailed": "Impossible de charger vos informations de parrainage. Réessayez dans un instant.",
+  "gotACode": "Un ami vous a donné un code ?",
+  "codePlaceholder": "ENTRER LE CODE",
+  "redeem": "Valider",
+  "redeemSuccess": "Code validé ! Vous avez tous les deux gagné {{count}} crédits.",
+  "redeemPending": "Code accepté ! Jouez encore {{count}} partie(s) pour débloquer les crédits pour vous deux.",
+  "redeemAlreadyUsed": "Vous avez déjà utilisé un code de parrainage auparavant.",
+  "redeemSelf": "Vous ne pouvez pas utiliser votre propre code.",
+  "redeemSameDevice": "Cet appareil ou ce réseau semble être le même que celui du compte parrain.",
+  "redeemInvalid": "Ce code n'est pas valide. Vérifiez-le et réessayez."
+ },
+ "tipJar": {
+  "title": "Soutenir le jeu",
+  "subtitle": "Les pourboires font tourner les serveurs",
+  "enterAmountMin": "Saisissez un montant (1 $ minimum)",
+  "thankYou": "Merci !",
+  "supportMeansEverything": "Votre soutien compte plus que tout",
+  "disclaimer": "La majeure partie de chaque pourboire sert à améliorer le jeu et à faire tourner les serveurs. Le reste couvre les frais de traitement. Chaque dollar compte — merci !"
+ },
+ "feedback": {
+  "categories": {
+   "bug": "Bug",
+   "feature": "Fonctionnalité",
+   "design": "Design",
+   "praise": "Compliment"
+  },
+  "feedback": "Retour",
+  "feedbackSent": "Retour envoyé !",
+  "thankYouForHelping": "Merci de nous aider à améliorer Mafia Verse.",
+  "sendFeedback": "Envoyer un retour",
+  "tellUsWhatsOnYourMind": "Dites-nous ce que vous en pensez...",
+  "sending": "Envoi en cours..."
+ },
+ "adRewards": {
+  "title": "Crédits gratuits",
+  "subtitle": "Regardez et gagnez — {{count}} crédits par diffusion",
+  "perStream": "Par diffusion",
+  "today": "Aujourd'hui",
+  "streamingRemaining": "Diffusion en cours... {{count}} s restantes",
+  "readyToStream": "Prêt à diffuser",
+  "sponsored": "Sponsorisé",
+  "couldNotAward": "Impossible d'attribuer les crédits.",
+  "networkError": "Erreur réseau. Veuillez réessayer.",
+  "creditsEarned": "+{{count}} crédits gagnés !",
+  "streamsRemaining_one": "{{count}} diffusion restante aujourd'hui",
+  "streamsRemaining_other": "{{count}} diffusions restantes aujourd'hui",
+  "watchAnother": "Regarder une autre",
+  "discordPrompt": "C'est tout pour aujourd'hui — rejoignez le Discord pour donner votre avis et suivre les actualités.",
+  "streamingCountdown": "Diffusion en cours... ({{count}} s)",
+  "dailyLimitReached": "Limite quotidienne atteinte",
+  "activateStream": "Lancer la diffusion (+{{count}} crédits)",
+  "resetsAtMidnight": "Réinitialisation à minuit. Revenez demain.",
+  "billboards": {
+   "item_shop": {
+    "title": "ÉQUIPEZ-VOUS À LA BOUTIQUE !",
+    "body": "Rendez-vous dès maintenant à la Boutique pour débloquer des costumes mystères en édition limitée et des objets rares exclusifs avant qu'ils ne disparaissent !"
+   },
+   "buy_credits": {
+    "title": "FINI D'ATTENDRE",
+    "body": "Besoin de crédits tout de suite pour un objet rare ? Contournez la limite quotidienne et rendez-vous sur notre boutique pour acheter instantanément des packs de crédits, en toute sécurité grâce à Stripe !"
+   },
+   "referral": {
+    "title": "AGRANDISSEZ VOTRE ÉQUIPE",
+    "body": "Envie d'encore plus de récompenses ? Utilisez notre système de parrainage pour inviter vos amis ! Partagez votre lien d'invitation unique avec votre équipe et gagnez ensemble 25 crédits bonus quand ils rejoignent le jeu."
+   },
+   "security": {
+    "title": "SAUVEGARDE SÉCURISÉE",
+    "body": "Votre profil de jeu est protégé. Assurez une sécurité maximale à votre compte en associant votre profil de connexion à l'authentification à deux facteurs de Google via Supabase."
+   }
+  }
+ },
+ "creditPacks": {
+  "title": "Boutique de crédits",
+  "subtitle": "Achetez des crédits, oubliez le grind",
+  "bonus10": "+10 % de bonus",
+  "bonus20": "+20 % de bonus",
+  "bonus30": "+30 % de bonus",
+  "mostPopular": "Le plus populaire",
+  "disclaimer": "Les crédits débloquent des cosmétiques, des caisses et des fonctionnalités premium. Aucun remboursement.",
+  "creditsAdded": "Crédits ajoutés !",
+  "spendInShop": "Dépensez-les à la boutique"
+ },
+ "friends": {
+  "title": "Amis",
+  "signInRequired": "Connectez-vous pour ajouter des amis et être invité dans des salons privés.",
+  "addFriend": "Ajouter un ami",
+  "usernamePlaceholder": "Leur nom d'utilisateur (pas leur nom en jeu)",
+  "requestSent": "Demande d'ami envoyée",
+  "requestFailed": "Impossible d'envoyer la demande",
+  "actionFailed": "Une erreur est survenue",
+  "loadError": "Impossible de charger la liste d'amis",
+  "lobbyInvites": "Invitations de salon",
+  "aPrivateLobby": "Un salon privé",
+  "join": "Rejoindre",
+  "incomingRequests": "Demandes",
+  "yourFriends": "Vos amis",
+  "noFriendsYet": "Pas encore d'amis — ajoutez-en un ci-dessus.",
+  "pending": "En attente"
+ },
+ "history": {
+  "title": "Historique des parties",
+  "loadError": "Impossible de charger l'historique des parties",
+  "empty": "Aucune partie terminée pour le moment — jouez un match pour le voir ici.",
+  "share": "Partager",
+  "shareRecap": "Partager cette partie",
+  "shareTitle": "Mafia Verse — Résumé de partie",
+  "shareText": "Découvrez comment cette partie s'est déroulée",
+  "scanOrCopy": "Scannez le code ou copiez le lien",
+  "recapQrCode": "Code QR du résumé",
+  "recapNotFound": "Ce résumé est introuvable."
+ },
+ "tutorial": {
+  "skip": "Passer",
+  "next": "Suivant",
+  "done": "Compris",
+  "phase": {
+   "title": "Suivez la phase",
+   "body": "Ceci indique si c'est le jour ou la nuit, et le temps restant pour agir."
+  },
+  "players": {
+   "title": "Votez et agissez ici",
+   "body": "Touchez la carte d'un joueur pour voter le jour, ou pour utiliser l'action nocturne de votre rôle quand c'est votre tour."
+  },
+  "chat": {
+   "title": "Discutez ici",
+   "body": "Discutez avec tout le monde ici. Si vous êtes de la Mafia, vous aurez aussi un canal privé avec vos coéquipiers la nuit."
+  },
+  "handbook": {
+   "title": "Un rôle vous échappe ?",
+   "body": "Ouvrez le manuel à tout moment pour voir ce que fait chaque rôle."
+  },
+  "notifications": {
+   "title": "Ne manquez pas votre tour",
+   "body": "Activez ceci pour être averti(e) quand c'est votre tour, même si vous avez changé d'onglet."
+  }
+ },
+ "handbook": {
+  "title": "Guide de la Mafia",
+  "subtitle": "Tout ce qu'il faut savoir pour bien jouer",
+  "tabs": {
+   "basics": "Bases",
+   "roles": "Rôles",
+   "phases": "Phases",
+   "tips": "Astuces"
+  },
+  "overview": {
+   "whatIsMafiaTitle": "Qu'est-ce que la Mafia ?",
+   "whatIsMafiaDescription": "La Mafia est un jeu de déduction sociale. La Mafia s'associe secrètement pour éliminer le Village la nuit, pendant que tous les autres tentent de découvrir qui ils sont avant qu'il ne soit trop tard.",
+   "teamsAtAGlance": "Les équipes en un coup d'œil",
+   "theTown": "Le Village",
+   "theTownDescription": "Détectives, Médecins, Gardes du corps, Justiciers, Maires et Civils — tous unis pour trouver et éliminer la Mafia.",
+   "theMafia": "La Mafia",
+   "theMafiaDescription": "Élimine secrètement un membre du Village chaque nuit, cherchant à atteindre la parité avec le Village avant d'être démasquée.",
+   "theJester": "Le Bouffon",
+   "theJesterDescription": "Un trickster solitaire avec un seul objectif : se faire voter hors du jeu par le Village pendant la journée.",
+   "howToWin": "Comment gagner",
+   "townWins": "Le Village gagne :",
+   "townWinsDescription": "quand tous les membres de la Mafia ont été éliminés.",
+   "mafiaWins": "La Mafia gagne :",
+   "mafiaWinsDescription": "quand la Mafia égale ou dépasse en nombre le reste du Village.",
+   "jesterWins": "Le Bouffon gagne :",
+   "jesterWinsDescription": "à l'instant où le Village le vote hors du jeu — tous les autres perdent ce tour-là.",
+   "whatMakesDifferentTitle": "Ce qui rend ce jeu différent",
+   "difference1": "Un Garde du corps qui peut prendre une balle à la place de quelqu'un d'autre, mourant à sa place.",
+   "difference2": "Un Justicier avec seulement 2 balles pour toute la partie — à utiliser avec sagesse.",
+   "difference3": "Un Maire qui peut se révéler pour un pouvoir de vote doublé, au prix d'être exposé.",
+   "difference4": "Un Bouffon qui gagne en se faisant voter hors du jeu exprès.",
+   "difference5": "Votes en temps réel, chat, et un chat des morts pour les joueurs éliminés.",
+   "jesterNoteTitle": "À propos du Bouffon",
+   "jesterNoteDescription": "Le Bouffon n'est ni du Village ni de la Mafia — il cherche seulement à se faire voter hors du jeu. S'il y parvient, il gagne instantanément et la partie se termine immédiatement, peu importe ce que les autres essayaient de faire.",
+   "afkFlagTitle": "L'icône de drapeau",
+   "afkFlagDescription": "Ce drapeau jaune sur la carte d'un joueur n'est pas un marqueur \"suspect\" — il signale que quelqu'un est AFK/inactif. Cela n'affecte pas la partie elle-même, mais si un joueur reçoit 2 signalements ou plus dans une partie, cela est enregistré dans l'historique d'activité de son compte. Appuyez de nouveau sur le drapeau pour annuler un signalement fait par erreur."
+  },
+  "roles": {
+   "mafia": {
+    "title": "Mafia",
+    "desc": "Travaille avec les autres membres de la Mafia pour éliminer secrètement le Village chaque nuit.",
+    "abilities": [
+     "Chaque nuit, vote avec les autres membres de la Mafia sur qui éliminer",
+     "Peut voir et discuter en privé avec les autres membres de la Mafia",
+     "Gagne quand la Mafia égale ou dépasse en nombre le reste du Village"
+    ]
+   },
+   "detective": {
+    "title": "Détective",
+    "desc": "Enquête sur un joueur chaque nuit pour découvrir sa véritable allégeance.",
+    "abilities": [
+     "Chaque nuit, vérifie un joueur pour savoir s'il fait partie de la Mafia",
+     "Termine instantanément la partie en faveur du Village si un membre de la Mafia vérifié est démasqué",
+     "Doit partager ses découvertes avec prudence — se révéler trop tôt fait de vous une cible"
+    ]
+   },
+   "doctor": {
+    "title": "Médecin",
+    "desc": "Protège un joueur chaque nuit contre l'élimination par la Mafia.",
+    "abilities": [
+     "Chaque nuit, choisit un joueur à protéger de l'élimination",
+     "Peut se protéger lui-même, mais protéger la même personne chaque nuit est souvent prévisible",
+     "Ne sait pas qui la Mafia cible — la protection est un pari"
+    ]
+   },
+   "civilian": {
+    "title": "Civil",
+    "desc": "Aucune capacité spéciale — juste un œil aiguisé, du bon instinct et un vote.",
+    "abilities": [
+     "Aucune action de nuit — contribue entièrement par la discussion et le vote",
+     "Gagne aux côtés du reste du Village quand toute la Mafia est éliminée",
+     "Représente souvent la majorité du Village — le nombre compte dans le vote"
+    ]
+   },
+   "bodyguard": {
+    "title": "Garde du corps",
+    "desc": "Protège un joueur chaque nuit, prenant le coup à sa place s'il est visé.",
+    "abilities": [
+     "Chaque nuit, choisit un joueur à protéger",
+     "Si la Mafia cible le joueur protégé, le Garde du corps meurt à sa place",
+     "Ne sait pas qui la Mafia cible — protéger est un pari, tout comme pour le Médecin"
+    ]
+   },
+   "vigilante": {
+    "title": "Justicier",
+    "desc": "Un membre du Village armé, avec seulement 2 balles pour toute la partie.",
+    "abilities": [
+     "Commence la partie avec exactement 2 balles — jamais plus",
+     "Chaque nuit, peut choisir de tirer sur un joueur au lieu de passer",
+     "Tirer sur un joueur innocent apporte une culpabilité qui rattrape le Justicier plus tard"
+    ]
+   },
+   "mayor": {
+    "title": "Maire",
+    "desc": "Un leader du Village qui peut se révéler pour un vote plus puissant.",
+    "abilities": [
+     "Une fois par partie, peut révéler son identité à tout le village",
+     "Après s'être révélé, son vote compte double pour le reste de la partie",
+     "Se révéler indique aussi exactement à la Mafia qui cibler ensuite"
+    ]
+   },
+   "jester": {
+    "title": "Bouffon",
+    "desc": "Ne joue ni pour le Village ni pour la Mafia — veut seulement se faire voter hors du jeu.",
+    "abilities": [
+     "Gagne instantanément et termine la partie s'il est voté hors du jeu pendant la journée",
+     "N'est aligné ni avec le Village ni avec la Mafia — a sa propre condition de victoire distincte",
+     "La meilleure stratégie est souvent d'agir assez suspect pour récolter des votes, sans être trop évident"
+    ]
+   }
+  },
+  "flow": {
+   "dayPhaseTitle": "Phase de jour",
+   "day1Label": "Discussion :",
+   "day1Description": "tout le monde parle ouvertement, partage ses soupçons et se défend.",
+   "day2Label": "Vote :",
+   "day2Description": "chaque joueur vivant vote pour celui qu'il pense devoir être éliminé.",
+   "day3Label": "Élimination :",
+   "day3Description": "le joueur ayant reçu le plus de votes est éliminé et son rôle peut être révélé.",
+   "nightPhaseTitle": "Phase de nuit",
+   "night1Label": "Garde du corps :",
+   "night1Description": "choisit un joueur à protéger pour la nuit.",
+   "night2Label": "Mafia :",
+   "night2Description": "s'accorde secrètement sur un joueur à éliminer.",
+   "night3Label": "Justicier :",
+   "night3Description": "peut choisir de tirer sur un joueur suspecté.",
+   "night4Label": "Médecin :",
+   "night4Description": "choisit un joueur à protéger de l'élimination par la Mafia.",
+   "night5Label": "Détective :",
+   "night5Description": "enquête sur un joueur pour savoir s'il fait partie de la Mafia.",
+   "night6Label": "Résolution :",
+   "night6Description": "les événements de la nuit se déroulent et tout le monde apprend ce qui s'est passé au début du jour.",
+   "tieBreakingTitle": "Votes à égalité",
+   "tieBreakingDescription": "Si le vote se termine par une égalité entre deux joueurs ou plus, personne n'est éliminé ce jour-là et la partie passe à la Nuit."
+  },
+  "strategy": {
+   "townTitle": "Stratégie du Village",
+   "townTips": [
+    "Repérez qui est resté silencieux pendant la discussion — le silence peut être aussi révélateur qu'une accusation.",
+    "Méfiez-vous des joueurs prompts à accuser les autres sans grand raisonnement derrière.",
+    "Si vous êtes le Détective, ne révélez pas vos découvertes trop tôt — vous deviendrez la prochaine cible de la Mafia.",
+    "Coordonnez les votes en groupe en fin de journée plutôt que de vous engager trop tôt."
+   ],
+   "mafiaTitle": "Stratégie de la Mafia",
+   "mafiaTips": [
+    "Fondez-vous dans la discussion — approuvez parfois le Village pour éviter les soupçons.",
+    "Envisagez de voter contre les joueurs les plus silencieux pour vous protéger de l'examen.",
+    "Ne défendez pas vos compagnons de la Mafia trop vigoureusement — cela peut trahir le lien.",
+    "Si un Détective semble sur le point de vous découvrir, priorisez son élimination."
+   ],
+   "jesterTitle": "Stratégie du Bouffon",
+   "jesterTips": [
+    "Agissez volontairement un peu suspect — vous voulez les votes du Village, pas sa confiance.",
+    "N'en faites pas trop trop tôt, ou vous serez éliminé la Nuit 1 par la Mafia au lieu d'être voté par le Village.",
+    "Si des joueurs vous défendent, c'est mauvais pour vous — redirigez les soupçons vers vous-même.",
+    "Une contradiction bien placée dans votre propre histoire peut être exactement ce qui vous fait voter hors du jeu."
+   ],
+   "redFlagsTitle": "Signaux d'alerte à surveiller",
+   "redFlags": [
+    "Éluder une question directe au lieu d'y répondre",
+    "Être anormalement silencieux juste après qu'un autre joueur soit accusé",
+    "Accusations excessivement agressives avec peu de raisonnement réel",
+    "Schémas de vote qui protègent systématiquement les mêmes joueurs"
+   ]
+  }
+ },
+ "lootCrate": {
+  "title": "Caisse de butin",
+  "subtitle": "Dépensez des crédits, obtenez des surprises",
+  "yourCredits": "Vos crédits",
+  "crateCost": "Coût de la caisse",
+  "creditsAmount_one": "{{count}} crédit",
+  "creditsAmount_other": "{{count}} crédits",
+  "rare": "Rare",
+  "epic": "Épique",
+  "mythic": "Mythique",
+  "opening": "Ouverture...",
+  "addedToBalance": "{{name}} ajouté à votre solde !",
+  "addedToCollection": "Ajouté à votre collection !",
+  "feelingLucky": "Vous vous sentez chanceux ?",
+  "openForChance": "Ouvrez pour une chance d'obtenir des cosmétiques rares et des crédits",
+  "openCrate": "Ouvrir la caisse ({{count}} crédits)",
+  "notEnoughCredits": "Crédits insuffisants",
+  "earnMoreCredits": "Gagnez plus de crédits grâce aux récompenses quotidiennes, aux publicités ou aux parrainages",
+  "items": {
+   "lc_border_grey": "Bordure cendre",
+   "lc_border_olive": "Bordure olive",
+   "lc_border_tan": "Bordure havane",
+   "lc_border_navy": "Bordure marine",
+   "lc_border_teal": "Bordure sarcelle",
+   "lc_border_mint": "Bordure menthe",
+   "lc_border_lav": "Bordure lavande",
+   "lc_border_coral": "Bordure corail",
+   "lc_border_peach": "Bordure pêche",
+   "lc_border_ink": "Bordure encre",
+   "lc_name_grey": "Nom cendre",
+   "lc_name_olive": "Nom olive",
+   "lc_name_tan": "Nom havane",
+   "lc_name_navy": "Nom marine",
+   "lc_name_teal": "Nom sarcelle",
+   "lc_name_mint": "Nom menthe",
+   "lc_name_lav": "Nom lavande",
+   "lc_name_coral": "Nom corail",
+   "lc_name_peach": "Nom pêche",
+   "lc_name_ink": "Nom encre",
+   "lc_border_gold": "Bordure dorée",
+   "lc_border_silver": "Bordure argentée",
+   "lc_border_bronze": "Bordure bronze",
+   "lc_border_ruby": "Bordure rubis",
+   "lc_border_sapphire": "Bordure saphir",
+   "lc_border_emerald": "Bordure émeraude",
+   "lc_border_amethyst": "Bordure améthyste",
+   "lc_border_amber": "Bordure ambre",
+   "lc_border_jade": "Bordure jade",
+   "lc_border_onyx": "Bordure onyx",
+   "lc_name_gold": "Nom doré",
+   "lc_name_silver": "Nom argenté",
+   "lc_name_bronze": "Nom bronze",
+   "lc_name_ruby": "Nom rubis",
+   "lc_name_sapphire": "Nom saphir",
+   "lc_name_emerald": "Nom émeraude",
+   "lc_name_amethyst": "Nom améthyste",
+   "lc_name_amber": "Nom ambre",
+   "lc_name_jade": "Nom jade",
+   "lc_name_onyx": "Nom onyx",
+   "lc_frame_steel": "Cadre acier",
+   "lc_frame_bronze": "Cadre bronze",
+   "lc_frame_silver": "Cadre argent",
+   "lc_frame_wood": "Cadre acajou",
+   "lc_frame_ivy": "Cadre lierre",
+   "lc_frame_diamond": "Cadre diamant",
+   "lc_frame_fire": "Cadre feu",
+   "lc_frame_crown": "Cadre couronne",
+   "lc_frame_ice": "Cadre glace",
+   "lc_frame_shadow": "Cadre ombre",
+   "lc_frame_neon": "Cadre néon",
+   "lc_frame_goldleaf": "Cadre feuille d'or",
+   "lc_frame_cyber": "Cadre cyber",
+   "lc_emote_gun": "Pistolet du doigt",
+   "lc_emote_hood": "Sous le capuchon",
+   "lc_emote_cigar": "Cigare",
+   "lc_emote_glass": "Gobelet",
+   "lc_emote_ring": "Bague de boss",
+   "lc_frame_dragon": "Cadre dragon",
+   "lc_frame_angel": "Cadre séraphin",
+   "lc_frame_demon": "Cadre démon",
+   "lc_frame_royal": "Cadre royal",
+   "lc_frame_thorn": "Cadre épines",
+   "lc_frame_legend": "Cadre légende",
+   "lc_frame_ghost": "Cadre fantôme",
+   "lc_frame_moon": "Cadre clair de lune",
+   "lc_frame_sun": "Cadre soleil levant",
+   "lc_frame_void": "Cadre néant",
+   "lc_emote_kingpin": "Parrain du crime",
+   "lc_emote_enforcer": "L'Exécuteur",
+   "lc_emote_mastermind": "Cerveau",
+   "lc_emote_don": "Le Don",
+   "lc_emote_silencer": "Silencieux",
+   "lc_emote_legend": "Légende vivante",
+   "lc_emote_myth": "Mythe urbain",
+   "lc_emote_boss": "Boss final",
+   "lc_emote_godfather": "Parrain",
+   "lc_emote_shadow": "Marcheur de l'ombre",
+   "lc_title_made": "Titre : Homme de confiance",
+   "lc_title_capo": "Titre : Capo",
+   "lc_title_consigliere": "Titre : Consigliere",
+   "lc_title_underboss": "Titre : Sous-chef",
+   "lc_frame_godfather": "Cadre parrain",
+   "lc_frame_immortal": "Cadre immortel",
+   "lc_frame_celestial": "Cadre céleste",
+   "lc_frame_doom": "Cadre apocalypse",
+   "lc_frame_phoenix": "Cadre phénix",
+   "lc_frame_eclipse": "Cadre éclipse",
+   "lc_frame_nexus": "Cadre nexus",
+   "lc_frame_overlord": "Cadre suzerain",
+   "lc_frame_titan": "Cadre titan",
+   "lc_frame_omega": "Cadre oméga",
+   "lc_emote_omega": "Oméga",
+   "lc_emote_overlord": "Suzerain",
+   "lc_emote_immortal": "Immortel",
+   "lc_emote_celestial": "Céleste",
+   "lc_emote_doom": "Apocalypse",
+   "lc_title_don": "Titre : Le Don",
+   "lc_title_godfather": "Titre : Parrain",
+   "lc_title_overlord": "Titre : Suzerain",
+   "lc_title_immortal": "Titre : Immortel"
+  }
+ }
+}
