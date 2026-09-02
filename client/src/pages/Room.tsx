@@ -752,10 +752,6 @@ export default function Room() {
     }
   }, [room?.phase, room?.status]);
 
-  if (!gameState || !room || !me) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">{t("room.connecting")}</div>;
-  }
-
   const getNightActionLabel = () => {
     if (room?.phase === "bodyguard") return { verb: t("room.actions.protect"), action: "protecting" };
     if (room?.phase === "mafia") return { verb: t("room.actions.kill"), action: "killing" };
@@ -831,7 +827,7 @@ export default function Room() {
   const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];
   const iAmRevealedMayor = !!(me && revealedMayorIds.includes(me.id));
 
-  const isMyNightTurn = (room?.status === "night" && me.isAlive && (
+  const isMyNightTurn = (room?.status === "night" && me?.isAlive && (
     (room?.phase === "bodyguard" && me.role === "bodyguard") ||
     (room?.phase === "mafia" && me.role === "mafia") ||
     (room?.phase === "vigilante" && me.role === "vigilante" && (myBullets ?? 0) > 0) ||
@@ -975,7 +971,12 @@ export default function Room() {
   // without upsetting React's hooks-order requirement.
   lockInRef.current = handleLockIn;
 
-  const roomName = room.settings?.roomName;
+  const roomName = room?.settings?.roomName;
+
+  if (!gameState || !room || !me) {
+    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">{t("room.connecting")}</div>;
+  }
+
 
   return (
     <div className={cn("min-h-screen pb-24 relative overflow-hidden transition-colors duration-1000", getBackgroundStyle())}>
