@@ -2062,7 +2062,7 @@ export default function Room() {
           renders whatever's currently in that array. */}
       <div className="fixed inset-x-0 bottom-24 pointer-events-none z-[300] flex justify-center">
         <AnimatePresence>
-          {reactions.map((r) => (
+          {(reactions || []).map((r) => (
             <motion.div
               key={r.id}
               initial={{ opacity: 0, y: 0, x: (Math.random() - 0.5) * 160 }}
