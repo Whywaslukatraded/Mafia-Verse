@@ -93,6 +93,9 @@ export default function Room() {
 
 
   const [hasRevealed, setHasRevealed] = useState(false);
+  // Feature: role-reveal modal, shown briefly on night 1 (see the effect
+  // below that flips this true then auto-hides it after 5s).
+  const [showRoleReveal, setShowRoleReveal] = useState(false);
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);
   const pendingActionRef = useRef(pendingNightAction);
   useEffect(() => { pendingActionRef.current = pendingNightAction; }, [pendingNightAction]);
