@@ -8,18 +8,18 @@ import { useTranslation } from "react-i18next";
 
 export function MafiaHandbook() {
   const { t } = useTranslation();
-  const mafiaAbilities = t("handbook.roles.mafia.abilities", { returnObjects: true }) as string[];
-  const detectiveAbilities = t("handbook.roles.detective.abilities", { returnObjects: true }) as string[];
-  const doctorAbilities = t("handbook.roles.doctor.abilities", { returnObjects: true }) as string[];
-  const civilianAbilities = t("handbook.roles.civilian.abilities", { returnObjects: true }) as string[];
-  const bodyguardAbilities = t("handbook.roles.bodyguard.abilities", { returnObjects: true }) as string[];
-  const vigilanteAbilities = t("handbook.roles.vigilante.abilities", { returnObjects: true }) as string[];
-  const mayorAbilities = t("handbook.roles.mayor.abilities", { returnObjects: true }) as string[];
-  const jesterAbilities = t("handbook.roles.jester.abilities", { returnObjects: true }) as string[];
-  const townTips = t("handbook.strategy.townTips", { returnObjects: true }) as string[];
-  const mafiaTips = t("handbook.strategy.mafiaTips", { returnObjects: true }) as string[];
-  const jesterTips = t("handbook.strategy.jesterTips", { returnObjects: true }) as string[];
-  const redFlags = t("handbook.strategy.redFlags", { returnObjects: true }) as string[];
+  const mafiaAbilities = (t("handbook.roles.mafia.abilities", { returnObjects: true }) as string[]) || [];
+  const detectiveAbilities = (t("handbook.roles.detective.abilities", { returnObjects: true }) as string[]) || [];
+  const doctorAbilities = (t("handbook.roles.doctor.abilities", { returnObjects: true }) as string[]) || [];
+  const civilianAbilities = (t("handbook.roles.civilian.abilities", { returnObjects: true }) as string[]) || [];
+  const bodyguardAbilities = (t("handbook.roles.bodyguard.abilities", { returnObjects: true }) as string[]) || [];
+  const vigilanteAbilities = (t("handbook.roles.vigilante.abilities", { returnObjects: true }) as string[]) || [];
+  const mayorAbilities = (t("handbook.roles.mayor.abilities", { returnObjects: true }) as string[]) || [];
+  const jesterAbilities = (t("handbook.roles.jester.abilities", { returnObjects: true }) as string[]) || [];
+  const townTips = (t("handbook.strategy.townTips", { returnObjects: true }) as string[]) || [];
+  const mafiaTips = (t("handbook.strategy.mafiaTips", { returnObjects: true }) as string[]) || [];
+  const jesterTips = (t("handbook.strategy.jesterTips", { returnObjects: true }) as string[]) || [];
+  const redFlags = (t("handbook.strategy.redFlags", { returnObjects: true }) as string[]) || [];
 
   return (
     <Dialog>

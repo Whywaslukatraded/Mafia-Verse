@@ -34,8 +34,8 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const { t } = useTranslation();
     // Quick chat templates live in translation files so the messages sent match
     // whichever language the sender has selected.
-    const QUICK_MESSAGES = t("chat.quickMessages", { returnObjects: true }) as string[];
-    const MAFIA_QUICK_MESSAGES = t("chat.mafiaQuickMessages", { returnObjects: true }) as string[];
+    const QUICK_MESSAGES = (t("chat.quickMessages", { returnObjects: true }) as string[]) || [];
+    const MAFIA_QUICK_MESSAGES = (t("chat.mafiaQuickMessages", { returnObjects: true }) as string[]) || [];
 
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);

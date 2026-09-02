@@ -72,7 +72,7 @@ export default function Room() {
 
   // Death stories live in the translation files (room.deathStories, an array of 20
   // templates each) so they read naturally in whichever language is active.
-  const DEATH_STORIES = t("room.deathStories", { returnObjects: true }) as string[];
+  const DEATH_STORIES = (t("room.deathStories", { returnObjects: true }) as string[]) || [];
 
   const sessionId = localStorage.getItem(`mafia_session_${code}`);
   const { gameState, isConnected, sendAction, startGame, toggleReady, startNow, reactions } = useGameSocket(code, sessionId);
