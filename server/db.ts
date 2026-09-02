@@ -94,6 +94,13 @@ export async function runMigrations(): Promise<void> {
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS is_ready boolean DEFAULT false`);
       // Feature: Per-role player stats
       await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS role_stats jsonb DEFAULT '{}'`);
+      // Bug fix: schema.ts has defined players.mvpCount ("mvp_count") for a
+      // while now, but no ALTER TABLE was ever added here for it — so every
+      // query touching the players table (Quick Match, the public rooms
+      // browser, room join/create, etc.) was failing in production with
+      // "column \"mvp_count\" does not exist", even though nothing about
+      // the MVP feature itself was new or recently changed.
+      await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS mvp_count integer DEFAULT 0`);
       await client.query(`
         CREATE TABLE IF NOT EXISTS ad_claims (
           id serial PRIMARY KEY,
@@ -136,6 +143,7 @@ export async function runMigrations(): Promise<void> {
           wins integer DEFAULT 0,
           games_played integer DEFAULT 0,
           role_stats jsonb DEFAULT '{}',
+          mvp_count integer DEFAULT 0,
           credits integer DEFAULT 0,
           achievements jsonb DEFAULT '[]',
           game_history jsonb DEFAULT '[]',

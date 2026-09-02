@@ -3,6 +3,10 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
+import fr from "./locales/fr.json";
+import zhCN from "./locales/zh-CN.json";
+import zhTW from "./locales/zh-TW.json";
+import ptBR from "./locales/pt-BR.json";
 
 // Feature: Spanish language option (i18n)
 // Detects saved preference (localStorage key "mafia_lang") or browser language,
@@ -14,9 +18,13 @@ i18n
     resources: {
       en: { translation: en },
       es: { translation: es },
+      fr: { translation: fr },
+      "zh-CN": { translation: zhCN },
+      "zh-TW": { translation: zhTW },
+      "pt-BR": { translation: ptBR },
     },
     fallbackLng: "en",
-    supportedLngs: ["en", "es"],
+    supportedLngs: ["en", "es", "fr", "zh-CN", "zh-TW", "pt-BR"],
     interpolation: {
       escapeValue: false, // React already escapes values
     },
