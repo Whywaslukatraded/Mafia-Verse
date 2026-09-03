@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import type { GameState, GameAction, Player, CreateRoomRequest, JoinRoomRequest } from "@shared/schema";
 
 const RECONNECT_DELAY = 1000;
+// Matches the 2.2s rise-and-fade animation Room.tsx plays for each
+// end-screen reaction bubble, plus a small buffer for the exit transition.
+const REACTION_LIFETIME_MS = 2600;
 
 function buildValidatedUrl(baseUrl: string, sessionId?: string): string {
   try {
@@ -39,6 +42,11 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  // Feature: end-screen emoji reactions. Populated from the "reaction" WS
+  // event broadcastReaction() sends server-side — each entry is ephemeral
+  // (id/emoji/playerName), never persisted, just rendered briefly and
+  // dropped (see the auto-removal below).
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; playerName: string }[]>([]);
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -109,6 +117,17 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
           case "state_update":
             setGameState(msg.payload);
             break;
+          case "reaction": {
+            const reaction = msg.payload as { id: string; emoji: string; playerName: string };
+            setReactions(prev => [...prev, reaction]);
+            // Matches the 2.2s rise-and-fade animation in Room.tsx, plus a
+            // little buffer so the exit transition has time to play out
+            // before the entry disappears from the array entirely.
+            setTimeout(() => {
+              setReactions(prev => prev.filter(r => r.id !== reaction.id));
+            }, REACTION_LIFETIME_MS);
+            break;
+          }
           case "check_result":
             toast({
               title: msg.payload.isMafia ? "Mafia Found!" : "Innocent",
@@ -198,7 +217,7 @@ export function useGameSocket(code: string | null, sessionId: string | null) {
   const toggleReady = () => sendAction({ type: "ready_toggle" });
   const startNow = () => sendAction({ type: "start_now" });
 
-  return { gameState, isConnected, sendAction, startGame, toggleReady, startNow };
+  return { gameState, isConnected, sendAction, startGame, toggleReady, startNow, reactions };
 }
 
 export function useCreateRoom() {

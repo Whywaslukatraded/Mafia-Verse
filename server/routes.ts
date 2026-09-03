@@ -1395,15 +1395,36 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
     mafiaChatHints.delete(roomId);
   }
 
-  // Voting felt fine at 3-4s, but night roles (detective, doctor, etc.) were
-  // resolving in under 1.2s which read as an obvious skip rather than bots
-  // actually "deciding" — give every phase a similar natural pause. Mafia
-  // stays on the faster end since a slow mafia phase blocks the whole table.
-  const delay = statusAtSchedule === 'day' && phaseAtSchedule === 'voting'
-    ? 3000 + Math.floor(Math.random() * 1000)  // ~3s-4s
-    : statusAtSchedule === 'night' && phaseAtSchedule !== 'mafia'
-    ? 4000  // flat 4s — was randomized ~2s-3.5s, which read as too quick
-    : 500 + Math.floor(Math.random() * 700);   // ~0.5s-1.2s — mafia stays fast
+  // Delay scales with the phase's actual configured duration instead of a
+  // fixed few seconds — a bot deciding in ~0.5-1.2s on a 15-20s night phase
+  // made it look like the phase was skipped entirely (especially with the
+  // tutorial overlay covering the screen while attention is elsewhere).
+  // Now it's a random point from 1s in, up to just before the phase's own
+  // timer would forcibly advance it anyway, so it always reads as "the
+  // bots took their time" regardless of role or configured length, and a
+  // lone real player in a short-duration role no longer gives themselves
+  // away just by taking longer than a hardcoded 3-4s bot delay would.
+  const scheduleSettings = (snapshotRoom.settings as any) || {};
+  let phaseDurationMs: number;
+  if (statusAtSchedule === 'night') {
+    phaseDurationMs = getNightPhaseDuration(phaseAtSchedule, scheduleSettings);
+  } else if (statusAtSchedule === 'day' && phaseAtSchedule === 'discussion') {
+    const discussionSettingSeconds = scheduleSettings.discussionDuration ?? scheduleSettings.phaseDuration;
+    phaseDurationMs = Math.max((discussionSettingSeconds * 1000) || PHASE_DURATION, 10000);
+  } else if (statusAtSchedule === 'day' && phaseAtSchedule === 'voting') {
+    phaseDurationMs = Math.max((scheduleSettings.phaseDuration * 1000) || PHASE_DURATION, 5000);
+  } else {
+    phaseDurationMs = PHASE_DURATION;
+  }
+  // Leave real buffer before the phase's own timer would forcibly advance
+  // it — a flat 500ms was too tight once delay could scale up toward the
+  // full duration: staggered bots landing near that edge could get cut off
+  // by the hard timeout before their action actually registered, which
+  // under server load showed up as incomplete vote tallies (fewer voters
+  // than actually should have voted). Scale the buffer with the phase
+  // length instead of using a fixed amount.
+  const maxDelay = Math.max(1000, phaseDurationMs - Math.max(2500, phaseDurationMs * 0.25));
+  const delay = 1000 + Math.random() * (maxDelay - 1000);
   setTimeout(async () => {
     const room = await storage.getRoom(roomId);
     // Bail out if the phase already moved on for any other reason (a human
@@ -3221,7 +3242,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return true;
       });
 
-      res.json({ room, players: sanitizedPlayers, messages: visibleMessages, me: null });
+      res.json({ room, players: sanitizedPlayers, messages: visibleMessages, me });
     } catch (err) {
       console.error("GET room error", err);
       res.status(500).json({ message: "Internal server error" });

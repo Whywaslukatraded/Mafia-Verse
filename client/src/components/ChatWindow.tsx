@@ -75,10 +75,23 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 : gameMessages
     ), [mafiaChatAvailable, activeTab, mafiaMessages, canViewGraveyard, graveyardMessages, gameMessages]);
 
-    // Persist reactions in localStorage to survive state updates
+    // Persist reactions in localStorage to survive state updates.
+    // Bug fix: JSON.stringify silently turns a Set into {} — after a reload
+    // (or any remount that ran the restore effect below), every reactor
+    // list came back as a plain object instead of a Set, and toggleReaction
+    // calling .has() on that plain object threw, silently breaking every
+    // reaction click from that point on. Serialize/restore through plain
+    // arrays instead so a Set's contents actually survive the round-trip.
     useEffect(() => {
         if (Object.keys(reactions).length > 0) {
-            localStorage.setItem("mafia_reactions", JSON.stringify(reactions));
+            const serializable: Record<number, Record<string, number[]>> = {};
+            for (const [messageId, emotes] of Object.entries(reactions)) {
+                serializable[Number(messageId)] = {};
+                for (const [emote, reactors] of Object.entries(emotes)) {
+                    serializable[Number(messageId)][emote] = Array.from(reactors);
+                }
+            }
+            localStorage.setItem("mafia_reactions", JSON.stringify(serializable));
         }
     }, [reactions]);
 
@@ -87,7 +100,14 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         const saved = localStorage.getItem("mafia_reactions");
         if (saved) {
             try {
-                const restored = JSON.parse(saved);
+                const parsed = JSON.parse(saved) as Record<number, Record<string, number[]>>;
+                const restored: Reactions = {};
+                for (const [messageId, emotes] of Object.entries(parsed)) {
+                    restored[Number(messageId)] = {};
+                    for (const [emote, reactorIds] of Object.entries(emotes)) {
+                        restored[Number(messageId)][emote] = new Set(reactorIds);
+                    }
+                }
                 setReactions(restored);
             } catch (e) {
                 console.error("Failed to restore reactions", e);

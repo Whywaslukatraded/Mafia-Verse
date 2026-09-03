@@ -360,6 +360,7 @@ export const WS_EVENTS = {
   ACTION: 'action',
   STATE_UPDATE: 'state_update',
   ERROR: 'error',
+  REACTION: 'reaction',
 } as const;
 
 export type GameState = {
