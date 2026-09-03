@@ -414,10 +414,9 @@ export default function Room() {
     }
   }, [gameState?.room.status, me, code]);
 
-  // Clear reactions when returning to lobby (game ended/replayed)
+  // Clear stale UI state when returning to lobby (game ended/replayed)
   useEffect(() => {
     if (gameState?.room.status === "lobby") {
-      localStorage.removeItem("mafia_reactions");
       shownEliminationsRef.current.clear();
       prevPlayersRef.current = {}; // Reset alive tracking for fresh game
       setPendingNightAction(null);
@@ -2046,6 +2045,8 @@ export default function Room() {
               players={players}
               mafiaChatAvailable={gameState?.mafiaChatAvailable ?? false}
               gameEnded={room.status === "ended"}
+              reactions={gameState?.messageReactions || {}}
+              onToggleReaction={(messageId, emote) => sendAction({ type: "toggle_message_reaction", messageId, emote } as any)}
             />
           </div>
         </div>

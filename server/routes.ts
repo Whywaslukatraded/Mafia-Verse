@@ -2295,6 +2295,10 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
 
 const clients = new Map<string, WebSocket>();
 const roomClients = new Map<number, Set<string>>();
+// Feature: synced chat message reactions. messageId -> emote -> player IDs.
+// In-memory only (not persisted to the messages table), same lifetime
+// tradeoff as afkReports/gameActions above — cleared on replay below.
+const messageReactionsByRoom = new Map<number, Record<number, Record<string, number[]>>>();
 // Feature: Pre-game ready-up lobby — per-room grace-period timer + its
 // deadline (for broadcasting a countdown), and an in-process guard against
 // the grace-period timer and a host's "Start Now" click both firing.
@@ -2468,6 +2472,7 @@ async function broadcastState(roomId: number) {
           mafiaChatAvailable,
           mafiaTeammatesActedIds,
           lobbyCountdownEndsAt: room.status === 'lobby' ? (readyDeadlines.get(roomId) ?? null) : null,
+          messageReactions: messageReactionsByRoom.get(roomId) || {},
         }
       }));
     }
@@ -3242,7 +3247,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return true;
       });
 
-      res.json({ room, players: sanitizedPlayers, messages: visibleMessages, me });
+      res.json({ room, players: sanitizedPlayers, messages: visibleMessages, me, messageReactions: messageReactionsByRoom.get(room.id) || {} });
     } catch (err) {
       console.error("GET room error", err);
       res.status(500).json({ message: "Internal server error" });
@@ -3626,6 +3631,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              gameActions.delete(myRoomId);
              gameHistory.delete(myRoomId);
              crowdFavoriteVotes.delete(myRoomId);
+             messageReactionsByRoom.delete(myRoomId);
              if (phaseTimers.has(myRoomId)) { clearTimeout(phaseTimers.get(myRoomId)); phaseTimers.delete(myRoomId); }
              await storage.deleteMessagesByRoom(myRoomId);
              await storage.updateRoom(myRoomId, { status: 'lobby', phase: 'lobby', turn: 1 });
@@ -3902,6 +3908,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const emoji = (action as any).emoji;
              if (myRoomId && me && room.status === 'ended' && END_SCREEN_REACTIONS.includes(emoji)) {
                broadcastReaction(myRoomId, { id: `${me.id}-${Date.now()}`, emoji, playerName: me.name });
+             }
+             return;
+           }
+
+           if (action.type === 'toggle_message_reaction') {
+             // Synced chat message reactions — toggles the current player's
+             // id in/out of the reactor list for this message+emote and
+             // resyncs the whole room via the normal state broadcast, same
+             // as every other room-state-changing action. Emote isn't
+             // restricted to a fixed whitelist (unlike end-screen reactions
+             // above) since this reuses the client's existing free-form
+             // REACTION_EMOTES set — cap the length defensively anyway
+             // since it's still client-supplied input.
+             const { messageId, emote } = action as any;
+             if (myRoomId && me && typeof messageId === 'number' && typeof emote === 'string' && emote.length > 0 && emote.length <= 8) {
+               if (!messageReactionsByRoom.has(myRoomId)) messageReactionsByRoom.set(myRoomId, {});
+               const roomReactions = messageReactionsByRoom.get(myRoomId)!;
+               if (!roomReactions[messageId]) roomReactions[messageId] = {};
+               if (!roomReactions[messageId][emote]) roomReactions[messageId][emote] = [];
+               const reactors = roomReactions[messageId][emote];
+               const idx = reactors.indexOf(me.id);
+               if (idx >= 0) {
+                 reactors.splice(idx, 1);
+                 if (reactors.length === 0) delete roomReactions[messageId][emote];
+                 if (Object.keys(roomReactions[messageId]).length === 0) delete roomReactions[messageId];
+               } else {
+                 reactors.push(me.id);
+               }
+               await broadcastState(myRoomId);
              }
              return;
            }

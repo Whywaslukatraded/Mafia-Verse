@@ -26,11 +26,16 @@ interface ChatWindowProps {
     // "was actually in the graveyard" stay distinguishable below (a
     // survivor can look, but never gets to post into it).
     gameEnded?: boolean;
+    // Feature: synced chat message reactions. Server-owned state (see
+    // messageReactionsByRoom in routes.ts) — messageId -> emote -> array of
+    // player IDs who reacted. Passed down from Room.tsx's gameState rather
+    // than kept locally, so every player in the room sees the same
+    // reactions instead of each client only ever seeing its own.
+    reactions?: Record<number, Record<string, number[]>>;
+    onToggleReaction?: (messageId: number, emote: string) => void;
 }
 
-type Reactions = Record<number, Record<string, Set<number>>>;
-
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable, gameEnded }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable, gameEnded, reactions = {}, onToggleReaction }: ChatWindowProps) {
     const { t } = useTranslation();
     // Quick chat templates live in translation files so the messages sent match
     // whichever language the sender has selected.
@@ -39,7 +44,6 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
 
     const [input, setInput] = useState("");
     const [messageCount, setMessageCount] = useState(0);
-    const [reactions, setReactions] = useState<Reactions>({});
     // When a quick-chat preset contains "{name}" (e.g. "I believe {name} is
     // mafia"), we no longer pick a random target and send immediately —
     // we hold the template here and show a player list so the sender picks
@@ -74,46 +78,6 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 ? (activeTab === "graveyard" ? graveyardMessages : gameMessages)
                 : gameMessages
     ), [mafiaChatAvailable, activeTab, mafiaMessages, canViewGraveyard, graveyardMessages, gameMessages]);
-
-    // Persist reactions in localStorage to survive state updates.
-    // Bug fix: JSON.stringify silently turns a Set into {} — after a reload
-    // (or any remount that ran the restore effect below), every reactor
-    // list came back as a plain object instead of a Set, and toggleReaction
-    // calling .has() on that plain object threw, silently breaking every
-    // reaction click from that point on. Serialize/restore through plain
-    // arrays instead so a Set's contents actually survive the round-trip.
-    useEffect(() => {
-        if (Object.keys(reactions).length > 0) {
-            const serializable: Record<number, Record<string, number[]>> = {};
-            for (const [messageId, emotes] of Object.entries(reactions)) {
-                serializable[Number(messageId)] = {};
-                for (const [emote, reactors] of Object.entries(emotes)) {
-                    serializable[Number(messageId)][emote] = Array.from(reactors);
-                }
-            }
-            localStorage.setItem("mafia_reactions", JSON.stringify(serializable));
-        }
-    }, [reactions]);
-
-    // Restore reactions from localStorage on mount
-    useEffect(() => {
-        const saved = localStorage.getItem("mafia_reactions");
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved) as Record<number, Record<string, number[]>>;
-                const restored: Reactions = {};
-                for (const [messageId, emotes] of Object.entries(parsed)) {
-                    restored[Number(messageId)] = {};
-                    for (const [emote, reactorIds] of Object.entries(emotes)) {
-                        restored[Number(messageId)][emote] = new Set(reactorIds);
-                    }
-                }
-                setReactions(restored);
-            } catch (e) {
-                console.error("Failed to restore reactions", e);
-            }
-        }
-    }, []);
 
     // Track previous message count for notifications
     const prevMessagesRef = useRef<Message[]>([]);
@@ -195,41 +159,6 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         }
         const channel = mafiaChatAvailable && activeTab === "mafia" ? "mafia" : undefined;
         onSendMessage(msg, channel);
-    };
-
-    const addReaction = (messageId: number, emote: string) => {
-      setReactions(prev => {
-        const newReactions = { ...prev };
-        if (!newReactions[messageId]) {
-          newReactions[messageId] = {};
-        }
-        if (!newReactions[messageId][emote]) {
-          newReactions[messageId][emote] = new Set();
-        }
-        newReactions[messageId][emote].add(currentPlayerId || 0);
-        return newReactions;
-      });
-    };
-
-    const removeReaction = (messageId: number, emote: string) => {
-      setReactions(prev => {
-        const newReactions = { ...prev };
-        if (newReactions[messageId]?.[emote]) {
-          newReactions[messageId][emote].delete(currentPlayerId || 0);
-          if (newReactions[messageId][emote].size === 0) {
-            delete newReactions[messageId][emote];
-          }
-        }
-        return newReactions;
-      });
-    };
-
-    const toggleReaction = (messageId: number, emote: string) => {
-      if (reactions[messageId]?.[emote]?.has(currentPlayerId || 0)) {
-        removeReaction(messageId, emote);
-      } else {
-        addReaction(messageId, emote);
-      }
     };
 
     // Posting is blocked on the game tab for actual spectators (read-only,
@@ -395,7 +324,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                     {REACTION_EMOTES.map(emote => (
                                       <button
                                         key={emote}
-                                        onClick={() => toggleReaction(msg.id, emote)}
+                                        onClick={() => onToggleReaction?.(msg.id, emote)}
                                         className="text-lg hover:scale-125 transition-transform p-1"
                                       >
                                         {emote}
@@ -410,12 +339,12 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                                 {Object.entries(reactions[msg.id]).map(([emote, reactors]) => (
                                   <button
                                     key={emote}
-                                    onClick={() => toggleReaction(msg.id, emote)}
+                                    onClick={() => onToggleReaction?.(msg.id, emote)}
                                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted hover:bg-muted/80 border border-border text-xs transition-colors group"
-                                    title={t("chat.reactedBy", { count: reactors.size })}
+                                    title={t("chat.reactedBy", { count: reactors.length })}
                                   >
                                     <span>{emote}</span>
-                                    {reactors.size > 0 && <span className="text-[10px] text-muted-foreground font-semibold">{reactors.size}</span>}
+                                    {reactors.length > 0 && <span className="text-[10px] text-muted-foreground font-semibold">{reactors.length}</span>}
                                   </button>
                                 ))}
                               </div>

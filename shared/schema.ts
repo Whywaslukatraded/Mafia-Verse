@@ -350,7 +350,9 @@ export type GameAction =
   // Feature: Spectator "Crowd Favorite" ghost vote
   | { type: 'crowd_favorite_vote'; targetId: number }
   // Feature: End-screen reactions
-  | { type: 'end_screen_reaction'; emoji: typeof END_SCREEN_REACTIONS[number] };
+  | { type: 'end_screen_reaction'; emoji: typeof END_SCREEN_REACTIONS[number] }
+  // Feature: synced chat message reactions
+  | { type: 'toggle_message_reaction'; messageId: number; emote: string };
 
 // WebSocket Message Types
 export const WS_EVENTS = {
@@ -377,4 +379,9 @@ export type GameState = {
   // this timestamp (epoch ms) unless the host hits "Start Now" first or
   // someone un-readies/disconnects, which cancels it (null again).
   lobbyCountdownEndsAt?: number | null;
+  // Feature: synced chat message reactions. messageId -> emote -> array of
+  // player IDs who reacted with it. Kept in-memory server-side (not
+  // persisted to the messages table) and piggybacked onto the existing
+  // state broadcast, same as every other live-only piece of room state.
+  messageReactions?: Record<number, Record<string, number[]>>;
 };
