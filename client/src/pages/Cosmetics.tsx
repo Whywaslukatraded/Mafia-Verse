@@ -69,19 +69,43 @@ const LOOT_NAME_PREVIEW: Record<string, string> = {
 };
 
 // Ring styling for avatar_frame previews. Keyed by the frame's material
-// name (the `lc_frame_<name>` id suffix). Anything not listed here falls
-// through to the same default gold ring the hardcoded frame_crown item
-// already relies on, further down in the render JSX.
+// name (the `lc_frame_<name>` id suffix) — covers all 33 frame materials
+// in LOOT_ITEMS so no two unowned frames render identically. Anything not
+// listed here (e.g. a frame added later) falls through to DEFAULT_FRAME_RING.
 export const FRAME_RING_STYLES: Record<string, string> = {
+  angel: "border-sky-100/70 shadow-[0_0_20px_rgba(224,242,254,0.35)]",
+  bronze: "border-orange-700/60 shadow-[0_0_20px_rgba(194,65,12,0.3)]",
+  celestial: "border-blue-300/60 shadow-[0_0_20px_rgba(147,197,253,0.3)]",
+  crown: "border-yellow-400/60 shadow-[0_0_20px_rgba(250,204,21,0.3)]",
+  cyber: "border-teal-400/60 shadow-[0_0_20px_rgba(45,212,191,0.3)]",
+  demon: "border-red-900/70 shadow-[0_0_20px_rgba(127,29,29,0.4)]",
   diamond: "border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.3)]",
+  doom: "border-red-800/70 shadow-[0_0_20px_rgba(153,27,27,0.4)]",
+  dragon: "border-red-600/60 shadow-[0_0_20px_rgba(220,38,38,0.3)]",
+  eclipse: "border-indigo-900/70 shadow-[0_0_20px_rgba(49,46,129,0.4)]",
   fire: "border-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.3)]",
-  ice: "border-sky-300/60 shadow-[0_0_20px_rgba(125,211,252,0.3)]",
-  shadow: "border-zinc-500/60 shadow-[0_0_20px_rgba(113,113,122,0.3)]",
-  void: "border-purple-900/60 shadow-[0_0_20px_rgba(88,28,135,0.3)]",
-  neon: "border-pink-400/60 shadow-[0_0_20px_rgba(244,114,182,0.3)]",
   ghost: "border-slate-300/60 shadow-[0_0_20px_rgba(203,213,225,0.3)]",
+  godfather: "border-yellow-700/60 shadow-[0_0_20px_rgba(161,98,7,0.3)]",
+  goldleaf: "border-amber-300/60 shadow-[0_0_20px_rgba(252,211,77,0.3)]",
+  ice: "border-sky-300/60 shadow-[0_0_20px_rgba(125,211,252,0.3)]",
+  immortal: "border-amber-100/60 shadow-[0_0_20px_rgba(254,243,199,0.3)]",
+  ivy: "border-green-500/60 shadow-[0_0_20px_rgba(34,197,94,0.3)]",
+  legend: "border-orange-400/60 shadow-[0_0_20px_rgba(251,146,60,0.3)]",
   moon: "border-indigo-300/60 shadow-[0_0_20px_rgba(165,180,252,0.3)]",
+  neon: "border-pink-400/60 shadow-[0_0_20px_rgba(244,114,182,0.3)]",
+  nexus: "border-violet-500/60 shadow-[0_0_20px_rgba(139,92,246,0.3)]",
+  omega: "border-neutral-700/70 shadow-[0_0_20px_rgba(64,64,64,0.4)]",
+  overlord: "border-fuchsia-700/60 shadow-[0_0_20px_rgba(162,28,175,0.3)]",
+  phoenix: "border-rose-600/60 shadow-[0_0_20px_rgba(225,29,72,0.3)]",
+  royal: "border-purple-600/60 shadow-[0_0_20px_rgba(147,51,234,0.3)]",
+  shadow: "border-zinc-500/60 shadow-[0_0_20px_rgba(113,113,122,0.3)]",
+  silver: "border-gray-300/60 shadow-[0_0_20px_rgba(209,213,219,0.3)]",
+  steel: "border-slate-400/60 shadow-[0_0_20px_rgba(148,163,184,0.3)]",
   sun: "border-amber-400/60 shadow-[0_0_20px_rgba(251,191,36,0.3)]",
+  thorn: "border-emerald-800/60 shadow-[0_0_20px_rgba(6,95,70,0.3)]",
+  titan: "border-stone-500/60 shadow-[0_0_20px_rgba(120,113,108,0.3)]",
+  void: "border-purple-900/60 shadow-[0_0_20px_rgba(88,28,135,0.3)]",
+  wood: "border-amber-800/60 shadow-[0_0_20px_rgba(146,64,14,0.3)]",
 };
 const DEFAULT_FRAME_RING = "border-yellow-400/60 shadow-[0_0_20px_rgba(250,204,21,0.3)]";
 
