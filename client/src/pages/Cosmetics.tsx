@@ -13,9 +13,93 @@ import { LOOT_ITEMS, TIER_COLORS as LOOT_TIER_COLORS, TIER_BG as LOOT_TIER_BG } 
 // and `title` types aren't rendered as equippable cards elsewhere in this
 // file yet, so they're intentionally left out here rather than bolting on
 // unproven new preview UI for them in this pass.
+//
+// Bug fix: LOOT_ITEMS entries only ever had { id, type, tier, weight } —
+// no `preview` field, unlike every hand-authored item below. That's why
+// the preview area rendered empty specifically for loot-crate items: the
+// hero preview JSX reads `cosmetic.preview` directly, which was always
+// undefined here. Derive a preview from each item's id/color segment
+// instead. Class strings are written out in full (not template-built —
+// e.g. never `` `border-${color}-500/50` ``) because Tailwind's build only
+// generates CSS for class names it can see literally in the source.
+const LOOT_BORDER_PREVIEW: Record<string, string> = {
+  grey: "border-slate-500/50 bg-slate-500/5",
+  olive: "border-lime-500/50 bg-lime-500/5",
+  tan: "border-amber-500/50 bg-amber-500/5",
+  navy: "border-blue-500/50 bg-blue-500/5",
+  teal: "border-teal-500/50 bg-teal-500/5",
+  mint: "border-emerald-500/50 bg-emerald-500/5",
+  lav: "border-violet-500/50 bg-violet-500/5",
+  coral: "border-orange-500/50 bg-orange-500/5",
+  peach: "border-rose-500/50 bg-rose-500/5",
+  ink: "border-zinc-500/50 bg-zinc-500/5",
+  gold: "border-yellow-500/50 bg-yellow-500/5",
+  silver: "border-slate-400/50 bg-slate-400/5",
+  bronze: "border-orange-700/50 bg-orange-700/5",
+  ruby: "border-red-500/50 bg-red-500/5",
+  sapphire: "border-blue-600/50 bg-blue-600/5",
+  emerald: "border-emerald-600/50 bg-emerald-600/5",
+  amethyst: "border-purple-500/50 bg-purple-500/5",
+  amber: "border-amber-500/50 bg-amber-500/5",
+  jade: "border-green-600/50 bg-green-600/5",
+  onyx: "border-zinc-800/50 bg-zinc-800/5",
+};
+
+const LOOT_NAME_PREVIEW: Record<string, string> = {
+  grey: "text-slate-400",
+  olive: "text-lime-400",
+  tan: "text-amber-400",
+  navy: "text-blue-400",
+  teal: "text-teal-400",
+  mint: "text-emerald-400",
+  lav: "text-violet-400",
+  coral: "text-orange-400",
+  peach: "text-rose-400",
+  ink: "text-zinc-400",
+  gold: "text-yellow-400",
+  silver: "text-slate-300",
+  bronze: "text-orange-600",
+  ruby: "text-red-400",
+  sapphire: "text-blue-400",
+  emerald: "text-emerald-400",
+  amethyst: "text-purple-400",
+  amber: "text-amber-400",
+  jade: "text-green-400",
+  onyx: "text-zinc-500",
+};
+
+// Ring styling for avatar_frame previews. Keyed by the frame's material
+// name (the `lc_frame_<name>` id suffix). Anything not listed here falls
+// through to the same default gold ring the hardcoded frame_crown item
+// already relies on, further down in the render JSX.
+export const FRAME_RING_STYLES: Record<string, string> = {
+  diamond: "border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.3)]",
+  fire: "border-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.3)]",
+  ice: "border-sky-300/60 shadow-[0_0_20px_rgba(125,211,252,0.3)]",
+  shadow: "border-zinc-500/60 shadow-[0_0_20px_rgba(113,113,122,0.3)]",
+  void: "border-purple-900/60 shadow-[0_0_20px_rgba(88,28,135,0.3)]",
+  neon: "border-pink-400/60 shadow-[0_0_20px_rgba(244,114,182,0.3)]",
+  ghost: "border-slate-300/60 shadow-[0_0_20px_rgba(203,213,225,0.3)]",
+  moon: "border-indigo-300/60 shadow-[0_0_20px_rgba(165,180,252,0.3)]",
+  sun: "border-amber-400/60 shadow-[0_0_20px_rgba(251,191,36,0.3)]",
+};
+const DEFAULT_FRAME_RING = "border-yellow-400/60 shadow-[0_0_20px_rgba(250,204,21,0.3)]";
+
 const LOOT_COSMETICS_META = LOOT_ITEMS.filter(
   (i) => i.type === "chat_border" || i.type === "name_color" || i.type === "avatar_frame"
-);
+).map((i) => {
+  if (i.type === "chat_border") {
+    const colorKey = i.id.replace("lc_border_", "");
+    return { ...i, preview: LOOT_BORDER_PREVIEW[colorKey] || LOOT_BORDER_PREVIEW.grey };
+  }
+  if (i.type === "name_color") {
+    const colorKey = i.id.replace("lc_name_", "");
+    return { ...i, preview: LOOT_NAME_PREVIEW[colorKey] || LOOT_NAME_PREVIEW.grey };
+  }
+  // avatar_frame — preview carries the material name itself; the render
+  // JSX below looks it up in FRAME_RING_STYLES for the actual ring class.
+  return { ...i, preview: i.id.replace("lc_frame_", "") };
+});
 
 const WIN_COSMETICS_META = [
   { id: "border_gold", type: "chat_border", cost: 5, currency: "wins", preview: "border-yellow-500/50 bg-yellow-500/5" },
@@ -306,9 +390,7 @@ export default function Cosmetics() {
                 <div className="text-5xl relative z-10">🕵️</div>
                 <div className={cn(
                   "absolute -inset-3 rounded-full border-[3px] animate-pulse",
-                  cosmetic.preview === "diamond" ? "border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.3)]" :
-                  cosmetic.preview === "fire" ? "border-orange-500/60 shadow-[0_0_20px_rgba(249,115,22,0.3)]" :
-                  "border-yellow-400/60 shadow-[0_0_20px_rgba(250,204,21,0.3)]"
+                  FRAME_RING_STYLES[cosmetic.preview] || DEFAULT_FRAME_RING
                 )} />
               </div>
             )}
@@ -424,20 +506,20 @@ export default function Cosmetics() {
         <div className="relative px-4 pb-4">
           <div className={cn("rounded-xl flex items-center justify-center min-h-[110px] border border-border/50", isOwned ? tierBg : "bg-gradient-to-b from-muted/30 to-muted/10")}>
             {item.type === "chat_border" && (
-              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", isOwned ? tierBg : "border-border")}>
+              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", isOwned ? item.preview : "border-border")}>
                 🔥 {t("cosmetics.chatBorderPreview")}
               </div>
             )}
             {item.type === "name_color" && (
               <div className="text-center">
-                <div className={cn("text-3xl font-black tracking-tight", isOwned ? tierColor : "text-muted-foreground")}>AGENT_47</div>
+                <div className={cn("text-3xl font-black tracking-tight", isOwned ? item.preview : "text-muted-foreground")}>AGENT_47</div>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("cosmetics.usernamePreview")}</span>
               </div>
             )}
             {item.type === "avatar_frame" && (
               <div className="relative">
                 <div className="text-5xl relative z-10">🕵️</div>
-                <div className={cn("absolute -inset-3 rounded-full border-[3px]", isOwned ? `${ringColor} animate-pulse` : "border-border")} />
+                <div className={cn("absolute -inset-3 rounded-full border-[3px]", isOwned ? cn(FRAME_RING_STYLES[item.preview] || DEFAULT_FRAME_RING, "animate-pulse") : "border-border")} />
               </div>
             )}
           </div>
