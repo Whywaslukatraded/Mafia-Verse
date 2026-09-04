@@ -506,20 +506,20 @@ export default function Cosmetics() {
         <div className="relative px-4 pb-4">
           <div className={cn("rounded-xl flex items-center justify-center min-h-[110px] border border-border/50", isOwned ? tierBg : "bg-gradient-to-b from-muted/30 to-muted/10")}>
             {item.type === "chat_border" && (
-              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", isOwned ? item.preview : "border-border")}>
+              <div className={cn("p-3 rounded-lg text-sm font-bold text-foreground border-2 w-[90%] text-center shadow-sm", item.preview)}>
                 🔥 {t("cosmetics.chatBorderPreview")}
               </div>
             )}
             {item.type === "name_color" && (
               <div className="text-center">
-                <div className={cn("text-3xl font-black tracking-tight", isOwned ? item.preview : "text-muted-foreground")}>AGENT_47</div>
+                <div className={cn("text-3xl font-black tracking-tight", item.preview)}>AGENT_47</div>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("cosmetics.usernamePreview")}</span>
               </div>
             )}
             {item.type === "avatar_frame" && (
               <div className="relative">
                 <div className="text-5xl relative z-10">🕵️</div>
-                <div className={cn("absolute -inset-3 rounded-full border-[3px]", isOwned ? cn(FRAME_RING_STYLES[item.preview] || DEFAULT_FRAME_RING, "animate-pulse") : "border-border")} />
+                <div className={cn("absolute -inset-3 rounded-full border-[3px] animate-pulse", FRAME_RING_STYLES[item.preview] || DEFAULT_FRAME_RING)} />
               </div>
             )}
           </div>
