@@ -1,1482 +1,1487 @@
 {
- "common": {
-  "back": "返回",
-  "backToHome": "返回首頁",
-  "email": "電子郵箱",
-  "password": "密碼",
-  "sending": "傳送中...",
-  "cancel": "取消",
-  "save": "儲存",
-  "close": "關閉",
-  "loading": "載入中...",
-  "copy": "複製",
-  "copied": "已複製！",
-  "connectionLostTitle": "連線已斷開",
-  "connectionLostDescription": "正在嘗試重新連線...",
-  "reconnectingTitle": "正在重新連線",
-  "reconnectingPlayAgainDescription": "請稍等片刻，然後再次點選“再玩一次”。"
- },
- "settings": {
-  "title": "設定",
-  "language": "語言",
-  "display": "顯示",
-  "darkMode": "深色模式",
-  "on": "開",
-  "off": "關",
-  "audio": "音訊",
-  "soundEffects": "音效",
-  "enabled": "已啟用",
-  "disabled": "已禁用",
-  "volume": "音量",
-  "playTestSound": "播放測試音效",
-  "notifications": "通知",
-  "chatAlerts": "聊天提醒",
-  "notificationsDescription": "在遊戲進行中有人傳送聊天訊息時收到通知",
-  "security": "安全",
-  "twoFAEnabled": "已啟用雙重驗證",
-  "twoFANotSetUp": "尚未設定雙重驗證",
-  "accountProtected": "您的帳戶已透過 TOTP 保護。",
-  "addExtraLayer": "為您的帳戶增加一層保護。",
-  "enterPasswordToDisable": "請輸入密碼以確認關閉雙重驗證。",
-  "yourPassword": "您的密碼",
-  "disabling": "正在關閉...",
-  "confirmDisable": "確認關閉",
-  "disable2FA": "關閉雙重驗證",
-  "setUp2FA": "設定雙重驗證",
-  "forgotPassword": "忘記密碼",
-  "generateResetToken": "生成重置令牌",
-  "reset": "重置",
-  "twoFADisabledTitle": "雙重驗證已關閉",
-  "twoFADisabledDescription": "雙重身份驗證已被關閉。",
-  "errorTitle": "錯誤",
-  "couldNotDisable2FA": "無法關閉雙重驗證",
-  "somethingWentWrong": "出了點問題",
-  "incorrectPassword": "密碼錯誤",
-  "colorblindMode": "色盲友好角色配色"
- },
- "notFound": {
-  "title": "死衚衕",
-  "tagline": "這條街道並不存在",
-  "description": "無論你在找什麼，這裡都沒有——也許它從來就不存在。就算是黑手黨，也找不到一條不存在的街道上的房間。",
-  "backHome": "返回城市"
- },
- "about": {
-  "title": "關於 Mafia Verse",
-  "description": "Mafia Verse 是一款關於謊言、結盟與冷靜算計的社交推理遊戲。召集你的團伙，誰都不要相信，在小鎮夜晚耗盡之前找出誰是黑手黨。",
-  "highlights": {
-   "bots": {
-    "title": "隨時開局，任意人數",
-    "description": "AI 機器人會填補空位，即使你的隊伍人數不多，遊戲也總能開始。"
-   },
-   "graveyard": {
-    "title": "死者仍在低語",
-    "description": "被淘汰的玩家會擁有專屬的墓地聊天頻道，繼續見證混亂的展開。"
-   },
-   "community": {
-    "title": "與社群共同打造",
-    "description": "真實玩家的反饋塑造著新的角色、設定與功能。"
-   }
-  }
- },
- "faq": {
-  "title": "常見問題",
-  "subtitle": "來自街頭的疑問",
-  "questions": {
-   "howToPlay": {
-    "question": "我該如何遊玩？",
-    "answer": "Mafia Verse 在夜晚與白天之間交替進行：夜晚時特殊角色秘密行動，白天時所有人展開討論並投票淘汰某人。當一方獲勝時遊戲結束。在對局中開啟房間內的《黑手黨手冊》，即可檢視每個角色的完整說明。"
-   },
-   "credits": {
-    "question": "積分有什麼用？我需要付費嗎？",
-    "answer": "積分用於購買寶箱和外觀道具——例如人物形象、配飾和背景。這些完全是可選的，不會影響遊戲玩法；你可以完全免費暢玩每一局遊戲，無需購買積分。"
-   },
-   "botAutoFill": {
-    "question": "機器人自動填補是如何運作的？",
-    "answer": "AI 機器人會填補空位，即使你的隊伍人數不多，遊戲也總能開始。如果房間未能及時被真實玩家填滿，機器人會自動佔據剩餘的位置，讓你不必苦等空蕩蕩的大廳。"
-   },
-   "syndicatePass": {
-    "question": "辛迪加通行證包含什麼？",
-    "answer": "辛迪加通行證解鎖 20 多種專屬外觀道具，包括傳奇人物形象、金色等級配飾和辛迪加專屬背景，還附贈一套高階神秘街頭套裝禮包和一枚永久大廳徽章。"
-   },
-   "afkFlag": {
-    "question": "如果我因不活躍被標記會怎樣？",
-    "answer": "玩家卡片上的黃色旗標並非“可疑”標記——它代表有人被舉報為掛機/不活躍。這不會影響遊戲本身，但如果一名玩家在一局遊戲中收到 2 次或以上舉報，將被記錄到該帳戶的活躍度記錄中。"
-   }
-  }
- },
- "login": {
-  "subtitle": "登入以繼續",
-  "resetFailedTitle": "重置失敗",
-  "resetSentTitle": "重置連結已傳送",
-  "resetSentDescription": "請檢查您的郵箱以獲取密碼重置連結。",
-  "loginFailedTitle": "登入失敗",
-  "resetPasswordTitle": "重置密碼",
-  "resetPasswordSubtitle": "我們將向您傳送一個找回連結",
-  "checkEmail": "請檢視您的郵箱！",
-  "resetLinkSentTo": "重置連結已傳送至 {{email}}",
-  "sendResetLink": "傳送重置連結",
-  "signingIn": "正在登入...",
-  "signIn": "登入",
-  "forgotPassword": "忘記密碼？",
-  "noAccount": "還沒有帳戶？",
-  "signUp": "註冊"
- },
- "signup": {
-  "subtitle": "建立您的帳戶",
-  "passwordTooShortTitle": "密碼過短",
-  "passwordTooShortDescription": "密碼長度必須至少為 6 個字元",
-  "inappropriateNameTitle": "顯示名稱不當",
-  "inappropriateNameDescription": "您的顯示名稱包含不當用語。",
-  "inappropriatePasswordTitle": "密碼不當",
-  "inappropriatePasswordDescription": "您的密碼包含不當用語，請選擇其他密碼。",
-  "signupFailedTitle": "註冊失敗",
-  "accountCreatedTitle": "帳戶已建立！",
-  "accountCreatedDescription": "請檢視您的郵箱進行確認，然後登入。",
-  "displayName": "顯示名稱",
-  "displayNamePlaceholder": "您的黑手黨代號",
-  "passwordPlaceholder": "至少 6 個字元",
-  "creating": "正在建立...",
-  "createAccount": "建立帳戶",
-  "alreadyHaveAccount": "已經有帳戶了？",
-  "signIn": "登入"
- },
- "resetPassword": {
-  "title": "重置密碼",
-  "subtitle": "選擇一個新密碼",
-  "invalidLinkTitle": "連結無效或已過期",
-  "expiredLinkDescription": "此重置連結已過期，請重新申請一個。",
-  "invalidLinkTitleShort": "無效連結",
-  "missingTokensDescription": "此重置連結缺少必要的令牌。",
-  "mismatchTitle": "兩次密碼不一致",
-  "mismatchDescription": "請確認兩次輸入的密碼一致。",
-  "failedTitle": "密碼重置失敗",
-  "successTitle": "密碼重置成功",
-  "successDescription": "您現在可以使用新密碼登入。",
-  "invalidOrExpired": "連結無效或已過期",
-  "invalidOrExpiredDescription": "此密碼重置連結已失效，請重新申請一個。",
-  "goToLogin": "前往登入",
-  "updated": "密碼已更新！",
-  "redirecting": "正在為您跳轉至登入頁面...",
-  "newPassword": "新密碼",
-  "confirmPassword": "確認密碼",
-  "retypePassword": "請再次輸入密碼",
-  "updating": "正在更新...",
-  "backToLogin": "返回登入"
- },
- "twoFactor": {
-  "title": "雙重身份驗證",
-  "verifySubtitle": "請輸入身份驗證器中的驗證碼",
-  "enterSixDigit": "請輸入 6 位驗證碼",
-  "authNotReady": "身份驗證服務尚未就緒，請重新整理頁面。",
-  "invalidCode": "驗證碼無效",
-  "welcomeBack": "歡迎回來！",
-  "verificationFailed": "驗證失敗",
-  "sixDigitCode": "6 位驗證碼",
-  "verifying": "正在驗證...",
-  "verify": "驗證",
-  "pleaseLogInFirst": "請先登入",
-  "setupFailed": "設定失敗",
-  "setupFailedRetry": "設定失敗，請重試。",
-  "enabledSuccess": "雙重驗證已啟用！您的帳戶現已安全。",
-  "loadingSetup": "正在載入雙重驗證設定...",
-  "secureAccount": "保護您的帳戶",
-  "required": "需要雙重身份驗證",
-  "scanQrCode": "使用 Google Authenticator 掃描此二維碼",
-  "cantScan": "無法掃描？請手動輸入此程式碼：",
-  "scannedIt": "我已掃描",
-  "enterCodeLabel": "請輸入身份驗證器中的 6 位驗證碼",
-  "verifyAndEnable": "驗證並啟用",
-  "backToQr": "返回二維碼",
-  "chooseMethod": "您希望透過什麼方式接收驗證碼？",
-  "authenticatorApp": "開啟 Google Authenticator 應用",
-  "authenticatorAppDescription": "使用 Google Authenticator 掃描二維碼以獲取 6 位驗證碼",
-  "emailCode": "郵箱驗證碼",
-  "emailCodeDescription": "將驗證碼傳送至您的郵箱",
-  "chooseDifferentMethod": "選擇其他方式",
-  "sendCodeToEmail": "將驗證碼傳送至此郵箱",
-  "sendingCode": "正在傳送驗證碼...",
-  "sendCode": "傳送驗證碼",
-  "emailSendFailed": "無法傳送驗證郵件",
-  "codeSentTitle": "驗證碼已傳送",
-  "codeSentDescription": "請檢視 {{email}} 獲取您的驗證碼。",
-  "enterEmailCodeLabel": "請輸入我們傳送至您郵箱的 6 位驗證碼",
-  "resendCode": "重新傳送驗證碼",
-  "checkYourEmail": "請檢視您的郵箱獲取驗證碼",
-  "codeSentCheckInbox": "驗證碼已傳送至您的郵箱。"
- },
- "leaderboard": {
-  "title": "惡名殿堂",
-  "subtitle": "全球排行榜",
-  "second": "第二名",
-  "first": "第一名",
-  "third": "第三名",
-  "winsAbbrev": "{{count}}勝",
-  "player": "玩家",
-  "wins": "勝場",
-  "rate": "勝率",
-  "noGamesYet": "尚未進行任何對局",
-  "playFirstGame": "開始您的第一局遊戲，即可出現在此處！",
-  "gamesCount_one": "{{count}} 局",
-  "gamesCount_other": "{{count}} 局"
- },
- "profile": {
-  "unknownAgent": "未知特工",
-  "title": "特工檔案",
-  "badgesCount": "{{earned}}/{{total}} 枚徽章",
-  "elite": "精英",
-  "veteran": "老兵",
-  "collector": "收藏家",
-  "wins": "勝場",
-  "losses": "敗場",
-  "games": "對局",
-  "winPercent": "勝率",
-  "credits": "積分",
-  "rolePerformance": "角色表現",
-  "winsCount_one": "{{count}} 勝",
-  "winsCount_other": "{{count}} 勝",
-  "roleRecord": "{{wins}}勝 / {{games}}局（{{rate}}%）",
-  "roleNotPlayed": "尚未使用過",
-  "currentStreak": "當前連勝",
-  "bestStreak": "最佳連勝",
-  "achievementHall": "成就殿堂",
-  "notYetUnlocked": "尚未解鎖",
-  "mvpCount": "MVP 次數"
- },
- "authCallback": {
-  "authFailed": "身份驗證失敗",
-  "emailVerificationFailed": "郵箱驗證失敗",
-  "emailVerified": "郵箱已驗證",
-  "welcomeMessage": "您的郵箱已確認。歡迎加入 Mafia Verse！",
-  "emailChangeFailed": "郵箱更改失敗",
-  "emailUpdated": "郵箱已更新",
-  "emailUpdatedDescription": "您的郵箱已成功更改。",
-  "redirecting": "正在為您跳轉...",
-  "processingLogin": "正在處理您的登入..."
- },
- "home": {
-  "joinAsSpectator": "以觀眾身份加入（僅觀看）",
-  "leaderboard": "排行榜",
-  "howToPlay": "遊戲玩法",
-  "recentPlayers": {
-   "title": "再次與他們同場競技",
-   "invite": "邀請",
-   "inviteMessage": "嘿 {{name}}，來和我一起玩 Mafia Verse 吧！{{link}}"
+  "common": {
+    "back": "返回",
+    "backToHome": "返回首頁",
+    "email": "電子郵箱",
+    "password": "密碼",
+    "sending": "傳送中...",
+    "cancel": "取消",
+    "save": "儲存",
+    "close": "關閉",
+    "loading": "載入中...",
+    "copy": "複製",
+    "copied": "已複製！",
+    "connectionLostTitle": "連線已斷開",
+    "connectionLostDescription": "正在嘗試重新連線...",
+    "reconnectingTitle": "正在重新連線",
+    "reconnectingPlayAgainDescription": "請稍等片刻，然後再次點選“再玩一次”。"
   },
-  "referral": {
-   "title": "邀請好友",
-   "subtitle": "每次邀請可獲得 25 積分",
-   "shareDescription1": "與好友分享您的專屬邀請連結。當他們加入並完成首局遊戲後，你們雙方都將獲得",
-   "shareDescription2": "25 點額外積分",
-   "yourInviteLink": "您的邀請連結",
-   "yourCode": "您的邀請碼",
-   "reward": "獎勵",
-   "perFriend": "每位好友",
-   "each": "各",
-   "gotACode": "拿到好友的邀請碼了嗎？",
-   "codePlaceholder": "輸入邀請碼",
-   "redeem": "兌換",
-   "redeemSuccess": "兌換成功！你們雙方都獲得了 {{count}} 積分。",
-   "redeemPending": "邀請碼已接受！再進行 {{count}} 局遊戲即可為你們雙方解鎖積分。",
-   "redeemAlreadyUsed": "您之前已經兌換過一個邀請碼。",
-   "redeemSelf": "您不能兌換自己的邀請碼。",
-   "redeemSameDevice": "這看起來與邀請人的帳戶使用了相同的裝置或網路。",
-   "redeemInvalid": "該邀請碼無效，請仔細檢查後重試。"
+  "settings": {
+    "title": "設定",
+    "language": "語言",
+    "display": "顯示",
+    "darkMode": "深色模式",
+    "on": "開",
+    "off": "關",
+    "audio": "音訊",
+    "soundEffects": "音效",
+    "enabled": "已啟用",
+    "disabled": "已禁用",
+    "volume": "音量",
+    "playTestSound": "播放測試音效",
+    "notifications": "通知",
+    "chatAlerts": "聊天提醒",
+    "notificationsDescription": "在遊戲進行中有人傳送聊天訊息時收到通知",
+    "security": "安全",
+    "twoFAEnabled": "已啟用雙重驗證",
+    "twoFANotSetUp": "尚未設定雙重驗證",
+    "accountProtected": "您的帳戶已透過 TOTP 保護。",
+    "addExtraLayer": "為您的帳戶增加一層保護。",
+    "enterPasswordToDisable": "請輸入密碼以確認關閉雙重驗證。",
+    "yourPassword": "您的密碼",
+    "disabling": "正在關閉...",
+    "confirmDisable": "確認關閉",
+    "disable2FA": "關閉雙重驗證",
+    "setUp2FA": "設定雙重驗證",
+    "forgotPassword": "忘記密碼",
+    "generateResetToken": "生成重置令牌",
+    "reset": "重置",
+    "twoFADisabledTitle": "雙重驗證已關閉",
+    "twoFADisabledDescription": "雙重身份驗證已被關閉。",
+    "errorTitle": "錯誤",
+    "couldNotDisable2FA": "無法關閉雙重驗證",
+    "somethingWentWrong": "出了點問題",
+    "incorrectPassword": "密碼錯誤",
+    "colorblindMode": "色盲友好角色配色"
   },
-  "inappropriateName": "名稱不當",
-  "inappropriateNameDescription": "您的名稱包含不當用語。",
-  "failedToJoin": "無法加入該房間",
-  "nameRequired": "需要填寫名稱",
-  "nameRequiredDescription": "建立房間前請先輸入您的名稱。",
-  "needMafia": "您需要至少一名黑手黨",
-  "needMafiaDescription": "每個房間至少需要 1 名黑手黨才能開始遊戲。",
-  "needCivilian": "您需要至少一名平民",
-  "needCivilianDescription": "每個房間至少需要 1 名平民才能開始遊戲。",
-  "tooManyPlayers": "人數過多",
-  "tooManyPlayersDescription": "房間人數上限為 20 人——請降低角色數量以繼續。",
-  "tooManySpecialRoles": "特殊角色過多",
-  "tooManySpecialRolesDescription": "即使是大型遊戲，特殊角色數量上限也是 10 個，以保證遊戲公平。",
-  "failedToCreate": "建立房間失敗",
-  "somethingWentWrong": "出了點問題。",
-  "roles": {
-   "mafias": "黑手黨",
-   "detectives": "偵探",
-   "doctors": "醫生",
-   "civilians": "平民",
-   "bodyguards": "保鏢",
-   "vigilantes": "義警",
-   "mayors": "市長",
-   "jesters": "小丑",
-   "votingTime": "投票時間（秒）",
-   "discussionTime": "討論時間（秒）",
-   "mafiaNightTime": "黑手黨夜晚時間（秒）",
-   "doctorNightTime": "醫生夜晚時間（秒）",
-   "detectiveNightTime": "偵探夜晚時間（秒）"
+  "notFound": {
+    "title": "死衚衕",
+    "tagline": "這條街道並不存在",
+    "description": "無論你在找什麼，這裡都沒有——也許它從來就不存在。就算是黑手黨，也找不到一條不存在的街道上的房間。",
+    "backHome": "返回城市"
   },
-  "logout": "退出登入",
-  "loginSignup": "登入 / 註冊",
-  "tagline": "誰都不要相信 • 找出真相 • 熬過夜晚",
-  "accessory": "配飾",
-  "clothing": "服裝",
-  "background": "背景",
-  "selectBackgroundColor": "選擇{{color}}背景",
-  "bgColorNames": [
-   "紫羅蘭色",
-   "紅色",
-   "藍色",
-   "祖母綠色",
-   "琥珀色",
-   "紫色"
-  ],
-  "mafiaHandle": "您的黑手黨代號",
-  "chooseNamePlaceholder": "選擇一個名稱...",
-  "pickPersona": "選擇您的人物形象",
-  "wins": "勝場",
-  "store": "商店",
-  "shop": "商城",
-  "daily": "每日",
-  "free": "免費",
-  "rate": "評分",
-  "refer": "邀請",
-  "settings": "設定",
-  "joinDiscord": "加入我們的 Discord",
-  "systemCore": "系統核心：超過 2,900 行原始碼",
-  "aboutLink": "關於",
-  "faqLink": "常見問題",
-  "achievementsLabel": "成就",
-  "achievements": {
-   "first_win": {
-    "name": "首殺",
-    "description": "贏得您的第一局遊戲"
-   },
-   "mafia_master": {
-    "name": "城市教父",
-    "description": "以黑手黨身份贏得 5 局遊戲"
-   },
-   "savior": {
-    "name": "生命的守護者",
-    "description": "以醫生身份救活 3 名玩家"
-   },
-   "truth_seeker": {
-    "name": "鷹眼",
-    "description": "以偵探身份找出 3 名黑手黨"
-   },
-   "survivor": {
-    "name": "最後的堅守",
-    "description": "作為最後存活的平民獲勝"
-   },
-   "quick_thinker": {
-    "name": "快速反應",
-    "description": "在階段時間較短的遊戲中獲勝"
-   },
-   "ghost_whisperer": {
-    "name": "幽靈低語者",
-    "description": "在觀眾聊天中發言 50 次"
-   },
-   "night_owl": {
-    "name": "夜貓子",
-    "description": "在夜晚階段進行 10 局遊戲"
-   },
-   "fashionista": {
-    "name": "時尚達人",
-    "description": "解鎖 10 件稀有個性裝扮或限定皮膚。"
-   }
+  "about": {
+    "title": "關於 Mafia Verse",
+    "description": "Mafia Verse 是一款關於謊言、結盟與冷靜算計的社交推理遊戲。召集你的團伙，誰都不要相信，在小鎮夜晚耗盡之前找出誰是黑手黨。",
+    "highlights": {
+      "bots": {
+        "title": "隨時開局，任意人數",
+        "description": "AI 機器人會填補空位，即使你的隊伍人數不多，遊戲也總能開始。"
+      },
+      "graveyard": {
+        "title": "死者仍在低語",
+        "description": "被淘汰的玩家會擁有專屬的墓地聊天頻道，繼續見證混亂的展開。"
+      },
+      "community": {
+        "title": "與社群共同打造",
+        "description": "真實玩家的反饋塑造著新的角色、設定與功能。"
+      }
+    }
   },
-  "joinGameTab": "加入遊戲",
-  "createRoomTab": "建立房間",
-  "roomCode": "房間程式碼",
-  "roomCodePlaceholder": "例如 A4X9",
-  "joining": "正在加入...",
-  "enterAbyss": "進入深淵",
-  "roomNameOptional": "房間名稱（可選）",
-  "roomNamePlaceholder": "例如 教父的餐桌",
-  "presets": {
-   "label": "快速預設",
-   "classic": "經典",
-   "chaos": "混亂",
-   "beginner": "新手友好"
+  "faq": {
+    "title": "常見問題",
+    "subtitle": "來自街頭的疑問",
+    "questions": {
+      "howToPlay": {
+        "question": "我該如何遊玩？",
+        "answer": "Mafia Verse 在夜晚與白天之間交替進行：夜晚時特殊角色秘密行動，白天時所有人展開討論並投票淘汰某人。當一方獲勝時遊戲結束。在對局中開啟房間內的《黑手黨手冊》，即可檢視每個角色的完整說明。"
+      },
+      "credits": {
+        "question": "積分有什麼用？我需要付費嗎？",
+        "answer": "積分用於購買寶箱和外觀道具——例如人物形象、配飾和背景。這些完全是可選的，不會影響遊戲玩法；你可以完全免費暢玩每一局遊戲，無需購買積分。"
+      },
+      "botAutoFill": {
+        "question": "機器人自動填補是如何運作的？",
+        "answer": "AI 機器人會填補空位，即使你的隊伍人數不多，遊戲也總能開始。如果房間未能及時被真實玩家填滿，機器人會自動佔據剩餘的位置，讓你不必苦等空蕩蕩的大廳。"
+      },
+      "syndicatePass": {
+        "question": "辛迪加通行證包含什麼？",
+        "answer": "辛迪加通行證解鎖 20 多種專屬外觀道具，包括傳奇人物形象、金色等級配飾和辛迪加專屬背景，還附贈一套高階神秘街頭套裝禮包和一枚永久大廳徽章。"
+      },
+      "afkFlag": {
+        "question": "如果我因不活躍被標記會怎樣？",
+        "answer": "玩家卡片上的黃色旗標並非“可疑”標記——它代表有人被舉報為掛機/不活躍。這不會影響遊戲本身，但如果一名玩家在一局遊戲中收到 2 次或以上舉報，將被記錄到該帳戶的活躍度記錄中。"
+      }
+    }
   },
-  "botPersonality": {
-   "label": "機器人性格",
-   "default": "預設",
-   "chill": "淡定",
-   "aggressiveLiar": "激進說謊者",
-   "chaotic": "混亂",
-   "defaultDescription": "機器人一如既往地行動——指控、辯護與沉默保持均衡。",
-   "chillDescription": "機器人發言更少，指控更溫和，把討論的主導權留給真人玩家。",
-   "aggressiveLiarDescription": "機器人發言更多，更頻繁地發起指控，被質疑時也會更激烈地為自己辯護。",
-   "chaoticDescription": "機器人經常發言但難以預測，在指控、辯護和插科打諢之間隨意切換。",
-   "sharp": "精明",
-   "sharpDescription": "機器人會進行策略性投票，傾向於跟隨已經積累較多票數的物件，而不是盲目選擇。"
+  "login": {
+    "subtitle": "登入以繼續",
+    "resetFailedTitle": "重置失敗",
+    "resetSentTitle": "重置連結已傳送",
+    "resetSentDescription": "請檢查您的郵箱以獲取密碼重置連結。",
+    "loginFailedTitle": "登入失敗",
+    "resetPasswordTitle": "重置密碼",
+    "resetPasswordSubtitle": "我們將向您傳送一個找回連結",
+    "checkEmail": "請檢視您的郵箱！",
+    "resetLinkSentTo": "重置連結已傳送至 {{email}}",
+    "sendResetLink": "傳送重置連結",
+    "signingIn": "正在登入...",
+    "signIn": "登入",
+    "forgotPassword": "忘記密碼？",
+    "noAccount": "還沒有帳戶？",
+    "signUp": "註冊"
   },
-  "totalPlayers": "玩家總數",
-  "minPlayers": "至少需要 6 名玩家",
-  "maxPlayersHint": "最多 20 名玩家",
-  "maxBotsHint": "最多 5 個機器人會填補空位——其餘名額需要真實玩家加入。",
-  "voteResults": "投票結果",
-  "roleReveal": "角色揭示",
-  "voteAnonymityExplainer": "投票預設是匿名的——所有人都能看到誰死亡、誰被投票淘汰，但看不到具體是誰投給了誰。開啟“投票結果”可揭示每一票的去向。",
-  "roleRevealExplainer": "角色揭示會顯示被投票淘汰或被黑手黨殺害者的角色（例如“醫生”）。關閉此選項則只顯示該玩家已被淘汰，所有角色保持保密。",
-  "preparing": "準備中...",
-  "createRoomButton": "建立房間",
-  "findAGame": "尋找遊戲",
-  "quickMatch": "快速匹配",
-  "matching": "匹配中...",
-  "noOpenRooms": "目前沒有開放的公開房間——試試快速匹配來開啟一局。",
-  "inLobby": "在大廳中",
-  "join": "加入",
-  "watch": "觀看",
-  "needNameTitle": "請先輸入名稱",
-  "quickMatchFailed": "快速匹配失敗",
-  "spectateOnly": "僅限觀看"
- },
- "store": {
-  "title": "商店",
-  "subtitle": "支援遊戲並解鎖特權",
-  "creditsAdded": "已增加 +{{credits}} 積分！",
-  "syndicateActivated": "辛迪加通行證已啟用！",
-  "thankYouTip": "感謝您 ${{amount}} 的打賞！",
-  "paymentCanceled": "支付已取消",
-  "noChargesMade": "未產生任何扣費。",
-  "creditsLabel": "{{count}} 積分",
-  "syndicatePassName": "辛迪加通行證",
-  "tipLabel": "打賞 ${{amount}}",
-  "creditPacks": "積分禮包",
-  "popular": "熱門",
-  "spendOnCrates": "用於購買寶箱與外觀道具",
-  "syndicateActive": "辛迪加通行證已啟用",
-  "allPremiumUnlocked": "您已解鎖所有高階外觀道具",
-  "perk1": "解鎖 16 種專屬外觀道具及傳奇人物形象",
-  "perk2": "立即獲得一套高階神秘街頭套裝禮包",
-  "perk3": "獲得永久優先匹配大廳資格與徽章",
-  "supportTheDevs": "支援開發者",
-  "tipTiers": {
-   "buyCoffee": "請我們喝杯咖啡",
-   "powerServers": "為伺服器加油",
-   "majorSupporter": "重要支持者",
-   "becomeLegend": "成為傳奇"
+  "signup": {
+    "subtitle": "建立您的帳戶",
+    "passwordTooShortTitle": "密碼過短",
+    "passwordTooShortDescription": "密碼長度必須至少為 6 個字元",
+    "inappropriateNameTitle": "顯示名稱不當",
+    "inappropriateNameDescription": "您的顯示名稱包含不當用語。",
+    "inappropriatePasswordTitle": "密碼不當",
+    "inappropriatePasswordDescription": "您的密碼包含不當用語，請選擇其他密碼。",
+    "signupFailedTitle": "註冊失敗",
+    "accountCreatedTitle": "帳戶已建立！",
+    "accountCreatedDescription": "請檢視您的郵箱進行確認，然後登入。",
+    "displayName": "顯示名稱",
+    "displayNamePlaceholder": "您的黑手黨代號",
+    "passwordPlaceholder": "至少 6 個字元",
+    "creating": "正在建立...",
+    "createAccount": "建立帳戶",
+    "alreadyHaveAccount": "已經有帳戶了？",
+    "signIn": "登入"
   },
-  "customAmount": "或輸入自定義金額（最低 $1）",
-  "enterAmount": "輸入金額",
-  "tipAmount": "打賞 ${{amount}}",
-  "capsuleStashDrops": "膠囊藏匿寶箱",
-  "underworldStash": "地下世界藏匿箱",
-  "underworldStashDesc": "包含普通到稀有的街頭裝備。",
-  "insufficientCredits": "積分不足",
-  "stashUnlocked": "藏匿箱已解鎖！",
-  "hot": "熱門",
-  "syndicateVault": "辛迪加金庫",
-  "syndicateVaultDesc": "有較高機率獲得史詩級裝扮。",
-  "vaultUnlocked": "金庫已解鎖！",
-  "secureCheckout": "安全結帳",
-  "cardNumber": "卡號",
-  "expiry": "有效期（MM/YY）",
-  "cvc": "安全碼",
-  "processing": "處理中...",
-  "payAmount": "支付 ${{amount}}"
- },
- "cosmetics": {
-  "title": "外觀商店",
-  "tiers": {
-   "legendary": "傳奇",
-   "gold": "黃金",
-   "silver": "白銀"
+  "resetPassword": {
+    "title": "重置密碼",
+    "subtitle": "選擇一個新密碼",
+    "invalidLinkTitle": "連結無效或已過期",
+    "expiredLinkDescription": "此重置連結已過期，請重新申請一個。",
+    "invalidLinkTitleShort": "無效連結",
+    "missingTokensDescription": "此重置連結缺少必要的令牌。",
+    "mismatchTitle": "兩次密碼不一致",
+    "mismatchDescription": "請確認兩次輸入的密碼一致。",
+    "failedTitle": "密碼重置失敗",
+    "successTitle": "密碼重置成功",
+    "successDescription": "您現在可以使用新密碼登入。",
+    "invalidOrExpired": "連結無效或已過期",
+    "invalidOrExpiredDescription": "此密碼重置連結已失效，請重新申請一個。",
+    "goToLogin": "前往登入",
+    "updated": "密碼已更新！",
+    "redirecting": "正在為您跳轉至登入頁面...",
+    "newPassword": "新密碼",
+    "confirmPassword": "確認密碼",
+    "retypePassword": "請再次輸入密碼",
+    "updating": "正在更新...",
+    "backToLogin": "返回登入"
   },
-  "equipped": "已裝備",
-  "owned": "已擁有",
-  "chatBorderPreview": "大家好，我覺得我知道誰是黑手黨了...",
-  "usernamePreview": "使用者名稱預覽",
-  "types": {
-   "accessory": "配飾",
-   "clothing": "服裝",
-   "background": "個人資料背景",
-   "banner": "勝利橫幅",
-   "persona": "傳奇人物形象"
+  "twoFactor": {
+    "title": "雙重身份驗證",
+    "verifySubtitle": "請輸入身份驗證器中的驗證碼",
+    "enterSixDigit": "請輸入 6 位驗證碼",
+    "authNotReady": "身份驗證服務尚未就緒，請重新整理頁面。",
+    "invalidCode": "驗證碼無效",
+    "welcomeBack": "歡迎回來！",
+    "verificationFailed": "驗證失敗",
+    "sixDigitCode": "6 位驗證碼",
+    "verifying": "正在驗證...",
+    "verify": "驗證",
+    "pleaseLogInFirst": "請先登入",
+    "setupFailed": "設定失敗",
+    "setupFailedRetry": "設定失敗，請重試。",
+    "enabledSuccess": "雙重驗證已啟用！您的帳戶現已安全。",
+    "loadingSetup": "正在載入雙重驗證設定...",
+    "secureAccount": "保護您的帳戶",
+    "required": "需要雙重身份驗證",
+    "scanQrCode": "使用 Google Authenticator 掃描此二維碼",
+    "cantScan": "無法掃描？請手動輸入此程式碼：",
+    "scannedIt": "我已掃描",
+    "enterCodeLabel": "請輸入身份驗證器中的 6 位驗證碼",
+    "verifyAndEnable": "驗證並啟用",
+    "backToQr": "返回二維碼",
+    "chooseMethod": "您希望透過什麼方式接收驗證碼？",
+    "authenticatorApp": "開啟 Google Authenticator 應用",
+    "authenticatorAppDescription": "使用 Google Authenticator 掃描二維碼以獲取 6 位驗證碼",
+    "emailCode": "郵箱驗證碼",
+    "emailCodeDescription": "將驗證碼傳送至您的郵箱",
+    "chooseDifferentMethod": "選擇其他方式",
+    "sendCodeToEmail": "將驗證碼傳送至此郵箱",
+    "sendingCode": "正在傳送驗證碼...",
+    "sendCode": "傳送驗證碼",
+    "emailSendFailed": "無法傳送驗證郵件",
+    "codeSentTitle": "驗證碼已傳送",
+    "codeSentDescription": "請檢視 {{email}} 獲取您的驗證碼。",
+    "enterEmailCodeLabel": "請輸入我們傳送至您郵箱的 6 位驗證碼",
+    "resendCode": "重新傳送驗證碼",
+    "checkYourEmail": "請檢視您的郵箱獲取驗證碼",
+    "codeSentCheckInbox": "驗證碼已傳送至您的郵箱。"
   },
-  "requiresPass": "需要辛迪加通行證",
-  "unlockForWins_one": "贏得 {{count}} 局後解鎖",
-  "unlockForWins_other": "贏得 {{count}} 局後解鎖",
-  "equippedClickToUnequip": "已裝備 — 點選取消裝備",
-  "equipItem": "裝備物品",
-  "sections": {
-   "personas": "人物形象",
-   "accessories": "配飾",
-   "clothing": "服裝",
-   "backgrounds": "背景",
-   "banners": "橫幅"
+  "leaderboard": {
+    "title": "惡名殿堂",
+    "subtitle": "全球排行榜",
+    "second": "第二名",
+    "first": "第一名",
+    "third": "第三名",
+    "winsAbbrev": "{{count}}勝",
+    "player": "玩家",
+    "wins": "勝場",
+    "rate": "勝率",
+    "noGamesYet": "尚未進行任何對局",
+    "playFirstGame": "開始您的第一局遊戲，即可出現在此處！",
+    "gamesCount_one": "{{count}} 局",
+    "gamesCount_other": "{{count}} 局"
   },
-  "availableWins": "可獲得的勝場",
-  "premium": "高階",
-  "unlockPassTitle": "解鎖辛迪加通行證",
-  "unlockPassDescription": "獲得 20 多種專屬外觀道具，包括傳奇人物形象、黃金等級配飾和辛迪加專屬背景。",
-  "twoLegendaryPersonas": "2 個傳奇人物形象",
-  "eightGoldItems": "8 件黃金物品",
-  "tenSilverItems": "10 件白銀物品",
-  "unlockPassButton": "解鎖通行證（$4.99）",
-  "passActiveAllUnlocked": "辛迪加通行證已啟用 — 所有物品均已解鎖",
-  "winUnlockables": "勝場解鎖項",
-  "items": {
-   "border_gold": {
-    "name": "金色聊天邊框",
-    "description": "為您的聊天訊息增添華麗的金色邊框"
-   },
-   "border_red": {
-    "name": "紅色聊天邊框",
-    "description": "兇狠的紅色邊框——非常適合黑手黨角色"
-   },
-   "border_blue": {
-    "name": "藍色聊天邊框",
-    "description": "偵探標誌性的藍色"
-   },
-   "name_color_gold": {
-    "name": "金色名稱配色",
-    "description": "用金色文字脫穎而出"
-   },
-   "name_color_red": {
-    "name": "紅色名稱配色",
-    "description": "兇狠的紅色使用者名稱"
-   },
-   "name_color_cyan": {
-    "name": "青色名稱配色",
-    "description": "未來感十足的青色"
-   },
-   "frame_diamond": {
-    "name": "鑽石頭像框",
-    "description": "為您的頭像增添高階鑽石邊框"
-   },
-   "frame_fire": {
-    "name": "烈焰頭像框",
-    "description": "熾熱燃燒的頭像邊框"
-   },
-   "frame_crown": {
-    "name": "皇冠頭像框",
-    "description": "王者皇冠邊框"
-   },
-   "synd_acc_mask": {
-    "name": "幻影面具",
-    "description": "只有核心圈層才佩戴的神秘面具"
-   },
-   "synd_acc_cigar": {
-    "name": "老大雪茄",
-    "description": "權威的煙霧"
-   },
-   "synd_acc_scar": {
-    "name": "戰鬥傷疤",
-    "description": "在街頭拼出來的印記"
-   },
-   "synd_acc_chain": {
-    "name": "金鍊子",
-    "description": "純金打造，絕無水分"
-   },
-   "synd_cloak": {
-    "name": "暗影斗篷",
-    "description": "融入夜色之中"
-   },
-   "synd_suit": {
-    "name": "教父西裝",
-    "description": "三件套彰顯尊貴"
-   },
-   "synd_trench": {
-    "name": "風衣",
-    "description": "偵探黑色電影風格"
-   },
-   "synd_hoodie": {
-    "name": "辛迪加連帽衫",
-    "description": "為家族代言"
-   },
-   "synd_bg_smoke": {
-    "name": "雪茄煙霧",
-    "description": "密室中瀰漫的濃煙"
-   },
-   "synd_bg_vault": {
-    "name": "黃金金庫",
-    "description": "成堆的金條"
-   },
-   "synd_bg_neon": {
-    "name": "霓虹小巷",
-    "description": "雨水浸溼的霓虹街道"
-   },
-   "synd_bg_cell": {
-    "name": "牢房",
-    "description": "水泥牆壁，昏暗燈光"
-   },
-   "synd_banner_kingpin": {
-    "name": "教父橫幅",
-    "description": "加冕這座城市的王者"
-   },
-   "synd_banner_mercenary": {
-    "name": "僱傭兵橫幅",
-    "description": "受僱的打手，人人畏懼"
-   },
-   "synd_banner_informant": {
-    "name": "線人橫幅",
-    "description": "黑暗中的低語"
-   },
-   "synd_banner_cleaner": {
-    "name": "清道夫橫幅",
-    "description": "沒有證據，就沒有問題"
-   },
-   "synd_persona_godfather": {
-    "name": "教父",
-    "description": "尊重就是一切，沉默就是力量。"
-   },
-   "synd_persona_fixer": {
-    "name": "擺平者",
-    "description": "麻煩會消失，問題不會。"
-   },
-   "synd_persona_enforcer": {
-    "name": "執行者",
-    "description": "以力量贏得忠誠。"
-   },
-   "synd_persona_snitch": {
-    "name": "告密者",
-    "description": "情報就是貨幣。"
-   }
-  }
- },
- "room": {
-  "linkCopied": "連結已複製！",
-  "sendToFriends": "傳送給您的好友。",
-  "shareTitleNamed": "在 Mafia Verse 中加入 {{roomName}}",
-  "shareTitleDefault": "加入我的 Mafia Verse 遊戲",
-  "shareText": "加入我的 Mafia Verse 遊戲吧！點選連結即可加入。",
-  "joinTheRoom": "加入房間",
-  "enterNameToJoin": "請輸入您的名稱以加入。",
-  "connecting": "連線中...",
-  "actions": {
-   "kill": "擊殺",
-   "protect": "保護",
-   "investigate": "調查",
-   "shoot": "射擊",
-   "act": "行動"
+  "profile": {
+    "unknownAgent": "未知特工",
+    "title": "特工檔案",
+    "badgesCount": "{{earned}}/{{total}} 枚徽章",
+    "elite": "精英",
+    "veteran": "老兵",
+    "collector": "收藏家",
+    "wins": "勝場",
+    "losses": "敗場",
+    "games": "對局",
+    "winPercent": "勝率",
+    "credits": "積分",
+    "rolePerformance": "角色表現",
+    "winsCount_one": "{{count}} 勝",
+    "winsCount_other": "{{count}} 勝",
+    "roleRecord": "{{wins}}勝 / {{games}}局（{{rate}}%）",
+    "roleNotPlayed": "尚未使用過",
+    "currentStreak": "當前連勝",
+    "bestStreak": "最佳連勝",
+    "achievementHall": "成就殿堂",
+    "notYetUnlocked": "尚未解鎖",
+    "mvpCount": "MVP 次數"
   },
-  "voted": "已投票",
-  "vote": "投票",
-  "selected": "已選擇",
-  "select": "選擇",
-  "actionLockedIn": "行動已鎖定！",
-  "actionLockedInDescription": "正在對 {{name}} 執行{{verb}}...",
-  "mafiaLabel": "黑手黨",
-  "civiliansLabel": "平民",
-  "jesterLabel": "小丑",
-  "wins": "獲勝！",
-  "mafiaWonDescription_one": "黑手黨成功掌控局勢，還剩 {{count}} 名成員",
-  "mafiaWonDescription_other": "黑手黨成功掌控局勢，還剩 {{count}} 名成員",
-  "civiliansWonDescription": "小鎮消滅了所有黑手黨！",
-  "jesterWonDescription": "{{name}} 想要被投票淘汰——而且成功了！",
-  "finalRolesRevealed": "最終角色揭曉",
-  "playAgainHelper": "與同一批玩家開啟新一輪遊戲——而非新的公開遊戲。",
-  "matchAlreadyEndedTitle": "這局遊戲已經結束",
-  "matchAlreadyEndedDescription": "您是在這一輪結束後才加入的，所以並未參與其中。請稍等——房主可以開啟新一輪遊戲，您將立即加入其中。",
-  "waitingForHostRematch": "正在等待房主開啟新一輪遊戲...",
-  "shareResult": "分享結果",
-  "crowdFavoriteVote": "全場最愛",
-  "crowdFavoritePicked": "您的選擇",
-  "crowdFavoriteResult": "全場最愛：{{name}}",
-  "generatingImage": "生成中...",
-  "shareResultTitle": "您的結果卡片",
-  "shareResultSubtitle": "下載圖片或複製文字摘要以進行分享。",
-  "downloadImage": "下載圖片",
-  "copyResultText": "複製結果文字",
-  "resultTextCopiedDescription": "可貼上到任意位置分享您的結果。",
-  "shareResultSummary": "我在 Mafia Verse 中扮演了{{role}} — {{result}} 🕵️‍♂️🔪",
-  "shareResultLinkNote": "此卡片僅為您生成的快照——分享您的房間連結不會向他人展示這局遊戲的結果。",
-  "shareCardErrorTitle": "無法生成卡片",
-  "shareCardErrorDescription": "生成您的結果卡片時出現問題，請重試。",
-  "youWon": "您贏了",
-  "youLost": "您輸了",
-  "playAgain": "再玩一次",
-  "eliminated": "已淘汰",
-  "wasRole": "曾是{{role}}",
-  "yourSecretIdentity": "您的秘密身份",
-  "roleFlavor": {
-   "mafia": "在暗中行動，消滅所有其他人。",
-   "detective": "追尋真相，找出黑手黨。",
-   "doctor": "保護無辜的人，在今晚拯救一條生命。",
-   "civilian": "保持警惕，熬過今晚。",
-   "bodyguard": "守護小鎮，替他人擋下攻擊。",
-   "vigilante": "親手主持正義。",
-   "mayor": "領導小鎮，讓您的投票權重加倍。",
-   "jester": "說服所有人把您投票淘汰。"
+  "authCallback": {
+    "authFailed": "身份驗證失敗",
+    "emailVerificationFailed": "郵箱驗證失敗",
+    "emailVerified": "郵箱已驗證",
+    "welcomeMessage": "您的郵箱已確認。歡迎加入 Mafia Verse！",
+    "emailChangeFailed": "郵箱更改失敗",
+    "emailUpdated": "郵箱已更新",
+    "emailUpdatedDescription": "您的郵箱已成功更改。",
+    "redirecting": "正在為您跳轉...",
+    "processingLogin": "正在處理您的登入..."
   },
-  "inviteFriends": "邀請好友",
-  "scanOrCopy": "掃描二維碼或複製連結以加入房間 {{code}}",
-  "roomQrCode": "房間二維碼",
-  "copyLink": "複製連結",
-  "roomLabel": "房間",
-  "share": "分享",
-  "startGame": "開始遊戲",
-  "muteSound": "靜音",
-  "unmuteSound": "取消靜音",
-  "leaveRoom": "離開房間",
-  "decreaseSetting": "減少{{label}}",
-  "increaseSetting": "增加{{label}}",
-  "waitingForPlayers": "等待玩家中",
-  "playerCount": "{{count}} / 6+ 名玩家",
-  "maxBotsNote": "最多 5 個機器人會填補空位——其餘名額需要真實玩家加入。",
-  "host": "房主",
-  "startNow": "立即開始",
-  "invite": "邀請",
-  "invited": "已邀請",
-  "noFriendsToInvite": "暫無好友，或您尚未登入。",
-  "inviteWorksAnyway": "此房間並非私密——任何擁有程式碼的人都可以加入，但受邀好友也會在他們的大廳邀請中看到此房間。",
-  "privateLobbyLabel": "私密大廳",
-  "ready": "已準備",
-  "notReady": "未準備",
-  "markReady": "我已準備",
-  "cancelReady": "取消準備",
-  "startingIn": "所有人都已準備——{{seconds}} 秒後開始",
-  "reset": "重置",
-  "lockIn": "鎖定",
-  "readyToLockIn": "選擇一個名稱並鎖定您的答案",
-  "actionLockedInShort": "行動已鎖定",
-  "waitingForOthers": "等待其他玩家中...",
-  "yourRole": "您的角色",
-  "spectating": "觀看中...",
-  "voteToEliminate": "投票淘汰！",
-  "nightPhaseInProgress": "夜晚階段進行中...",
-  "youHaveBeenEliminated": "您已被淘汰。",
-  "gameChronicle": "遊戲記錄",
-  "voteResultsVisible": "投票結果可見",
-  "voteResultsLabel": "投票結果",
-  "roleRevealLabel": "角色揭示",
-  "saveSettings": "儲存設定",
-  "mafiaTeammatesTitle": "您的黑手黨隊友",
-  "mafiaNoTeammates": "本局遊戲中您是唯一的黑手黨——沒有其他人可以協作。",
-  "teammatesTitle": "您的{{role}}同伴",
-  "noTeammates": "本局遊戲中您是唯一擁有此角色的玩家——沒有其他人可以協作。",
-  "teammateLockedIn": "已鎖定目標",
-  "teammateStillDeciding": "仍在決定中",
-  "mayorRevealButton": "揭示您的市長身份",
-  "roleGoals": {
-   "mafia": {
-    "title": "消滅小鎮",
-    "body": "在夜晚與您的黑手黨同伴合作，逐個剷除小鎮成員。白天時融入人群，避免被人識破身份。"
-   },
-   "detective": {
-    "title": "揪出黑手黨",
-    "body": "每晚調查一名玩家以瞭解其真實角色。利用調查結果引導小鎮的投票，但不要過早暴露自己。"
-   },
-   "doctor": {
-    "title": "保護無辜的人",
-    "body": "每晚選擇一名玩家進行拯救。您並不總能知道誰處於危險之中，因此要相信自己對當天討論的判斷。"
-   },
-   "civilian": {
-    "title": "找出黑手黨",
-    "body": "您沒有特殊能力——只有您的發言權和投票權。保持關注，多提問，幫助小鎮在為時已晚之前投票淘汰黑手黨。"
-   },
-   "bodyguard": {
-    "title": "守護您的目標",
-    "body": "每晚守護一名玩家。如果他們遭到攻擊，您將替他們擋下傷害——因此請謹慎選擇，這可能會讓您付出生命的代價。"
-   },
-   "vigilante": {
-    "title": "親手主持正義",
-    "body": "您擁有有限數量的子彈，用它們射殺您認為是黑手黨的人——但如果判斷錯誤，愧疚感將讓您付出代價。"
-   },
-   "mayor": {
-    "title": "領導小鎮",
-    "body": "一旦揭示身份，您的投票權重就會翻倍——但揭示自己也會讓您成為目標。請判斷合適的時機。"
-   },
-   "jester": {
-    "title": "讓自己被投票淘汰",
-    "body": "一旦小鎮將您投票淘汰，您就獲勝了。表現得可疑一些，製造疑慮，說服所有人您才是威脅所在。"
-   }
+  "home": {
+    "joinAsSpectator": "以觀眾身份加入（僅觀看）",
+    "leaderboard": "排行榜",
+    "howToPlay": "遊戲玩法",
+    "recentPlayers": {
+      "title": "再次與他們同場競技",
+      "invite": "邀請",
+      "inviteMessage": "嘿 {{name}}，來和我一起玩 Mafia Verse 吧！{{link}}"
+    },
+    "referral": {
+      "title": "邀請好友",
+      "subtitle": "每次邀請可獲得 25 積分",
+      "shareDescription1": "與好友分享您的專屬邀請連結。當他們加入並完成首局遊戲後，你們雙方都將獲得",
+      "shareDescription2": "25 點額外積分",
+      "yourInviteLink": "您的邀請連結",
+      "yourCode": "您的邀請碼",
+      "reward": "獎勵",
+      "perFriend": "每位好友",
+      "each": "各",
+      "gotACode": "拿到好友的邀請碼了嗎？",
+      "codePlaceholder": "輸入邀請碼",
+      "redeem": "兌換",
+      "redeemSuccess": "兌換成功！你們雙方都獲得了 {{count}} 積分。",
+      "redeemPending": "邀請碼已接受！再進行 {{count}} 局遊戲即可為你們雙方解鎖積分。",
+      "redeemAlreadyUsed": "您之前已經兌換過一個邀請碼。",
+      "redeemSelf": "您不能兌換自己的邀請碼。",
+      "redeemSameDevice": "這看起來與邀請人的帳戶使用了相同的裝置或網路。",
+      "redeemInvalid": "該邀請碼無效，請仔細檢查後重試。"
+    },
+    "inappropriateName": "名稱不當",
+    "inappropriateNameDescription": "您的名稱包含不當用語。",
+    "failedToJoin": "無法加入該房間",
+    "nameRequired": "需要填寫名稱",
+    "nameRequiredDescription": "建立房間前請先輸入您的名稱。",
+    "needMafia": "您需要至少一名黑手黨",
+    "needMafiaDescription": "每個房間至少需要 1 名黑手黨才能開始遊戲。",
+    "needCivilian": "您需要至少一名平民",
+    "needCivilianDescription": "每個房間至少需要 1 名平民才能開始遊戲。",
+    "tooManyPlayers": "人數過多",
+    "tooManyPlayersDescription": "房間人數上限為 20 人——請降低角色數量以繼續。",
+    "tooManySpecialRoles": "特殊角色過多",
+    "tooManySpecialRolesDescription": "即使是大型遊戲，特殊角色數量上限也是 10 個，以保證遊戲公平。",
+    "failedToCreate": "建立房間失敗",
+    "somethingWentWrong": "出了點問題。",
+    "roles": {
+      "mafias": "黑手黨",
+      "detectives": "偵探",
+      "doctors": "醫生",
+      "civilians": "平民",
+      "bodyguards": "保鏢",
+      "vigilantes": "義警",
+      "mayors": "市長",
+      "jesters": "小丑",
+      "votingTime": "投票時間（秒）",
+      "discussionTime": "討論時間（秒）",
+      "mafiaNightTime": "黑手黨夜晚時間（秒）",
+      "doctorNightTime": "醫生夜晚時間（秒）",
+      "detectiveNightTime": "偵探夜晚時間（秒）"
+    },
+    "logout": "退出登入",
+    "loginSignup": "登入 / 註冊",
+    "tagline": "誰都不要相信 • 找出真相 • 熬過夜晚",
+    "accessory": "配飾",
+    "clothing": "服裝",
+    "background": "背景",
+    "selectBackgroundColor": "選擇{{color}}背景",
+    "bgColorNames": [
+      "紫羅蘭色",
+      "紅色",
+      "藍色",
+      "祖母綠色",
+      "琥珀色",
+      "紫色"
+    ],
+    "mafiaHandle": "您的黑手黨代號",
+    "chooseNamePlaceholder": "選擇一個名稱...",
+    "pickPersona": "選擇您的人物形象",
+    "wins": "勝場",
+    "store": "商店",
+    "shop": "商城",
+    "daily": "每日",
+    "free": "免費",
+    "rate": "評分",
+    "refer": "邀請",
+    "settings": "設定",
+    "joinDiscord": "加入我們的 Discord",
+    "systemCore": "系統核心：超過 2,900 行原始碼",
+    "aboutLink": "關於",
+    "faqLink": "常見問題",
+    "achievementsLabel": "成就",
+    "achievements": {
+      "first_win": {
+        "name": "首殺",
+        "description": "贏得您的第一局遊戲"
+      },
+      "mafia_master": {
+        "name": "城市教父",
+        "description": "以黑手黨身份贏得 5 局遊戲"
+      },
+      "savior": {
+        "name": "生命的守護者",
+        "description": "以醫生身份救活 3 名玩家"
+      },
+      "truth_seeker": {
+        "name": "鷹眼",
+        "description": "以偵探身份找出 3 名黑手黨"
+      },
+      "survivor": {
+        "name": "最後的堅守",
+        "description": "作為最後存活的平民獲勝"
+      },
+      "quick_thinker": {
+        "name": "快速反應",
+        "description": "在階段時間較短的遊戲中獲勝"
+      },
+      "ghost_whisperer": {
+        "name": "幽靈低語者",
+        "description": "在觀眾聊天中發言 50 次"
+      },
+      "night_owl": {
+        "name": "夜貓子",
+        "description": "在夜晚階段進行 10 局遊戲"
+      },
+      "fashionista": {
+        "name": "時尚達人",
+        "description": "解鎖 10 件稀有個性裝扮或限定皮膚。"
+      }
+    },
+    "joinGameTab": "加入遊戲",
+    "createRoomTab": "建立房間",
+    "roomCode": "房間程式碼",
+    "roomCodePlaceholder": "例如 A4X9",
+    "joining": "正在加入...",
+    "enterAbyss": "進入深淵",
+    "roomNameOptional": "房間名稱（可選）",
+    "roomNamePlaceholder": "例如 教父的餐桌",
+    "presets": {
+      "label": "快速預設",
+      "classic": "經典",
+      "chaos": "混亂",
+      "beginner": "新手友好"
+    },
+    "botPersonality": {
+      "label": "機器人性格",
+      "default": "預設",
+      "chill": "淡定",
+      "aggressiveLiar": "激進說謊者",
+      "chaotic": "混亂",
+      "defaultDescription": "機器人一如既往地行動——指控、辯護與沉默保持均衡。",
+      "chillDescription": "機器人發言更少，指控更溫和，把討論的主導權留給真人玩家。",
+      "aggressiveLiarDescription": "機器人發言更多，更頻繁地發起指控，被質疑時也會更激烈地為自己辯護。",
+      "chaoticDescription": "機器人經常發言但難以預測，在指控、辯護和插科打諢之間隨意切換。",
+      "sharp": "精明",
+      "sharpDescription": "機器人會進行策略性投票，傾向於跟隨已經積累較多票數的物件，而不是盲目選擇。"
+    },
+    "totalPlayers": "玩家總數",
+    "minPlayers": "至少需要 6 名玩家",
+    "maxPlayersHint": "最多 20 名玩家",
+    "maxBotsHint": "最多 5 個機器人會填補空位——其餘名額需要真實玩家加入。",
+    "voteResults": "投票結果",
+    "roleReveal": "角色揭示",
+    "voteAnonymityExplainer": "投票預設是匿名的——所有人都能看到誰死亡、誰被投票淘汰，但看不到具體是誰投給了誰。開啟“投票結果”可揭示每一票的去向。",
+    "roleRevealExplainer": "角色揭示會顯示被投票淘汰或被黑手黨殺害者的角色（例如“醫生”）。關閉此選項則只顯示該玩家已被淘汰，所有角色保持保密。",
+    "preparing": "準備中...",
+    "createRoomButton": "建立房間",
+    "findAGame": "尋找遊戲",
+    "quickMatch": "快速匹配",
+    "matching": "匹配中...",
+    "noOpenRooms": "目前沒有開放的公開房間——試試快速匹配來開啟一局。",
+    "inLobby": "在大廳中",
+    "join": "加入",
+    "watch": "觀看",
+    "civilianOnly": "角色已滿——你將以平民身分加入",
+    "specialRolesOpen_one": "還有 {{count}} 個特殊角色空缺",
+    "specialRolesOpen_other": "還有 {{count}} 個特殊角色空缺",
+    "roomRolesTooltipTitle": "本房間的角色",
+    "afterYouJoin": "如果你現在加入",
+    "needNameTitle": "請先輸入名稱",
+    "quickMatchFailed": "快速匹配失敗",
+    "spectateOnly": "僅限觀看"
   },
-  "gameSettings": "遊戲設定",
-  "closeSettings": "關閉設定",
-  "bodyguardNightTime": "保鏢夜晚時間（秒）",
-  "vigilanteNightTime": "義警夜晚時間（秒）",
-  "reportAfk": "舉報掛機/不活躍",
-  "afkReported": "已舉報為掛機",
-  "afkReportedTapToUndo": "已舉報為掛機——點選可撤銷",
-  "afkFlagExplainer": "標記不活躍的玩家——再次點選可撤銷。2 次或以上舉報將影響其帳戶活躍度記錄。",
-  "voteAnonymityExplainer": "投票預設是匿名的——所有人都能看到誰死亡、誰被投票淘汰，但看不到具體是誰投給了誰。開啟“投票結果”可揭示每一票的去向。",
-  "roleRevealExplainer": "角色揭示會顯示被投票淘汰或被黑手黨殺害者的角色（例如“醫生”）。關閉此選項則只顯示該玩家已被淘汰，所有角色保持保密。",
-  "gameEnded": "遊戲結束",
-  "mafiaWinsExclaim": "黑手黨獲勝！",
-  "jesterWinsExclaim": "小丑獲勝！",
-  "civiliansWinExclaim": "平民獲勝！",
-  "finalRolesColon": "最終角色：",
-  "was": "曾是",
-  "nightN": "第 {{turn}} 夜",
-  "dayN": "第 {{turn}} 天",
-  "votedFor": "投票給了",
-  "voteResultsHidden": "投票結果已隱藏",
-  "wasEliminated": "{{target}} 已被淘汰。",
-  "wasProtected": "{{target}} 受到了保護。",
-  "detectiveInvestigated": "偵探調查了 {{target}}。",
-  "playerEliminated": "{{name}} 已被淘汰",
-  "deathStories": [
-   "{name}在滑雪下山時跌入冰隙，從此再也沒有出現過。",
-   "{name}跳傘時降落傘未能開啟，不幸身亡。",
-   "{name}在鯊魚出沒的水域游泳，成了鯊魚的深夜點心。",
-   "{name}試圖撫摸一隻流浪“貓”，結果那其實是一隻非常飢餓的美洲獅。",
-   "{name}不小心開著高爾夫球車加入了一場高風險的地下飆車比賽。",
-   "{name}把一個高壓變壓器誤認成了公用電話亭。",
-   "{name}在尋找幽靈時，絆倒並跌入一口被遺忘已久的深井。",
-   "{name}決定挑戰一位職業摔跤手來一場“友誼”比賽。",
-   "一架巨大的三角鋼琴從三樓墜落，正好砸中了{name}。",
-   "{name}試圖用高度數朗姆酒重現一個著名的噴火表演。",
-   "在一次野生動物園之旅中，{name}忘記了在獅子附近應該關好車窗。",
-   "{name}參加了一場對陣灰熊的吃派比賽，結果輸得很慘。",
-   "一場離奇的保齡球事故讓{name}沿著球道滑進了機械裝置中。",
-   "{name}以為自己能跳進仙人掌叢來甩掉一群憤怒的黃蜂，結果沒有成功。",
-   "在懸崖邊自拍時，{name}失去了平衡，連同手機一起墜落。",
-   "{name}試圖用割草機修剪樹籬，結果造成了災難性後果。",
-   "一個實驗性氣象氣球在夜裡正好降落在{name}的帳篷上。",
-   "{name}發現施工現場的“危險”標誌並不是隨便說說的。",
-   "在探索一個古老洞穴時，{name}驚醒了一大群極具領地意識的蝙蝠。",
-   "{name}試圖用一塊膠合板衝浪穿越海嘯。"
-  ],
-  "jesterGoalTitle": "目標：被處決",
-  "jesterGoalBody": "一旦小鎮將您投票淘汰，您就獲勝了——您不需要堅持到最後。",
-  "tooManySpecialRoles": "特殊角色過多",
-  "tooManySpecialRolesDescription": "請根據當前玩家人數，至少留出一個平民名額。",
-  "tooManySpecialRolesCapDescription": "即使是大型遊戲，特殊角色數量上限也是 10 個，以保證遊戲公平。",
-  "needCivilian": "您需要至少一名平民",
-  "needCivilianDescription": "每個房間至少需要 1 名平民才能開始遊戲。",
-  "needMafia": "您需要至少一名黑手黨",
-  "needMafiaDescription": "每個房間至少需要 1 名黑手黨才能開始遊戲。",
-  "settingsUpdated": "設定已更新",
-  "specialRolesCount": "特殊角色：{{count}} / {{total}} 名玩家",
-  "leaveRoomForCivilian": "請至少留出 1 個平民名額",
-  "specialRolesCapHint": "特殊角色數量上限為 10",
-  "wasVotedOutWithRole": "{{target}} 被投票淘汰，其身份是{{role}}。",
-  "noOneVotedOut": "沒有人被投票淘汰。",
-  "wasEliminatedWithRole": "{{target}} 在夜間被殺害，其身份是{{role}}。",
-  "bodyguardDiedProtecting": "保鏢 {{target}} 在保護目標時死亡。",
-  "attackerRetaliatedDied": "{{target}} 在反擊中死亡。",
-  "vigilanteGuiltDiedHistory": "義警 {{target}} 在射殺一名無辜玩家後因愧疚而死亡。",
-  "detectiveFoundResult": "偵探調查了 {{target}}，結果發現：{{result}}。",
-  "mafiaWonDescription": "黑手黨人數超過了小鎮——還剩 {{count}} 名黑手黨成員。",
-  "notificationsBlocked": "通知已被阻止",
-  "notificationsBlockedDesc": "請在瀏覽器設定中允許此網站傳送通知以使用此功能。",
-  "disableNotifications": "關閉回合通知",
-  "enableNotifications": "在輪到您時收到通知",
-  "yourTurnNotifTitle": "輪到您了",
-  "yourTurnNotifVote": "該投票了。",
-  "yourTurnNotifAction": "該使用您的夜晚行動了。",
-  "mvpResult": "MVP：{{name}}",
-  "mvpLabel": "MVP",
-  "myVoteRecord": "您在 {{total}} 次中有 {{correct}} 次投票給了黑手黨。",
-  "detectiveReport": "偵探報告 — {{name}}"
- },
- "roleBadge": {
-  "mafia": "黑手黨",
-  "detective": "偵探",
-  "doctor": "醫生",
-  "civilian": "平民",
-  "bodyguard": "保鏢",
-  "vigilante": "義警",
-  "mayor": "市長",
-  "jester": "小丑"
- },
- "phaseIndicator": {
-  "waitingLobby": "等待大廳",
-  "waitingForPlayers": "正在等待玩家加入...",
-  "gameOver": "遊戲結束",
-  "gameHasEnded": "遊戲已結束。",
-  "discussDescription": "討論誰是黑手黨。",
-  "votingDescription": "投票淘汰一名嫌疑人。",
-  "nightDescription": "黑手黨及各角色正在行動...",
-  "phases": {
-   "discussion": "討論",
-   "voting": "投票",
-   "mafia": "黑手黨",
-   "doctor": "醫生",
-   "detective": "偵探",
-   "bodyguard": "保鏢",
-   "vigilante": "義警"
-  }
- },
- "playerCard": {
-  "removeBot": "移除機器人",
-  "roleLabels": {
-   "mafia": "黑手黨",
-   "detective": "偵探",
-   "doctor": "醫生",
-   "civilian": "平民",
-   "bodyguard": "保鏢",
-   "vigilante": "義警",
-   "mayor": "市長",
-   "jester": "小丑"
+  "store": {
+    "title": "商店",
+    "subtitle": "支援遊戲並解鎖特權",
+    "creditsAdded": "已增加 +{{credits}} 積分！",
+    "syndicateActivated": "辛迪加通行證已啟用！",
+    "thankYouTip": "感謝您 ${{amount}} 的打賞！",
+    "paymentCanceled": "支付已取消",
+    "noChargesMade": "未產生任何扣費。",
+    "creditsLabel": "{{count}} 積分",
+    "syndicatePassName": "辛迪加通行證",
+    "tipLabel": "打賞 ${{amount}}",
+    "creditPacks": "積分禮包",
+    "popular": "熱門",
+    "spendOnCrates": "用於購買寶箱與外觀道具",
+    "syndicateActive": "辛迪加通行證已啟用",
+    "allPremiumUnlocked": "您已解鎖所有高階外觀道具",
+    "perk1": "解鎖 16 種專屬外觀道具及傳奇人物形象",
+    "perk2": "立即獲得一套高階神秘街頭套裝禮包",
+    "perk3": "獲得永久優先匹配大廳資格與徽章",
+    "supportTheDevs": "支援開發者",
+    "tipTiers": {
+      "buyCoffee": "請我們喝杯咖啡",
+      "powerServers": "為伺服器加油",
+      "majorSupporter": "重要支持者",
+      "becomeLegend": "成為傳奇"
+    },
+    "customAmount": "或輸入自定義金額（最低 $1）",
+    "enterAmount": "輸入金額",
+    "tipAmount": "打賞 ${{amount}}",
+    "capsuleStashDrops": "膠囊藏匿寶箱",
+    "underworldStash": "地下世界藏匿箱",
+    "underworldStashDesc": "包含普通到稀有的街頭裝備。",
+    "insufficientCredits": "積分不足",
+    "stashUnlocked": "藏匿箱已解鎖！",
+    "hot": "熱門",
+    "syndicateVault": "辛迪加金庫",
+    "syndicateVaultDesc": "有較高機率獲得史詩級裝扮。",
+    "vaultUnlocked": "金庫已解鎖！",
+    "secureCheckout": "安全結帳",
+    "cardNumber": "卡號",
+    "expiry": "有效期（MM/YY）",
+    "cvc": "安全碼",
+    "processing": "處理中...",
+    "payAmount": "支付 ${{amount}}"
   },
-  "unknown": "未知",
-  "host": "房主",
-  "bot": "機器人",
-  "you": "（您）",
-  "roleEliminated": "{{role}} — 已淘汰",
-  "eliminated": "已淘汰",
-  "revealed": "已揭示",
-  "titleTiers": {
-   "veteran": "老兵",
-   "legend": "傳奇"
-  }
- },
- "chat": {
-  "quickMessages": [
-   "我覺得 {name} 是黑手黨",
-   "我是無辜的！",
-   "昨晚是誰殺的人？",
-   "我相信 {name}",
-   "別投我出局！",
-   "{name} 看起來很可疑",
-   "我對 {name} 有種不好的預感",
-   "{name} 的表現很奇怪",
-   "讓我解釋一下",
-   "我是醫生，正在保護 {name}",
-   "這說不通",
-   "等等，{name} 說了什麼？",
-   "我相信 {name}",
-   "{name} 有點不對勁",
-   "你要投誰？"
-  ],
-  "mafiaQuickMessages": [
-   "今晚幹掉 {name} 吧",
-   "我投票殺 {name}",
-   "等等，別殺 {name} — 風險太大",
-   "同意",
-   "投票時我支援你",
-   "有人在懷疑我們了，冷靜點",
-   "{name} 快要看穿我們了",
-   "這一輪先低調行事",
-   "昨晚幹得漂亮",
-   "白天時把黑鍋甩給 {name}"
-  ],
-  "messageBlocked": "訊息已被攔截",
-  "inappropriateLanguage": "不允許使用不當用語。",
-  "spectatorChat": "觀眾聊天",
-  "roomChat": "房間聊天",
-  "graveyardChat": "墓地聊天",
-  "mafiaChat": "黑手黨聊天",
-  "mafiaTacticalComms": "黑手黨戰術通訊",
-  "mafiaTypeAMessage": "向您的黑手黨同夥發訊息...",
-  "gameChatReadOnly": "僅可檢視 — 切換到墓地聊天以發言",
-  "secret": "秘密",
-  "graveyardDiscordPrompt": "等待無聊？加入 Discord 一起閒聊並分享反饋。",
-  "reactedBy_one": "已有 {{count}} 名玩家回應",
-  "reactedBy_other": "已有 {{count}} 名玩家回應",
-  "deadCannotSpeak": "死者無法發言",
-  "tacticalComms": "戰術通訊",
-  "someone": "某人",
-  "deadPlayersCannotSpeak": "已死亡玩家無法發言...",
-  "typeAMessage": "輸入訊息...",
-  "selectTarget": "選擇目標"
- },
- "howToPlay": {
-  "title": "遊戲玩法",
-  "gotIt": "知道了！",
-  "next": "下一步",
-  "steps": {
-   "loop": {
-    "title": "基本迴圈",
-    "body": "Mafia Verse 在夜晚（特殊角色秘密行動）與白天（所有人討論並投票淘汰某人）之間交替進行。當一方獲勝時遊戲結束。"
-   },
-   "mafia": {
-    "title": "黑手黨",
-    "body": "每晚，黑手黨秘密選擇一名玩家進行淘汰。當他們人數達到或超過剩餘小鎮成員時獲勝。"
-   },
-   "detective": {
-    "title": "偵探",
-    "body": "每晚調查一名玩家，瞭解其是否為黑手黨。利用調查結果引導小鎮的投票，同時不要暴露自己是偵探。"
-   },
-   "doctor": {
-    "title": "醫生",
-    "body": "每晚保護一名玩家免受黑手黨的殺害。您可以保護自己，但請仔細思考誰真正需要被救。"
-   },
-   "civilian": {
-    "title": "平民",
-    "body": "您沒有夜晚能力，但白天您的投票和發言至關重要——仔細聆聽，幫助小鎮找出黑手黨。"
-   },
-   "bodyguard": {
-    "title": "保鏢",
-    "body": "每晚守護一名玩家。如果黑手黨襲擊了您守護的玩家，您將替他們承受傷害並死亡。"
-   },
-   "vigilante": {
-    "title": "義警",
-    "body": "整局遊戲中您有 2 發子彈。任意夜晚，您都可以射擊一名您懷疑的玩家。但若射殺了無辜的人，愧疚感會追上您。"
-   },
-   "mayor": {
-    "title": "市長",
-    "body": "每局遊戲可揭示一次自己的身份，使您的投票權重翻倍——但這樣做也會讓黑手黨準確知道您是誰。"
-   },
-   "jester": {
-    "title": "小丑",
-    "body": "您想要被投票淘汰！如果小鎮在白天將您投票淘汰，您就立即獲勝，遊戲就此結束。"
-   },
-   "vote": {
-    "title": "白天投票",
-    "body": "討論結束後，所有人投票選出要淘汰的物件。獲得最多票數的玩家將被淘汰——平票則無人出局。"
-   }
-  }
- },
- "handbook": {
-  "title": "黑手黨手冊",
-  "subtitle": "掌握本手冊，玩得更好",
-  "tabs": {
-   "basics": "基礎",
-   "roles": "角色",
-   "phases": "階段",
-   "tips": "技巧"
+  "cosmetics": {
+    "title": "外觀商店",
+    "tiers": {
+      "legendary": "傳奇",
+      "gold": "黃金",
+      "silver": "白銀"
+    },
+    "equipped": "已裝備",
+    "owned": "已擁有",
+    "chatBorderPreview": "大家好，我覺得我知道誰是黑手黨了...",
+    "usernamePreview": "使用者名稱預覽",
+    "types": {
+      "accessory": "配飾",
+      "clothing": "服裝",
+      "background": "個人資料背景",
+      "banner": "勝利橫幅",
+      "persona": "傳奇人物形象"
+    },
+    "requiresPass": "需要辛迪加通行證",
+    "unlockForWins_one": "贏得 {{count}} 局後解鎖",
+    "unlockForWins_other": "贏得 {{count}} 局後解鎖",
+    "equippedClickToUnequip": "已裝備 — 點選取消裝備",
+    "equipItem": "裝備物品",
+    "sections": {
+      "personas": "人物形象",
+      "accessories": "配飾",
+      "clothing": "服裝",
+      "backgrounds": "背景",
+      "banners": "橫幅"
+    },
+    "availableWins": "可獲得的勝場",
+    "premium": "高階",
+    "unlockPassTitle": "解鎖辛迪加通行證",
+    "unlockPassDescription": "獲得 20 多種專屬外觀道具，包括傳奇人物形象、黃金等級配飾和辛迪加專屬背景。",
+    "twoLegendaryPersonas": "2 個傳奇人物形象",
+    "eightGoldItems": "8 件黃金物品",
+    "tenSilverItems": "10 件白銀物品",
+    "unlockPassButton": "解鎖通行證（$4.99）",
+    "passActiveAllUnlocked": "辛迪加通行證已啟用 — 所有物品均已解鎖",
+    "winUnlockables": "勝場解鎖項",
+    "items": {
+      "border_gold": {
+        "name": "金色聊天邊框",
+        "description": "為您的聊天訊息增添華麗的金色邊框"
+      },
+      "border_red": {
+        "name": "紅色聊天邊框",
+        "description": "兇狠的紅色邊框——非常適合黑手黨角色"
+      },
+      "border_blue": {
+        "name": "藍色聊天邊框",
+        "description": "偵探標誌性的藍色"
+      },
+      "name_color_gold": {
+        "name": "金色名稱配色",
+        "description": "用金色文字脫穎而出"
+      },
+      "name_color_red": {
+        "name": "紅色名稱配色",
+        "description": "兇狠的紅色使用者名稱"
+      },
+      "name_color_cyan": {
+        "name": "青色名稱配色",
+        "description": "未來感十足的青色"
+      },
+      "frame_diamond": {
+        "name": "鑽石頭像框",
+        "description": "為您的頭像增添高階鑽石邊框"
+      },
+      "frame_fire": {
+        "name": "烈焰頭像框",
+        "description": "熾熱燃燒的頭像邊框"
+      },
+      "frame_crown": {
+        "name": "皇冠頭像框",
+        "description": "王者皇冠邊框"
+      },
+      "synd_acc_mask": {
+        "name": "幻影面具",
+        "description": "只有核心圈層才佩戴的神秘面具"
+      },
+      "synd_acc_cigar": {
+        "name": "老大雪茄",
+        "description": "權威的煙霧"
+      },
+      "synd_acc_scar": {
+        "name": "戰鬥傷疤",
+        "description": "在街頭拼出來的印記"
+      },
+      "synd_acc_chain": {
+        "name": "金鍊子",
+        "description": "純金打造，絕無水分"
+      },
+      "synd_cloak": {
+        "name": "暗影斗篷",
+        "description": "融入夜色之中"
+      },
+      "synd_suit": {
+        "name": "教父西裝",
+        "description": "三件套彰顯尊貴"
+      },
+      "synd_trench": {
+        "name": "風衣",
+        "description": "偵探黑色電影風格"
+      },
+      "synd_hoodie": {
+        "name": "辛迪加連帽衫",
+        "description": "為家族代言"
+      },
+      "synd_bg_smoke": {
+        "name": "雪茄煙霧",
+        "description": "密室中瀰漫的濃煙"
+      },
+      "synd_bg_vault": {
+        "name": "黃金金庫",
+        "description": "成堆的金條"
+      },
+      "synd_bg_neon": {
+        "name": "霓虹小巷",
+        "description": "雨水浸溼的霓虹街道"
+      },
+      "synd_bg_cell": {
+        "name": "牢房",
+        "description": "水泥牆壁，昏暗燈光"
+      },
+      "synd_banner_kingpin": {
+        "name": "教父橫幅",
+        "description": "加冕這座城市的王者"
+      },
+      "synd_banner_mercenary": {
+        "name": "僱傭兵橫幅",
+        "description": "受僱的打手，人人畏懼"
+      },
+      "synd_banner_informant": {
+        "name": "線人橫幅",
+        "description": "黑暗中的低語"
+      },
+      "synd_banner_cleaner": {
+        "name": "清道夫橫幅",
+        "description": "沒有證據，就沒有問題"
+      },
+      "synd_persona_godfather": {
+        "name": "教父",
+        "description": "尊重就是一切，沉默就是力量。"
+      },
+      "synd_persona_fixer": {
+        "name": "擺平者",
+        "description": "麻煩會消失，問題不會。"
+      },
+      "synd_persona_enforcer": {
+        "name": "執行者",
+        "description": "以力量贏得忠誠。"
+      },
+      "synd_persona_snitch": {
+        "name": "告密者",
+        "description": "情報就是貨幣。"
+      }
+    }
   },
-  "overview": {
-   "whatIsMafiaTitle": "什麼是黑手黨？",
-   "whatIsMafiaDescription": "黑手黨是一款社交推理遊戲。黑手黨在夜晚秘密合作消滅小鎮成員，而其他所有人則要在為時已晚之前找出他們是誰。",
-   "teamsAtAGlance": "陣營一覽",
-   "theTown": "小鎮",
-   "theTownDescription": "偵探、醫生、保鏢、義警、市長和平民——共同致力於找出並消滅黑手黨。",
-   "theMafia": "黑手黨",
-   "theMafiaDescription": "每晚秘密消滅一名小鎮成員，試圖在被發現之前與小鎮人數持平。",
-   "theJester": "小丑",
-   "theJesterDescription": "一個隻身作戰的騙子，唯一目標是在白天被小鎮投票淘汰。",
-   "howToWin": "如何獲勝",
-   "townWins": "小鎮獲勝條件：",
-   "townWinsDescription": "當所有黑手黨成員都被消滅時。",
-   "mafiaWins": "黑手黨獲勝條件：",
-   "mafiaWinsDescription": "當黑手黨人數達到或超過剩餘小鎮成員時。",
-   "jesterWins": "小丑獲勝條件：",
-   "jesterWinsDescription": "在小鎮將其投票淘汰的那一刻——其他所有人在那一輪都輸了。",
-   "whatMakesDifferentTitle": "本作的獨特之處",
-   "difference1": "保鏢可以替他人擋下攻擊，代替其死亡。",
-   "difference2": "義警整局遊戲只有 2 發子彈——請謹慎使用。",
-   "difference3": "市長可以揭示身份獲得雙倍投票權，但代價是暴露自己。",
-   "difference4": "小丑透過故意被投票淘汰來獲勝。",
-   "difference5": "實時投票、聊天，以及供已淘汰玩家使用的墓地聊天。",
-   "jesterNoteTitle": "關於小丑",
-   "jesterNoteDescription": "小丑既不屬於小鎮也不屬於黑手黨——他們只想讓自己被投票淘汰。一旦成功，他們立即獲勝，遊戲就此結束，無論其他人原本想做什麼。",
-   "afkFlagTitle": "旗標圖示",
-   "afkFlagDescription": "玩家卡片上的黃色旗標並非“可疑”標記——它代表有人被舉報為掛機/不活躍。這不會影響遊戲本身，但如果一名玩家在一局遊戲中收到 2 次或以上舉報，將被記錄到該帳戶的活躍度記錄中。再次點選旗標可撤銷您誤操作的舉報。"
+  "room": {
+    "linkCopied": "連結已複製！",
+    "sendToFriends": "傳送給您的好友。",
+    "shareTitleNamed": "在 Mafia Verse 中加入 {{roomName}}",
+    "shareTitleDefault": "加入我的 Mafia Verse 遊戲",
+    "shareText": "加入我的 Mafia Verse 遊戲吧！點選連結即可加入。",
+    "joinTheRoom": "加入房間",
+    "enterNameToJoin": "請輸入您的名稱以加入。",
+    "connecting": "連線中...",
+    "actions": {
+      "kill": "擊殺",
+      "protect": "保護",
+      "investigate": "調查",
+      "shoot": "射擊",
+      "act": "行動"
+    },
+    "voted": "已投票",
+    "vote": "投票",
+    "selected": "已選擇",
+    "select": "選擇",
+    "actionLockedIn": "行動已鎖定！",
+    "actionLockedInDescription": "正在對 {{name}} 執行{{verb}}...",
+    "mafiaLabel": "黑手黨",
+    "civiliansLabel": "平民",
+    "jesterLabel": "小丑",
+    "wins": "獲勝！",
+    "mafiaWonDescription_one": "黑手黨成功掌控局勢，還剩 {{count}} 名成員",
+    "mafiaWonDescription_other": "黑手黨成功掌控局勢，還剩 {{count}} 名成員",
+    "civiliansWonDescription": "小鎮消滅了所有黑手黨！",
+    "jesterWonDescription": "{{name}} 想要被投票淘汰——而且成功了！",
+    "finalRolesRevealed": "最終角色揭曉",
+    "playAgainHelper": "與同一批玩家開啟新一輪遊戲——而非新的公開遊戲。",
+    "matchAlreadyEndedTitle": "這局遊戲已經結束",
+    "matchAlreadyEndedDescription": "您是在這一輪結束後才加入的，所以並未參與其中。請稍等——房主可以開啟新一輪遊戲，您將立即加入其中。",
+    "waitingForHostRematch": "正在等待房主開啟新一輪遊戲...",
+    "shareResult": "分享結果",
+    "crowdFavoriteVote": "全場最愛",
+    "crowdFavoritePicked": "您的選擇",
+    "crowdFavoriteResult": "全場最愛：{{name}}",
+    "generatingImage": "生成中...",
+    "shareResultTitle": "您的結果卡片",
+    "shareResultSubtitle": "下載圖片或複製文字摘要以進行分享。",
+    "downloadImage": "下載圖片",
+    "copyResultText": "複製結果文字",
+    "resultTextCopiedDescription": "可貼上到任意位置分享您的結果。",
+    "shareResultSummary": "我在 Mafia Verse 中扮演了{{role}} — {{result}} 🕵️‍♂️🔪",
+    "shareResultLinkNote": "此卡片僅為您生成的快照——分享您的房間連結不會向他人展示這局遊戲的結果。",
+    "shareCardErrorTitle": "無法生成卡片",
+    "shareCardErrorDescription": "生成您的結果卡片時出現問題，請重試。",
+    "youWon": "您贏了",
+    "youLost": "您輸了",
+    "playAgain": "再玩一次",
+    "eliminated": "已淘汰",
+    "wasRole": "曾是{{role}}",
+    "yourSecretIdentity": "您的秘密身份",
+    "roleFlavor": {
+      "mafia": "在暗中行動，消滅所有其他人。",
+      "detective": "追尋真相，找出黑手黨。",
+      "doctor": "保護無辜的人，在今晚拯救一條生命。",
+      "civilian": "保持警惕，熬過今晚。",
+      "bodyguard": "守護小鎮，替他人擋下攻擊。",
+      "vigilante": "親手主持正義。",
+      "mayor": "領導小鎮，讓您的投票權重加倍。",
+      "jester": "說服所有人把您投票淘汰。"
+    },
+    "inviteFriends": "邀請好友",
+    "scanOrCopy": "掃描二維碼或複製連結以加入房間 {{code}}",
+    "roomQrCode": "房間二維碼",
+    "copyLink": "複製連結",
+    "roomLabel": "房間",
+    "share": "分享",
+    "startGame": "開始遊戲",
+    "muteSound": "靜音",
+    "unmuteSound": "取消靜音",
+    "leaveRoom": "離開房間",
+    "decreaseSetting": "減少{{label}}",
+    "increaseSetting": "增加{{label}}",
+    "waitingForPlayers": "等待玩家中",
+    "playerCount": "{{count}} / 6+ 名玩家",
+    "maxBotsNote": "最多 5 個機器人會填補空位——其餘名額需要真實玩家加入。",
+    "host": "房主",
+    "startNow": "立即開始",
+    "invite": "邀請",
+    "invited": "已邀請",
+    "noFriendsToInvite": "暫無好友，或您尚未登入。",
+    "inviteWorksAnyway": "此房間並非私密——任何擁有程式碼的人都可以加入，但受邀好友也會在他們的大廳邀請中看到此房間。",
+    "privateLobbyLabel": "私密大廳",
+    "ready": "已準備",
+    "notReady": "未準備",
+    "markReady": "我已準備",
+    "cancelReady": "取消準備",
+    "startingIn": "所有人都已準備——{{seconds}} 秒後開始",
+    "reset": "重置",
+    "lockIn": "鎖定",
+    "readyToLockIn": "選擇一個名稱並鎖定您的答案",
+    "actionLockedInShort": "行動已鎖定",
+    "waitingForOthers": "等待其他玩家中...",
+    "yourRole": "您的角色",
+    "spectating": "觀看中...",
+    "voteToEliminate": "投票淘汰！",
+    "nightPhaseInProgress": "夜晚階段進行中...",
+    "youHaveBeenEliminated": "您已被淘汰。",
+    "gameChronicle": "遊戲記錄",
+    "voteResultsVisible": "投票結果可見",
+    "voteResultsLabel": "投票結果",
+    "roleRevealLabel": "角色揭示",
+    "saveSettings": "儲存設定",
+    "mafiaTeammatesTitle": "您的黑手黨隊友",
+    "mafiaNoTeammates": "本局遊戲中您是唯一的黑手黨——沒有其他人可以協作。",
+    "teammatesTitle": "您的{{role}}同伴",
+    "noTeammates": "本局遊戲中您是唯一擁有此角色的玩家——沒有其他人可以協作。",
+    "teammateLockedIn": "已鎖定目標",
+    "teammateStillDeciding": "仍在決定中",
+    "mayorRevealButton": "揭示您的市長身份",
+    "roleGoals": {
+      "mafia": {
+        "title": "消滅小鎮",
+        "body": "在夜晚與您的黑手黨同伴合作，逐個剷除小鎮成員。白天時融入人群，避免被人識破身份。"
+      },
+      "detective": {
+        "title": "揪出黑手黨",
+        "body": "每晚調查一名玩家以瞭解其真實角色。利用調查結果引導小鎮的投票，但不要過早暴露自己。"
+      },
+      "doctor": {
+        "title": "保護無辜的人",
+        "body": "每晚選擇一名玩家進行拯救。您並不總能知道誰處於危險之中，因此要相信自己對當天討論的判斷。"
+      },
+      "civilian": {
+        "title": "找出黑手黨",
+        "body": "您沒有特殊能力——只有您的發言權和投票權。保持關注，多提問，幫助小鎮在為時已晚之前投票淘汰黑手黨。"
+      },
+      "bodyguard": {
+        "title": "守護您的目標",
+        "body": "每晚守護一名玩家。如果他們遭到攻擊，您將替他們擋下傷害——因此請謹慎選擇，這可能會讓您付出生命的代價。"
+      },
+      "vigilante": {
+        "title": "親手主持正義",
+        "body": "您擁有有限數量的子彈，用它們射殺您認為是黑手黨的人——但如果判斷錯誤，愧疚感將讓您付出代價。"
+      },
+      "mayor": {
+        "title": "領導小鎮",
+        "body": "一旦揭示身份，您的投票權重就會翻倍——但揭示自己也會讓您成為目標。請判斷合適的時機。"
+      },
+      "jester": {
+        "title": "讓自己被投票淘汰",
+        "body": "一旦小鎮將您投票淘汰，您就獲勝了。表現得可疑一些，製造疑慮，說服所有人您才是威脅所在。"
+      }
+    },
+    "gameSettings": "遊戲設定",
+    "closeSettings": "關閉設定",
+    "bodyguardNightTime": "保鏢夜晚時間（秒）",
+    "vigilanteNightTime": "義警夜晚時間（秒）",
+    "reportAfk": "舉報掛機/不活躍",
+    "afkReported": "已舉報為掛機",
+    "afkReportedTapToUndo": "已舉報為掛機——點選可撤銷",
+    "afkFlagExplainer": "標記不活躍的玩家——再次點選可撤銷。2 次或以上舉報將影響其帳戶活躍度記錄。",
+    "voteAnonymityExplainer": "投票預設是匿名的——所有人都能看到誰死亡、誰被投票淘汰，但看不到具體是誰投給了誰。開啟“投票結果”可揭示每一票的去向。",
+    "roleRevealExplainer": "角色揭示會顯示被投票淘汰或被黑手黨殺害者的角色（例如“醫生”）。關閉此選項則只顯示該玩家已被淘汰，所有角色保持保密。",
+    "gameEnded": "遊戲結束",
+    "mafiaWinsExclaim": "黑手黨獲勝！",
+    "jesterWinsExclaim": "小丑獲勝！",
+    "civiliansWinExclaim": "平民獲勝！",
+    "finalRolesColon": "最終角色：",
+    "was": "曾是",
+    "nightN": "第 {{turn}} 夜",
+    "dayN": "第 {{turn}} 天",
+    "votedFor": "投票給了",
+    "voteResultsHidden": "投票結果已隱藏",
+    "wasEliminated": "{{target}} 已被淘汰。",
+    "wasProtected": "{{target}} 受到了保護。",
+    "detectiveInvestigated": "偵探調查了 {{target}}。",
+    "playerEliminated": "{{name}} 已被淘汰",
+    "deathStories": [
+      "{name}在滑雪下山時跌入冰隙，從此再也沒有出現過。",
+      "{name}跳傘時降落傘未能開啟，不幸身亡。",
+      "{name}在鯊魚出沒的水域游泳，成了鯊魚的深夜點心。",
+      "{name}試圖撫摸一隻流浪“貓”，結果那其實是一隻非常飢餓的美洲獅。",
+      "{name}不小心開著高爾夫球車加入了一場高風險的地下飆車比賽。",
+      "{name}把一個高壓變壓器誤認成了公用電話亭。",
+      "{name}在尋找幽靈時，絆倒並跌入一口被遺忘已久的深井。",
+      "{name}決定挑戰一位職業摔跤手來一場“友誼”比賽。",
+      "一架巨大的三角鋼琴從三樓墜落，正好砸中了{name}。",
+      "{name}試圖用高度數朗姆酒重現一個著名的噴火表演。",
+      "在一次野生動物園之旅中，{name}忘記了在獅子附近應該關好車窗。",
+      "{name}參加了一場對陣灰熊的吃派比賽，結果輸得很慘。",
+      "一場離奇的保齡球事故讓{name}沿著球道滑進了機械裝置中。",
+      "{name}以為自己能跳進仙人掌叢來甩掉一群憤怒的黃蜂，結果沒有成功。",
+      "在懸崖邊自拍時，{name}失去了平衡，連同手機一起墜落。",
+      "{name}試圖用割草機修剪樹籬，結果造成了災難性後果。",
+      "一個實驗性氣象氣球在夜裡正好降落在{name}的帳篷上。",
+      "{name}發現施工現場的“危險”標誌並不是隨便說說的。",
+      "在探索一個古老洞穴時，{name}驚醒了一大群極具領地意識的蝙蝠。",
+      "{name}試圖用一塊膠合板衝浪穿越海嘯。"
+    ],
+    "jesterGoalTitle": "目標：被處決",
+    "jesterGoalBody": "一旦小鎮將您投票淘汰，您就獲勝了——您不需要堅持到最後。",
+    "tooManySpecialRoles": "特殊角色過多",
+    "tooManySpecialRolesDescription": "請根據當前玩家人數，至少留出一個平民名額。",
+    "tooManySpecialRolesCapDescription": "即使是大型遊戲，特殊角色數量上限也是 10 個，以保證遊戲公平。",
+    "needCivilian": "您需要至少一名平民",
+    "needCivilianDescription": "每個房間至少需要 1 名平民才能開始遊戲。",
+    "needMafia": "您需要至少一名黑手黨",
+    "needMafiaDescription": "每個房間至少需要 1 名黑手黨才能開始遊戲。",
+    "settingsUpdated": "設定已更新",
+    "specialRolesCount": "特殊角色：{{count}} / {{total}} 名玩家",
+    "leaveRoomForCivilian": "請至少留出 1 個平民名額",
+    "specialRolesCapHint": "特殊角色數量上限為 10",
+    "wasVotedOutWithRole": "{{target}} 被投票淘汰，其身份是{{role}}。",
+    "noOneVotedOut": "沒有人被投票淘汰。",
+    "wasEliminatedWithRole": "{{target}} 在夜間被殺害，其身份是{{role}}。",
+    "bodyguardDiedProtecting": "保鏢 {{target}} 在保護目標時死亡。",
+    "attackerRetaliatedDied": "{{target}} 在反擊中死亡。",
+    "vigilanteGuiltDiedHistory": "義警 {{target}} 在射殺一名無辜玩家後因愧疚而死亡。",
+    "detectiveFoundResult": "偵探調查了 {{target}}，結果發現：{{result}}。",
+    "mafiaWonDescription": "黑手黨人數超過了小鎮——還剩 {{count}} 名黑手黨成員。",
+    "notificationsBlocked": "通知已被阻止",
+    "notificationsBlockedDesc": "請在瀏覽器設定中允許此網站傳送通知以使用此功能。",
+    "disableNotifications": "關閉回合通知",
+    "enableNotifications": "在輪到您時收到通知",
+    "yourTurnNotifTitle": "輪到您了",
+    "yourTurnNotifVote": "該投票了。",
+    "yourTurnNotifAction": "該使用您的夜晚行動了。",
+    "mvpResult": "MVP：{{name}}",
+    "mvpLabel": "MVP",
+    "myVoteRecord": "您在 {{total}} 次中有 {{correct}} 次投票給了黑手黨。",
+    "detectiveReport": "偵探報告 — {{name}}"
   },
-  "roles": {
-   "mafia": {
-    "title": "黑手黨",
-    "desc": "與其他黑手黨成員合作，每晚秘密消滅小鎮成員。",
-    "abilities": [
-     "每晚與其他黑手黨成員一起投票決定要消滅誰",
-     "可以看到並與其他黑手黨成員進行私密聊天",
-     "當黑手黨人數達到或超過剩餘小鎮成員時獲勝"
-    ]
-   },
-   "detective": {
-    "title": "偵探",
-    "desc": "每晚調查一名玩家，瞭解其真實陣營。",
-    "abilities": [
-     "每晚檢查一名玩家，瞭解其是否為黑手黨",
-     "若被調查的黑手黨成員被抓獲，遊戲將立即以小鎮獲勝結束",
-     "分享調查結果時需謹慎——過早暴露會讓您成為目標"
-    ]
-   },
-   "doctor": {
-    "title": "醫生",
-    "desc": "每晚保護一名玩家免受黑手黨的殺害。",
-    "abilities": [
-     "每晚選擇一名玩家進行保護，使其免於被淘汰",
-     "可以保護自己，但每晚都保護同一個人往往很容易被猜到",
-     "不知道黑手黨正在盯上誰——保護只是一種猜測"
-    ]
-   },
-   "civilian": {
-    "title": "平民",
-    "desc": "沒有特殊能力——只有敏銳的觀察力、良好的直覺和一票。",
-    "abilities": [
-     "沒有夜晚行動——完全透過討論和投票做出貢獻",
-     "當所有黑手黨被消滅時，與小鎮其他成員一同獲勝",
-     "通常佔小鎮的大多數——投票中人數至關重要"
-    ]
-   },
-   "bodyguard": {
-    "title": "保鏢",
-    "desc": "每晚守護一名玩家，若其成為目標則代替其承受攻擊。",
-    "abilities": [
-     "每晚選擇一名玩家進行守護",
-     "如果黑手黨盯上了被守護的玩家，保鏢將代替其死亡",
-     "不知道黑手黨正在盯上誰——與醫生一樣，守護也是一種猜測"
-    ]
-   },
-   "vigilante": {
-    "title": "義警",
-    "desc": "一名持槍的小鎮成員，整局遊戲只有 2 發子彈。",
-    "abilities": [
-     "遊戲開始時恰好擁有 2 發子彈——絕不會更多",
-     "任意夜晚，可以選擇射擊一名玩家，或選擇不行動",
-     "射殺無辜玩家會帶來愧疚，最終會反噬義警自身"
-    ]
-   },
-   "mayor": {
-    "title": "市長",
-    "desc": "一名可以揭示自己以獲得更強投票權的小鎮領袖。",
-    "abilities": [
-     "每局遊戲可揭示一次自己的身份，向全鎮公開",
-     "揭示後，其投票在本局遊戲剩餘時間內計為雙倍",
-     "揭示身份也會準確告訴黑手黨下一個該盯上誰"
-    ]
-   },
-   "jester": {
-    "title": "小丑",
-    "desc": "既不為小鎮也不為黑手黨效力——只想被投票淘汰。",
-    "abilities": [
-     "若在白天被投票淘汰，將立即獲勝並結束遊戲",
-     "既不屬於小鎮也不屬於黑手黨——擁有自己獨立的獲勝條件",
-     "最佳策略通常是表現得足夠可疑以獲得選票，但又不能太明顯"
-    ]
-   }
+  "roleBadge": {
+    "mafia": "黑手黨",
+    "detective": "偵探",
+    "doctor": "醫生",
+    "civilian": "平民",
+    "bodyguard": "保鏢",
+    "vigilante": "義警",
+    "mayor": "市長",
+    "jester": "小丑"
   },
-  "flow": {
-   "dayPhaseTitle": "白天階段",
-   "day1Label": "討論：",
-   "day1Description": "所有人公開發言，分享懷疑物件，併為自己辯護。",
-   "day2Label": "投票：",
-   "day2Description": "每位存活玩家為其認為應被淘汰的人投票。",
-   "day3Label": "淘汰：",
-   "day3Description": "獲得最多票數的玩家將被淘汰出局，其角色可能會被揭示。",
-   "nightPhaseTitle": "夜晚階段",
-   "night1Label": "保鏢：",
-   "night1Description": "選擇一名玩家在夜間進行守護。",
-   "night2Label": "黑手黨：",
-   "night2Description": "秘密商定要消滅的玩家。",
-   "night3Label": "義警：",
-   "night3Description": "可以選擇射擊一名被懷疑的玩家。",
-   "night4Label": "醫生：",
-   "night4Description": "選擇一名玩家保護其免受黑手黨的殺害。",
-   "night5Label": "偵探：",
-   "night5Description": "調查一名玩家，瞭解其是否為黑手黨。",
-   "night6Label": "結算：",
-   "night6Description": "夜晚事件依次發生，白天開始時所有人都會得知發生了什麼。",
-   "tieBreakingTitle": "投票平局",
-   "tieBreakingDescription": "如果投票在兩名或多名玩家之間出現平局，當天無人被淘汰，遊戲進入夜晚階段。"
+  "phaseIndicator": {
+    "waitingLobby": "等待大廳",
+    "waitingForPlayers": "正在等待玩家加入...",
+    "gameOver": "遊戲結束",
+    "gameHasEnded": "遊戲已結束。",
+    "discussDescription": "討論誰是黑手黨。",
+    "votingDescription": "投票淘汰一名嫌疑人。",
+    "nightDescription": "黑手黨及各角色正在行動...",
+    "phases": {
+      "discussion": "討論",
+      "voting": "投票",
+      "mafia": "黑手黨",
+      "doctor": "醫生",
+      "detective": "偵探",
+      "bodyguard": "保鏢",
+      "vigilante": "義警"
+    }
   },
-  "strategy": {
-   "townTitle": "小鎮策略",
-   "townTips": [
-    "留意討論中一直保持沉默的人——沉默有時和指控一樣能說明問題。",
-    "警惕那些急於指控他人卻缺乏充分理由的玩家。",
-    "如果您是偵探，不要過早透露調查結果——否則您會成為黑手黨的下一個目標。",
-    "在白天快結束時以團體方式協調投票，而不是過早表態。"
-   ],
-   "mafiaTitle": "黑手黨策略",
-   "mafiaTips": [
-    "在討論中融入人群——有時附和小鎮的意見以避免引起懷疑。",
-    "考慮投票淘汰較為沉默的玩家，以保護自己免受審視。",
-    "不要過於激烈地為黑手黨同伴辯護——這可能會暴露你們之間的關聯。",
-    "如果某位偵探似乎快要發現你了，將消滅他們列為優先目標。"
-   ],
-   "jesterTitle": "小丑策略",
-   "jesterTips": [
-    "故意表現得有點可疑——您需要的是小鎮的選票，而不是他們的信任。",
-    "不要太早表現過度，否則您會在第一夜被黑手黨消滅，而不是被小鎮投票淘汰。",
-    "如果有人在為您辯護，這對您不利——請把懷疑重新引向自己。",
-    "在自己的說辭中製造一個恰到好處的矛盾，可能正是讓您被投票淘汰的關鍵。"
-   ],
-   "redFlagsTitle": "需要警惕的危險訊號",
-   "redFlags": [
-    "迴避直接問題而不作正面回答",
-    "在有隊友被指控後異常沉默",
-    "過度激烈的指控卻缺乏實際依據",
-    "投票模式始終在保護同一批玩家"
-   ]
-  }
- },
- "dailyRewards": {
-  "title": "每日獎勵",
-  "subtitle": "每天都回來看看",
-  "ariaClaimed": "第 {{day}} 天，已領取",
-  "ariaClaimNow": "領取第 {{day}} 天獎勵，{{count}} 積分",
-  "ariaLocked": "第 {{day}} 天，未解鎖",
-  "currentStreak": "當前連續天數",
-  "dayStreak_one": "連續 {{count}} 天",
-  "dayStreak_other": "連續 {{count}} 天",
-  "best": "最佳紀錄：{{count}}",
-  "dayN": "第 {{day}} 天",
-  "bonus": "獎勵",
-  "plusCredits_one": "+{{count}} 積分",
-  "plusCredits_other": "+{{count}} 積分",
-  "claimed": "已領取",
-  "claim": "領取",
-  "rewardClaimed": "獎勵已領取！"
- },
- "rating": {
-  "title": "為遊戲評分",
-  "subtitle": "您的反饋將影響未來的發展方向",
-  "earnCreditsBanner": "評分一次即可獲得 {{count}} 免費積分！",
-  "howWouldYouRate": "您如何評價您的遊戲體驗？",
-  "amazing": "太棒了！",
-  "great": "很棒！",
-  "good": "不錯",
-  "okay": "一般",
-  "needsWork": "有待改進",
-  "submitAndEarn": "提交併獲得 {{count}} 積分",
-  "updateRating": "更新評分",
-  "thanksForRating": "感謝您的評分！",
-  "creditsAwarded": "+{{count}} 積分已新增至您的帳戶！",
-  "alreadyRated": "您已經為本遊戲評過分了。",
-  "editAvailableIn_one": "您可在 {{count}} 天后更新評分",
-  "editAvailableIn_other": "您可在 {{count}} 天后更新評分",
-  "editAvailableInOneDay": "您可在 1 天后更新評分"
- },
- "referralSystem": {
-  "title": "邀請好友",
-  "subtitle": "每邀請一名玩家即可獲得積分",
-  "yourReferralLink": "您的邀請連結",
-  "invited": "已邀請",
-  "joined": "已加入",
-  "credits": "積分",
-  "creditsPerFriend": "每位好友 {{count}} 積分",
-  "theyJoinYouGetRewarded": "他們加入遊戲，您就能獲得獎勵",
-  "loadFailed": "無法載入您的邀請資訊，請稍後重試。",
-  "gotACode": "拿到好友的邀請碼了嗎？",
-  "codePlaceholder": "輸入邀請碼",
-  "redeem": "兌換",
-  "redeemSuccess": "兌換成功！你們雙方都獲得了 {{count}} 積分。",
-  "redeemPending": "邀請碼已接受！再進行 {{count}} 局遊戲即可為你們雙方解鎖積分。",
-  "redeemAlreadyUsed": "您之前已經兌換過一個邀請碼。",
-  "redeemSelf": "您不能兌換自己的邀請碼。",
-  "redeemSameDevice": "這看起來與邀請人的帳戶使用了相同的裝置或網路。",
-  "redeemInvalid": "該邀請碼無效，請仔細檢查後重試。"
- },
- "tipJar": {
-  "title": "支援這款遊戲",
-  "subtitle": "打賞能讓伺服器持續執行",
-  "enterAmountMin": "輸入金額（最低 $1）",
-  "thankYou": "謝謝您！",
-  "supportMeansEverything": "您的支援意義重大",
-  "disclaimer": "每筆打賞的大部分都將用於改進遊戲和維持伺服器執行，其餘部分用於支付手續費。每一分錢都很重要——謝謝您！"
- },
- "feedback": {
-  "categories": {
-   "bug": "錯誤",
-   "feature": "功能",
-   "design": "設計",
-   "praise": "讚揚"
-  },
-  "feedback": "反饋",
-  "feedbackSent": "反饋已傳送！",
-  "thankYouForHelping": "感謝您幫助我們讓 Mafia 變得更好。",
-  "sendFeedback": "傳送反饋",
-  "tellUsWhatsOnYourMind": "告訴我們您的想法...",
-  "sending": "傳送中..."
- },
- "adRewards": {
-  "title": "免費積分",
-  "subtitle": "觀看即可賺取——每次觀看可獲得 {{count}} 積分",
-  "perStream": "每次觀看",
-  "today": "今日",
-  "streamingRemaining": "播放中... 剩餘 {{count}} 秒",
-  "readyToStream": "準備播放",
-  "sponsored": "贊助內容",
-  "couldNotAward": "無法發放積分。",
-  "networkError": "網路錯誤，請重試。",
-  "creditsEarned": "已獲得 +{{count}} 積分！",
-  "streamsRemaining_one": "今日還剩 {{count}} 次觀看機會",
-  "streamsRemaining_other": "今日還剩 {{count}} 次觀看機會",
-  "watchAnother": "再看一次",
-  "discordPrompt": "今天就到這裡了——加入 Discord 提供反饋並獲取最新動態。",
-  "streamingCountdown": "播放中...（{{count}} 秒）",
-  "dailyLimitReached": "已達每日上限",
-  "activateStream": "開始觀看（+{{count}} 積分）",
-  "resetsAtMidnight": "將於午夜重置，明天再來看看吧。",
-  "billboards": {
-   "item_shop": {
-    "title": "去商店裝備自己吧！",
-    "body": "現在就去道具商店看看，在限量神秘服裝和稀有特殊物品售罄之前將其解鎖！"
-   },
-   "buy_credits": {
-    "title": "無需再等待",
-    "body": "現在就想要積分來購買稀有物品？跳過每日限制，前往我們的商店頁面，透過 Stripe 安全支付，立即購買積分禮包！"
-   },
-   "referral": {
-    "title": "壯大您的團伙",
-    "body": "想要獲得更多獎勵？使用我們的邀請系統邀請好友吧！與您的團伙分享您的專屬邀請連結，好友加入後你們雙方可共同獲得高達 25 點的額外積分。"
-   },
-   "security": {
-    "title": "備份已保護",
-    "body": "您的遊戲帳戶已受到保護。透過 Supabase 將您的登入帳戶與 Google 雙重驗證繫結，確保帳戶完全安全。"
-   }
-  }
- },
- "creditPacks": {
-  "title": "積分商店",
-  "subtitle": "購買積分，省去繁瑣的累積過程",
-  "bonus10": "+10% 額外獎勵",
-  "bonus20": "+20% 額外獎勵",
-  "bonus30": "+30% 額外獎勵",
-  "mostPopular": "最受歡迎",
-  "disclaimer": "積分可用於解鎖外觀道具、戰利品箱和高階功能，不予退款。",
-  "creditsAdded": "積分已到帳！",
-  "spendInShop": "前往商店使用"
- },
- "friends": {
-  "title": "好友",
-  "signInRequired": "登入後即可新增好友並接收私密大廳邀請。",
-  "addFriend": "新增好友",
-  "usernamePlaceholder": "對方的帳戶使用者名稱（非遊戲內暱稱）",
-  "requestSent": "好友請求已傳送",
-  "requestFailed": "無法傳送請求",
-  "actionFailed": "出了點問題",
-  "loadError": "無法載入好友列表",
-  "lobbyInvites": "大廳邀請",
-  "aPrivateLobby": "一個私密大廳",
-  "join": "加入",
-  "incomingRequests": "請求",
-  "yourFriends": "您的好友",
-  "noFriendsYet": "暫無好友——請在上方新增一位。",
-  "pending": "待處理"
- },
- "history": {
-  "title": "遊戲歷史",
-  "loadError": "無法載入遊戲歷史",
-  "empty": "暫無已完成的遊戲——參與一局遊戲後即可在此檢視。",
-  "share": "分享",
-  "shareRecap": "分享本局遊戲",
-  "shareTitle": "Mafia Verse — 對局回顧",
-  "shareText": "看看這局遊戲的結果吧",
-  "scanOrCopy": "掃描二維碼或複製連結",
-  "recapQrCode": "回顧二維碼",
-  "recapNotFound": "找不到該對局回顧。"
- },
- "tutorial": {
-  "skip": "跳過",
-  "next": "下一步",
-  "done": "知道了",
-  "phase": {
-   "title": "關注當前階段",
-   "body": "這裡顯示當前是白天還是夜晚，以及剩餘的行動時間。"
-  },
-  "players": {
-   "title": "在此處投票和行動",
-   "body": "白天時點選玩家卡片進行投票，輪到您時也可點選卡片使用您角色的夜晚行動。"
+  "playerCard": {
+    "removeBot": "移除機器人",
+    "roleLabels": {
+      "mafia": "黑手黨",
+      "detective": "偵探",
+      "doctor": "醫生",
+      "civilian": "平民",
+      "bodyguard": "保鏢",
+      "vigilante": "義警",
+      "mayor": "市長",
+      "jester": "小丑"
+    },
+    "unknown": "未知",
+    "host": "房主",
+    "bot": "機器人",
+    "you": "（您）",
+    "roleEliminated": "{{role}} — 已淘汰",
+    "eliminated": "已淘汰",
+    "revealed": "已揭示",
+    "titleTiers": {
+      "veteran": "老兵",
+      "legend": "傳奇"
+    }
   },
   "chat": {
-   "title": "暢所欲言",
-   "body": "在此處與所有人聊天。如果您是黑手黨，夜晚時還會獲得與隊友的私密頻道。"
+    "quickMessages": [
+      "我覺得 {name} 是黑手黨",
+      "我是無辜的！",
+      "昨晚是誰殺的人？",
+      "我相信 {name}",
+      "別投我出局！",
+      "{name} 看起來很可疑",
+      "我對 {name} 有種不好的預感",
+      "{name} 的表現很奇怪",
+      "讓我解釋一下",
+      "我是醫生，正在保護 {name}",
+      "這說不通",
+      "等等，{name} 說了什麼？",
+      "我相信 {name}",
+      "{name} 有點不對勁",
+      "你要投誰？"
+    ],
+    "mafiaQuickMessages": [
+      "今晚幹掉 {name} 吧",
+      "我投票殺 {name}",
+      "等等，別殺 {name} — 風險太大",
+      "同意",
+      "投票時我支援你",
+      "有人在懷疑我們了，冷靜點",
+      "{name} 快要看穿我們了",
+      "這一輪先低調行事",
+      "昨晚幹得漂亮",
+      "白天時把黑鍋甩給 {name}"
+    ],
+    "messageBlocked": "訊息已被攔截",
+    "inappropriateLanguage": "不允許使用不當用語。",
+    "spectatorChat": "觀眾聊天",
+    "roomChat": "房間聊天",
+    "graveyardChat": "墓地聊天",
+    "mafiaChat": "黑手黨聊天",
+    "mafiaTacticalComms": "黑手黨戰術通訊",
+    "mafiaTypeAMessage": "向您的黑手黨同夥發訊息...",
+    "gameChatReadOnly": "僅可檢視 — 切換到墓地聊天以發言",
+    "secret": "秘密",
+    "graveyardDiscordPrompt": "等待無聊？加入 Discord 一起閒聊並分享反饋。",
+    "reactedBy_one": "已有 {{count}} 名玩家回應",
+    "reactedBy_other": "已有 {{count}} 名玩家回應",
+    "deadCannotSpeak": "死者無法發言",
+    "tacticalComms": "戰術通訊",
+    "someone": "某人",
+    "deadPlayersCannotSpeak": "已死亡玩家無法發言...",
+    "typeAMessage": "輸入訊息...",
+    "selectTarget": "選擇目標"
+  },
+  "howToPlay": {
+    "title": "遊戲玩法",
+    "gotIt": "知道了！",
+    "next": "下一步",
+    "steps": {
+      "loop": {
+        "title": "基本迴圈",
+        "body": "Mafia Verse 在夜晚（特殊角色秘密行動）與白天（所有人討論並投票淘汰某人）之間交替進行。當一方獲勝時遊戲結束。"
+      },
+      "mafia": {
+        "title": "黑手黨",
+        "body": "每晚，黑手黨秘密選擇一名玩家進行淘汰。當他們人數達到或超過剩餘小鎮成員時獲勝。"
+      },
+      "detective": {
+        "title": "偵探",
+        "body": "每晚調查一名玩家，瞭解其是否為黑手黨。利用調查結果引導小鎮的投票，同時不要暴露自己是偵探。"
+      },
+      "doctor": {
+        "title": "醫生",
+        "body": "每晚保護一名玩家免受黑手黨的殺害。您可以保護自己，但請仔細思考誰真正需要被救。"
+      },
+      "civilian": {
+        "title": "平民",
+        "body": "您沒有夜晚能力，但白天您的投票和發言至關重要——仔細聆聽，幫助小鎮找出黑手黨。"
+      },
+      "bodyguard": {
+        "title": "保鏢",
+        "body": "每晚守護一名玩家。如果黑手黨襲擊了您守護的玩家，您將替他們承受傷害並死亡。"
+      },
+      "vigilante": {
+        "title": "義警",
+        "body": "整局遊戲中您有 2 發子彈。任意夜晚，您都可以射擊一名您懷疑的玩家。但若射殺了無辜的人，愧疚感會追上您。"
+      },
+      "mayor": {
+        "title": "市長",
+        "body": "每局遊戲可揭示一次自己的身份，使您的投票權重翻倍——但這樣做也會讓黑手黨準確知道您是誰。"
+      },
+      "jester": {
+        "title": "小丑",
+        "body": "您想要被投票淘汰！如果小鎮在白天將您投票淘汰，您就立即獲勝，遊戲就此結束。"
+      },
+      "vote": {
+        "title": "白天投票",
+        "body": "討論結束後，所有人投票選出要淘汰的物件。獲得最多票數的玩家將被淘汰——平票則無人出局。"
+      }
+    }
   },
   "handbook": {
-   "title": "忘記某個角色了？",
-   "body": "隨時開啟手冊檢視每個角色的作用。"
+    "title": "黑手黨手冊",
+    "subtitle": "掌握本手冊，玩得更好",
+    "tabs": {
+      "basics": "基礎",
+      "roles": "角色",
+      "phases": "階段",
+      "tips": "技巧"
+    },
+    "overview": {
+      "whatIsMafiaTitle": "什麼是黑手黨？",
+      "whatIsMafiaDescription": "黑手黨是一款社交推理遊戲。黑手黨在夜晚秘密合作消滅小鎮成員，而其他所有人則要在為時已晚之前找出他們是誰。",
+      "teamsAtAGlance": "陣營一覽",
+      "theTown": "小鎮",
+      "theTownDescription": "偵探、醫生、保鏢、義警、市長和平民——共同致力於找出並消滅黑手黨。",
+      "theMafia": "黑手黨",
+      "theMafiaDescription": "每晚秘密消滅一名小鎮成員，試圖在被發現之前與小鎮人數持平。",
+      "theJester": "小丑",
+      "theJesterDescription": "一個隻身作戰的騙子，唯一目標是在白天被小鎮投票淘汰。",
+      "howToWin": "如何獲勝",
+      "townWins": "小鎮獲勝條件：",
+      "townWinsDescription": "當所有黑手黨成員都被消滅時。",
+      "mafiaWins": "黑手黨獲勝條件：",
+      "mafiaWinsDescription": "當黑手黨人數達到或超過剩餘小鎮成員時。",
+      "jesterWins": "小丑獲勝條件：",
+      "jesterWinsDescription": "在小鎮將其投票淘汰的那一刻——其他所有人在那一輪都輸了。",
+      "whatMakesDifferentTitle": "本作的獨特之處",
+      "difference1": "保鏢可以替他人擋下攻擊，代替其死亡。",
+      "difference2": "義警整局遊戲只有 2 發子彈——請謹慎使用。",
+      "difference3": "市長可以揭示身份獲得雙倍投票權，但代價是暴露自己。",
+      "difference4": "小丑透過故意被投票淘汰來獲勝。",
+      "difference5": "實時投票、聊天，以及供已淘汰玩家使用的墓地聊天。",
+      "jesterNoteTitle": "關於小丑",
+      "jesterNoteDescription": "小丑既不屬於小鎮也不屬於黑手黨——他們只想讓自己被投票淘汰。一旦成功，他們立即獲勝，遊戲就此結束，無論其他人原本想做什麼。",
+      "afkFlagTitle": "旗標圖示",
+      "afkFlagDescription": "玩家卡片上的黃色旗標並非“可疑”標記——它代表有人被舉報為掛機/不活躍。這不會影響遊戲本身，但如果一名玩家在一局遊戲中收到 2 次或以上舉報，將被記錄到該帳戶的活躍度記錄中。再次點選旗標可撤銷您誤操作的舉報。"
+    },
+    "roles": {
+      "mafia": {
+        "title": "黑手黨",
+        "desc": "與其他黑手黨成員合作，每晚秘密消滅小鎮成員。",
+        "abilities": [
+          "每晚與其他黑手黨成員一起投票決定要消滅誰",
+          "可以看到並與其他黑手黨成員進行私密聊天",
+          "當黑手黨人數達到或超過剩餘小鎮成員時獲勝"
+        ]
+      },
+      "detective": {
+        "title": "偵探",
+        "desc": "每晚調查一名玩家，瞭解其真實陣營。",
+        "abilities": [
+          "每晚檢查一名玩家，瞭解其是否為黑手黨",
+          "若被調查的黑手黨成員被抓獲，遊戲將立即以小鎮獲勝結束",
+          "分享調查結果時需謹慎——過早暴露會讓您成為目標"
+        ]
+      },
+      "doctor": {
+        "title": "醫生",
+        "desc": "每晚保護一名玩家免受黑手黨的殺害。",
+        "abilities": [
+          "每晚選擇一名玩家進行保護，使其免於被淘汰",
+          "可以保護自己，但每晚都保護同一個人往往很容易被猜到",
+          "不知道黑手黨正在盯上誰——保護只是一種猜測"
+        ]
+      },
+      "civilian": {
+        "title": "平民",
+        "desc": "沒有特殊能力——只有敏銳的觀察力、良好的直覺和一票。",
+        "abilities": [
+          "沒有夜晚行動——完全透過討論和投票做出貢獻",
+          "當所有黑手黨被消滅時，與小鎮其他成員一同獲勝",
+          "通常佔小鎮的大多數——投票中人數至關重要"
+        ]
+      },
+      "bodyguard": {
+        "title": "保鏢",
+        "desc": "每晚守護一名玩家，若其成為目標則代替其承受攻擊。",
+        "abilities": [
+          "每晚選擇一名玩家進行守護",
+          "如果黑手黨盯上了被守護的玩家，保鏢將代替其死亡",
+          "不知道黑手黨正在盯上誰——與醫生一樣，守護也是一種猜測"
+        ]
+      },
+      "vigilante": {
+        "title": "義警",
+        "desc": "一名持槍的小鎮成員，整局遊戲只有 2 發子彈。",
+        "abilities": [
+          "遊戲開始時恰好擁有 2 發子彈——絕不會更多",
+          "任意夜晚，可以選擇射擊一名玩家，或選擇不行動",
+          "射殺無辜玩家會帶來愧疚，最終會反噬義警自身"
+        ]
+      },
+      "mayor": {
+        "title": "市長",
+        "desc": "一名可以揭示自己以獲得更強投票權的小鎮領袖。",
+        "abilities": [
+          "每局遊戲可揭示一次自己的身份，向全鎮公開",
+          "揭示後，其投票在本局遊戲剩餘時間內計為雙倍",
+          "揭示身份也會準確告訴黑手黨下一個該盯上誰"
+        ]
+      },
+      "jester": {
+        "title": "小丑",
+        "desc": "既不為小鎮也不為黑手黨效力——只想被投票淘汰。",
+        "abilities": [
+          "若在白天被投票淘汰，將立即獲勝並結束遊戲",
+          "既不屬於小鎮也不屬於黑手黨——擁有自己獨立的獲勝條件",
+          "最佳策略通常是表現得足夠可疑以獲得選票，但又不能太明顯"
+        ]
+      }
+    },
+    "flow": {
+      "dayPhaseTitle": "白天階段",
+      "day1Label": "討論：",
+      "day1Description": "所有人公開發言，分享懷疑物件，併為自己辯護。",
+      "day2Label": "投票：",
+      "day2Description": "每位存活玩家為其認為應被淘汰的人投票。",
+      "day3Label": "淘汰：",
+      "day3Description": "獲得最多票數的玩家將被淘汰出局，其角色可能會被揭示。",
+      "nightPhaseTitle": "夜晚階段",
+      "night1Label": "保鏢：",
+      "night1Description": "選擇一名玩家在夜間進行守護。",
+      "night2Label": "黑手黨：",
+      "night2Description": "秘密商定要消滅的玩家。",
+      "night3Label": "義警：",
+      "night3Description": "可以選擇射擊一名被懷疑的玩家。",
+      "night4Label": "醫生：",
+      "night4Description": "選擇一名玩家保護其免受黑手黨的殺害。",
+      "night5Label": "偵探：",
+      "night5Description": "調查一名玩家，瞭解其是否為黑手黨。",
+      "night6Label": "結算：",
+      "night6Description": "夜晚事件依次發生，白天開始時所有人都會得知發生了什麼。",
+      "tieBreakingTitle": "投票平局",
+      "tieBreakingDescription": "如果投票在兩名或多名玩家之間出現平局，當天無人被淘汰，遊戲進入夜晚階段。"
+    },
+    "strategy": {
+      "townTitle": "小鎮策略",
+      "townTips": [
+        "留意討論中一直保持沉默的人——沉默有時和指控一樣能說明問題。",
+        "警惕那些急於指控他人卻缺乏充分理由的玩家。",
+        "如果您是偵探，不要過早透露調查結果——否則您會成為黑手黨的下一個目標。",
+        "在白天快結束時以團體方式協調投票，而不是過早表態。"
+      ],
+      "mafiaTitle": "黑手黨策略",
+      "mafiaTips": [
+        "在討論中融入人群——有時附和小鎮的意見以避免引起懷疑。",
+        "考慮投票淘汰較為沉默的玩家，以保護自己免受審視。",
+        "不要過於激烈地為黑手黨同伴辯護——這可能會暴露你們之間的關聯。",
+        "如果某位偵探似乎快要發現你了，將消滅他們列為優先目標。"
+      ],
+      "jesterTitle": "小丑策略",
+      "jesterTips": [
+        "故意表現得有點可疑——您需要的是小鎮的選票，而不是他們的信任。",
+        "不要太早表現過度，否則您會在第一夜被黑手黨消滅，而不是被小鎮投票淘汰。",
+        "如果有人在為您辯護，這對您不利——請把懷疑重新引向自己。",
+        "在自己的說辭中製造一個恰到好處的矛盾，可能正是讓您被投票淘汰的關鍵。"
+      ],
+      "redFlagsTitle": "需要警惕的危險訊號",
+      "redFlags": [
+        "迴避直接問題而不作正面回答",
+        "在有隊友被指控後異常沉默",
+        "過度激烈的指控卻缺乏實際依據",
+        "投票模式始終在保護同一批玩家"
+      ]
+    }
   },
-  "notifications": {
-   "title": "不要錯過您的回合",
-   "body": "開啟此選項後，即使您切換了標籤頁，輪到您時也會收到通知。"
+  "dailyRewards": {
+    "title": "每日獎勵",
+    "subtitle": "每天都回來看看",
+    "ariaClaimed": "第 {{day}} 天，已領取",
+    "ariaClaimNow": "領取第 {{day}} 天獎勵，{{count}} 積分",
+    "ariaLocked": "第 {{day}} 天，未解鎖",
+    "currentStreak": "當前連續天數",
+    "dayStreak_one": "連續 {{count}} 天",
+    "dayStreak_other": "連續 {{count}} 天",
+    "best": "最佳紀錄：{{count}}",
+    "dayN": "第 {{day}} 天",
+    "bonus": "獎勵",
+    "plusCredits_one": "+{{count}} 積分",
+    "plusCredits_other": "+{{count}} 積分",
+    "claimed": "已領取",
+    "claim": "領取",
+    "rewardClaimed": "獎勵已領取！"
+  },
+  "rating": {
+    "title": "為遊戲評分",
+    "subtitle": "您的反饋將影響未來的發展方向",
+    "earnCreditsBanner": "評分一次即可獲得 {{count}} 免費積分！",
+    "howWouldYouRate": "您如何評價您的遊戲體驗？",
+    "amazing": "太棒了！",
+    "great": "很棒！",
+    "good": "不錯",
+    "okay": "一般",
+    "needsWork": "有待改進",
+    "submitAndEarn": "提交併獲得 {{count}} 積分",
+    "updateRating": "更新評分",
+    "thanksForRating": "感謝您的評分！",
+    "creditsAwarded": "+{{count}} 積分已新增至您的帳戶！",
+    "alreadyRated": "您已經為本遊戲評過分了。",
+    "editAvailableIn_one": "您可在 {{count}} 天后更新評分",
+    "editAvailableIn_other": "您可在 {{count}} 天后更新評分",
+    "editAvailableInOneDay": "您可在 1 天后更新評分"
+  },
+  "referralSystem": {
+    "title": "邀請好友",
+    "subtitle": "每邀請一名玩家即可獲得積分",
+    "yourReferralLink": "您的邀請連結",
+    "invited": "已邀請",
+    "joined": "已加入",
+    "credits": "積分",
+    "creditsPerFriend": "每位好友 {{count}} 積分",
+    "theyJoinYouGetRewarded": "他們加入遊戲，您就能獲得獎勵",
+    "loadFailed": "無法載入您的邀請資訊，請稍後重試。",
+    "gotACode": "拿到好友的邀請碼了嗎？",
+    "codePlaceholder": "輸入邀請碼",
+    "redeem": "兌換",
+    "redeemSuccess": "兌換成功！你們雙方都獲得了 {{count}} 積分。",
+    "redeemPending": "邀請碼已接受！再進行 {{count}} 局遊戲即可為你們雙方解鎖積分。",
+    "redeemAlreadyUsed": "您之前已經兌換過一個邀請碼。",
+    "redeemSelf": "您不能兌換自己的邀請碼。",
+    "redeemSameDevice": "這看起來與邀請人的帳戶使用了相同的裝置或網路。",
+    "redeemInvalid": "該邀請碼無效，請仔細檢查後重試。"
+  },
+  "tipJar": {
+    "title": "支援這款遊戲",
+    "subtitle": "打賞能讓伺服器持續執行",
+    "enterAmountMin": "輸入金額（最低 $1）",
+    "thankYou": "謝謝您！",
+    "supportMeansEverything": "您的支援意義重大",
+    "disclaimer": "每筆打賞的大部分都將用於改進遊戲和維持伺服器執行，其餘部分用於支付手續費。每一分錢都很重要——謝謝您！"
+  },
+  "feedback": {
+    "categories": {
+      "bug": "錯誤",
+      "feature": "功能",
+      "design": "設計",
+      "praise": "讚揚"
+    },
+    "feedback": "反饋",
+    "feedbackSent": "反饋已傳送！",
+    "thankYouForHelping": "感謝您幫助我們讓 Mafia 變得更好。",
+    "sendFeedback": "傳送反饋",
+    "tellUsWhatsOnYourMind": "告訴我們您的想法...",
+    "sending": "傳送中..."
+  },
+  "adRewards": {
+    "title": "免費積分",
+    "subtitle": "觀看即可賺取——每次觀看可獲得 {{count}} 積分",
+    "perStream": "每次觀看",
+    "today": "今日",
+    "streamingRemaining": "播放中... 剩餘 {{count}} 秒",
+    "readyToStream": "準備播放",
+    "sponsored": "贊助內容",
+    "couldNotAward": "無法發放積分。",
+    "networkError": "網路錯誤，請重試。",
+    "creditsEarned": "已獲得 +{{count}} 積分！",
+    "streamsRemaining_one": "今日還剩 {{count}} 次觀看機會",
+    "streamsRemaining_other": "今日還剩 {{count}} 次觀看機會",
+    "watchAnother": "再看一次",
+    "discordPrompt": "今天就到這裡了——加入 Discord 提供反饋並獲取最新動態。",
+    "streamingCountdown": "播放中...（{{count}} 秒）",
+    "dailyLimitReached": "已達每日上限",
+    "activateStream": "開始觀看（+{{count}} 積分）",
+    "resetsAtMidnight": "將於午夜重置，明天再來看看吧。",
+    "billboards": {
+      "item_shop": {
+        "title": "去商店裝備自己吧！",
+        "body": "現在就去道具商店看看，在限量神秘服裝和稀有特殊物品售罄之前將其解鎖！"
+      },
+      "buy_credits": {
+        "title": "無需再等待",
+        "body": "現在就想要積分來購買稀有物品？跳過每日限制，前往我們的商店頁面，透過 Stripe 安全支付，立即購買積分禮包！"
+      },
+      "referral": {
+        "title": "壯大您的團伙",
+        "body": "想要獲得更多獎勵？使用我們的邀請系統邀請好友吧！與您的團伙分享您的專屬邀請連結，好友加入後你們雙方可共同獲得高達 25 點的額外積分。"
+      },
+      "security": {
+        "title": "備份已保護",
+        "body": "您的遊戲帳戶已受到保護。透過 Supabase 將您的登入帳戶與 Google 雙重驗證繫結，確保帳戶完全安全。"
+      }
+    }
+  },
+  "creditPacks": {
+    "title": "積分商店",
+    "subtitle": "購買積分，省去繁瑣的累積過程",
+    "bonus10": "+10% 額外獎勵",
+    "bonus20": "+20% 額外獎勵",
+    "bonus30": "+30% 額外獎勵",
+    "mostPopular": "最受歡迎",
+    "disclaimer": "積分可用於解鎖外觀道具、戰利品箱和高階功能，不予退款。",
+    "creditsAdded": "積分已到帳！",
+    "spendInShop": "前往商店使用"
+  },
+  "friends": {
+    "title": "好友",
+    "signInRequired": "登入後即可新增好友並接收私密大廳邀請。",
+    "addFriend": "新增好友",
+    "usernamePlaceholder": "對方的帳戶使用者名稱（非遊戲內暱稱）",
+    "requestSent": "好友請求已傳送",
+    "requestFailed": "無法傳送請求",
+    "actionFailed": "出了點問題",
+    "loadError": "無法載入好友列表",
+    "lobbyInvites": "大廳邀請",
+    "aPrivateLobby": "一個私密大廳",
+    "join": "加入",
+    "incomingRequests": "請求",
+    "yourFriends": "您的好友",
+    "noFriendsYet": "暫無好友——請在上方新增一位。",
+    "pending": "待處理"
+  },
+  "history": {
+    "title": "遊戲歷史",
+    "loadError": "無法載入遊戲歷史",
+    "empty": "暫無已完成的遊戲——參與一局遊戲後即可在此檢視。",
+    "share": "分享",
+    "shareRecap": "分享本局遊戲",
+    "shareTitle": "Mafia Verse — 對局回顧",
+    "shareText": "看看這局遊戲的結果吧",
+    "scanOrCopy": "掃描二維碼或複製連結",
+    "recapQrCode": "回顧二維碼",
+    "recapNotFound": "找不到該對局回顧。"
+  },
+  "tutorial": {
+    "skip": "跳過",
+    "next": "下一步",
+    "done": "知道了",
+    "phase": {
+      "title": "關注當前階段",
+      "body": "這裡顯示當前是白天還是夜晚，以及剩餘的行動時間。"
+    },
+    "players": {
+      "title": "在此處投票和行動",
+      "body": "白天時點選玩家卡片進行投票，輪到您時也可點選卡片使用您角色的夜晚行動。"
+    },
+    "chat": {
+      "title": "暢所欲言",
+      "body": "在此處與所有人聊天。如果您是黑手黨，夜晚時還會獲得與隊友的私密頻道。"
+    },
+    "handbook": {
+      "title": "忘記某個角色了？",
+      "body": "隨時開啟手冊檢視每個角色的作用。"
+    },
+    "notifications": {
+      "title": "不要錯過您的回合",
+      "body": "開啟此選項後，即使您切換了標籤頁，輪到您時也會收到通知。"
+    }
+  },
+  "lootCrate": {
+    "title": "戰利品箱",
+    "subtitle": "花費積分，獲得驚喜",
+    "yourCredits": "您的積分",
+    "crateCost": "箱子價格",
+    "creditsAmount_one": "{{count}} 積分",
+    "creditsAmount_other": "{{count}} 積分",
+    "rare": "稀有",
+    "epic": "史詩",
+    "mythic": "神話",
+    "opening": "開啟中...",
+    "addedToBalance": "{{name}} 已新增至您的餘額！",
+    "addedToCollection": "已新增至您的收藏！",
+    "feelingLucky": "感覺手氣不錯？",
+    "openForChance": "開啟即有機會獲得稀有外觀道具和積分",
+    "openCrate": "開啟箱子（{{count}} 積分）",
+    "notEnoughCredits": "積分不足",
+    "earnMoreCredits": "透過每日獎勵、觀看廣告或邀請好友賺取更多積分",
+    "items": {
+      "lc_border_grey": "灰燼邊框",
+      "lc_border_olive": "橄欖邊框",
+      "lc_border_tan": "棕褐邊框",
+      "lc_border_navy": "藏青邊框",
+      "lc_border_teal": "水鴨色邊框",
+      "lc_border_mint": "薄荷邊框",
+      "lc_border_lav": "薰衣草邊框",
+      "lc_border_coral": "珊瑚邊框",
+      "lc_border_peach": "蜜桃邊框",
+      "lc_border_ink": "墨色邊框",
+      "lc_name_grey": "灰燼名稱",
+      "lc_name_olive": "橄欖名稱",
+      "lc_name_tan": "棕褐名稱",
+      "lc_name_navy": "藏青名稱",
+      "lc_name_teal": "水鴨色名稱",
+      "lc_name_mint": "薄荷名稱",
+      "lc_name_lav": "薰衣草名稱",
+      "lc_name_coral": "珊瑚名稱",
+      "lc_name_peach": "蜜桃名稱",
+      "lc_name_ink": "墨色名稱",
+      "lc_border_gold": "黃金邊框",
+      "lc_border_silver": "白銀邊框",
+      "lc_border_bronze": "青銅邊框",
+      "lc_border_ruby": "紅寶石邊框",
+      "lc_border_sapphire": "藍寶石邊框",
+      "lc_border_emerald": "祖母綠邊框",
+      "lc_border_amethyst": "紫水晶邊框",
+      "lc_border_amber": "琥珀邊框",
+      "lc_border_jade": "翡翠邊框",
+      "lc_border_onyx": "黑瑪瑙邊框",
+      "lc_name_gold": "黃金名稱",
+      "lc_name_silver": "白銀名稱",
+      "lc_name_bronze": "青銅名稱",
+      "lc_name_ruby": "紅寶石名稱",
+      "lc_name_sapphire": "藍寶石名稱",
+      "lc_name_emerald": "祖母綠名稱",
+      "lc_name_amethyst": "紫水晶名稱",
+      "lc_name_amber": "琥珀名稱",
+      "lc_name_jade": "翡翠名稱",
+      "lc_name_onyx": "黑瑪瑙名稱",
+      "lc_frame_steel": "鋼鐵頭像框",
+      "lc_frame_bronze": "青銅頭像框",
+      "lc_frame_silver": "白銀頭像框",
+      "lc_frame_wood": "桃花心木頭像框",
+      "lc_frame_ivy": "常春藤頭像框",
+      "lc_frame_diamond": "鑽石頭像框",
+      "lc_frame_fire": "烈焰頭像框",
+      "lc_frame_crown": "皇冠頭像框",
+      "lc_frame_ice": "寒冰頭像框",
+      "lc_frame_shadow": "暗影頭像框",
+      "lc_frame_neon": "霓虹頭像框",
+      "lc_frame_goldleaf": "金箔頭像框",
+      "lc_frame_cyber": "賽博頭像框",
+      "lc_emote_gun": "手指手槍",
+      "lc_emote_hood": "兜帽下的身影",
+      "lc_emote_cigar": "雪茄",
+      "lc_emote_glass": "酒杯",
+      "lc_emote_ring": "老大的戒指",
+      "lc_frame_dragon": "巨龍頭像框",
+      "lc_frame_angel": "熾天使頭像框",
+      "lc_frame_demon": "惡魔頭像框",
+      "lc_frame_royal": "皇家頭像框",
+      "lc_frame_thorn": "荊棘頭像框",
+      "lc_frame_legend": "傳奇頭像框",
+      "lc_frame_ghost": "幽靈頭像框",
+      "lc_frame_moon": "月光頭像框",
+      "lc_frame_sun": "旭日頭像框",
+      "lc_frame_void": "虛空頭像框",
+      "lc_emote_kingpin": "犯罪教父",
+      "lc_emote_enforcer": "執行者",
+      "lc_emote_mastermind": "幕後主使",
+      "lc_emote_don": "老大",
+      "lc_emote_silencer": "沉默者",
+      "lc_emote_legend": "活著的傳奇",
+      "lc_emote_myth": "都市傳說",
+      "lc_emote_boss": "最終boss",
+      "lc_emote_godfather": "教父",
+      "lc_emote_shadow": "暗影行者",
+      "lc_title_made": "頭銜：正式成員",
+      "lc_title_capo": "頭銜：卡波",
+      "lc_title_consigliere": "頭銜：顧問",
+      "lc_title_underboss": "頭銜：副手",
+      "lc_frame_godfather": "教父頭像框",
+      "lc_frame_immortal": "不朽頭像框",
+      "lc_frame_celestial": "天界頭像框",
+      "lc_frame_doom": "末日頭像框",
+      "lc_frame_phoenix": "鳳凰頭像框",
+      "lc_frame_eclipse": "日蝕頭像框",
+      "lc_frame_nexus": "樞紐頭像框",
+      "lc_frame_overlord": "霸主頭像框",
+      "lc_frame_titan": "泰坦頭像框",
+      "lc_frame_omega": "歐米茄頭像框",
+      "lc_emote_omega": "歐米茄",
+      "lc_emote_overlord": "霸主",
+      "lc_emote_immortal": "不朽者",
+      "lc_emote_celestial": "天界者",
+      "lc_emote_doom": "末日",
+      "lc_title_don": "頭銜：老大",
+      "lc_title_godfather": "頭銜：教父",
+      "lc_title_overlord": "頭銜：霸主",
+      "lc_title_immortal": "頭銜：不朽者"
+    }
   }
- },
- "lootCrate": {
-  "title": "戰利品箱",
-  "subtitle": "花費積分，獲得驚喜",
-  "yourCredits": "您的積分",
-  "crateCost": "箱子價格",
-  "creditsAmount_one": "{{count}} 積分",
-  "creditsAmount_other": "{{count}} 積分",
-  "rare": "稀有",
-  "epic": "史詩",
-  "mythic": "神話",
-  "opening": "開啟中...",
-  "addedToBalance": "{{name}} 已新增至您的餘額！",
-  "addedToCollection": "已新增至您的收藏！",
-  "feelingLucky": "感覺手氣不錯？",
-  "openForChance": "開啟即有機會獲得稀有外觀道具和積分",
-  "openCrate": "開啟箱子（{{count}} 積分）",
-  "notEnoughCredits": "積分不足",
-  "earnMoreCredits": "透過每日獎勵、觀看廣告或邀請好友賺取更多積分",
-  "items": {
-   "lc_border_grey": "灰燼邊框",
-   "lc_border_olive": "橄欖邊框",
-   "lc_border_tan": "棕褐邊框",
-   "lc_border_navy": "藏青邊框",
-   "lc_border_teal": "水鴨色邊框",
-   "lc_border_mint": "薄荷邊框",
-   "lc_border_lav": "薰衣草邊框",
-   "lc_border_coral": "珊瑚邊框",
-   "lc_border_peach": "蜜桃邊框",
-   "lc_border_ink": "墨色邊框",
-   "lc_name_grey": "灰燼名稱",
-   "lc_name_olive": "橄欖名稱",
-   "lc_name_tan": "棕褐名稱",
-   "lc_name_navy": "藏青名稱",
-   "lc_name_teal": "水鴨色名稱",
-   "lc_name_mint": "薄荷名稱",
-   "lc_name_lav": "薰衣草名稱",
-   "lc_name_coral": "珊瑚名稱",
-   "lc_name_peach": "蜜桃名稱",
-   "lc_name_ink": "墨色名稱",
-   "lc_border_gold": "黃金邊框",
-   "lc_border_silver": "白銀邊框",
-   "lc_border_bronze": "青銅邊框",
-   "lc_border_ruby": "紅寶石邊框",
-   "lc_border_sapphire": "藍寶石邊框",
-   "lc_border_emerald": "祖母綠邊框",
-   "lc_border_amethyst": "紫水晶邊框",
-   "lc_border_amber": "琥珀邊框",
-   "lc_border_jade": "翡翠邊框",
-   "lc_border_onyx": "黑瑪瑙邊框",
-   "lc_name_gold": "黃金名稱",
-   "lc_name_silver": "白銀名稱",
-   "lc_name_bronze": "青銅名稱",
-   "lc_name_ruby": "紅寶石名稱",
-   "lc_name_sapphire": "藍寶石名稱",
-   "lc_name_emerald": "祖母綠名稱",
-   "lc_name_amethyst": "紫水晶名稱",
-   "lc_name_amber": "琥珀名稱",
-   "lc_name_jade": "翡翠名稱",
-   "lc_name_onyx": "黑瑪瑙名稱",
-   "lc_frame_steel": "鋼鐵頭像框",
-   "lc_frame_bronze": "青銅頭像框",
-   "lc_frame_silver": "白銀頭像框",
-   "lc_frame_wood": "桃花心木頭像框",
-   "lc_frame_ivy": "常春藤頭像框",
-   "lc_frame_diamond": "鑽石頭像框",
-   "lc_frame_fire": "烈焰頭像框",
-   "lc_frame_crown": "皇冠頭像框",
-   "lc_frame_ice": "寒冰頭像框",
-   "lc_frame_shadow": "暗影頭像框",
-   "lc_frame_neon": "霓虹頭像框",
-   "lc_frame_goldleaf": "金箔頭像框",
-   "lc_frame_cyber": "賽博頭像框",
-   "lc_emote_gun": "手指手槍",
-   "lc_emote_hood": "兜帽下的身影",
-   "lc_emote_cigar": "雪茄",
-   "lc_emote_glass": "酒杯",
-   "lc_emote_ring": "老大的戒指",
-   "lc_frame_dragon": "巨龍頭像框",
-   "lc_frame_angel": "熾天使頭像框",
-   "lc_frame_demon": "惡魔頭像框",
-   "lc_frame_royal": "皇家頭像框",
-   "lc_frame_thorn": "荊棘頭像框",
-   "lc_frame_legend": "傳奇頭像框",
-   "lc_frame_ghost": "幽靈頭像框",
-   "lc_frame_moon": "月光頭像框",
-   "lc_frame_sun": "旭日頭像框",
-   "lc_frame_void": "虛空頭像框",
-   "lc_emote_kingpin": "犯罪教父",
-   "lc_emote_enforcer": "執行者",
-   "lc_emote_mastermind": "幕後主使",
-   "lc_emote_don": "老大",
-   "lc_emote_silencer": "沉默者",
-   "lc_emote_legend": "活著的傳奇",
-   "lc_emote_myth": "都市傳說",
-   "lc_emote_boss": "最終boss",
-   "lc_emote_godfather": "教父",
-   "lc_emote_shadow": "暗影行者",
-   "lc_title_made": "頭銜：正式成員",
-   "lc_title_capo": "頭銜：卡波",
-   "lc_title_consigliere": "頭銜：顧問",
-   "lc_title_underboss": "頭銜：副手",
-   "lc_frame_godfather": "教父頭像框",
-   "lc_frame_immortal": "不朽頭像框",
-   "lc_frame_celestial": "天界頭像框",
-   "lc_frame_doom": "末日頭像框",
-   "lc_frame_phoenix": "鳳凰頭像框",
-   "lc_frame_eclipse": "日蝕頭像框",
-   "lc_frame_nexus": "樞紐頭像框",
-   "lc_frame_overlord": "霸主頭像框",
-   "lc_frame_titan": "泰坦頭像框",
-   "lc_frame_omega": "歐米茄頭像框",
-   "lc_emote_omega": "歐米茄",
-   "lc_emote_overlord": "霸主",
-   "lc_emote_immortal": "不朽者",
-   "lc_emote_celestial": "天界者",
-   "lc_emote_doom": "末日",
-   "lc_title_don": "頭銜：老大",
-   "lc_title_godfather": "頭銜：教父",
-   "lc_title_overlord": "頭銜：霸主",
-   "lc_title_immortal": "頭銜：不朽者"
-  }
- }
 }

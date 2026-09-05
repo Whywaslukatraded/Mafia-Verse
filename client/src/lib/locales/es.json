@@ -288,6 +288,11 @@
     "inLobby": "En espera",
     "join": "Unirse",
     "watch": "Ver",
+    "civilianOnly": "Roles completos — te unirías como Civil",
+    "specialRolesOpen_one": "{{count}} rol especial disponible",
+    "specialRolesOpen_other": "{{count}} roles especiales disponibles",
+    "roomRolesTooltipTitle": "Roles en esta sala",
+    "afterYouJoin": "Si te unes ahora",
     "needNameTitle": "Ingresa un nombre primero",
     "quickMatchFailed": "Partida Rápida falló",
     "spectateOnly": "Solo Espectador"

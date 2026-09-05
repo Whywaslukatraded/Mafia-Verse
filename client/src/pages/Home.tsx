@@ -526,9 +526,19 @@ export default function Home() {
   const [joinAsSpectator, setJoinAsSpectator] = useState(false);
 
   // Feature: public room browser + Quick Match.
-  const [publicRooms, setPublicRooms] = useState<{ code: string; roomName: string | null; status: string; playerCount: number; maxPlayers: number }[]>([]);
+  const [publicRooms, setPublicRooms] = useState<{
+    code: string;
+    roomName: string | null;
+    status: string;
+    playerCount: number;
+    maxPlayers: number;
+    roles?: { mafia: number; detective: number; doctor: number; bodyguard: number; vigilante: number; mayor: number; jester: number; civilian: number };
+  }[]>([]);
   const [loadingPublicRooms, setLoadingPublicRooms] = useState(true);
   const [quickMatching, setQuickMatching] = useState(false);
+  // Tap-to-toggle fallback for the role-breakdown tooltip, since touch
+  // devices don't have a real :hover state. Only one open at a time.
+  const [openRoleTooltipCode, setOpenRoleTooltipCode] = useState<string | null>(null);
   const loadPublicRooms = async () => {
     try {
       const res = await fetch("/api/rooms/public");
@@ -544,6 +554,13 @@ export default function Home() {
   useEffect(() => {
     loadPublicRooms();
   }, []);
+  // Close the tapped-open role tooltip when tapping anywhere else.
+  useEffect(() => {
+    if (!openRoleTooltipCode) return;
+    const closeIt = () => setOpenRoleTooltipCode(null);
+    document.addEventListener("click", closeIt);
+    return () => document.removeEventListener("click", closeIt);
+  }, [openRoleTooltipCode]);
   const handleQuickMatch = async () => {
     if (!name) {
       toast({ title: t("home.needNameTitle", "Enter a name first"), variant: "destructive" });
@@ -1214,21 +1231,83 @@ export default function Home() {
                     <p className="text-sm text-muted-foreground italic">{t("home.noOpenRooms", "No open public rooms right now — try Quick Match to start one.")}</p>
                   ) : (
                     <div className="space-y-2">
-                      {publicRooms.map((r) => (
-                        <div key={r.code} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold text-foreground truncate">{r.roomName || r.code}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.spectateOnly", "Spectate Only")}
-                              {" · "}{r.playerCount}/{r.maxPlayers}
+                      {publicRooms.map((r) => {
+                        const roles = r.roles;
+                        const roleOrder: Array<keyof NonNullable<typeof roles>> = ["mafia", "detective", "doctor", "bodyguard", "vigilante", "mayor", "jester", "civilian"];
+                        const specialSum = roles
+                          ? roles.mafia + roles.detective + roles.doctor + roles.bodyguard + roles.vigilante + roles.mayor + roles.jester
+                          : null;
+                        const remainingSpecialSlots = specialSum !== null ? Math.max(0, specialSum - r.playerCount) : null;
+                        const summaryText = remainingSpecialSlots === 0
+                          ? t("home.civilianOnly", "Roles filled — you'd join as Civilian")
+                          : remainingSpecialSlots !== null
+                            ? t("home.specialRolesOpen", { count: remainingSpecialSlots })
+                            : null;
+                        return (
+                          <div key={r.code} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-bold text-foreground truncate">{r.roomName || r.code}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.spectateOnly", "Spectate Only")}
+                                {" · "}{r.playerCount}/{r.maxPlayers}
+                              </div>
+                              {r.status === "lobby" && roles && summaryText && (
+                                <div className="group relative inline-block mt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenRoleTooltipCode((prev) => (prev === r.code ? null : r.code));
+                                    }}
+                                    className="text-xs text-muted-foreground/80 underline decoration-dotted underline-offset-2 cursor-help text-left"
+                                  >
+                                    {summaryText}
+                                  </button>
+                                  <div
+                                    className={cn(
+                                      "absolute z-50 left-0 bottom-full mb-1 w-56 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg p-2 text-xs space-y-1.5",
+                                      openRoleTooltipCode === r.code ? "block" : "hidden group-hover:block"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold uppercase tracking-wide text-[10px] text-muted-foreground">
+                                        {t("home.roomRolesTooltipTitle", "Roles in this room")}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenRoleTooltipCode(null);
+                                        }}
+                                        className="md:hidden text-muted-foreground hover:text-foreground -mr-1 -mt-1 p-1"
+                                        aria-label={t("common.close", "Close")}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    <ul className="space-y-0.5">
+                                      {roleOrder.filter((role) => roles[role] > 0).map((role) => (
+                                        <li key={role} className="flex justify-between gap-2">
+                                          <span>{t(`handbook.roles.${role}.title`)}</span>
+                                          <span className="text-muted-foreground">×{roles[role]}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    <div className="pt-1 border-t border-border text-muted-foreground">
+                                      <span className="font-bold text-foreground">{t("home.afterYouJoin", "If you join now")}:</span> {summaryText}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
+                            <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(r.code)} disabled={!name} data-testid={`button-join-public-${r.code}`}>
+                              {r.status === "lobby" ? t("home.join", "Join") : t("home.watch", "Watch")}
+                            </Button>
                           </div>
-                          <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(r.code)} disabled={!name} data-testid={`button-join-public-${r.code}`}>
-                            {r.status === "lobby" ? t("home.join", "Join") : t("home.watch", "Watch")}
-                          </Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
+
                   )}
                 </div>
               </CardContent>

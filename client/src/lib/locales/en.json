@@ -288,6 +288,11 @@
     "inLobby": "In lobby",
     "join": "Join",
     "watch": "Watch",
+    "civilianOnly": "Roles filled — you'd join as Civilian",
+    "specialRolesOpen_one": "{{count}} special role open",
+    "specialRolesOpen_other": "{{count}} special roles open",
+    "roomRolesTooltipTitle": "Roles in this room",
+    "afterYouJoin": "If you join now",
     "needNameTitle": "Enter a name first",
     "quickMatchFailed": "Quick Match failed",
     "spectateOnly": "Spectate Only"
