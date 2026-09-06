@@ -4077,7 +4077,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // requests (which look someone up by username in that table) could never
   // find a real account. Called from AuthCallback.tsx and Login.tsx right
   // after a session exists; safe to call repeatedly (idempotent upsert).
-  app.post("/api/auth/sync-profile", async (req, res) => {
+  const authSyncProfileLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many sync-profile requests. Please try again later." },
+  });
+
+  app.post("/api/auth/sync-profile", authSyncProfileLimiter, async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
