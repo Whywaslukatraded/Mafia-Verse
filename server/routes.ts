@@ -562,8 +562,14 @@ const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsil
 
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
 
-const MAX_BOTS_PER_ROOM = 5;
+const MAX_BOTS_PER_ROOM = 8;
 const MAX_SPECIAL_ROLES = 10;
+// Target total seats for an auto-filled room (Quick Match's auto-created
+// room, or any room using fillWithBots to top itself up). Matches the
+// 9-role Quick Match default below (mafia/detective/doctor/bodyguard/
+// vigilante/mayor/jester/civilian) so every role actually gets filled
+// instead of most of the room staying stuck at "civilian" padding.
+const AUTO_FILL_TARGET_SIZE = 9;
 // Feature: Pre-game ready-up lobby. Once every connected human has hit
 // Ready, this is how long they wait (in case someone wants to un-ready)
 // before bots fill the rest of the room and the game begins.
@@ -576,11 +582,11 @@ const MIN_REMATCH_PLAYERS = 2;
 async function fillWithBots(roomId: number, storage: any): Promise<{ added: number; cappedAtMax: boolean }> {
   const players = await storage.getPlayersInRoom(roomId);
   const existingBots = players.filter((p: Player) => p.isBot).length;
-  if (players.length >= 6 || existingBots >= MAX_BOTS_PER_ROOM) {
+  if (players.length >= AUTO_FILL_TARGET_SIZE || existingBots >= MAX_BOTS_PER_ROOM) {
     return { added: 0, cappedAtMax: existingBots >= MAX_BOTS_PER_ROOM };
   }
 
-  const botsWantedForMin = 6 - players.length;
+  const botsWantedForMin = AUTO_FILL_TARGET_SIZE - players.length;
   const botsRoomForMore = MAX_BOTS_PER_ROOM - existingBots;
   const botsNeeded = Math.min(botsWantedForMin, botsRoomForMore);
   for (let i = 0; i < botsNeeded; i++) {
@@ -3121,16 +3127,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const openRooms = await storage.getOpenPublicRooms();
       res.json({
-        rooms: openRooms.map(({ room, playerCount }) => ({
-          code: room.code,
-          roomName: (room.settings as any)?.roomName || null,
-          // Normalized to exactly 'lobby' | 'in-progress' — the browser UI
-          // only ever needs to draw that binary distinction (joinable vs.
-          // spectate-only), not the underlying day/night/voting phase.
-          status: room.status === "lobby" ? "lobby" : "in-progress",
-          playerCount,
-          maxPlayers: MAX_PLAYERS_PER_ROOM,
-        })),
+        rooms: openRooms.map(({ room, playerCount }) => {
+          const s = (room.settings as any) || {};
+          return {
+            code: room.code,
+            roomName: s.roomName || null,
+            // Normalized to exactly 'lobby' | 'in-progress' — the browser UI
+            // only ever needs to draw that binary distinction (joinable vs.
+            // spectate-only), not the underlying day/night/voting phase.
+            status: room.status === "lobby" ? "lobby" : "in-progress",
+            playerCount,
+            maxPlayers: MAX_PLAYERS_PER_ROOM,
+            // Feature: role composition preview. Lets the room browser show
+            // exactly which roles exist in this game (and how many of
+            // each) before joining — what you'd actually get is still
+            // random among whichever roles are left unfilled, but seeing
+            // the full mix (e.g. "has a Jester") is what the browser needs.
+            roles: {
+              mafia: s.mafiaCount || 0,
+              detective: s.detectiveCount || 0,
+              doctor: s.doctorCount || 0,
+              bodyguard: s.bodyguardCount || 0,
+              vigilante: s.vigilanteCount || 0,
+              mayor: s.mayorCount || 0,
+              jester: s.jesterCount || 0,
+              civilian: s.civilianCount || 0,
+            },
+          };
+        }),
       });
     } catch (err) {
       console.error("GET /api/rooms/public error:", err);
@@ -3156,8 +3180,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       let isHost = false;
       if (!room) {
         room = await storage.createRoom({
-          mafiaCount: 1, detectiveCount: 1, doctorCount: 1, civilianCount: 3,
-          bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
+          // 9 total seats, every role represented at least once — the old
+          // 1/1/1/3 mix never included bodyguard, vigilante, mayor, or
+          // jester at all, so auto-generated games always felt the same.
+          mafiaCount: 2, detectiveCount: 1, doctorCount: 1, civilianCount: 1,
+          bodyguardCount: 1, vigilanteCount: 1, mayorCount: 1, jesterCount: 1,
           phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
           bodyguardDuration: 15, vigilanteDuration: 15,
           roomName: `${name}'s Quick Match`,
