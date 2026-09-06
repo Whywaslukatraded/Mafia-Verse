@@ -5213,7 +5213,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
+  const buyWithWinsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many buy requests, please try again later." },
+  });
+
+  app.post("/api/account/cosmetics/buy-with-wins", buyWithWinsLimiter, async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
