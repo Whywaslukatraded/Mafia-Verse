@@ -425,11 +425,9 @@
     "inLobby": "No saguão",
     "join": "Entrar",
     "watch": "Assistir",
-    "civilianOnly": "Papéis completos — você entraria como Civil",
-    "specialRolesOpen_one": "{{count}} papel especial disponível",
-    "specialRolesOpen_other": "{{count}} papéis especiais disponíveis",
     "roomRolesTooltipTitle": "Papéis nesta sala",
-    "afterYouJoin": "Se você entrar agora",
+    "viewRoleMix": "Combinação de papéis",
+    "rolesAssignedRandomly": "Atribuídos aleatoriamente a todos quando a partida começa.",
     "needNameTitle": "Digite um nome primeiro",
     "quickMatchFailed": "Falha na Partida Rápida",
     "spectateOnly": "Somente Espectador"
@@ -1344,6 +1342,10 @@
     "phase": {
       "title": "Acompanhe a Fase Atual",
       "body": "Isso mostra se é Dia ou Noite e quanto tempo resta para agir."
+    },
+    "teammates": {
+      "title": "Conheça sua equipe",
+      "body": "Se o seu papel tem colegas de equipe — incluindo a Máfia — eles aparecem aqui para você saber quem está do seu lado."
     },
     "players": {
       "title": "Vote e Aja Aqui",

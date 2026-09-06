@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { generateShareCard, type ShareCardHighlight } from "@/lib/shareCard";
-import { TutorialOverlay } from "@/components/TutorialOverlay";
+import { TutorialOverlay, ROOM_TUTORIAL_STEPS } from "@/components/TutorialOverlay";
 
 // --- Confetti ---
 const CONFETTI_COLORS = ["#ffd700", "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7", "#ff9ff3", "#54a0ff"];
@@ -105,6 +105,10 @@ export default function Room() {
   const [eliminationOverlay, setEliminationOverlay] = useState<{ name: string; role: string | null; avatar: string; deathStory?: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | undefined>(undefined);
+  // Declared here (not down by the tutorial-trigger effect that sets it)
+  // because the phase-timer effect above needs to read it as a dependency,
+  // and JS requires this to exist before that effect's closure runs.
+  const [showTutorial, setShowTutorial] = useState(false);
   const [lobbyCountdown, setLobbyCountdown] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -165,6 +169,53 @@ export default function Room() {
   const me = gameState?.me;
   const room = gameState?.room;
   const players = gameState?.players || [];
+
+  // Bug fix: myVoteStats/detectivePlayer/detectiveChecks used to be computed
+  // via an inline IIFE ONLY inside the "Final Roles Revealed" overlay block
+  // further down. A second, separate {room.status === "ended" && (...)} block
+  // (the Play Again / vote record / detective report recap section) referenced
+  // those same variable names as if they were in scope — they weren't, since
+  // separate {...} JSX expressions don't share scope. That threw
+  // "ReferenceError: myVoteStats is not defined" and crashed the whole page
+  // (the generic "Something went wrong" screen) every single time a game
+  // ended and render reached that second block. Computing it once here,
+  // shared by both places, fixes the crash and removes the duplicate logic.
+  const endGameSummary = useMemo(() => {
+    if (room?.status !== "ended" || !me) return null;
+    const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
+    if (!latestGameEnd) return { latestGameEnd: null as any };
+
+    const jesterWon = latestGameEnd.winner === "jester";
+    const mafiaWon = jesterWon ? false : latestGameEnd.winner === "mafia";
+    const finalRoles: any[] = latestGameEnd.roles || [];
+    const jesterName = jesterWon ? finalRoles.find((r: any) => r.role === "jester")?.name : undefined;
+    const aliveMafiaAtEnd = finalRoles.filter((r: any) => r.role === "mafia" && r.isAlive).length;
+
+    const myVoteStats = (() => {
+      const chronicle = ((me as any)?.gameHistory as any[]) || [];
+      let correct = 0, total = 0;
+      for (const entry of chronicle) {
+        if (entry?.type !== "vote") continue;
+        const myVote = entry.results?.find((r: any) => r.voterName === me?.name);
+        if (!myVote) continue;
+        total++;
+        if (finalRoles.find((r: any) => r.name === myVote.targetName)?.role === "mafia") correct++;
+      }
+      return total > 0 ? { correct, total } : null;
+    })();
+
+    const detectivePlayer = finalRoles.find((r: any) => r.role === "detective");
+    const detectiveChecks: { turn: number; target: string; isMafia: boolean }[] = detectivePlayer
+      ? (((me as any)?.gameHistory as any[]) || [])
+          .filter((entry: any) => entry?.type === "night" && entry.events)
+          .flatMap((entry: any) => entry.events
+            .filter((ev: any) => ev.type === "detective_check")
+            .map((ev: any) => ({ turn: entry.turn, target: ev.target, isMafia: !!ev.isMafia })))
+      : [];
+
+    return { latestGameEnd, jesterWon, mafiaWon, finalRoles, jesterName, aliveMafiaAtEnd, myVoteStats, detectivePlayer, detectiveChecks };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.status, me]);
 
   // Feature: win/lose sound cue. Mirrors the exact isWinner logic
   // finalizeGameEnd uses server-side, so the sting always matches what the
@@ -599,6 +650,13 @@ export default function Room() {
     }
   }, [room?.phase, room?.status]);
 
+  // Bug fix: the phase countdown used to run underneath the first-time
+  // tutorial overlay, so by the time a brand-new player finished reading
+  // through it, several seconds (sometimes the whole duration) were
+  // already gone. Tracks whether the tutorial was open the last time this
+  // effect ran, so the countdown can start completely fresh the instant
+  // it closes instead of picking up mid-flight.
+  const tutorialWasShowingRef = useRef(false);
   // Timer countdown - driven by the server's lastUpdated timestamp so it stays
   // accurate across reloads, network lag, and the role-reveal overlay
   useEffect(() => {
@@ -624,6 +682,17 @@ export default function Room() {
     };
 
     const duration = getDuration();
+
+    // While the first-time tutorial overlay is open, freeze the display at
+    // the full duration and don't start the interval at all — remember
+    // that it was showing so the block below knows to start fresh once it
+    // closes, rather than treating the time spent reading it as elapsed.
+    if (showTutorial) {
+      tutorialWasShowingRef.current = true;
+      setTimeRemaining(duration);
+      return;
+    }
+
     const serverPhaseStart = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : Date.now();
     // The very first tick of a fresh phase was reliably showing one second
     // short (e.g. 14 instead of a selected 15): by the time this effect
@@ -653,7 +722,17 @@ export default function Room() {
     // means the server start time is still ahead of us on purpose, so it
     // should be honored, not discarded.
     const impliedElapsedMs = Date.now() - serverPhaseStart;
-    const effectivePhaseStart = (impliedElapsedMs >= 0 && impliedElapsedMs < 1200) ? Date.now() : serverPhaseStart;
+    let effectivePhaseStart = (impliedElapsedMs >= 0 && impliedElapsedMs < 1200) ? Date.now() : serverPhaseStart;
+    // The tutorial overlay just closed during this phase — real wall-clock
+    // time kept passing the whole time it was open, so the server's
+    // original phase-start timestamp would show far less than the full
+    // duration remaining. Start this phase over at full duration instead,
+    // exactly as the comment above already does for the negative-drift
+    // role-reveal case.
+    if (tutorialWasShowingRef.current) {
+      effectivePhaseStart = Date.now();
+      tutorialWasShowingRef.current = false;
+    }
     let autoLockedIn = false;
     let lastDisplayed = -1;
     const interval = setInterval(() => {
@@ -677,7 +756,7 @@ export default function Room() {
 
     return () => clearInterval(interval);
   }, [
-    room?.status, room?.phase, room?.lastUpdated,
+    room?.status, room?.phase, room?.lastUpdated, showTutorial,
     room?.settings?.bodyguardDuration, room?.settings?.mafiaDuration,
     room?.settings?.vigilanteDuration, room?.settings?.doctorDuration,
     room?.settings?.detectiveDuration, room?.settings?.phaseDuration,
@@ -811,8 +890,8 @@ export default function Room() {
   // browser, the first time someone reaches an actual playing phase (not
   // the lobby, and not as a spectator, who don't get vote/action cards).
   // Waits for hasRevealed so it never competes with the role-reveal modal
-  // for attention on turn 1.
-  const [showTutorial, setShowTutorial] = useState(false);
+  // for attention on turn 1. (showTutorial itself is declared earlier,
+  // alongside timeRemaining, since the phase-timer effect above needs it.)
   useEffect(() => {
     if (!room || isSpectator) return;
     if (room.status === "lobby" || room.status === "ended") return;
@@ -824,6 +903,14 @@ export default function Room() {
     setShowTutorial(false);
     try { localStorage.setItem("mafia_seen_room_tutorial", "1"); } catch {}
   };
+  // Bug fix: the "teammates" step used to be missing from
+  // ROOM_TUTORIAL_STEPS entirely, and the panel it points at had no
+  // data-tutorial attribute — so the walkthrough silently skipped Mafia's
+  // (and every other team-having role's) actual teammates panel. Only show
+  // that step to players who'll actually see the panel — matches the exact
+  // condition the panel itself renders under, just below.
+  const iHaveTeammatesPanel = !!(me?.role && me.role !== "civilian" && me?.isAlive);
+  const tutorialSteps = ROOM_TUTORIAL_STEPS.filter((s) => s.target !== "teammates" || iHaveTeammatesPanel);
 
 
   const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];
@@ -1027,7 +1114,7 @@ export default function Room() {
                 // still "alive" but civilians actually won). The server already
                 // computed the real winner in finalizeGameEnd and stored it on
                 // each player's gameHistory — use that when it's there.
-                const latestGameEnd = [...(((me as any)?.gameHistory as any[]) || [])].reverse().find((h: any) => h?.type === "game_end");
+                const latestGameEnd = endGameSummary?.latestGameEnd;
 
                 // A player whose gameHistory has no game_end entry never
                 // participated in this match — most commonly someone who
@@ -1046,16 +1133,6 @@ export default function Room() {
                   );
                 }
 
-                const jesterWon = latestGameEnd?.winner === "jester";
-                const mafiaWon = jesterWon ? false : latestGameEnd.winner === "mafia";
-                // The roles list below is the frozen snapshot the server saved
-                // the moment this match ended — the same data for every player
-                // who was actually in it, so every tab shows an identical
-                // result and anyone who joins later never gets added to it.
-                const finalRoles: any[] = latestGameEnd.roles || [];
-                const jesterName = jesterWon ? finalRoles.find((r: any) => r.role === "jester")?.name : undefined;
-                const aliveMafiaAtEnd = finalRoles.filter((r: any) => r.role === "mafia" && r.isAlive).length;
-
                 // Feature: personal vote-history stat. Own votes only —
                 // matched by voter name against this chronicle's own vote
                 // entries, "correct" meaning the target turned out to be
@@ -1063,33 +1140,13 @@ export default function Room() {
                 // (not 0/0) when this player never actually cast a vote
                 // (spectator, or eliminated turn 1), so the stat can be
                 // hidden entirely instead of showing a misleading "0/0".
-                const myVoteStats = (() => {
-                  const chronicle = ((me as any)?.gameHistory as any[]) || [];
-                  let correct = 0, total = 0;
-                  for (const entry of chronicle) {
-                    if (entry?.type !== "vote") continue;
-                    const myVote = entry.results?.find((r: any) => r.voterName === me?.name);
-                    if (!myVote) continue;
-                    total++;
-                    if (finalRoles.find((r: any) => r.name === myVote.targetName)?.role === "mafia") correct++;
-                  }
-                  return total > 0 ? { correct, total } : null;
-                })();
-
                 // Feature: Detective's Report. Shown to everyone, not just
                 // the detective — like Final Roles Revealed, this is
                 // historical fact once the game's over, not a private
                 // insight. Every player's gameHistory holds the identical
                 // shared chronicle (see finalizeGameEnd in routes.ts), so
                 // this works the same regardless of who's looking at it.
-                const detectivePlayer = finalRoles.find((r: any) => r.role === "detective");
-                const detectiveChecks: { turn: number; target: string; isMafia: boolean }[] = detectivePlayer
-                  ? (((me as any)?.gameHistory as any[]) || [])
-                      .filter((entry: any) => entry?.type === "night" && entry.events)
-                      .flatMap((entry: any) => entry.events
-                        .filter((ev: any) => ev.type === "detective_check")
-                        .map((ev: any) => ({ turn: entry.turn, target: ev.target, isMafia: !!ev.isMafia })))
-                  : [];
+                const { jesterWon, mafiaWon, finalRoles, jesterName, aliveMafiaAtEnd, myVoteStats, detectivePlayer, detectiveChecks } = endGameSummary!;
 
 
                 return (
@@ -1706,7 +1763,7 @@ export default function Room() {
                   const showActedStatus = me.role === "mafia" && room?.status === "night" && room?.phase === "mafia";
                   const actedIds = new Set((gameState as any)?.mafiaTeammatesActedIds || []);
                   return (
-                    <div className="mb-3 p-3 rounded-xl bg-muted/40 border border-border flex items-center gap-3">
+                    <div data-tutorial="teammates" className="mb-3 p-3 rounded-xl bg-muted/40 border border-border flex items-center gap-3">
                       <span className="text-2xl">🤝</span>
                       <div>
                         <p className="text-sm font-black uppercase tracking-wide text-foreground">{t("room.teammatesTitle", { role: t(`playerCard.roleLabels.${me.role}`, me.role) })}</p>
@@ -1910,22 +1967,22 @@ export default function Room() {
                   </div>
                 )}
 
-                {myVoteStats && (
+                {endGameSummary?.myVoteStats && (
                   <div className="mb-6 text-sm text-muted-foreground">
-                    {t("room.myVoteRecord", "You voted for the mafia {{correct}} out of {{total}} times.", { correct: myVoteStats.correct, total: myVoteStats.total })}
+                    {t("room.myVoteRecord", "You voted for the mafia {{correct}} out of {{total}} times.", { correct: endGameSummary.myVoteStats.correct, total: endGameSummary.myVoteStats.total })}
                   </div>
                 )}
 
-                {detectivePlayer && detectiveChecks.length > 0 && (
+                {endGameSummary?.detectivePlayer && endGameSummary.detectiveChecks.length > 0 && (
                   <Card className="bg-card border-border mb-8">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-xl font-serif">
                         <Search className="w-5 h-5 text-blue-400" />
-                        {t("room.detectiveReport", "Detective's Report — {{name}}", { name: detectivePlayer.name })}
+                        {t("room.detectiveReport", "Detective's Report — {{name}}", { name: endGameSummary.detectivePlayer.name })}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {detectiveChecks.map((c, i) => (
+                      {endGameSummary.detectiveChecks.map((c, i) => (
                         <div key={i} className="text-sm flex items-center gap-2">
                           <span className="text-muted-foreground">{t("room.nightN", { turn: c.turn })}:</span>
                           <span className="font-bold text-foreground">{c.target}</span>
@@ -2053,7 +2110,7 @@ export default function Room() {
       </main>
 
       <AnimatePresence>
-        {showTutorial && <TutorialOverlay onClose={closeTutorial} />}
+        {showTutorial && <TutorialOverlay onClose={closeTutorial} steps={tutorialSteps} />}
       </AnimatePresence>
 
       {/* Feature: End-screen reactions — floating bubbles, purely visual,

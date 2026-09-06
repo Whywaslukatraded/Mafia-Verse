@@ -288,11 +288,9 @@
     "inLobby": "En salon",
     "join": "Rejoindre",
     "watch": "Regarder",
-    "civilianOnly": "Rôles complets — tu rejoindrais en tant que Civil",
-    "specialRolesOpen_one": "{{count}} rôle spécial disponible",
-    "specialRolesOpen_other": "{{count}} rôles spéciaux disponibles",
     "roomRolesTooltipTitle": "Rôles dans ce salon",
-    "afterYouJoin": "Si tu rejoins maintenant",
+    "viewRoleMix": "Répartition des rôles",
+    "rolesAssignedRandomly": "Attribués au hasard à tout le monde quand la partie commence.",
     "needNameTitle": "Entrez d'abord un nom",
     "quickMatchFailed": "La Partie rapide a échoué",
     "spectateOnly": "Observateur uniquement"
@@ -1178,6 +1176,10 @@
     "phase": {
       "title": "Suivez la phase",
       "body": "Ceci indique si c'est le jour ou la nuit, et le temps restant pour agir."
+    },
+    "teammates": {
+      "title": "Connais ton équipe",
+      "body": "Si ton rôle a des coéquipiers — la Mafia y compris — ils apparaissent ici pour que tu saches qui est de ton côté."
     },
     "players": {
       "title": "Votez et agissez ici",

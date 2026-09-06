@@ -21,6 +21,13 @@ export const ROOM_TUTORIAL_STEPS: TutorialStep[] = [
     bodyFallback: "This shows whether it's day or night, and how much time is left to act.",
   },
   {
+    target: "teammates",
+    titleKey: "tutorial.teammates.title",
+    titleFallback: "Know your team",
+    bodyKey: "tutorial.teammates.body",
+    bodyFallback: "If your role has teammates — Mafia included — they show up here so you know who's on your side.",
+  },
+  {
     target: "player-grid",
     titleKey: "tutorial.players.title",
     titleFallback: "Vote and act here",
@@ -50,11 +57,21 @@ export const ROOM_TUTORIAL_STEPS: TutorialStep[] = [
 // so the highlight is always pointing at the real, current position of
 // that element rather than a hardcoded coordinate — it recomputes on
 // scroll/resize so it can't drift out of alignment.
-export function TutorialOverlay({ onClose }: { onClose: () => void }) {
+//
+// Bug fix: this used to always render every step in ROOM_TUTORIAL_STEPS,
+// including the "teammates" step, even for players (Civilians) who have no
+// teammates panel on screen at all — that step would just show a dim
+// backdrop with no spotlight, which is confusing rather than broken, but
+// wastes a step. Room.tsx now passes `steps` filtered to only the ones
+// whose target actually exists for this player's role, so a Civilian never
+// sees the teammates step, and everyone else (Mafia included, which was
+// being skipped entirely before this fix — teammates had no
+// data-tutorial attribute at all) does.
+export function TutorialOverlay({ onClose, steps = ROOM_TUTORIAL_STEPS }: { onClose: () => void; steps?: TutorialStep[] }) {
   const { t } = useTranslation();
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const step = ROOM_TUTORIAL_STEPS[stepIndex];
+  const step = steps[stepIndex];
 
   const measure = () => {
     const el = document.querySelector(`[data-tutorial="${step.target}"]`);
@@ -84,10 +101,10 @@ export function TutorialOverlay({ onClose }: { onClose: () => void }) {
   }, [stepIndex]);
 
   const next = () => {
-    if (stepIndex < ROOM_TUTORIAL_STEPS.length - 1) setStepIndex(stepIndex + 1);
+    if (stepIndex < steps.length - 1) setStepIndex(stepIndex + 1);
     else onClose();
   };
-  const isLast = stepIndex === ROOM_TUTORIAL_STEPS.length - 1;
+  const isLast = stepIndex === steps.length - 1;
 
   // Card position: below the target if there's room, otherwise above it —
   // keeps the explanation on-screen for steps near the top or bottom edge.
@@ -135,7 +152,7 @@ export function TutorialOverlay({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-muted-foreground mb-4">{t(step.bodyKey, step.bodyFallback)}</p>
           <div className="flex items-center justify-between gap-3">
             <div className="flex gap-1.5">
-              {ROOM_TUTORIAL_STEPS.map((_, i) => (
+              {steps.map((_, i) => (
                 <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === stepIndex ? "bg-primary" : "bg-muted"}`} />
               ))}
             </div>

@@ -425,11 +425,9 @@
     "inLobby": "在大廳中",
     "join": "加入",
     "watch": "觀看",
-    "civilianOnly": "角色已滿——你將以平民身分加入",
-    "specialRolesOpen_one": "還有 {{count}} 個特殊角色空缺",
-    "specialRolesOpen_other": "還有 {{count}} 個特殊角色空缺",
     "roomRolesTooltipTitle": "本房間的角色",
-    "afterYouJoin": "如果你現在加入",
+    "viewRoleMix": "角色組合",
+    "rolesAssignedRandomly": "遊戲開始時隨機分配給所有人。",
     "needNameTitle": "請先輸入名稱",
     "quickMatchFailed": "快速匹配失敗",
     "spectateOnly": "僅限觀看"
@@ -1344,6 +1342,10 @@
     "phase": {
       "title": "關注當前階段",
       "body": "這裡顯示當前是白天還是夜晚，以及剩餘的行動時間。"
+    },
+    "teammates": {
+      "title": "認識你的隊友",
+      "body": "如果你的角色有隊友——包括黑幫——他們會顯示在這裡，讓你知道誰站在你這邊。"
     },
     "players": {
       "title": "在此處投票和行動",

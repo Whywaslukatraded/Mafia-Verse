@@ -1234,15 +1234,6 @@ export default function Home() {
                       {publicRooms.map((r) => {
                         const roles = r.roles;
                         const roleOrder: Array<keyof NonNullable<typeof roles>> = ["mafia", "detective", "doctor", "bodyguard", "vigilante", "mayor", "jester", "civilian"];
-                        const specialSum = roles
-                          ? roles.mafia + roles.detective + roles.doctor + roles.bodyguard + roles.vigilante + roles.mayor + roles.jester
-                          : null;
-                        const remainingSpecialSlots = specialSum !== null ? Math.max(0, specialSum - r.playerCount) : null;
-                        const summaryText = remainingSpecialSlots === 0
-                          ? t("home.civilianOnly", "Roles filled — you'd join as Civilian")
-                          : remainingSpecialSlots !== null
-                            ? t("home.specialRolesOpen", { count: remainingSpecialSlots })
-                            : null;
                         return (
                           <div key={r.code} className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
                             <div className="min-w-0">
@@ -1251,7 +1242,7 @@ export default function Home() {
                                 {r.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.spectateOnly", "Spectate Only")}
                                 {" · "}{r.playerCount}/{r.maxPlayers}
                               </div>
-                              {r.status === "lobby" && roles && summaryText && (
+                              {r.status === "lobby" && roles && (
                                 <div className="group relative inline-block mt-0.5">
                                   <button
                                     type="button"
@@ -1261,7 +1252,7 @@ export default function Home() {
                                     }}
                                     className="text-xs text-muted-foreground/80 underline decoration-dotted underline-offset-2 cursor-help text-left"
                                   >
-                                    {summaryText}
+                                    {t("home.viewRoleMix", "Role mix")}
                                   </button>
                                   <div
                                     className={cn(
@@ -1293,8 +1284,12 @@ export default function Home() {
                                         </li>
                                       ))}
                                     </ul>
+                                    {/* No one — including players already in the lobby — has an
+                                        actual role yet. The server shuffles every active player's
+                                        role at random the moment the game starts, so this is just
+                                        the room's configured mix, not a preview of taken/open seats. */}
                                     <div className="pt-1 border-t border-border text-muted-foreground">
-                                      <span className="font-bold text-foreground">{t("home.afterYouJoin", "If you join now")}:</span> {summaryText}
+                                      {t("home.rolesAssignedRandomly", "Assigned randomly to everyone when the game starts.")}
                                     </div>
                                   </div>
                                 </div>

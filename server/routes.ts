@@ -313,6 +313,12 @@ function redactPrivateFields(players: Player[], selfId?: number | null): Player[
   });
 }
 
+// Every active (non-spectator) player gets a fully random role, decided
+// once here at game start — NOT first-come-first-served by join order.
+// The role pool (mafia/detective/etc. per the room's configured counts,
+// padded with civilian up to the player count) is Fisher-Yates shuffled
+// before being handed out, so joining earlier or later than other players
+// has zero effect on your odds of any particular role.
 function assignRoles(players: Player[], settings: any) {
   const roles: string[] = [];
   for (let i = 0; i < settings.mafiaCount; i++) roles.push("mafia");
@@ -562,14 +568,16 @@ const BOT_NAMES = ["Bot_Alpha", "Bot_Beta", "Bot_Gamma", "Bot_Delta", "Bot_Epsil
 
 const BOT_AVATARS = ["🤖", "👾", "👻", "🧟", "🧛", "👽", "🦊", "🐻"];
 
-const MAX_BOTS_PER_ROOM = 8;
+const MAX_BOTS_PER_ROOM = 5;
 const MAX_SPECIAL_ROLES = 10;
 // Target total seats for an auto-filled room (Quick Match's auto-created
-// room, or any room using fillWithBots to top itself up). Matches the
-// 9-role Quick Match default below (mafia/detective/doctor/bodyguard/
-// vigilante/mayor/jester/civilian) so every role actually gets filled
-// instead of most of the room staying stuck at "civilian" padding.
-const AUTO_FILL_TARGET_SIZE = 9;
+// room, or any room using fillWithBots to top itself up). 6 matches the
+// minimum active-player floor tryStartGame already enforces before it will
+// actually begin a game — so a bot-filled room reaches exactly the size it
+// needs to start, no more. (This used to be 9, matching a since-removed
+// fixed 9-role Quick Match composition — see generateQuickMatchRoleMix
+// below for the varied composition that replaced it.)
+const AUTO_FILL_TARGET_SIZE = 6;
 // Feature: Pre-game ready-up lobby. Once every connected human has hit
 // Ready, this is how long they wait (in case someone wants to un-ready)
 // before bots fill the rest of the room and the game begins.
@@ -578,6 +586,34 @@ const READY_GRACE_PERIOD_MS = 15000;
 // public game — if fewer than this many real (non-bot) players from the
 // finished match are still connected, we don't attempt it.
 const MIN_REMATCH_PLAYERS = 2;
+
+const QUICK_MATCH_SPECIAL_ROLE_POOL = ["detective", "doctor", "bodyguard", "vigilante", "mayor", "jester"] as const;
+
+// Feature: varied Quick Match role mixes. Every auto-created Quick Match
+// room used to have the exact same fixed composition (2 mafia + one of
+// every other role, 9 total) — every auto-generated game felt identical,
+// and the room browser always showed the same wall of roles. Every game
+// still needs at least 1 mafia and 1 civilian; beyond that, pick 1-2 of
+// the 6 non-mafia special roles at random so different auto-created rooms
+// actually play differently (one might pair mafia with a Jester, another
+// with a Doctor and a Bodyguard) instead of always including all six.
+function generateQuickMatchRoleMix(): Record<string, number> {
+  const numSpecials = 1 + Math.floor(Math.random() * 2); // 1 or 2
+  const pool = [...QUICK_MATCH_SPECIAL_ROLE_POOL];
+  const chosen: string[] = [];
+  for (let i = 0; i < numSpecials && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    chosen.push(pool.splice(idx, 1)[0]);
+  }
+  const mafiaCount = 1;
+  const civilianCount = Math.max(1, AUTO_FILL_TARGET_SIZE - mafiaCount - chosen.length);
+  const counts: Record<string, number> = {
+    mafiaCount, civilianCount,
+    detectiveCount: 0, doctorCount: 0, bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
+  };
+  for (const role of chosen) counts[`${role}Count`] = 1;
+  return counts;
+}
 
 async function fillWithBots(roomId: number, storage: any): Promise<{ added: number; cappedAtMax: boolean }> {
   const players = await storage.getPlayersInRoom(roomId);
@@ -3180,11 +3216,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       let isHost = false;
       if (!room) {
         room = await storage.createRoom({
-          // 9 total seats, every role represented at least once — the old
-          // 1/1/1/3 mix never included bodyguard, vigilante, mayor, or
-          // jester at all, so auto-generated games always felt the same.
-          mafiaCount: 2, detectiveCount: 1, doctorCount: 1, civilianCount: 1,
-          bodyguardCount: 1, vigilanteCount: 1, mayorCount: 1, jesterCount: 1,
+          // Varied per-room mix (1 mafia + 1-2 random specials + civilians
+          // filling the rest, see generateQuickMatchRoleMix) instead of the
+          // old fixed 9-role composition every auto-created room used to
+          // share — see AUTO_FILL_TARGET_SIZE for the total seat count.
+          ...generateQuickMatchRoleMix(),
           phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
           bodyguardDuration: 15, vigilanteDuration: 15,
           roomName: `${name}'s Quick Match`,
