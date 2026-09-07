@@ -892,15 +892,36 @@ export default function Room() {
   // Waits for hasRevealed so it never competes with the role-reveal modal
   // for attention on turn 1. (showTutorial itself is declared earlier,
   // alongside timeRemaining, since the phase-timer effect above needs it.)
+  //
+  // Bug fix: sends tutorial_ready to the server either immediately (if the
+  // tutorial won't show at all — already seen, or spectating) or when it
+  // closes. The server holds turn 1's real phase clock until every real
+  // player has sent this — see turnOneReadyGates in routes.ts. Previously
+  // nothing told the server the tutorial was even happening: its real
+  // clock kept running underneath the overlay regardless of how long
+  // someone spent reading it, so a brand-new player could finish the
+  // walkthrough to find the game had already moved past night 1's mafia
+  // (and possibly later) phases without them ever seeing it.
+  const tutorialReadySentRef = useRef(false);
   useEffect(() => {
     if (!room || isSpectator) return;
     if (room.status === "lobby" || room.status === "ended") return;
     if (!hasRevealed) return;
+    if (tutorialReadySentRef.current) return;
     const seen = localStorage.getItem("mafia_seen_room_tutorial");
-    if (!seen) setShowTutorial(true);
+    if (!seen) {
+      setShowTutorial(true);
+    } else {
+      tutorialReadySentRef.current = true;
+      sendAction({ type: "tutorial_ready" } as any);
+    }
   }, [room?.status, isSpectator, hasRevealed]);
   const closeTutorial = () => {
     setShowTutorial(false);
+    if (!tutorialReadySentRef.current) {
+      tutorialReadySentRef.current = true;
+      sendAction({ type: "tutorial_ready" } as any);
+    }
     try { localStorage.setItem("mafia_seen_room_tutorial", "1"); } catch {}
   };
   // Bug fix: the "teammates" step used to be missing from
@@ -1098,7 +1119,7 @@ export default function Room() {
             // flex-centering clipped it evenly top AND bottom with no way
             // to scroll to the rest. overflow-y-auto plus vertical padding
             // on the inner wrapper lets it scroll instead of clip.
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto overflow-y-auto"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.8, y: 40 }}
@@ -1262,7 +1283,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-center justify-center bg-background/90 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-0 z-[55] flex items-center justify-center bg-background/90 backdrop-blur-xl pointer-events-auto"
             onClick={() => setEliminationOverlay(null)}
           >
             <motion.div
@@ -1537,6 +1558,33 @@ export default function Room() {
         <div data-tutorial="phase-indicator">
           <PhaseIndicator status={room.status} phase={room.phase || ""} turn={room.turn || 1} timeRemaining={timeRemaining} />
         </div>
+
+        {/* Feature: skip discussion early. Any alive player can flag they're
+            ready to move on; once more than half of alive players have, the
+            server ends discussion immediately instead of running its full
+            configured length. */}
+        {room.status === "day" && room.phase === "discussion" && me?.isAlive && !isSpectator && (() => {
+          const tally = (gameState as any)?.discussionSkipTally as { count: number; total: number } | null;
+          const iSkipped = !!(gameState as any)?.me?.currentAction?.skippedDiscussion;
+          return (
+            <div className="mt-3 flex items-center gap-3">
+              <Button
+                size="sm"
+                variant={iSkipped ? "secondary" : "outline"}
+                disabled={iSkipped}
+                onClick={() => sendAction({ type: "skip_discussion" } as any)}
+                data-testid="button-skip-discussion"
+              >
+                {iSkipped ? t("room.skipDiscussionVoted", "Voted to skip") : t("room.skipDiscussion", "Skip discussion")}
+              </Button>
+              {tally && tally.total > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {t("room.skipDiscussionTally", "{{count}}/{{total}} want to skip", { count: tally.count, total: tally.total })}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           <div className="lg:col-span-2 space-y-8">

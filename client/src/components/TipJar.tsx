@@ -23,9 +23,20 @@ export function TipJar({ onClose }: { onClose: () => void }) {
   const handleTip = async (amount: number) => {
     setSelected(amount);
     try {
+      // Bug fix: this request never sent the x-mfa-token header at all —
+      // Store.tsx and Cosmetics.tsx both attach it on their checkout calls,
+      // this was the one purchase path that didn't. requireVerifiedUser()
+      // on the server rejects any checkout call without it for an account
+      // with 2FA enabled, so every tip attempt 401'd with "2FA verification
+      // required" regardless of whether the person had actually completed
+      // 2FA — there was simply no way for this request to prove it.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/stripe/tip-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ amount }),
       });
       const data = await res.json();
