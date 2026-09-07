@@ -4077,7 +4077,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // requests (which look someone up by username in that table) could never
   // find a real account. Called from AuthCallback.tsx and Login.tsx right
   // after a session exists; safe to call repeatedly (idempotent upsert).
-  app.post("/api/auth/sync-profile", async (req, res) => {
+  const authSyncProfileLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many sync-profile requests. Please try again later." },
+  });
+
+  app.post("/api/auth/sync-profile", authSyncProfileLimiter, async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
@@ -5213,7 +5221,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
+  const buyWithWinsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many buy requests, please try again later." },
+  });
+
+  app.post("/api/account/cosmetics/buy-with-wins", buyWithWinsLimiter, async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
@@ -5292,8 +5308,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // /api/loot-crate/open above, just at these two higher cost tiers, so both
   // paths share one source of truth for credits and item ownership.
   const STASH_DROP_COST: Record<string, number> = { underworld: 150, syndicate: 400 };
+  const stashDropLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many stash drop requests, please try again later." },
+  });
 
-  app.post("/api/store/stash-drop", async (req, res) => {
+  app.post("/api/store/stash-drop", stashDropLimiter, async (req, res) => {
     try {
       const auth = await requireVerifiedUser(req);
       if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
