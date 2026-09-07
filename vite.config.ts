@@ -1,10 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 export default defineConfig({
   plugins: [
     react(),
+    // Bug fix: this repo is on Tailwind v4, which moved its PostCSS plugin
+    // to a separate @tailwindcss/postcss package — postcss.config.js was
+    // still using the old v3-style `tailwindcss: {}` PostCSS plugin entry,
+    // which v4's tailwindcss package no longer supports directly and fails
+    // the build outright ("It looks like you're trying to use tailwindcss
+    // directly as a PostCSS plugin"). @tailwindcss/vite (the officially
+    // recommended v4 integration) was already installed as a dependency
+    // but never actually wired in here — adding it as a Vite plugin
+    // processes Tailwind directly, so postcss.config.js no longer needs to
+    // touch Tailwind at all (see the accompanying postcss.config.js
+    // change, which now only runs autoprefixer).
+    tailwindcss(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
