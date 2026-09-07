@@ -847,6 +847,7 @@
     "leaveRoomForCivilian": "Deixe espaço para pelo menos 1 civil",
     "specialRolesCapHint": "Os papéis especiais têm limite de 10",
     "wasVotedOutWithRole": "{{target}} foi eliminado por votação. Era {{role}}.",
+    "wasVotedOut": "{{target}} foi expulso por votação.",
     "noOneVotedOut": "Ninguém foi eliminado por votação.",
     "wasEliminatedWithRole": "{{target}} foi morto durante a noite. Era {{role}}.",
     "bodyguardDiedProtecting": "{{target}}, o Guarda-costas, morreu protegendo seu alvo.",

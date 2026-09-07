@@ -506,6 +506,7 @@
     "leaveRoomForCivilian": "Laissez de la place pour au moins 1 civil",
     "specialRolesCapHint": "Les rôles spéciaux sont limités à 10",
     "wasVotedOutWithRole": "{{target}} a été éliminé(e) par vote. Il/Elle était {{role}}.",
+    "wasVotedOut": "{{target}} a été voté dehors.",
     "noOneVotedOut": "Personne n'a été éliminé(e) par vote.",
     "wasEliminatedWithRole": "{{target}} a été tué(e) pendant la nuit. Il/Elle était {{role}}.",
     "bodyguardDiedProtecting": "{{target}} le Garde du corps est mort(e) en protégeant sa cible.",

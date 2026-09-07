@@ -2026,7 +2026,18 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          voteHistoryEntry.eliminated = { name: victim.name, role: victim.role || "civilian" };
+          voteHistoryEntry.eliminated = {
+            name: victim.name,
+            // Bug fix: this always sent the real role regardless of the
+            // room's showRoleReveal setting — the live elimination overlay
+            // (see the client) already correctly hid the role badge when
+            // this setting is off, but the Game Chronicle / end-screen
+            // history list read this same field directly and always showed
+            // it anyway, since nothing here ever masked it. 'unknown' is
+            // the same sentinel already used elsewhere in this file
+            // (see the player-list role masking below) for a hidden role.
+            role: (room.settings as any)?.showRoleReveal !== false ? (victim.role || "civilian") : "unknown",
+          };
           const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
@@ -2148,7 +2159,18 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
         const victim = players.find((p: Player) => p.id === topTargetId);
         if (victim) {
           await storage.updatePlayer(topTargetId, { isAlive: false });
-          voteHistoryEntry.eliminated = { name: victim.name, role: victim.role || "civilian" };
+          voteHistoryEntry.eliminated = {
+            name: victim.name,
+            // Bug fix: this always sent the real role regardless of the
+            // room's showRoleReveal setting — the live elimination overlay
+            // (see the client) already correctly hid the role badge when
+            // this setting is off, but the Game Chronicle / end-screen
+            // history list read this same field directly and always showed
+            // it anyway, since nothing here ever masked it. 'unknown' is
+            // the same sentinel already used elsewhere in this file
+            // (see the player-list role masking below) for a hidden role.
+            role: (room.settings as any)?.showRoleReveal !== false ? (victim.role || "civilian") : "unknown",
+          };
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 

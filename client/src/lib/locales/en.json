@@ -506,6 +506,7 @@
     "leaveRoomForCivilian": "Leave room for at least 1 civilian",
     "specialRolesCapHint": "Special roles cap out at 10",
     "wasVotedOutWithRole": "{{target}} was voted out. They were the {{role}}.",
+    "wasVotedOut": "{{target}} was voted out.",
     "noOneVotedOut": "No one was voted out.",
     "wasEliminatedWithRole": "{{target}} was killed during the night. They were the {{role}}.",
     "bodyguardDiedProtecting": "{{target}} the Bodyguard died protecting their target.",

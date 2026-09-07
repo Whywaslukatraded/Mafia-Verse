@@ -847,6 +847,7 @@
     "leaveRoomForCivilian": "請至少留出 1 個平民名額",
     "specialRolesCapHint": "特殊角色數量上限為 10",
     "wasVotedOutWithRole": "{{target}} 被投票淘汰，其身份是{{role}}。",
+    "wasVotedOut": "{{target}} 被投票出局。",
     "noOneVotedOut": "沒有人被投票淘汰。",
     "wasEliminatedWithRole": "{{target}} 在夜間被殺害，其身份是{{role}}。",
     "bodyguardDiedProtecting": "保鏢 {{target}} 在保護目標時死亡。",

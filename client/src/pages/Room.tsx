@@ -310,7 +310,9 @@ export default function Room() {
     for (const entry of history) {
       if (entry.type === "vote" && entry.eliminated) {
         highlights.push({
-          text: t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) }),
+          text: entry.eliminated.role === "unknown"
+                ? t("room.wasVotedOut", { target: entry.eliminated.name })
+                : t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) }),
         });
       } else if ((entry.type === "night" || entry.type === "day") && Array.isArray(entry.events)) {
         for (const ev of entry.events) {
@@ -2128,7 +2130,9 @@ export default function Room() {
                                       <Skull className="w-3 h-3 text-red-500" />
                                       <span>
                                         {entry.eliminated
-                                          ? t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) })
+                                          ? entry.eliminated.role === "unknown"
+                ? t("room.wasVotedOut", { target: entry.eliminated.name })
+                : t("room.wasVotedOutWithRole", { target: entry.eliminated.name, role: t(`roleBadge.${entry.eliminated.role || "civilian"}`) })
                                           : t("room.noOneVotedOut")}
                                       </span>
                                     </div>
