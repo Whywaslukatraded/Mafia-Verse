@@ -109,6 +109,21 @@ export default function Room() {
   // because the phase-timer effect above needs to read it as a dependency,
   // and JS requires this to exist before that effect's closure runs.
   const [showTutorial, setShowTutorial] = useState(false);
+  // Bug fix: double scrollbars on the end screen. That modal is `fixed`
+  // with its own overflow-y-auto so its (often tall) content scrolls
+  // independently — but the underlying page behind it was never actually
+  // prevented from ALSO scrolling, since `position: fixed` doesn't remove
+  // an element from the page's own height/scroll calculation. With both
+  // scrolling, the browser rendered two separate scrollbars: one for the
+  // modal's own content, one for the page still scrolling behind it.
+  // Locking body scroll while the end screen is up leaves only the one
+  // that's actually meant to scroll.
+  useEffect(() => {
+    if (room?.status !== "ended") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [room?.status]);
   const [lobbyCountdown, setLobbyCountdown] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -1119,7 +1134,19 @@ export default function Room() {
             // flex-centering clipped it evenly top AND bottom with no way
             // to scroll to the rest. overflow-y-auto plus vertical padding
             // on the inner wrapper lets it scroll instead of clip.
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto overflow-y-auto"
+            // Bug fix: this used to be inset-0 with a z-index HIGHER than
+            // the header (z-[60] vs the header's z-50), to stop the header
+            // painting over this modal's top content. That overcorrected —
+            // since this is `fixed`, raising it above the header meant it
+            // now fully covers the header's entire screen region instead,
+            // making the room code / leave / handbook bar completely
+            // inaccessible for as long as the end screen is up. Starting
+            // this below the header (top-16, matching the header's actual
+            // h-16) instead of on top of it means neither element ever
+            // occupies the same screen region, so who's "above" whom in
+            // z-order no longer matters for this — the header stays
+            // visible and usable the whole time.
+            className="fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center bg-background/95 backdrop-blur-xl pointer-events-auto overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.8, y: 40 }}
@@ -1283,7 +1310,7 @@ export default function Room() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[55] flex items-center justify-center bg-background/90 backdrop-blur-xl pointer-events-auto"
+            className="fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center bg-background/90 backdrop-blur-xl pointer-events-auto"
             onClick={() => setEliminationOverlay(null)}
           >
             <motion.div

@@ -559,6 +559,19 @@ function getRandomDeathStory(name: string, lang: string = "en") {
 }
 
 const phaseTimers = new Map<number, NodeJS.Timeout>();
+// Bug fix: the first-time tutorial overlay (client-side) only ever froze
+// the CLIENT's displayed countdown — the real server-side phase deadline
+// kept advancing underneath it regardless, so a brand-new player could
+// finish clicking through the walkthrough and find the game had already
+// moved past turn 1's mafia (and possibly later) phases entirely, without
+// ever having seen them. This gate holds turn 1's actual clock (separate
+// from the 5s role-reveal window, which is unaffected) until every real
+// (non-bot, non-spectator) active player has signaled `tutorial_ready` —
+// sent immediately by clients who won't show the tutorial at all, and on
+// close by ones who do — or until TURN_ONE_MAX_WAIT_MS elapses, whichever
+// comes first, so one abandoned tab can't stall the room forever.
+const TURN_ONE_MAX_WAIT_MS = 45000;
+const turnOneReadyGates = new Map<number, { pending: Set<number>; resolved: boolean; resolve: () => void }>();
 const PHASE_DURATION = 15000;
 // Must match the setTimeout duration of the role-reveal overlay in client/src/pages/Room.tsx
 const ROLE_REVEAL_MS = 5000;
@@ -585,7 +598,16 @@ const READY_GRACE_PERIOD_MS = 15000;
 // "Play Again" is meant to be a rematch with the same group, not a fresh
 // public game — if fewer than this many real (non-bot) players from the
 // finished match are still connected, we don't attempt it.
-const MIN_REMATCH_PLAYERS = 2;
+//
+// Bug fix: this was 2, which made Play Again permanently unusable for the
+// most common way this game gets played — a single real player plus bots
+// (Quick Match, or anyone who just wants to play solo). A solo host has
+// exactly 1 real connected player by definition, so every one of their
+// rematch attempts hit "Not enough of your original group is still here to
+// rematch" — a real, working feature that was actually just gated off from
+// its main audience. Bots get refilled the same way a fresh room does, so
+// requiring more than the host themselves doesn't protect anything real.
+const MIN_REMATCH_PLAYERS = 1;
 
 const QUICK_MATCH_SPECIAL_ROLE_POOL = ["detective", "doctor", "bodyguard", "vigilante", "mayor", "jester"] as const;
 
@@ -685,9 +707,44 @@ async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roo
   mayorRevealed.set(roomId, new Set());
   crowdFavoriteVotes.set(roomId, new Map());
 
+  // See turnOneReadyGates above for why this doesn't just start the phase
+  // timer immediately the way every later phase transition does. Real
+  // players still see their role-reveal overlay and (if it's their first
+  // time) the tutorial exactly as before — this only holds turn 1's actual
+  // countdown/bot-action clock until they're done with both.
+  const realActiveIds = new Set(firstNightPlayers.filter((p: Player) => !p.isBot && !p.isSpectator).map((p: Player) => p.id));
+  if (realActiveIds.size === 0) {
+    setTimeout(() => { void beginTurnOnePhaseClock(roomId, wss, storage, roomClients, clients, gameActions, firstPhase); }, revealDelayMs);
+  } else {
+    const gate: { pending: Set<number>; resolved: boolean; resolve: () => void } = {
+      pending: realActiveIds,
+      resolved: false,
+      resolve: () => {},
+    };
+    gate.resolve = () => {
+      if (gate.resolved) return;
+      gate.resolved = true;
+      turnOneReadyGates.delete(roomId);
+      void beginTurnOnePhaseClock(roomId, wss, storage, roomClients, clients, gameActions, firstPhase);
+    };
+    turnOneReadyGates.set(roomId, gate);
+    setTimeout(gate.resolve, TURN_ONE_MAX_WAIT_MS);
+  }
+  broadcastState(roomId);
+}
+
+// Actually starts turn 1's real phase clock (timer + bot actions) once every
+// real active player has signaled tutorial_ready, or the max wait elapsed —
+// see turnOneReadyGates above. Always gives the phase its full configured
+// duration starting from right now, rather than counting down time already
+// spent behind the role-reveal/tutorial overlay.
+async function beginTurnOnePhaseClock(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>, firstPhase: string) {
+  const room = await storage.getRoom(roomId);
+  if (!room || room.status !== 'night' || room.turn !== 1 || room.phase !== firstPhase) return;
   const startSettings = room.settings as any;
   const duration = getNightPhaseDuration(firstPhase, startSettings);
-  const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration + revealDelayMs);
+  await storage.updateRoom(roomId, { lastUpdated: new Date() });
+  const timer = setTimeout(() => advancePhase(roomId, wss, storage, roomClients, clients, gameActions), duration);
   phaseTimers.set(roomId, timer);
   void scheduleBotQuickActions(roomId, wss, storage, roomClients, clients, gameActions);
   broadcastState(roomId);
@@ -1425,6 +1482,45 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
 // This schedules bots to commit to a decision shortly after a phase starts
 // instead, then reuses the same "everyone acted -> advance early" check the
 // human action handlers already use.
+// Feature: fast bot voting once every real player's vote is already in (or
+// there are no real alive players left to wait on at all — the human(s)
+// already got eliminated and only bots remain). Bots used to pick a random
+// moment anywhere across roughly the back 3/4 of the full phase duration
+// (see scheduleBotQuickActions above) — reasonable while a real player
+// might still be deciding, but once every real vote is already in, there's
+// nothing left to wait for, and it just made dead/spectating players stare
+// at an empty vote tally for up to ~30s. This always resolves a fixed 2
+// seconds later — never instant, never a long random wait.
+async function scheduleFastVoteResolution(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const room = await storage.getRoom(roomId);
+  if (!room || room.status !== 'day' || room.phase !== 'voting') return;
+  const turnAtSchedule = room.turn;
+
+  setTimeout(async () => {
+    const freshRoom = await storage.getRoom(roomId);
+    if (!freshRoom || freshRoom.status !== 'day' || freshRoom.phase !== 'voting' || freshRoom.turn !== turnAtSchedule) return;
+
+    const players = await storage.getPlayersInRoom(roomId);
+    const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
+    const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
+    for (const bot of bots) {
+      const eligibleTargets = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
+      if (eligibleTargets.length > 0) {
+        const botTarget = eligibleTargets[Math.floor(Math.random() * eligibleTargets.length)];
+        actions.votes.set(bot.id, botTarget.id);
+      }
+    }
+    gameActions.set(roomId, actions);
+    await broadcastState(roomId);
+
+    const allAlivePlayers = players.filter((p: Player) => p.isAlive);
+    if (actions.votes.size >= allAlivePlayers.length) {
+      if (phaseTimers.has(roomId)) { clearTimeout(phaseTimers.get(roomId)); phaseTimers.delete(roomId); }
+      await advancePhase(roomId, wss, storage, roomClients, clients, gameActions);
+    }
+  }, 2000);
+}
+
 async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const snapshotRoom = await storage.getRoom(roomId);
   if (!snapshotRoom || snapshotRoom.status === 'ended' || snapshotRoom.status === 'lobby') return;
@@ -1435,6 +1531,20 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
     // Fresh mafia phase — any "you select X" / "I pick X" from a previous
     // night shouldn't carry over.
     mafiaChatHints.delete(roomId);
+  }
+
+  // Bug fix: when every real player is already eliminated and only bots
+  // remain in the voting phase, there's no real vote left to wait for at
+  // all — the normal random delay below (scaled to look natural while a
+  // real player might still be deciding) just made anyone spectating watch
+  // an empty vote tally for up to ~30s for no reason. Skip straight to the
+  // same fixed 2-second resolution used once every real vote is in.
+  if (statusAtSchedule === 'day' && phaseAtSchedule === 'voting') {
+    const realAlivePlayers = (await storage.getPlayersInRoom(roomId)).filter((p: Player) => p.isAlive && !p.isBot);
+    if (realAlivePlayers.length === 0) {
+      void scheduleFastVoteResolution(roomId, wss, storage, roomClients, clients, gameActions);
+      return;
+    }
   }
 
   // Delay scales with the phase's actual configured duration instead of a
@@ -2442,6 +2552,7 @@ async function broadcastState(roomId: number) {
         check: me.role === 'detective' ? actions?.detectiveChecks.get(me.id) || null : null,
         guard: me.role === 'bodyguard' ? actions?.guards.get(me.id) || null : null,
         shoot: me.role === 'vigilante' ? actions?.shots.get(me.id) || null : null,
+        skippedDiscussion: !!actions?.skipDiscussion?.has(me.id),
       } : null;
 
       const roleSanitizedPlayers = players.map((p: Player) => {
@@ -2495,6 +2606,12 @@ async function broadcastState(roomId: number) {
       const aliveMafiaCount = players.filter((p: Player) => p.isAlive && p.role === 'mafia').length;
       const mafiaChatAvailable = !!me && me.isAlive && me.role === 'mafia' && aliveMafiaCount >= 2;
 
+      // Feature: skip-discussion tally, shown alongside the button so
+      // everyone can see how close the room is to the >50% threshold.
+      const discussionSkipTally = (room.status === 'day' && room.phase === 'discussion')
+        ? { count: actions?.skipDiscussion?.size ?? 0, total: players.filter((p: Player) => p.isAlive).length }
+        : null;
+
       // Lets mafia teammates see "who's locked in" during the mafia phase
       // without revealing WHO each teammate targeted — the "SELECTED" state
       // on player cards only ever reflected your own local click, so a
@@ -2513,6 +2630,7 @@ async function broadcastState(roomId: number) {
           myBullets,
           mafiaChatAvailable,
           mafiaTeammatesActedIds,
+          discussionSkipTally,
           lobbyCountdownEndsAt: room.status === 'lobby' ? (readyDeadlines.get(roomId) ?? null) : null,
           messageReactions: messageReactionsByRoom.get(roomId) || {},
         }
@@ -3702,6 +3820,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              return;
            }
 
+           if (action.type === 'tutorial_ready') {
+             const gate = turnOneReadyGates.get(myRoomId);
+             if (gate) {
+               gate.pending.delete(me.id);
+               if (gate.pending.size === 0) gate.resolve();
+             }
+             return;
+           }
+
            if (action.type === 'vote') {
              console.log("VOTE RECEIVED:", { status: room.status, phase: room.phase, targetId: action.targetId, meId: me.id, meAlive: me.isAlive });
              if (room.status !== 'day' || room.phase !== 'voting') {
@@ -3713,32 +3840,68 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                actions.votes.set(me.id, action.targetId);
                gameActions.set(myRoomId, actions);
                bumpActivity(myRoomId, me.id, "votes");
-               
-               const bots = players.filter((p: Player) => p.isBot && p.isAlive && !actions.votes.has(p.id));
-               for (const bot of bots) {
-                 const eligibleTargets = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
-                 if (eligibleTargets.length > 0) {
-                   const botTarget = eligibleTargets[Math.floor(Math.random() * eligibleTargets.length)];
-                   actions.votes.set(bot.id, botTarget.id);
-                 }
-               }
-               gameActions.set(myRoomId, actions);
-               
                broadcastState(myRoomId);
                const voteLang = (room.settings as any)?.language === "es" ? "es" : "en";
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("voteRegisteredTitle", voteLang), body: sysMsg("voteRegisteredBody", voteLang) } }));
-               
+
+               // Bug fix: bots used to vote the instant ANY real player voted
+               // — not the LAST one — and with zero delay, which also meant
+               // the phase could end the moment the first of several real
+               // voters weighed in, cutting off anyone slower. Bots now wait
+               // until every real (non-bot) alive player has voted, then
+               // vote 2 seconds later — a real, consistent pause, not
+               // instant and not a long random wait.
                const allAlivePlayers = players.filter((p: Player) => p.isAlive);
-               const votedPlayers = Array.from(actions.votes.keys());
-               console.log("VOTE TALLY:", { votedPlayers: votedPlayers.length, totalAlive: allAlivePlayers.length });
-               if (votedPlayers.length === allAlivePlayers.length) {
-                 console.log("ALL PLAYERS VOTED - Advancing immediately");
-                 if (phaseTimers.has(myRoomId)) { 
-                   clearTimeout(phaseTimers.get(myRoomId)); 
-                   phaseTimers.delete(myRoomId); 
+               const realAlivePlayers = allAlivePlayers.filter((p: Player) => !p.isBot);
+               const allRealVoted = realAlivePlayers.every((p: Player) => actions.votes.has(p.id));
+               if (allRealVoted) {
+                 if (realAlivePlayers.length === allAlivePlayers.length) {
+                   // No bots left alive to wait on — every vote that could
+                   // possibly come in already has. Advance right away.
+                   console.log("ALL PLAYERS VOTED - Advancing immediately");
+                   if (phaseTimers.has(myRoomId)) {
+                     clearTimeout(phaseTimers.get(myRoomId));
+                     phaseTimers.delete(myRoomId);
+                   }
+                   await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
+                 } else if (actions.fastVoteScheduledTurn !== room.turn) {
+                   // Bug fix: this used to be a plain boolean that, once set
+                   // true in turn 1's vote, stayed true forever — the shared
+                   // `actions` object survives the whole game; only its
+                   // .votes Map gets cleared between rounds (see
+                   // actions.votes.clear() elsewhere), not the object
+                   // itself. That silently disabled this fast-vote path for
+                   // every voting round after the first. Keyed by turn
+                   // number instead, so each round gets its own check.
+                   actions.fastVoteScheduledTurn = room.turn;
+                   gameActions.set(myRoomId, actions);
+                   void scheduleFastVoteResolution(myRoomId, wss, storage, roomClients, clients, gameActions);
                  }
-                 await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
                }
+             }
+             return;
+           }
+
+           // Feature: skip discussion early. Any alive player can vote to
+           // skip straight to voting; once more than half of alive players
+           // have, the discussion phase ends immediately instead of running
+           // its full configured length.
+           if (action.type === 'skip_discussion') {
+             if (room.status !== 'day' || room.phase !== 'discussion') return;
+             if (!me.isAlive) return;
+             actions.skipDiscussion = actions.skipDiscussion || new Set<string>();
+             actions.skipDiscussion.add(me.id);
+             gameActions.set(myRoomId, actions);
+             broadcastState(myRoomId);
+
+             const alivePlayers = players.filter((p: Player) => p.isAlive);
+             const skipCount = actions.skipDiscussion.size;
+             if (alivePlayers.length > 0 && skipCount / alivePlayers.length > 0.5) {
+               if (phaseTimers.has(myRoomId)) {
+                 clearTimeout(phaseTimers.get(myRoomId));
+                 phaseTimers.delete(myRoomId);
+               }
+               await advancePhase(myRoomId, wss, storage, roomClients, clients, gameActions);
              }
              return;
            }
@@ -4077,15 +4240,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // requests (which look someone up by username in that table) could never
   // find a real account. Called from AuthCallback.tsx and Login.tsx right
   // after a session exists; safe to call repeatedly (idempotent upsert).
-  const authSyncProfileLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 20,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: "Too many sync-profile requests. Please try again later." },
-  });
-
-  app.post("/api/auth/sync-profile", authSyncProfileLimiter, async (req, res) => {
+  app.post("/api/auth/sync-profile", async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
@@ -5221,15 +5376,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  const buyWithWinsLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: "Too many buy requests, please try again later." },
-  });
-
-  app.post("/api/account/cosmetics/buy-with-wins", buyWithWinsLimiter, async (req, res) => {
+  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
     try {
       const supabaseUserId = await getVerifiedSupabaseUserId(req);
       if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
@@ -5308,15 +5455,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // /api/loot-crate/open above, just at these two higher cost tiers, so both
   // paths share one source of truth for credits and item ownership.
   const STASH_DROP_COST: Record<string, number> = { underworld: 150, syndicate: 400 };
-  const stashDropLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: "Too many stash drop requests, please try again later." },
-  });
 
-  app.post("/api/store/stash-drop", stashDropLimiter, async (req, res) => {
+  app.post("/api/store/stash-drop", async (req, res) => {
     try {
       const auth = await requireVerifiedUser(req);
       if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
