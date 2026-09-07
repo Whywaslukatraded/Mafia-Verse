@@ -1,6 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Bug fix: Tailwind v4 no longer reads tailwind.config.ts automatically —
+   it expects color tokens etc. defined natively in CSS via an @theme
+   block, which is why `bg-background` and every other custom utility
+   started failing as "unknown utility class" once @tailwindcss/vite took
+   over from the old PostCSS setup. tailwind.config.ts here has nested
+   DEFAULT/foreground/border color objects, `<alpha-value>` opacity
+   placeholders, and two require()-based plugins (tailwindcss-animate,
+   @tailwindcss/typography) — hand-porting all of that into a native
+   @theme block risks subtly breaking an opacity-modifier utility
+   (bg-primary/50 and similar) somewhere in the app without any build
+   error to catch it. @config is v4's official compatibility path for
+   exactly this: it keeps the existing JS config (colors, radius, fonts,
+   keyframes, animations, and both plugins) working completely unchanged,
+   nothing here needs to be migrated or re-verified utility-by-utility.
+   Path is relative to this file's location (client/src/index.css) up to
+   the project root, where tailwind.config.ts actually lives. */
+@config "../../tailwind.config.ts";
+@import "tailwindcss";
 
 :root {
   /* Light mode palette */
