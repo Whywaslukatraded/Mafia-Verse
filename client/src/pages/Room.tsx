@@ -109,21 +109,6 @@ export default function Room() {
   // because the phase-timer effect above needs to read it as a dependency,
   // and JS requires this to exist before that effect's closure runs.
   const [showTutorial, setShowTutorial] = useState(false);
-  // Bug fix: double scrollbars on the end screen. That modal is `fixed`
-  // with its own overflow-y-auto so its (often tall) content scrolls
-  // independently — but the underlying page behind it was never actually
-  // prevented from ALSO scrolling, since `position: fixed` doesn't remove
-  // an element from the page's own height/scroll calculation. With both
-  // scrolling, the browser rendered two separate scrollbars: one for the
-  // modal's own content, one for the page still scrolling behind it.
-  // Locking body scroll while the end screen is up leaves only the one
-  // that's actually meant to scroll.
-  useEffect(() => {
-    if (room?.status !== "ended") return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [room?.status]);
   const [lobbyCountdown, setLobbyCountdown] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -184,6 +169,32 @@ export default function Room() {
   const me = gameState?.me;
   const room = gameState?.room;
   const players = gameState?.players || [];
+
+  // Bug fix: double scrollbars on the end screen. That modal is `fixed`
+  // with its own overflow-y-auto so its (often tall) content scrolls
+  // independently — but the underlying page behind it was never actually
+  // prevented from ALSO scrolling, since `position: fixed` doesn't remove
+  // an element from the page's own height/scroll calculation. With both
+  // scrolling, the browser rendered two separate scrollbars: one for the
+  // modal's own content, one for the page still scrolling behind it.
+  // Locking body scroll while the end screen is up leaves only the one
+  // that's actually meant to scroll.
+  //
+  // Bug fix #2: this effect used to sit up near the top of the component,
+  // ABOVE where `room` is actually declared (right here). Referencing
+  // `room` in the dependency array before its own `const` declaration
+  // executes is a temporal-dead-zone violation — "Cannot access 'room'
+  // before initialization" — and since this ran on every single render,
+  // it crashed the whole Room page immediately on every visit, including
+  // Quick Match, with no way to recover short of a hard reload landing on
+  // a different route. Moving it below the declaration it depends on
+  // fixes this outright.
+  useEffect(() => {
+    if (room?.status !== "ended") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [room?.status]);
 
   // Bug fix: myVoteStats/detectivePlayer/detectiveChecks used to be computed
   // via an inline IIFE ONLY inside the "Final Roles Revealed" overlay block
