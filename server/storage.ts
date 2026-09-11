@@ -1,8 +1,21 @@
 import { db } from "./db";
 import { pool } from "./db";
+import { lockDownTableFromPublicApi } from "./db";
 import { users, rooms, players, messages, friendships, gameRecaps, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
+
+// A lobby room nobody ever starts sits in the table forever otherwise —
+// used by getOpenPublicRooms to drop stale lobbies from the public browser
+// and Quick Match. In-progress/ended rooms are unaffected by this (their
+// last_updated reflects real, recent gameplay activity).
+const STALE_LOBBY_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+// Hard backstop on how many rooms the public browser/Quick Match ever pull
+// in one query, regardless of how many exist in total.
+const OPEN_PUBLIC_ROOMS_LIMIT = 50;
+// Hard cap on how much message history getMessagesByRoom ever returns for
+// a single room, regardless of how many were actually sent.
+const MAX_MESSAGES_PER_ROOM = 300;
 
 // Diagnostic fix: POST /api/friends/request was 500ing for every user, even
 // ones that clearly exist. runMigrations() (db.ts) creates the friendships
@@ -36,6 +49,11 @@ async function ensureFriendshipsTable(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS friendships_unique_pair_idx
     ON friendships (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))
   `);
+  // Security fix (#3): see the matching call in db.ts's runMigrations for
+  // the full explanation — this covers the case where THIS self-healing
+  // path is what actually creates the table on a given deployment (e.g.
+  // runMigrations() hadn't run yet, or failed) rather than runMigrations.
+  await lockDownTableFromPublicApi(pool, "friendships");
   friendshipsTableEnsured = true;
 }
 async function withFriendshipsTable<T>(fn: () => Promise<T>): Promise<T> {
@@ -82,6 +100,11 @@ async function ensureGameRecapsTable(): Promise<void> {
   // GIN index so "my history" (participantSupabaseUserIds @> [myId]) doesn't
   // scan every recap ever created as this table grows.
   await pool.query(`CREATE INDEX IF NOT EXISTS game_recaps_participants_idx ON game_recaps USING GIN (participant_supabase_user_ids)`);
+  // Security fix (#3): same reasoning as ensureFriendshipsTable above —
+  // without this, a stranger with the published anon key could read every
+  // stored match recap (player display names, roles, full chronicle)
+  // straight through the Supabase REST API.
+  await lockDownTableFromPublicApi(pool, "game_recaps");
   gameRecapsTableEnsured = true;
 }
 async function withGameRecapsTable<T>(fn: () => Promise<T>): Promise<T> {
@@ -310,16 +333,43 @@ export class DatabaseStorage implements IStorage {
   // created, same enforcement the join endpoint already does at the door.
   // Ended rooms are excluded outright: nothing to browse into or spectate
   // once a match is over.
+  //
+  // Security fix (#7): this used to select every non-ended room with no
+  // limit, then run one extra `SELECT * FROM players WHERE room_id = ...`
+  // per room via Promise.all — an N+1 fan-out with no bound on either
+  // dimension, backing /api/rooms/public (called on every Home page load)
+  // and Quick Match. Lobby rooms nobody ever starts were never cleaned up
+  // either, so the fan-out only grew as the table accumulated, capable of
+  // saturating the 20-connection pool (db.ts) from repeated calls by one
+  // client alone. Now a single query (LEFT JOIN + GROUP BY, computing the
+  // count in the database instead of fetching every players row per room),
+  // a cutoff that drops abandoned lobby rooms older than
+  // STALE_LOBBY_MAX_AGE_MS, and a LIMIT as a hard backstop on result size.
   async getOpenPublicRooms(): Promise<{ room: Room; playerCount: number }[]> {
-    const allRooms = await db.select().from(rooms).where(sql`(${rooms.settings}->>'isPrivate') IS DISTINCT FROM 'true'`);
-    const openRooms = allRooms.filter((r) => r.status !== "ended");
-    const counts = await Promise.all(openRooms.map(async (r) => ({
-      room: r,
-      playerCount: (await db.select().from(players).where(eq(players.roomId, r.id))).length,
-    })));
+    const staleCutoff = new Date(Date.now() - STALE_LOBBY_MAX_AGE_MS);
+    const rowsResult = await db
+      .select({
+        room: rooms,
+        playerCount: sql<number>`count(${players.id})`,
+      })
+      .from(rooms)
+      .leftJoin(players, eq(players.roomId, rooms.id))
+      .where(
+        and(
+          sql`(${rooms.settings}->>'isPrivate') IS DISTINCT FROM 'true'`,
+          sql`${rooms.status} != 'ended'`,
+          or(sql`${rooms.status} != 'lobby'`, sql`${rooms.lastUpdated} > ${staleCutoff}`),
+        ),
+      )
+      .groupBy(rooms.id)
+      .orderBy(desc(rooms.id))
+      .limit(OPEN_PUBLIC_ROOMS_LIMIT);
+
     // Lobby rooms only count as "open" while there's still a free seat;
     // in-progress rooms are always listed since spectating has no seat cap.
-    return counts.filter(({ room, playerCount }) => room.status !== "lobby" || playerCount < MAX_PLAYERS_PER_ROOM);
+    return rowsResult
+      .map(({ room, playerCount }) => ({ room, playerCount: Number(playerCount) }))
+      .filter(({ room, playerCount }) => room.status !== "lobby" || playerCount < MAX_PLAYERS_PER_ROOM);
   }
 
   // Oldest eligible lobby first (by id, which is insertion order) — keeps
@@ -345,8 +395,19 @@ export class DatabaseStorage implements IStorage {
     return newMessage;
   }
 
+  // Security fix (#8): this used to select and sort a room's ENTIRE message
+  // history with no limit at all — every reconnect, room-state refresh, or
+  // page load re-fetched the whole thing, and a participant could balloon
+  // it arbitrarily just by sending more messages, since createMessage had
+  // no length/rate limit of its own either. Bounding to the most recent
+  // MAX_MESSAGES_PER_ROOM keeps both the DB read and the broadcast payload
+  // bounded regardless of how long a room has been running or how much
+  // someone spams — fetched newest-first (so LIMIT keeps the right end of
+  // the history, not the oldest messages) then reversed back into the
+  // chronological order the UI actually expects.
   async getMessagesByRoom(roomId: number): Promise<Message[]> {
-    return await db.select().from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.timestamp);
+    const recent = await db.select().from(messages).where(eq(messages.roomId, roomId)).orderBy(desc(messages.timestamp)).limit(MAX_MESSAGES_PER_ROOM);
+    return recent.reverse();
   }
 
   async deleteMessagesByRoom(roomId: number): Promise<void> {

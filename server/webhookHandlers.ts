@@ -46,35 +46,54 @@ export class WebhookHandlers {
     const item = session.metadata?.item;
     const supabaseUserId = session.metadata?.supabaseUserId;
     if (!supabaseUserId) return;
+    // Nothing to grant server-side for e.g. "tip" — don't touch the
+    // ledger table for events with no corresponding payout at all.
+    if (item !== "syndicate" && item !== "credits") return;
 
-    if (item === "syndicate") {
-      const client = await pool.connect();
-      try {
+    // Security fix (#2): this used to grant credits/Syndicate Pass with no
+    // record of which Stripe event had already been handled — a retried
+    // delivery of the same verified event (Stripe retries on any non-2xx
+    // response, e.g. if the later stripeSync.processWebhook() call below
+    // failed) re-ran the grant again, additively, on every retry. Recording
+    // the event id first, in the SAME transaction as the grant, makes a
+    // retry a no-op: ON CONFLICT DO NOTHING means a second attempt inserts
+    // nothing and rowCount is 0, so the grant below is skipped entirely
+    // rather than paying out twice.
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const eventRecord = await client.query(
+        `INSERT INTO processed_stripe_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+        [event.id]
+      );
+      if ((eventRecord.rowCount ?? 0) === 0) {
+        await client.query("ROLLBACK");
+        return; // already processed this exact event — this is a retry, not a new payout
+      }
+
+      if (item === "syndicate") {
         await client.query(
           `INSERT INTO account_syndicate_pass (supabase_user_id, active, purchased_at)
            VALUES ($1, true, now())
            ON CONFLICT (supabase_user_id) DO UPDATE SET active = true`,
           [supabaseUserId]
         );
-      } finally {
-        client.release();
-      }
-    } else if (item === "credits") {
-      const credits = parseInt(session.metadata?.amount || "", 10);
-      if (Number.isFinite(credits) && credits > 0) {
-        const client = await pool.connect();
-        try {
+      } else {
+        const credits = parseInt(session.metadata?.amount || "", 10);
+        if (Number.isFinite(credits) && credits > 0) {
           await client.query(
             `INSERT INTO account_credits (supabase_user_id, credits) VALUES ($1, $2)
              ON CONFLICT (supabase_user_id) DO UPDATE SET credits = account_credits.credits + $2`,
             [supabaseUserId, credits]
           );
-        } finally {
-          client.release();
         }
       }
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
-    // Any other item type (e.g. "tip") intentionally has no grant here —
-    // there's nothing to unlock server-side for a tip.
   }
 }

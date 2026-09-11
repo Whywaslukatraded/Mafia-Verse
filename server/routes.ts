@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { WS_EVENTS, type GameState, type GameAction, type Player, type Message, userMfa, users, MAX_PLAYERS_PER_ROOM, END_SCREEN_REACTIONS } from "@shared/schema";
-import { db, pool } from "./db";
+import { db, pool, lockDownTableFromPublicApi } from "./db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID, pbkdf2Sync, randomBytes, timingSafeEqual, createHmac } from "crypto";
@@ -1775,7 +1775,21 @@ async function tryResolveReferralClaim(referredUserId: string): Promise<void> {
       return;
     }
 
-    await client.query(`UPDATE referral_claims SET status = 'approved', resolved_at = now() WHERE id = $1`, [claim.id]);
+    // Security fix: this UPDATE used to run unconditionally after the
+    // SELECT above already confirmed status === 'pending' — but two games
+    // finishing near-simultaneously for the same referred account (trivial
+    // to trigger: join two rooms, finish both around the same time) could
+    // both pass that earlier read before either had written anything,
+    // then both reach here and both pay out REFERRAL_CREDITS twice over.
+    // Making the UPDATE itself conditional on status still being 'pending'
+    // closes the window — Postgres serializes concurrent UPDATEs to the
+    // same row, so only one of the two racing calls can ever match and
+    // return a row; the other gets 0 rows back and skips the payout below.
+    const approveResult = await client.query(
+      `UPDATE referral_claims SET status = 'approved', resolved_at = now() WHERE id = $1 AND status = 'pending' RETURNING id`,
+      [claim.id]
+    );
+    if ((approveResult.rowCount ?? 0) === 0) return; // another concurrent call already resolved this claim
     await addAccountCredits(claim.referrer_user_id, REFERRAL_CREDITS);
     await addAccountCredits(referredUserId, REFERRAL_CREDITS);
   } catch (err: any) {
@@ -2720,6 +2734,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           code TEXT UNIQUE NOT NULL
         );
       `);
+      // Security fix (#3): this table (and account_activity, account_credits,
+      // account_syndicate_pass, referral_claims below) never had RLS enabled —
+      // they're all created here at runtime, after the migration that locked
+      // down users/user_mfa/rooms/players/messages/ad_claims already ran. Any
+      // public-schema table with no RLS is fully readable/writable through
+      // the Supabase REST API using the published anon key this app serves to
+      // every browser via /api/config — for these specifically, that means a
+      // stranger could read or overwrite someone else's credit balance,
+      // Syndicate Pass status, or referral records directly. This server's
+      // own queries never go through the REST API (straight to Postgres via
+      // `pool`/`db`), so a deny-all policy for both anon and authenticated
+      // doesn't affect how this app actually reads or writes these tables.
+      await lockDownTableFromPublicApi(bootstrapClient, "referral_links");
       await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS signup_ip TEXT;`);
       await bootstrapClient.query(`ALTER TABLE referral_links ADD COLUMN IF NOT EXISTS signup_device_id TEXT;`);
       await bootstrapClient.query(`
@@ -2730,6 +2757,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `);
+      await lockDownTableFromPublicApi(bootstrapClient, "referral_claims");
       // Referral fraud prevention: claims start 'pending' and only pay out once
       // the referred account has genuinely played (see tryResolveReferralClaim),
       // or get 'denied'/'flagged' instead of ever being paid.
@@ -2745,12 +2773,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           afk_reports INT NOT NULL DEFAULT 0
         );
       `);
+      await lockDownTableFromPublicApi(bootstrapClient, "account_activity");
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS account_credits (
           supabase_user_id TEXT PRIMARY KEY,
           credits INT NOT NULL DEFAULT 0
         );
       `);
+      await lockDownTableFromPublicApi(bootstrapClient, "account_credits");
       // Security fix (#5/#7): there was previously NO server-side record of
       // Syndicate Pass ownership anywhere — the client trusted a redirect
       // query param and a localStorage flag as if they were proof of
@@ -2764,6 +2794,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           purchased_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `);
+      await lockDownTableFromPublicApi(bootstrapClient, "account_syndicate_pass");
       // Security fix (#10): loot crate opens used to be entirely client-side
       // (random roll, credit debit, and cosmetic ownership all computed and
       // stored in localStorage), so editing localStorage granted unlimited

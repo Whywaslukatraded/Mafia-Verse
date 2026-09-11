@@ -115,7 +115,15 @@ const NEVER_LOG_BODY_PREFIXES = ["/api/auth/2fa", "/api/auth/login", "/api/auth/
 // Defense in depth for everything else: strip any field whose key looks
 // sensitive before it ever reaches the log, regardless of which route it
 // came from.
-const SENSITIVE_KEY_PATTERN = /secret|token|password|qrcode|totp|code|credential|authorization/i;
+//
+// Security fix (#9): this pattern didn't match "sessionId" — POST
+// /api/rooms, POST /api/rooms/join, and GET /api/rooms/:code all return it
+// in the response body, and routes.ts itself documents sessionId as "the
+// sole bearer credential for the WS join action and GET
+// /api/players/:sessionId/credits." Anyone able to read process logs
+// (hosting dashboard, log shipper, support tooling) could lift it straight
+// out of a log line and take over that player's in-game session.
+const SENSITIVE_KEY_PATTERN = /secret|token|password|qrcode|totp|code|credential|authorization|sessionid/i;
 function redactSensitiveFields(value: any): any {
   if (Array.isArray(value)) return value.map(redactSensitiveFields);
   if (value && typeof value === "object") {
@@ -168,7 +176,19 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Security fix (#10): this used to return err.message verbatim for
+    // every status, including 500s. Most handlers let raw pg/Drizzle
+    // errors propagate up uncaught (storage.ts rethrows anything that
+    // isn't a table-missing or unique-violation code it specifically
+    // handles), so a caller who could trigger a DB or parsing failure
+    // could read back actual Postgres error text — column names,
+    // constraint names, sometimes fragments of the failing query — which
+    // hands an attacker a shortcut to mapping the schema. The full error
+    // is still logged below for real debugging; only the response to the
+    // caller is generic for anything >= 500. Deliberate 4xx errors (a
+    // route explicitly rejecting bad input, an expired token, etc.) still
+    // get their actual message, since those are meant to be read.
+    const message = status >= 500 ? "Internal Server Error" : (err.message || "Internal Server Error");
 
     console.error("Internal Server Error:", err);
 

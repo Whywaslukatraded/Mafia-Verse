@@ -28,6 +28,24 @@ pool.on("acquire", () => {
   }
 });
 export const db = drizzle(pool, { schema });
+
+// Security fix (#3): shared by every runtime-created table that needs
+// locking down from the Supabase REST API (the anon key is served to every
+// browser via /api/config, so any table without RLS is otherwise fully
+// readable/writable by a stranger through that API). This server's own
+// queries go through `pool`/`db` directly, never the REST API, so a
+// deny-all policy for both `anon` and `authenticated` has no effect on how
+// this app actually reads or writes the table. DROP POLICY IF EXISTS first
+// since (unlike CREATE TABLE) CREATE POLICY has no IF NOT EXISTS form, and
+// these run on every boot.
+export async function lockDownTableFromPublicApi(client: { query: (sql: string) => Promise<any> }, tableName: string): Promise<void> {
+  await client.query(`ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;`);
+  await client.query(`DROP POLICY IF EXISTS deny_all_anon ON public.${tableName};`);
+  await client.query(`CREATE POLICY deny_all_anon ON public.${tableName} FOR ALL TO anon USING (false) WITH CHECK (false);`);
+  await client.query(`DROP POLICY IF EXISTS deny_all_authenticated ON public.${tableName};`);
+  await client.query(`CREATE POLICY deny_all_authenticated ON public.${tableName} FOR ALL TO authenticated USING (false) WITH CHECK (false);`);
+}
+
 export async function testConnection(retries = 5, delayMs = 2000): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -187,6 +205,21 @@ export async function runMigrations(): Promise<void> {
       `);
       await client.query(`CREATE INDEX IF NOT EXISTS friendships_requester_idx ON friendships (requester_id)`);
       await client.query(`CREATE INDEX IF NOT EXISTS friendships_addressee_idx ON friendships (addressee_id)`);
+      // Security fix (#3): this table (and game_recaps below) never had RLS
+      // enabled — the migration that locked down users/user_mfa/rooms/
+      // players/messages/ad_claims (20260702182747_enable_rls_backend_
+      // tables.sql) predates this table existing at all. Any table in the
+      // public schema with no RLS is fully readable/writable through the
+      // Supabase REST API using the published anon key (served to every
+      // browser via /api/config) — meaning a stranger could SELECT every
+      // friendship row, or INSERT an 'accepted' one pairing themselves with
+      // any account, which the server trusts for friend lists and private-
+      // lobby invites. This app's own backend never needs REST-API access
+      // to these tables (it talks to Postgres directly via the pool
+      // above), so a deny-all policy for both anon and authenticated
+      // blocks that path entirely without affecting how this server reads
+      // or writes the table itself.
+      await lockDownTableFromPublicApi(client, "friendships");
       // Bug fix: createFriendRequest used to be a plain check-then-insert
       // (getFriendshipBetween, then insert if nothing came back) — a
       // classic race. Two requests arriving close together (a double-click,
@@ -206,6 +239,26 @@ export async function runMigrations(): Promise<void> {
       `);
       // Feature: Friends online status (heartbeat-based, see schema.ts)
       await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at timestamp`);
+
+      // Security fix (#2): handleAppSpecificEvent (webhookHandlers.ts) used
+      // to grant credits/Syndicate Pass with no record of which Stripe
+      // event had already been handled. Stripe retries a webhook delivery
+      // on any non-2xx response — if the later stripeSync.processWebhook()
+      // call failed for any reason after the grant already ran, the whole
+      // request returned an error, Stripe retried the SAME verified event,
+      // and the grant ran again, additively, on every retry. This table is
+      // the idempotency ledger: webhookHandlers.ts inserts the event's id
+      // here (in the same transaction as the grant) before paying out, and
+      // ON CONFLICT DO NOTHING there naturally turns a retried delivery
+      // into a no-op instead of a repeat payout.
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS processed_stripe_events (
+          event_id text PRIMARY KEY,
+          processed_at timestamp DEFAULT now()
+        )
+      `);
+      await lockDownTableFromPublicApi(client, "processed_stripe_events");
+
       console.log("[DB] Migrations applied successfully");
     } finally {
       client.release();
