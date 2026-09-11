@@ -2728,6 +2728,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           last_edit_at TIMESTAMPTZ NOT NULL
         );
       `);
+      // Security fix (#3, extended): same exposure class as
+      // account_credits/etc. below — created at runtime, after the
+      // migration that locked down the original table set, with no RLS.
+      // A stranger with the anon key could otherwise read or overwrite
+      // anyone's rating directly through the Supabase REST API.
+      await lockDownTableFromPublicApi(bootstrapClient, "ratings");
       await bootstrapClient.query(`
         CREATE TABLE IF NOT EXISTS referral_links (
           supabase_user_id TEXT PRIMARY KEY,
@@ -5431,8 +5437,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#4, extended): this spends a real currency (wins)
+      // just like the Stripe checkout routes spend real money — was using
+      // getVerifiedSupabaseUserId, which only proves the password was
+      // correct, not that this app's own 2FA step was completed. Paired
+      // with the matching client fix in Cosmetics.tsx (adds the
+      // x-mfa-token header) so this doesn't just start 401ing for anyone
+      // with 2FA enabled.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const { supabaseUserId } = auth;
 
       const { itemId } = req.body;
       const item = WIN_COSMETICS_SERVER.find((i) => i.id === itemId);

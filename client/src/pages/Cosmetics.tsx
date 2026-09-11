@@ -292,9 +292,19 @@ export default function Cosmetics() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
+      // Security fix: paired with the server-side upgrade to
+      // requireVerifiedUser in routes.ts — this spends real currency
+      // (wins) the same way the Stripe checkout calls below spend real
+      // money, so it needs the same x-mfa-token header for accounts with
+      // 2FA enabled.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/account/cosmetics/buy-with-wins", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ itemId: cosmetic.id }),
       });
       if (res.ok) {
