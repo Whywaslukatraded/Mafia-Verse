@@ -78,7 +78,10 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
     setLoadingStatus(true);
     try {
       const res = await fetch(`/api/rewards/daily/status?supabaseUserId=${encodeURIComponent(id)}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -96,9 +99,18 @@ export function DailyRewards({ onClose }: { onClose: () => void }) {
     setClaimingDay(dayNum);
     setErrorMsg("");
     try {
+      // Security fix (#4, extended): paired with the server-side upgrade
+      // to requireVerifiedUser for this route — claiming awards real
+      // credits, so it needs the same x-mfa-token proof-of-2FA the Stripe
+      // checkout routes already require for accounts with 2FA enabled.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/rewards/daily/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ supabaseUserId, day: dayNum }),
       });
       const data = await res.json();

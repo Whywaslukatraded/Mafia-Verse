@@ -39,14 +39,37 @@ async function getFreshAccessToken(forceRefresh = false): Promise<string | undef
   return session.access_token;
 }
 
+// Security fix (#4, extended): a growing list of routes now require this
+// app's own 2FA step to be complete (via requireVerifiedUser on the
+// server), not just a valid password/Supabase session — but nothing on the
+// client side was attaching the server-issued x-mfa-token that proves it,
+// except a few components that each duplicated their own localStorage read
+// (TipJar.tsx, Store.tsx, Cosmetics.tsx, TwoFactorSetup.tsx). Every caller
+// of authFetch/authFetchJson gets this for free now instead of needing the
+// same few lines copy-pasted into every new component that calls a
+// 2FA-gated route — Friends.tsx included, since /api/friends/request,
+// /respond, /remove and /api/rooms/:code/invite all now require it.
+// Reading a missing/absent token is harmless: accounts without 2FA enabled
+// don't need one at all, and requireVerifiedUser only checks it for
+// accounts that actually have 2FA on.
+function getStoredMfaToken(): string | undefined {
+  try {
+    return localStorage.getItem("mafia_mfa_token") || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const accessToken = await getFreshAccessToken();
+  const mfaToken = getStoredMfaToken();
 
   const doFetch = (token: string | undefined) => fetch(path, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
       ...(options.headers || {}),
     },
   });

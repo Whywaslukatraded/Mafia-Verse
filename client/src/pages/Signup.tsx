@@ -26,9 +26,21 @@ function getReferralCodeFromURL() {
 async function claimReferralReward(refCode: string, accessToken: string) {
   if (!refCode || !accessToken) return;
   try {
+    // Security fix (#4, extended): paired with the server-side upgrade to
+    // requireVerifiedUser for this route. Safe to add unconditionally here
+    // even though a brand-new signup can't possibly have 2FA enabled yet —
+    // requireVerifiedUser only demands the token for accounts that
+    // actually have 2FA on, so this is a no-op for the normal signup case
+    // and only matters for whatever later path might reuse this function
+    // for an already-existing, already-2FA'd account.
+    const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
     await fetch("/api/rewards/referral/claim", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+      },
       body: JSON.stringify({ code: refCode, deviceId: getDeviceId() }),
     });
     // A non-OK response (already claimed, invalid code, denied, etc.) is fine to

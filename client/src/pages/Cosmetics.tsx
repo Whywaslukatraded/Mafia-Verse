@@ -234,7 +234,12 @@ export default function Cosmetics() {
       const token = data.session?.access_token;
       if (!token) return;
       try {
-        const res = await fetch("/api/account/cosmetics-owned", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch("/api/account/cosmetics-owned", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
+        });
         if (!res.ok || cancelled) return;
         const { owned: serverOwned } = await res.json();
         if (Array.isArray(serverOwned) && serverOwned.length > 0) {
@@ -257,7 +262,12 @@ export default function Cosmetics() {
       const token = data.session?.access_token;
       if (!token) return;
       try {
-        const res = await fetch("/api/account/syndicate-pass", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch("/api/account/syndicate-pass", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
+        });
         if (!res.ok || cancelled) return;
         const { active } = await res.json();
         setHasPass(!!active);

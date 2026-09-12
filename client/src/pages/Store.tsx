@@ -72,8 +72,18 @@ export default function Store() {
       const token = data.session?.access_token;
       if (!token) return;
       const [creditsRes, passRes] = await Promise.all([
-        fetch("/api/account/credits", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/account/syndicate-pass", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/account/credits", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
+        }),
+        fetch("/api/account/syndicate-pass", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
+        }),
       ]);
       if (creditsRes.ok) {
         const { credits } = await creditsRes.json();

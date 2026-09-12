@@ -67,7 +67,10 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
         setLoadingRating(true);
         try {
           const res = await fetch(`/api/rewards/rating?supabaseUserId=${encodeURIComponent(id)}`, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+            },
           });
           if (res.ok) {
             const data = await res.json();
@@ -101,9 +104,18 @@ export function RatingSystem({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     setErrorMsg("");
     try {
+      // Security fix (#4, extended): paired with the server-side upgrade
+      // to requireVerifiedUser for this route — a first rating awards real
+      // credits, so it needs the same x-mfa-token proof-of-2FA the Stripe
+      // checkout routes already require for accounts with 2FA enabled.
+      const mfaToken = (() => { try { return localStorage.getItem("mafia_mfa_token"); } catch { return null; } })();
       const res = await fetch("/api/rewards/rating", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          ...(mfaToken ? { "x-mfa-token": mfaToken } : {}),
+        },
         body: JSON.stringify({ supabaseUserId, stars }),
       });
       const data = await res.json();

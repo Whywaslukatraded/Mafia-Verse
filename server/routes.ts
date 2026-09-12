@@ -4330,8 +4330,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/friends", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      // Security fix (#4, extended): read-only, but still a good idea to
+      // require the same 2FA proof as the write friend routes now that
+      // authFetch.ts attaches it automatically for every caller — no
+      // extra client work needed here since Friends.tsx already goes
+      // through authFetchJson.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
 
       const rows = await storage.getFriendshipsForUser(myId);
       const otherIds = Array.from(new Set(rows.map(r => r.requesterId === myId ? r.addresseeId : r.requesterId)));
@@ -4378,8 +4384,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/friends/request", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      // Security fix (#4, extended): friend requests link accounts
+      // together and feed private-lobby invites — was using
+      // getVerifiedSupabaseUserId, which only proves the password was
+      // right, not that this app's own 2FA step was completed. Paired
+      // with authFetch.ts now attaching x-mfa-token to every call
+      // (Friends.tsx uses authFetch/authFetchJson exclusively, so no
+      // client-side change was needed there beyond that).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       const { username } = req.body || {};
       if (!username || typeof username !== "string") return res.status(400).json({ message: "Username required." });
 
@@ -4405,8 +4419,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/friends/respond", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      // Security fix (#4, extended): see /api/friends/request above.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       const { friendshipId, accept } = req.body || {};
       if (!friendshipId) return res.status(400).json({ message: "friendshipId required." });
 
@@ -4430,8 +4446,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/friends/remove", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      // Security fix (#4, extended): see /api/friends/request above.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       const { friendshipId } = req.body || {};
       const rows = await storage.getFriendshipsForUser(myId);
       const friendship = rows.find(r => r.id === Number(friendshipId));
@@ -4451,8 +4469,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // GET /api/friends/invites, which their client can poll.
   app.post("/api/rooms/:code/invite", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to invite friends." });
+      // Security fix (#4, extended): see /api/friends/request above.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       const { friendSupabaseUserId } = req.body || {};
       if (!friendSupabaseUserId) return res.status(400).json({ message: "friendSupabaseUserId required." });
 
@@ -4481,8 +4501,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/friends/invites", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to use friends." });
+      // Security fix (#4, extended): see /api/friends above.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
 
       // No index on settings->invitedSupabaseUserIds, so this is a scan —
       // fine at this app's scale (matches the existing lobby-only, small
@@ -4832,8 +4854,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // --- Daily login-streak rewards, tied to the signed-in account ---
   app.get("/api/rewards/daily/status", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
+      // Security fix (#4, extended): read-only, but paired with the same
+      // upgrade on the claim route and the matching client fix in
+      // DailyRewards.tsx (adds the x-mfa-token header here too).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
 
       const today = new Date().toISOString().split("T")[0];
       const client = await pool.connect();
@@ -4859,8 +4885,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/rewards/daily/claim", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to claim daily rewards." });
+      // Security fix (#4, extended): claiming grants real credits — was
+      // using getVerifiedSupabaseUserId, which doesn't prove this app's
+      // own 2FA step was completed. Paired with the matching client fix
+      // in DailyRewards.tsx (adds the x-mfa-token header).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
       const { day } = req.body;
 
       const DAILY_CREDITS = [5, 7, 10, 5, 7, 10, 15];
@@ -4910,8 +4941,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // --- Rating, tied to the signed-in account (credits only awarded once, ever) ---
   app.get("/api/rewards/rating", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
+      // Security fix (#4, extended): read-only, but paired with the same
+      // upgrade on the POST route and the matching client fix in
+      // RatingSystem.tsx (adds the x-mfa-token header here too).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
 
       const client = await pool.connect();
       try {
@@ -4932,8 +4967,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/rewards/rating", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to rate and earn credits." });
+      // Security fix (#4, extended): a first rating grants real credits —
+      // was using getVerifiedSupabaseUserId, which doesn't prove this
+      // app's own 2FA step was completed. Paired with the matching client
+      // fix in RatingSystem.tsx (adds the x-mfa-token header).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
       const { stars } = req.body;
       const starsNum = parseInt(stars, 10);
       if (!Number.isInteger(starsNum) || starsNum < 1 || starsNum > 5) {
@@ -5064,8 +5104,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Credits are NOT paid out here anymore — see the fraud-prevention note below.
   app.post("/api/rewards/referral/claim", async (req, res) => {
     try {
-      const newSupabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!newSupabaseUserId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#4, extended): this doesn't pay out credits directly
+      // (see the fraud-prevention note above — that happens later, via
+      // tryResolveReferralClaim), but it does create the pending claim
+      // record tying a referrer to a new account, so it's worth the same
+      // protection. requireVerifiedUser degrades safely here: a brand-new
+      // signup can't have 2FA enabled yet, so this is a no-op for the
+      // normal case and only matters if this function is ever reused for
+      // an existing, already-2FA'd account.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const newSupabaseUserId = auth.supabaseUserId;
       const { code, deviceId } = req.body;
       if (!code) return res.status(400).json({ message: "Missing code" });
 
@@ -5119,8 +5168,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Authoritative account credit balance
   app.get("/api/account/credits", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ credits: 0 });
+      // Security fix (#4, extended): matches this route's existing
+      // "fail open to 0" philosophy — an unauthenticated or not-yet-2FA'd
+      // caller just sees 0 rather than an error, same as any other lookup
+      // failure here. Paired with the matching client fix in Store.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.json({ credits: 0 });
+      const supabaseUserId = auth.supabaseUserId;
       const client = await pool.connect();
       try {
         const result = await client.query("SELECT credits FROM account_credits WHERE supabase_user_id = $1", [supabaseUserId]);
@@ -5138,8 +5192,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // see handleAppSpecificEvent() there.
   app.get("/api/account/syndicate-pass", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ active: false });
+      // Security fix (#4, extended): same fail-open reasoning as
+      // /api/account/credits above. Paired with the matching client fix
+      // in Store.tsx and Cosmetics.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.json({ active: false });
+      const supabaseUserId = auth.supabaseUserId;
       const client = await pool.connect();
       try {
         const result = await client.query("SELECT active FROM account_syndicate_pass WHERE supabase_user_id = $1", [supabaseUserId]);
@@ -5347,8 +5405,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/account/cosmetics-owned", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ owned: [] });
+      // Security fix (#4, extended): same fail-open reasoning as
+      // /api/account/credits above. Paired with the matching client fix
+      // in Cosmetics.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.json({ owned: [] });
+      const supabaseUserId = auth.supabaseUserId;
       const client = await pool.connect();
       try {
         const result = await client.query("SELECT item_id FROM account_cosmetics_owned WHERE supabase_user_id = $1", [supabaseUserId]);
