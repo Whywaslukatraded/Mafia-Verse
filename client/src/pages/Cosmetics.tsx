@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 import { LOOT_ITEMS, TIER_COLORS as LOOT_TIER_COLORS, TIER_BG as LOOT_TIER_BG } from "@/components/LootCrate";
 
 // Loot-crate cosmetics (non-credit items only) — same catalog LootCrate.tsx
@@ -162,6 +163,7 @@ const SYNDICATE_COSMETICS_META = [
 
 export default function Cosmetics() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
 
   const TIER_CONFIG = {
@@ -326,9 +328,27 @@ export default function Cosmetics() {
         const newOwned = new Set(owned);
         newOwned.add(cosmetic.id);
         setOwned(newOwned);
+        const body = await res.json().catch(() => null);
+        if (typeof body?.winsRemaining === "number") setServerWins(body.winsRemaining);
+      } else {
+        // Bug fix: this used to do nothing at all on failure — the item
+        // "just stayed locked" with zero indication of why, whether that
+        // was a genuinely stale wins balance, an expired session, or a
+        // real server error. Surface whatever the server actually said
+        // instead of failing in total silence.
+        const body = await res.json().catch(() => null);
+        toast({
+          title: t("cosmetics.purchaseFailedTitle", "Couldn't unlock this item"),
+          description: body?.message || t("cosmetics.purchaseFailedDescription", "Something went wrong — try refreshing the page and checking your wins balance."),
+          variant: "destructive",
+        });
       }
     } catch {
-      // Non-fatal — the item just stays locked and can be retried.
+      toast({
+        title: t("cosmetics.purchaseFailedTitle", "Couldn't unlock this item"),
+        description: t("cosmetics.networkErrorDescription", "Network error — please try again."),
+        variant: "destructive",
+      });
     }
     setBuyingId(null);
   };

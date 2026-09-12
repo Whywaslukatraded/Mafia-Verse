@@ -865,7 +865,10 @@
         "name": "El Soplón",
         "description": "La información es moneda de cambio."
       }
-    }
+    },
+    "purchaseFailedTitle": "No se pudo desbloquear este artículo",
+    "purchaseFailedDescription": "Algo salió mal — intenta actualizar la página y revisa tu saldo de victorias.",
+    "networkErrorDescription": "Error de red — inténtalo de nuevo."
   },
   "roleBadge": {
     "mafia": "Mafioso",

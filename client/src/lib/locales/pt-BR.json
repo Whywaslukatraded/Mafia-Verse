@@ -634,7 +634,10 @@
         "name": "O Dedo-Duro",
         "description": "Informação é moeda de troca."
       }
-    }
+    },
+    "purchaseFailedTitle": "Não foi possível desbloquear este item",
+    "purchaseFailedDescription": "Algo deu errado — tente atualizar a página e verificar seu saldo de vitórias.",
+    "networkErrorDescription": "Erro de rede — tente novamente."
   },
   "room": {
     "linkCopied": "Link copiado!",

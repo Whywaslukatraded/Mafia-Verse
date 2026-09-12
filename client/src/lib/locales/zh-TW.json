@@ -634,7 +634,10 @@
         "name": "告密者",
         "description": "情報就是貨幣。"
       }
-    }
+    },
+    "purchaseFailedTitle": "無法解鎖此物品",
+    "purchaseFailedDescription": "出了點問題——請嘗試重新整理頁面並檢查你的勝場餘額。",
+    "networkErrorDescription": "網路錯誤——請重試。"
   },
   "room": {
     "linkCopied": "連結已複製！",

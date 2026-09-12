@@ -865,7 +865,10 @@
         "name": "Le Mouchard",
         "description": "L'information est une monnaie d'échange."
       }
-    }
+    },
+    "purchaseFailedTitle": "Impossible de débloquer cet article",
+    "purchaseFailedDescription": "Un problème est survenu — essaie d'actualiser la page et de vérifier ton solde de victoires.",
+    "networkErrorDescription": "Erreur réseau — réessaie."
   },
   "roleBadge": {
     "mafia": "Mafia",

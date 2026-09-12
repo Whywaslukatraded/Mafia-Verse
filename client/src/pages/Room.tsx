@@ -917,11 +917,25 @@ export default function Room() {
   // separate from the static HowToPlay rules modal on Home. Fires once per
   // browser, the first time someone reaches an actual playing phase (not
   // the lobby, and not as a spectator, who don't get vote/action cards).
-  // Waits for hasRevealed so it never competes with the role-reveal modal
-  // for attention on turn 1. (showTutorial itself is declared earlier,
+  // Waits for the role-reveal overlay to actually finish (not just start)
+  // before showing the tutorial or telling the server it's safe to start
+  // turn 1's real clock. (showTutorial itself is declared earlier,
   // alongside timeRemaining, since the phase-timer effect above needs it.)
   //
-  // Bug fix: sends tutorial_ready to the server either immediately (if the
+  // Bug fix: this used to gate on `hasRevealed` alone — but hasRevealed
+  // flips to true the INSTANT the role-reveal overlay opens (see the
+  // effect that sets showRoleReveal/hasRevealed together, a few lines up),
+  // not when it closes 5 seconds later. That meant tutorial_ready was
+  // being sent to the server (and the tutorial itself skipped straight to
+  // "already seen, nothing to show") the moment the reveal modal
+  // appeared — before the player had actually seen their role for more
+  // than an instant. The server's turn-one gate (see turnOneReadyGates in
+  // routes.ts) then started the real mafia-phase clock right away,
+  // exactly matching "the animation skips the first 5 seconds of mafia."
+  // Waiting for `!showRoleReveal` too means this only fires once that
+  // overlay has genuinely closed.
+  //
+  // Sends tutorial_ready to the server either immediately (if the
   // tutorial won't show at all — already seen, or spectating) or when it
   // closes. The server holds turn 1's real phase clock until every real
   // player has sent this — see turnOneReadyGates in routes.ts. Previously
@@ -934,7 +948,7 @@ export default function Room() {
   useEffect(() => {
     if (!room || isSpectator) return;
     if (room.status === "lobby" || room.status === "ended") return;
-    if (!hasRevealed) return;
+    if (!hasRevealed || showRoleReveal) return;
     if (tutorialReadySentRef.current) return;
     const seen = localStorage.getItem("mafia_seen_room_tutorial");
     if (!seen) {
@@ -943,7 +957,7 @@ export default function Room() {
       tutorialReadySentRef.current = true;
       sendAction({ type: "tutorial_ready" } as any);
     }
-  }, [room?.status, isSpectator, hasRevealed]);
+  }, [room?.status, isSpectator, hasRevealed, showRoleReveal]);
   const closeTutorial = () => {
     setShowTutorial(false);
     if (!tutorialReadySentRef.current) {

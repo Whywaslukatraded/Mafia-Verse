@@ -634,7 +634,10 @@
         "name": "告密者",
         "description": "情报就是货币。"
       }
-    }
+    },
+    "purchaseFailedTitle": "无法解锁此物品",
+    "purchaseFailedDescription": "出了点问题——请尝试刷新页面并检查你的胜场余额。",
+    "networkErrorDescription": "网络错误——请重试。"
   },
   "room": {
     "linkCopied": "链接已复制！",

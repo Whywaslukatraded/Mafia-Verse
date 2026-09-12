@@ -865,7 +865,10 @@
         "name": "The Snitch",
         "description": "Information is currency."
       }
-    }
+    },
+    "purchaseFailedTitle": "Couldn't unlock this item",
+    "purchaseFailedDescription": "Something went wrong — try refreshing the page and checking your wins balance.",
+    "networkErrorDescription": "Network error — please try again."
   },
   "roleBadge": {
     "mafia": "Mafia",

@@ -87,6 +87,7 @@ function Router404() {
   return (
     <Router hook={useHashLocation}>
       <Suspense fallback={null}>
+        <TwoFactorGate />
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/login" component={Login} />
@@ -110,6 +111,92 @@ function Router404() {
       </Suspense>
     </Router>
   );
+}
+
+// Paths that never require a completed 2FA step, even with a live Supabase
+// session — either they're how you'd GET to 2FA in the first place (login/
+// signup/setup/verify), or they're meant to work for anyone regardless of
+// auth state at all (home, a shared recap link, joining a room via invite,
+// static info pages).
+const TWO_FA_EXEMPT_PREFIXES = [
+  "/", "/login", "/signup", "/2fa-setup", "/2fa-verify", "/reset-password",
+  "/auth/callback", "/room/", "/recap/", "/about", "/faq", "/leaderboard",
+];
+function isTwoFaExemptPath(hashPath: string): boolean {
+  const path = hashPath.replace(/^#/, "") || "/";
+  return TWO_FA_EXEMPT_PREFIXES.some((p) => (p === "/" ? path === "/" : path.startsWith(p)));
+}
+
+// Bug fix: login could be bypassed entirely. signInWithPassword() creates a
+// real, valid Supabase session the instant the password is correct —
+// Login.tsx then navigates to /2fa-verify (or /2fa-setup for a first-time
+// account), but that's just a UI redirect, not an enforced gate. Nothing
+// stopped someone from hitting the browser back button right after that
+// redirect: the session already existed, so any other page that only
+// checked "is there a session" (rather than "has 2FA actually been
+// completed this session") would treat them as fully logged in — showing a
+// Log Out button and full access — despite 2FA never having been verified.
+// This runs once, app-wide, reacting to auth state changes: if a session
+// exists, its account requires 2FA, and this browser has no valid
+// mafia_mfa_token proving it was verified, every navigation gets bounced
+// back to /2fa-verify (or /2fa-setup, for an account that's never set 2FA
+// up at all — matching Login.tsx's own existing assumption that every
+// account ends up with 2FA one way or another) until that's actually done.
+function TwoFactorGate() {
+  const [gateTarget, setGateTarget] = useState<"/2fa-verify" | "/2fa-setup" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const evaluate = async () => {
+      if (!isSupabaseReady()) { if (!cancelled) setGateTarget(null); return; }
+      const supabase = getSupabase();
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session) { if (!cancelled) setGateTarget(null); return; }
+
+      // A token already stored means 2FA was completed at some point in
+      // the last 12 hours (see MFA_TOKEN_TTL_MS server-side) — no need to
+      // re-check status against the server on every single auth event.
+      let hasStoredToken = false;
+      try { hasStoredToken = !!localStorage.getItem("mafia_mfa_token"); } catch {}
+      if (hasStoredToken) { if (!cancelled) setGateTarget(null); return; }
+
+      try {
+        const res = await fetch(`/api/auth/2fa/status?supabaseUserId=${encodeURIComponent(session.user.id)}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) { if (!cancelled) setGateTarget(null); return; }
+        const status = await res.json();
+        if (cancelled) return;
+        setGateTarget(status.isEnabled ? "/2fa-verify" : "/2fa-setup");
+      } catch {
+        if (!cancelled) setGateTarget(null);
+      }
+    };
+
+    evaluate();
+    let unsubscribe: (() => void) | null = null;
+    if (isSupabaseReady()) {
+      const { data: sub } = getSupabase().auth.onAuthStateChange(() => evaluate());
+      unsubscribe = () => sub.subscription.unsubscribe();
+    }
+    return () => { cancelled = true; unsubscribe?.(); };
+  }, []);
+
+  useEffect(() => {
+    if (!gateTarget) return;
+    const enforce = () => {
+      if (!isTwoFaExemptPath(window.location.hash)) {
+        window.location.hash = `#${gateTarget}`;
+      }
+    };
+    enforce(); // catches the case where the gate becomes active while already on a non-exempt path
+    window.addEventListener("hashchange", enforce);
+    return () => window.removeEventListener("hashchange", enforce);
+  }, [gateTarget]);
+
+  return null;
 }
 
 function App() {
