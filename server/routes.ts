@@ -5216,7 +5216,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Authoritative Syndicate Pass ownership (#5 / #7 fix). Written by
   // webhookHandlers.ts on a verified `checkout.session.completed` event —
   // see handleAppSpecificEvent() there.
-  app.get("/api/account/syndicate-pass", async (req, res) => {
+  const accountSyndicatePassLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/account/syndicate-pass", accountSyndicatePassLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): same fail-open reasoning as
       // /api/account/credits above. Paired with the matching client fix
