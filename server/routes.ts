@@ -4958,6 +4958,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Rating, tied to the signed-in account (credits only awarded once, ever) ---
+  const ratingSubmitLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // cap repeated submit attempts per IP/window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many rating submissions, please try again later." },
+  });
+
   app.get("/api/rewards/rating", async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, but paired with the same
@@ -4984,7 +4992,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/rewards/rating", async (req, res) => {
+  app.post("/api/rewards/rating", ratingSubmitLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): a first rating grants real credits —
       // was using getVerifiedSupabaseUserId, which doesn't prove this
