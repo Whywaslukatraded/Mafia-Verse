@@ -2899,7 +2899,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post(api.auth.login.path, async (req, res) => {
+  app.post(api.auth.login.path, loginLimiter, async (req, res) => {
     try {
       const input = api.auth.login.input.parse(req.body);
       const user = await storage.getUserByUsername(input.username);
