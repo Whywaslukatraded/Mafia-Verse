@@ -5043,9 +5043,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Referrals, tied to signed-in accounts on both ends ---
+  const rewardsReadLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // max 30 requests per IP per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests, please try again shortly." },
+  });
+
   // Shows who this account has recently finished games with — a lightweight
   // building block toward a friends list, without a real friends system yet.
-  app.get("/api/rewards/recent-players", async (req, res) => {
+  app.get("/api/rewards/recent-players", rewardsReadLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, but paired with the
       // matching client fix in Home.tsx.
