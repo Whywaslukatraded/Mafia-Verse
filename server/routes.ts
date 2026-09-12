@@ -4631,7 +4631,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           }
         } catch (nameErr: any) {
           // One name's failure shouldn't abort the rest of the batch.
-          console.error(`Reset leaderboard stats error for "${name}"`, nameErr);
+          console.error('Reset leaderboard stats error for "%s"', name, nameErr);
           failedNames.push({ name, error: nameErr?.cause?.message || nameErr?.message || "Unknown error" });
         }
       }
