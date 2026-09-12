@@ -5374,7 +5374,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return LOOT_ITEMS_SERVER[0];
   }
 
-  app.post("/api/loot-crate/open", async (req, res) => {
+  const lootCrateOpenLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many loot crate open requests, please try again later." },
+  });
+
+  app.post("/api/loot-crate/open", lootCrateOpenLimiter, async (req, res) => {
     try {
       const auth = await requireVerifiedUser(req);
       if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
