@@ -4871,7 +4871,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Daily login-streak rewards, tied to the signed-in account ---
-  app.get("/api/rewards/daily/status", async (req, res) => {
+  const dailyRewardsLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many daily reward requests. Please try again later." },
+  });
+
+  app.get("/api/rewards/daily/status", dailyRewardsLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, but paired with the same
       // upgrade on the claim route and the matching client fix in
@@ -4902,7 +4910,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/rewards/daily/claim", async (req, res) => {
+  app.post("/api/rewards/daily/claim", dailyRewardsLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): claiming grants real credits — was
       // using getVerifiedSupabaseUserId, which doesn't prove this app's
