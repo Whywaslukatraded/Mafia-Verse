@@ -5085,7 +5085,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.get("/api/rewards/referral", async (req, res) => {
+  const referralStatusLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/rewards/referral", referralStatusLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): generates/writes a new referral_links
       // row on first call (not purely read-only) — paired with the
