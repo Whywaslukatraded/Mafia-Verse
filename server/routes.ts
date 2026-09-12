@@ -4372,8 +4372,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // of the ONLINE_WINDOW_MS above on their own.
   app.post("/api/presence/ping", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Not authenticated" });
+      // Security fix (#4, extended): low-stakes (just a timestamp touch),
+      // but consistent with the rest of this pass — free to upgrade since
+      // App.tsx already calls this via authFetch, which now attaches
+      // x-mfa-token automatically.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       await storage.touchUserPresence(myId);
       res.json({ ok: true });
     } catch (e) {
@@ -4527,8 +4532,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // in the match and isn't signed in, same as a room join link.
   app.get("/api/recaps", async (req, res) => {
     try {
-      const myId = await getVerifiedSupabaseUserId(req);
-      if (!myId) return res.status(401).json({ message: "Sign in to see your game history." });
+      // Security fix (#4, extended): personal game-history list — was
+      // using getVerifiedSupabaseUserId, which doesn't prove this app's
+      // own 2FA step was completed. Home.tsx calls this via authFetchJson,
+      // which already attaches x-mfa-token for every caller, so no client
+      // change was needed here. (Not to be confused with
+      // /api/recaps/:shareId just below, which is intentionally public
+      // with no auth check at all — that one must stay untouched.)
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
       const recaps = await storage.getRecapsForUser(myId);
       res.json({ recaps });
     } catch (e) {
@@ -4769,8 +4782,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Check ad claim status for today (server-side rate limit check, tied to account)
   app.get("/api/ad-claim/status", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim.", claimsToday: 0, remaining: 0 });
+      // Security fix (#4, extended): read-only, paired with the matching
+      // client fix in AdRewards.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message, claimsToday: 0, remaining: 0 });
+      const supabaseUserId = auth.supabaseUserId;
 
       const today = new Date().toISOString().split("T")[0];
       const client = await pool.connect();
@@ -4792,8 +4808,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Claim free ad credits — enforced server-side 5/day limit, tied to the signed-in account
   app.post("/api/ad-claim", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to watch and claim." });
+      // Security fix (#4, extended): grants real credits — paired with the
+      // matching client fix in AdRewards.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
       const { roomCode } = req.body;
 
       const today = new Date().toISOString().split("T")[0];
@@ -5028,8 +5047,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // building block toward a friends list, without a real friends system yet.
   app.get("/api/rewards/recent-players", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to see recent players." });
+      // Security fix (#4, extended): read-only, but paired with the
+      // matching client fix in Home.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
 
       const client = await pool.connect();
       try {
@@ -5065,8 +5087,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/rewards/referral", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.status(401).json({ message: "Sign up to get your referral link." });
+      // Security fix (#4, extended): generates/writes a new referral_links
+      // row on first call (not purely read-only) — paired with the
+      // matching client fix in ReferralSystem.tsx.
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const supabaseUserId = auth.supabaseUserId;
 
       const client = await pool.connect();
       try {
@@ -5476,8 +5502,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/account/wins", async (req, res) => {
     try {
-      const supabaseUserId = await getVerifiedSupabaseUserId(req);
-      if (!supabaseUserId) return res.json({ wins: 0, totalWins: 0, gamesPlayed: 0, mvpCount: 0 });
+      // Security fix (#4, extended): fail-open reasoning same as
+      // /api/account/credits etc. Paired with the matching client fix in
+      // both Cosmetics.tsx and Profile.tsx (both call this route).
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.json({ wins: 0, totalWins: 0, gamesPlayed: 0, mvpCount: 0 });
+      const supabaseUserId = auth.supabaseUserId;
       const client = await pool.connect();
       try {
         // Security fix: was returning only the spendable balance, which the

@@ -109,7 +109,10 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
 
       if (id && token) {
         fetch(`/api/ad-claim/status?supabaseUserId=${encodeURIComponent(id)}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
         })
           .then(r => r.json())
           .then(data => {
@@ -144,7 +147,11 @@ export function AdRewards({ onClose, roomCode }: AdRewardsProps) {
         clearInterval(intervalRef.current!);
         fetch("/api/ad-claim", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
           body: JSON.stringify({ roomCode }),
         })
           .then(r => r.json())

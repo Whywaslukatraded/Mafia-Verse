@@ -213,7 +213,12 @@ export default function Cosmetics() {
       const token = data.session?.access_token;
       if (!token) return;
       try {
-        const res = await fetch("/api/account/wins", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch("/api/account/wins", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
+        });
         if (!res.ok || cancelled) return;
         const { wins } = await res.json();
         if (typeof wins === "number") setServerWins(wins);

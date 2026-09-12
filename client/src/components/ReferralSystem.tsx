@@ -43,7 +43,10 @@ export function ReferralSystem({ onClose }: { onClose: () => void }) {
 
       if (id && token) {
         fetch(`/api/rewards/referral?supabaseUserId=${encodeURIComponent(id)}&deviceId=${encodeURIComponent(getDeviceId())}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+          },
         })
           .then(r => r.json())
           .then(data => {

@@ -462,7 +462,10 @@ function RecentPlayers() {
       if (cancelled || !id || !token) return;
       setSupabaseUserId(id);
       fetch(`/api/rewards/recent-players?supabaseUserId=${encodeURIComponent(id)}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(localStorage.getItem("mafia_mfa_token") ? { "x-mfa-token": localStorage.getItem("mafia_mfa_token")! } : {}),
+        },
       })
         .then(r => r.json())
         .then(data => { if (!cancelled) setRecentPlayers(data.recentPlayers || []); })
