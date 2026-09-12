@@ -5527,7 +5527,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
+  app.post("/api/account/cosmetics/buy-with-wins", buyWithWinsRateLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): this spends a real currency (wins)
       // just like the Stripe checkout routes spend real money — was using
@@ -5614,6 +5614,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // /api/loot-crate/open above, just at these two higher cost tiers, so both
   // paths share one source of truth for credits and item ownership.
   const STASH_DROP_COST: Record<string, number> = { underworld: 150, syndicate: 400 };
+
+  const buyWithWinsRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many purchase attempts. Please try again shortly." },
+  });
 
   app.post("/api/store/stash-drop", async (req, res) => {
     try {
