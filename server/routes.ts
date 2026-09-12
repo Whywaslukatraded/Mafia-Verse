@@ -5192,7 +5192,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Authoritative account credit balance
-  app.get("/api/account/credits", async (req, res) => {
+  const accountCreditsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/account/credits", accountCreditsLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): matches this route's existing
       // "fail open to 0" philosophy — an unauthenticated or not-yet-2FA'd
