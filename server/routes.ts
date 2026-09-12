@@ -4957,8 +4957,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  const ratingRouteLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // limit each IP to 30 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // --- Rating, tied to the signed-in account (credits only awarded once, ever) ---
-  app.get("/api/rewards/rating", async (req, res) => {
+  app.get("/api/rewards/rating", ratingRouteLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, but paired with the same
       // upgrade on the POST route and the matching client fix in
@@ -4984,7 +4991,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/rewards/rating", async (req, res) => {
+  app.post("/api/rewards/rating", ratingRouteLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): a first rating grants real credits —
       // was using getVerifiedSupabaseUserId, which doesn't prove this
