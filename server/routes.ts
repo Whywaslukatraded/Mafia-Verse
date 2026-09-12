@@ -4779,6 +4779,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  const adClaimLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // limit repeated claim attempts to reduce DB pressure
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const userId = req.header("x-user-id");
+      return userId || req.ip || "unknown";
+    },
+  });
+
   // Check ad claim status for today (server-side rate limit check, tied to account)
   app.get("/api/ad-claim/status", async (req, res) => {
     try {
@@ -4806,7 +4817,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Claim free ad credits — enforced server-side 5/day limit, tied to the signed-in account
-  app.post("/api/ad-claim", async (req, res) => {
+  app.post("/api/ad-claim", adClaimLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): grants real credits — paired with the
       // matching client fix in AdRewards.tsx.
