@@ -4780,7 +4780,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Check ad claim status for today (server-side rate limit check, tied to account)
-  app.get("/api/ad-claim/status", async (req, res) => {
+  const adClaimStatusLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 60, // limit each IP to 60 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/ad-claim/status", adClaimStatusLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, paired with the matching
       // client fix in AdRewards.tsx.
