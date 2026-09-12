@@ -5128,7 +5128,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Called once, right after a NEW account finishes signing up with a referral code.
   // Credits are NOT paid out here anymore — see the fraud-prevention note below.
-  app.post("/api/rewards/referral/claim", async (req, res) => {
+  const referralClaimRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // limit repeated claim attempts per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many referral claim attempts. Please try again later." },
+  });
+
+  app.post("/api/rewards/referral/claim", referralClaimRateLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): this doesn't pay out credits directly
       // (see the fraud-prevention note above — that happens later, via
