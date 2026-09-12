@@ -5429,7 +5429,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.get("/api/account/cosmetics-owned", async (req, res) => {
+  const cosmeticsOwnedLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 60, // limit each IP to 60 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/account/cosmetics-owned", cosmeticsOwnedLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): same fail-open reasoning as
       // /api/account/credits above. Paired with the matching client fix
