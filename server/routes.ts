@@ -5043,9 +5043,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // --- Referrals, tied to signed-in accounts on both ends ---
+  const rewardsReadLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // max 30 requests per IP per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests, please try again shortly." },
+  });
+
   // Shows who this account has recently finished games with — a lightweight
   // building block toward a friends list, without a real friends system yet.
-  app.get("/api/rewards/recent-players", async (req, res) => {
+  app.get("/api/rewards/recent-players", rewardsReadLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): read-only, but paired with the
       // matching client fix in Home.tsx.
@@ -5085,7 +5093,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.get("/api/rewards/referral", async (req, res) => {
+  const referralStatusLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.get("/api/rewards/referral", referralStatusLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): generates/writes a new referral_links
       // row on first call (not purely read-only) — paired with the
@@ -5527,7 +5542,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/account/cosmetics/buy-with-wins", async (req, res) => {
+  const buyWithWinsRateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many purchase attempts. Please try again shortly." },
+  });
+
+  app.post("/api/account/cosmetics/buy-with-wins", buyWithWinsRateLimiter, async (req, res) => {
     try {
       // Security fix (#4, extended): this spends a real currency (wins)
       // just like the Stripe checkout routes spend real money — was using
