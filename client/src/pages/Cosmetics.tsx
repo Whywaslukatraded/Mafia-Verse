@@ -301,7 +301,14 @@ export default function Cosmetics() {
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const handleBuy = async (cosmetic: any) => {
-    if (owned.has(cosmetic.id) || userWins < cosmetic.cost || buyingId) return;
+    // Bug fix: this used to also gate on `userWins < cosmetic.cost`, which
+    // returned before the fetch ever fired whenever the client's wins value
+    // was stale — zero network request, zero toast, item just stayed locked
+    // with no explanation. The server already checks the real balance and
+    // returns a "Not enough wins" toast on failure (see the `else` branch
+    // below), so it's the single source of truth now; this only guards
+    // against re-buying an owned item or double-submitting mid-request.
+    if (owned.has(cosmetic.id) || buyingId) return;
     setBuyingId(cosmetic.id);
     try {
       if (!isSupabaseReady()) return;
@@ -512,7 +519,15 @@ export default function Cosmetics() {
           ) : !isOwned ? (
             <Button
               onClick={() => handleBuy(cosmetic)}
-              disabled={!canAfford || buyingId === cosmetic.id}
+              // Bug fix: this used to also disable on `!canAfford`, which is
+              // computed from the same client-side userWins that can go
+              // stale — so a real, sufficient server-side balance could
+              // still render this button un-clickable with no explanation.
+              // Only buyingId (mid-request) blocks the click now; canAfford
+              // still drives the dimmed styling below, but the server's own
+              // "Not enough wins" response (surfaced via toast in
+              // handleBuy) is the actual gate on affordability.
+              disabled={buyingId === cosmetic.id}
               className={cn(
                 "w-full text-xs font-black h-10 transition-all",
                 canAfford
