@@ -579,10 +579,42 @@ export default function Home() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ name: name.trim(), avatar, avatarConfig: config }),
       });
-      if (!res.ok) throw new Error((await res.json())?.message || "Quick Match failed");
-      const result = await res.json();
-      localStorage.setItem(`mafia_session_${result.code}`, result.sessionId);
-      localStorage.setItem(`mafia_player_${result.code}`, result.playerId.toString());
+      // Bug fix: this used to call `res.json()` directly on the error path.
+      // When the server replies with a non-JSON body — an HTML error page,
+      // a proxy/edge error, or an empty body — `res.json()` itself throws,
+      // and its error replaces the real one. On iOS Safari that throw reads
+      // "The string did not match the expected pattern", which is why Quick
+      // Match showed that instead of the actual failure. Read the body as
+      // text first, try to parse it, and always keep the status code in the
+      // message so the toast says something diagnosable on a device with no
+      // console.
+      const rawBody = await res.text();
+      let parsedBody: any = null;
+      try {
+        parsedBody = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        parsedBody = null;
+      }
+      if (!res.ok) {
+        const serverMessage = parsedBody?.message
+          || (rawBody ? `${rawBody.slice(0, 120)}` : "no response body");
+        throw new Error(`HTTP ${res.status} — ${serverMessage}`);
+      }
+      if (!parsedBody?.code) {
+        throw new Error(`HTTP ${res.status} — unexpected response: ${rawBody.slice(0, 120) || "empty body"}`);
+      }
+      const result = parsedBody;
+      // Bug fix: localStorage throws outright on iOS Safari when site data
+      // is blocked (Lockdown Mode, "Block All Cookies", some private
+      // sessions). That throw used to escape into the catch below and get
+      // reported as a Quick Match failure even though the room was created
+      // fine server-side. Storing the session is a convenience for
+      // rejoining, not a requirement to enter the room, so failing to
+      // store it must not block navigation.
+      try {
+        localStorage.setItem(`mafia_session_${result.code}`, result.sessionId);
+        localStorage.setItem(`mafia_player_${result.code}`, result.playerId.toString());
+      } catch {}
       setLocation(`/room/${result.code}`);
     } catch (err: any) {
       toast({ title: t("home.quickMatchFailed", "Quick Match failed"), description: err?.message, variant: "destructive" });
@@ -597,8 +629,12 @@ export default function Home() {
     }
     try {
       const res = await joinRoom.mutateAsync({ name, avatar, code, avatarConfig: config, asSpectator: false, supabaseUserId: user?.id } as any);
-      localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
-      localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      // See the note in handleQuickMatch — a blocked localStorage on iOS
+      // must not turn a successful join into a failure toast.
+      try {
+        localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
+        localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      } catch {}
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
       toast({ title: t("home.failedToJoin", "Couldn't join that room"), description: err?.message, variant: "destructive" });
@@ -851,8 +887,12 @@ export default function Home() {
     }
     try {
       const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, asSpectator: joinAsSpectator, supabaseUserId: user?.id } as any);
-      localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
-      localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      // See the note in handleQuickMatch — a blocked localStorage on iOS
+      // must not turn a successful join into a failure toast.
+      try {
+        localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
+        localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      } catch {}
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
       toast({ title: t("home.failedToJoin"), description: err.message, variant: "destructive" });
@@ -901,8 +941,12 @@ export default function Home() {
         },
         supabaseUserId: user?.id,
       } as any);
-      localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
-      localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      // See the note in handleQuickMatch — a blocked localStorage on iOS
+      // must not turn a successful room creation into a failure toast.
+      try {
+        localStorage.setItem(`mafia_session_${res.code}`, res.sessionId);
+        localStorage.setItem(`mafia_player_${res.code}`, res.playerId.toString());
+      } catch {}
       setLocation(`/room/${res.code}`);
     } catch (err: any) {
       toast({ title: t("home.failedToCreate"), description: err?.message || t("home.somethingWentWrong"), variant: "destructive" });
@@ -911,8 +955,8 @@ export default function Home() {
 
   const ROLE_ROWS = [
     { key: 'mafia', label: t("home.roles.mafias"), icon: Skull, color: 'text-red-500', bg: 'bg-red-500/10' },
-    { key: 'detective', label: t("home.roles.detectives"), icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { key: 'doctor', label: t("home.roles.doctors"), icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { key: 'detective', label: t("home.roles.detectives"), icon: Shield, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { key: 'civilian', label: t("home.roles.civilians"), icon: User, color: 'text-slate-400', bg: 'bg-slate-500/10' },
     { key: 'bodyguard', label: t("roleBadge.bodyguard"), icon: ShieldCheck, color: 'text-slate-300', bg: 'bg-slate-400/10' },
     { key: 'vigilante', label: t("roleBadge.vigilante"), icon: Crosshair, color: 'text-orange-400', bg: 'bg-orange-500/10' },
