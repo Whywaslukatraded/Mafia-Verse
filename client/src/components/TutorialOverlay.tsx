@@ -20,6 +20,17 @@ export const ROOM_TUTORIAL_STEPS: TutorialStep[] = [
     bodyKey: "tutorial.phase.body",
     bodyFallback: "This shows whether it's day or night, and how much time is left to act.",
   },
+  // Moved up from last (was step 5 of 5) so new players know the handbook
+  // exists before sitting through several steps that assume role knowledge
+  // ("game feels confusing" feedback — most players won't know every role's
+  // powers yet at this point in the walkthrough).
+  {
+    target: "handbook",
+    titleKey: "tutorial.handbook.title",
+    titleFallback: "Forget a role?",
+    bodyKey: "tutorial.handbook.body",
+    bodyFallback: "Open the handbook anytime to check what every role does.",
+  },
   {
     target: "teammates",
     titleKey: "tutorial.teammates.title",
@@ -41,14 +52,22 @@ export const ROOM_TUTORIAL_STEPS: TutorialStep[] = [
     bodyKey: "tutorial.chat.body",
     bodyFallback: "Chat with everyone here. If you're mafia, you'll also get a private channel with your teammates at night.",
   },
-  {
-    target: "handbook",
-    titleKey: "tutorial.handbook.title",
-    titleFallback: "Forget a role?",
-    bodyKey: "tutorial.handbook.body",
-    bodyFallback: "Open the handbook anytime to check what every role does.",
-  },
 ];
+
+// Bug fix (feedback: "game feels confusing"): the player-grid step used to
+// give every role the exact same one-sentence night-action line, which is
+// meaningless for Civilian/Mayor/Jester (no night action) and too vague for
+// the 5 roles that actually have one. Room.tsx overrides this step's
+// bodyKey/bodyFallback per-role using this map (same pattern it already
+// uses to filter the "teammates" step) — civilian/mayor/jester fall through
+// to the generic body above since they're not in this map.
+export const PLAYER_GRID_NIGHT_ACTION_BODY: Record<string, string> = {
+  mafia: "Tap a player's card to vote during the day. At night, tap a target to choose who your team eliminates.",
+  detective: "Tap a player's card to vote during the day. At night, tap a target to investigate whether they're Mafia.",
+  doctor: "Tap a player's card to vote during the day. At night, tap a target to protect them from being eliminated.",
+  bodyguard: "Tap a player's card to vote during the day. At night, tap a target to guard them — you'll take the hit meant for them.",
+  vigilante: "Tap a player's card to vote during the day. At night, you may tap a target to eliminate them yourself — but killing an innocent has consequences.",
+};
 
 // Feature: Tutorial overlay. A live spotlight walkthrough over the actual
 // Room.tsx UI (not a static rules screen — that's the separate HowToPlay

@@ -1190,7 +1190,14 @@
     },
     "players": {
       "title": "Votez et agissez ici",
-      "body": "Touchez la carte d'un joueur pour voter le jour, ou pour utiliser l'action nocturne de votre rôle quand c'est votre tour."
+      "body": "Touchez la carte d'un joueur pour voter le jour, ou pour utiliser l'action nocturne de votre rôle quand c'est votre tour.",
+      "bodyByRole": {
+        "mafia": "Touchez la carte d'un joueur pour voter le jour. La nuit, touchez une cible pour choisir qui votre équipe élimine.",
+        "detective": "Touchez la carte d'un joueur pour voter le jour. La nuit, touchez une cible pour enquêter et savoir si c'est un membre de la Mafia.",
+        "doctor": "Touchez la carte d'un joueur pour voter le jour. La nuit, touchez une cible pour la protéger d'être éliminée.",
+        "bodyguard": "Touchez la carte d'un joueur pour voter le jour. La nuit, touchez une cible pour la garder — vous prendrez le coup à sa place.",
+        "vigilante": "Touchez la carte d'un joueur pour voter le jour. La nuit, vous pouvez toucher une cible pour l'éliminer vous-même — mais tuer un innocent a des conséquences."
+      }
     },
     "chat": {
       "title": "Discutez ici",

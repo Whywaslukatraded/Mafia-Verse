@@ -1356,7 +1356,14 @@
     },
     "players": {
       "title": "Vote e Aja Aqui",
-      "body": "Toque nos cards dos jogadores para votar durante o Dia, ou para usar a ação noturna do seu papel quando for a sua vez."
+      "body": "Toque nos cards dos jogadores para votar durante o Dia, ou para usar a ação noturna do seu papel quando for a sua vez.",
+      "bodyByRole": {
+        "mafia": "Toque no card de um jogador para votar durante o Dia. Durante a Noite, toque em um alvo para escolher quem sua equipe elimina.",
+        "detective": "Toque no card de um jogador para votar durante o Dia. Durante a Noite, toque em um alvo para investigar se ele é da Máfia.",
+        "doctor": "Toque no card de um jogador para votar durante o Dia. Durante a Noite, toque em um alvo para protegê-lo de ser eliminado.",
+        "bodyguard": "Toque no card de um jogador para votar durante o Dia. Durante a Noite, toque em um alvo para protegê-lo — você levará o golpe no lugar dele.",
+        "vigilante": "Toque no card de um jogador para votar durante o Dia. Durante a Noite, você pode tocar em um alvo para eliminá-lo você mesmo — mas matar um inocente tem consequências."
+      }
     },
     "chat": {
       "title": "Fale Sua Opinião",

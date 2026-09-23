@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { generateShareCard, type ShareCardHighlight } from "@/lib/shareCard";
-import { TutorialOverlay, ROOM_TUTORIAL_STEPS } from "@/components/TutorialOverlay";
+import { TutorialOverlay, ROOM_TUTORIAL_STEPS, PLAYER_GRID_NIGHT_ACTION_BODY } from "@/components/TutorialOverlay";
 
 // --- Confetti ---
 const CONFETTI_COLORS = ["#ffd700", "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7", "#ff9ff3", "#54a0ff"];
@@ -973,7 +973,18 @@ export default function Room() {
   // that step to players who'll actually see the panel — matches the exact
   // condition the panel itself renders under, just below.
   const iHaveTeammatesPanel = !!(me?.role && me.role !== "civilian" && me?.isAlive);
-  const tutorialSteps = ROOM_TUTORIAL_STEPS.filter((s) => s.target !== "teammates" || iHaveTeammatesPanel);
+  // Bug fix (feedback: "game feels confusing"): the player-grid step used to
+  // show the exact same generic night-action sentence to every role. Swap
+  // in role-specific body text for the roles that actually have a night
+  // action; Civilian/Mayor/Jester (not in the map) keep the generic line.
+  const tutorialSteps = ROOM_TUTORIAL_STEPS
+    .filter((s) => s.target !== "teammates" || iHaveTeammatesPanel)
+    .map((s) => {
+      if (s.target === "player-grid" && me?.role && PLAYER_GRID_NIGHT_ACTION_BODY[me.role]) {
+        return { ...s, bodyKey: `tutorial.players.bodyByRole.${me.role}`, bodyFallback: PLAYER_GRID_NIGHT_ACTION_BODY[me.role] };
+      }
+      return s;
+    });
 
 
   const revealedMayorIds: number[] = (gameState as any)?.revealedMayorIds || [];

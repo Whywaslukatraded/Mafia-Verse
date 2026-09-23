@@ -1478,7 +1478,14 @@
     },
     "players": {
       "title": "Vote and act here",
-      "body": "Tap a player's card to vote during the day, or to use your role's night action when it's your turn."
+      "body": "Tap a player's card to vote during the day, or to use your role's night action when it's your turn.",
+      "bodyByRole": {
+        "mafia": "Tap a player's card to vote during the day. At night, tap a target to choose who your team eliminates.",
+        "detective": "Tap a player's card to vote during the day. At night, tap a target to investigate whether they're Mafia.",
+        "doctor": "Tap a player's card to vote during the day. At night, tap a target to protect them from being eliminated.",
+        "bodyguard": "Tap a player's card to vote during the day. At night, tap a target to guard them — you'll take the hit meant for them.",
+        "vigilante": "Tap a player's card to vote during the day. At night, you may tap a target to eliminate them yourself — but killing an innocent has consequences."
+      }
     },
     "chat": {
       "title": "Talk it out",
