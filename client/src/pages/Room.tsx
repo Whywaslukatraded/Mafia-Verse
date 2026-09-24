@@ -2176,11 +2176,15 @@ export default function Room() {
                                 ) : (
                                   entry.events?.map((ev: any, j: number) => (
                                     <div key={j} className="text-sm flex items-center gap-2">
+                                      {/* Colorblind fix: bodyguard_death used to share Shield with the
+                                          "saved" event (only the color differed), and retaliation_death/
+                                          guilt_death shared Skull with a straight kill (only the color
+                                          differed). Both pairs now also differ in icon shape. */}
                                       {(ev.type === "kill" || ev.type === "combined_kill") ? <Skull className="w-3 h-3 text-red-500" /> :
                                        ev.type === "attempt" && ev.saved ? <Shield className="w-3 h-3 text-green-500" /> :
-                                       ev.type === "bodyguard_death" ? <Shield className="w-3 h-3 text-slate-300" /> :
-                                       ev.type === "retaliation_death" ? <Skull className="w-3 h-3 text-orange-400" /> :
-                                       ev.type === "guilt_death" ? <Skull className="w-3 h-3 text-orange-400" /> :
+                                       ev.type === "bodyguard_death" ? <ShieldCheck className="w-3 h-3 text-slate-300" /> :
+                                       ev.type === "retaliation_death" ? <Flame className="w-3 h-3 text-orange-400" /> :
+                                       ev.type === "guilt_death" ? <Flame className="w-3 h-3 text-orange-400" /> :
                                        ev.type === "detective_check" ? <Search className="w-3 h-3 text-blue-400" /> :
                                        <History className="w-3 h-3 text-blue-400" />}
                                       <span>
