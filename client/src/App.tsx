@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, lazy, Suspense, Component, type ReactNode } from "react";
 import { Switch, Route, Router } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+import { useTranslation } from "react-i18next";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -199,6 +200,81 @@ function TwoFactorGate() {
   return null;
 }
 
+// Feature: PWA install prompt. manifest.json + the sw.js registration in
+// main.tsx were already in place — this is the missing UI piece. Chrome/
+// Edge/Android fire "beforeinstallprompt" instead of showing their own
+// install UI once a page calls preventDefault() on it; we stash that event
+// and show our own banner, then replay it via .prompt() if the user taps
+// Install. Safari/iOS has no equivalent event at all (no installability
+// API), so the banner simply never appears there — nothing to detect or
+// special-case for that platform.
+//
+// IMPORTANT: Chrome/Android also won't fire this event at all unless
+// manifest.json has an icon >=192px — as of this writing it only has
+// 16/32/180px icons, so this banner will silently never show on Android
+// until a 192px (and ideally 512px) icon is added there.
+function usePwaInstallPrompt() {
+  const [deferredEvent, setDeferredEvent] = useState<any>(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("mafia_pwa_install_dismissed") === "1") setDismissed(true);
+    } catch {}
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredEvent(e);
+    };
+    const onInstalled = () => {
+      setDeferredEvent(null);
+      try { localStorage.setItem("mafia_pwa_install_dismissed", "1"); } catch {}
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const install = useCallback(async () => {
+    if (!deferredEvent) return;
+    deferredEvent.prompt();
+    try { await deferredEvent.userChoice; } catch {}
+    setDeferredEvent(null);
+  }, [deferredEvent]);
+
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+    try { localStorage.setItem("mafia_pwa_install_dismissed", "1"); } catch {}
+  }, []);
+
+  return { canInstall: !!deferredEvent && !dismissed, install, dismiss };
+}
+
+function PwaInstallBanner() {
+  const { t } = useTranslation();
+  const { canInstall, install, dismiss } = usePwaInstallPrompt();
+  if (!canInstall) return null;
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[300] w-[calc(100%-2rem)] max-w-sm bg-card border border-primary/40 rounded-2xl p-4 shadow-2xl flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-sm text-foreground">{t("pwa.installPrompt.title", "Install Mafia Verse")}</p>
+        <p className="text-xs text-muted-foreground">{t("pwa.installPrompt.body", "Add it to your home screen for a faster, full-screen experience.")}</p>
+      </div>
+      <div className="flex flex-col gap-2 shrink-0">
+        <button onClick={install} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs whitespace-nowrap">
+          {t("pwa.installPrompt.installButton", "Install")}
+        </button>
+        <button onClick={dismiss} className="px-3 py-1.5 rounded-lg text-muted-foreground text-xs whitespace-nowrap">
+          {t("pwa.installPrompt.dismissButton", "Not now")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   useEffect(() => {
     const syncTheme = () => {
@@ -313,6 +389,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <PwaInstallBanner />
         <AppErrorBoundary>
           <Router404 />
         </AppErrorBoundary>
