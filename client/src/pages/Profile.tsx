@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings, Users, Crown } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Skull, TrendingUp, Flame, Settings, Users, Crown, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -163,6 +163,9 @@ export default function Profile() {
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setLocation("/friends")} className="rounded-full" data-testid="button-friends-nav">
               <Users className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/crew")} className="rounded-full" data-testid="button-crew-nav">
+              <Shield className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setLocation("/settings")} className="rounded-full">
               <Settings className="w-5 h-5" />

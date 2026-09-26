@@ -14,7 +14,8 @@
     "connectionLostTitle": "Connexion perdue",
     "connectionLostDescription": "Tentative de reconnexion...",
     "reconnectingTitle": "Reconnexion en cours",
-    "reconnectingPlayAgainDescription": "Patientez un instant, puis appuyez à nouveau sur Rejouer."
+    "reconnectingPlayAgainDescription": "Patientez un instant, puis appuyez à nouveau sur Rejouer.",
+    "retry": "Réessayer"
   },
   "login": {
     "subtitle": "Connectez-vous pour continuer",
@@ -969,8 +970,8 @@
     "gameChatReadOnly": "Lecture seule — passez au Chat des fantômes pour parler",
     "secret": "SECRET",
     "graveyardDiscordPrompt": "Vous vous ennuyez en attendant ? Rejoignez le Discord pour discuter et partager vos retours.",
-    "reactedBy_one": "Réagi par {{count}} joueur",
-    "reactedBy_other": "Réagi par {{count}} joueurs",
+    "reactedBy_one": "{{count}} personne a réagi",
+    "reactedBy_other": "{{count}} personnes ont réagi",
     "deadCannotSpeak": "Les morts ne peuvent pas parler",
     "tacticalComms": "Communications tactiques",
     "someone": "quelqu'un",
@@ -1529,5 +1530,11 @@
     "disband": "Dissoudre",
     "disbanded": "Bande dissoute",
     "actionFailed": "Quelque chose s'est mal passé"
+  },
+  "pwa": {
+    "title": "Installer Mafia Verse",
+    "body": "Ajoutez-la à votre écran d'accueil pour une expérience plus rapide en plein écran.",
+    "installButton": "Installer",
+    "dismissButton": "Pas maintenant"
   }
 }

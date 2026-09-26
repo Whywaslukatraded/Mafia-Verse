@@ -189,7 +189,30 @@ function TwoFactorGate() {
 
   useEffect(() => {
     if (!gateTarget) return;
+    // Bug fix: this used to unconditionally rewrite the hash to gateTarget
+    // on every navigation for as long as gateTarget was truthy — but
+    // completing 2FA (TwoFactorVerify.tsx) never told THIS component that
+    // verification succeeded, since it's a custom flow, not a Supabase auth
+    // event (the only two things that ever recompute gateTarget, in the
+    // effect above). So gateTarget stayed stuck at "/2fa-verify" forever
+    // after the first time it was set, and every later navigation (e.g.
+    // clicking Friends) got bounced straight back to /2fa-verify even
+    // though the person had already verified moments earlier. Each bounce
+    // then remounted TwoFactorVerify, which auto-sent ANOTHER login-code
+    // email on mount (email 2FA) — silently burning through the 5-per-15-
+    // minute rate limit shared by send-login-code/verify, which is why
+    // send-login-code appeared to randomly succeed/fail rather than
+    // consistently honoring "wait 15 minutes."
+    // Fix: re-check localStorage for a fresh token right here, every time,
+    // before redirecting — if verification has since completed, clear the
+    // stuck gate instead of forcing the redirect.
     const enforce = () => {
+      let hasStoredToken = false;
+      try { hasStoredToken = !!localStorage.getItem("mafia_mfa_token"); } catch {}
+      if (hasStoredToken) {
+        setGateTarget(null);
+        return;
+      }
       if (!isTwoFaExemptPath(window.location.hash)) {
         window.location.hash = `#${gateTarget}`;
       }

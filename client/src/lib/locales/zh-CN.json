@@ -14,7 +14,8 @@
     "connectionLostTitle": "连接已断开",
     "connectionLostDescription": "正在尝试重新连接...",
     "reconnectingTitle": "正在重新连接",
-    "reconnectingPlayAgainDescription": "请稍等片刻，然后再次点击“再玩一次”。"
+    "reconnectingPlayAgainDescription": "请稍等片刻，然后再次点击“再玩一次”。",
+    "retry": "重试"
   },
   "settings": {
     "title": "设置",
@@ -970,7 +971,7 @@
     "secret": "秘密",
     "graveyardDiscordPrompt": "等待无聊？加入 Discord 一起闲聊并分享反馈。",
     "reactedBy_one": "已有 {{count}} 名玩家回应",
-    "reactedBy_other": "已有 {{count}} 名玩家回应",
+    "reactedBy_other": "{{count}} 人已回应",
     "deadCannotSpeak": "死者无法发言",
     "tacticalComms": "战术通讯",
     "someone": "某人",
@@ -1529,5 +1530,11 @@
     "disband": "解散",
     "disbanded": "团伙已解散",
     "actionFailed": "出了点问题"
+  },
+  "pwa": {
+    "title": "安装 Mafia Verse",
+    "body": "将其添加到主屏幕，获得更快速的全屏体验。",
+    "installButton": "安装",
+    "dismissButton": "暂不安装"
   }
 }

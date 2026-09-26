@@ -395,44 +395,56 @@ const crowdFavoriteVotes = new Map<number, Map<number, number>>();     // roomId
 
 // Small dictionary for the recurring system/chat messages that aren't part
 // of the bot dialogue pools (game-end announcements, night summary, etc.)
-const SYSTEM_MESSAGES: Record<string, { en: string; es: string }> = {
-  votingResultsHeader: { en: "Voting Results: ", es: "Resultados de la votación: " },
-  votedForLine: { en: "{voter} voted for {target}. ", es: "{voter} votó por {target}. " },
-  noOneVotedOut: { en: "No one was voted out today.", es: "Nadie fue eliminado por votación hoy." },
-  mafiaEliminatedCiviliansWin: { en: "The Mafia has been eliminated! Civilians win!", es: "¡La mafia ha sido eliminada! ¡Ganan los civiles!" },
-  mafiaTookOverMafiaWins: { en: "The Mafia has taken over! Mafia wins!", es: "¡La mafia ha tomado el control! ¡Gana la mafia!" },
-  detectiveDiscoveredMafia: { en: "The detective discovered the Mafia! {name} was the killer. Civilians win!", es: "¡El detective descubrió a la mafia! {name} era el asesino. ¡Ganan los civiles!" },
-  mafiaFailedDoctorSaved: { en: "The mafia tried to kill someone, but the doctor saved them!", es: "La mafia intentó matar a alguien, ¡pero el médico lo salvó!" },
-  nothingHappenedNight: { en: "Nothing happened during the night.", es: "No pasó nada durante la noche." },
-  nightHasEnded: { en: "The night has ended. ", es: "La noche ha terminado. " },
-  bodyguardDied: { en: "{name} threw themselves in front of an attack protecting someone — and died a hero. ", es: "{name} se interpuso en un ataque para proteger a alguien y murió como un héroe. " },
-  attackerRetaliated: { en: "The attacker didn't survive the counterattack. ", es: "El atacante no sobrevivió al contraataque. " },
-  vigilanteGuiltDied: { en: "{name} couldn't live with shooting an innocent person and died of guilt.", es: "{name} no pudo vivir con haber disparado a un inocente y murió de culpa." },
-  jesterWinsTitle: { en: "The Jester Wins!", es: "¡El bufón gana!" },
-  jesterWinsBody: { en: "{name} wanted to be voted out, and it worked! The Jester wins on their own — the game continues for everyone else.", es: "¡{name} quería ser eliminado por votación, y funcionó! El bufón gana por su cuenta — el juego continúa para los demás." },
-  mayorRevealedTitle: { en: "The Mayor Has Revealed!", es: "¡El alcalde se ha revelado!" },
-  mayorRevealedBody: { en: "{name} publicly revealed as the Mayor! Their vote now counts double — but they can no longer be healed or protected.", es: "¡{name} se reveló públicamente como el alcalde! Su voto ahora cuenta doble, pero ya no puede ser curado ni protegido." },
-  cannotTargetRevealedMayor: { en: "The Mayor has revealed and can no longer be healed or protected.", es: "El alcalde se ha revelado y ya no puede ser curado ni protegido." },
-  noBulletsLeft: { en: "You're out of bullets.", es: "Te quedaste sin balas." },
-  targetLockedTitle: { en: "Target Locked", es: "Objetivo bloqueado" },
-  targetLockedBody: { en: "You have targeted {name} for elimination.", es: "Has marcado a {name} para la eliminación." },
-  chatErrorTitle: { en: "Error", es: "Error" },
-  mafiaCommandAcknowledged: { en: "🎯 The crew is now targeting {name}.", es: "🎯 El equipo ahora tiene como objetivo a {name}." },
-  mafiaAvoidAcknowledged: { en: "📝 Noted — the crew will leave {name} to you.", es: "📝 Anotado — el equipo te dejará a {name} a ti." },
-  mafiaCommandToastTitle: { en: "Target Set", es: "Objetivo establecido" },
-  mafiaAvoidToastTitle: { en: "Noted", es: "Anotado" },
-  chatErrorBody: { en: "Failed to send message", es: "No se pudo enviar el mensaje" },
-  deadCantSpeakTitle: { en: "🪦 Silence from Beyond", es: "🪦 Silencio desde el más allá" },
-  deadCantSpeakBody: { en: "The dead cannot speak and risk snitching...", es: "Los muertos no pueden hablar ni arriesgarse a delatar..." },
-  voteRegisteredTitle: { en: "Vote Registered", es: "Voto registrado" },
-  voteRegisteredBody: { en: "Your vote has been recorded.", es: "Tu voto ha sido registrado." },
-  protectionAppliedTitle: { en: "Protection Applied", es: "Protección aplicada" },
-  protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche." },
+const SYSTEM_MESSAGES: Record<string, { en: string; es: string; fr: string; "pt-BR": string; "zh-CN": string; "zh-TW": string }> = {
+  votingResultsHeader: { en: "Voting Results: ", es: "Resultados de la votación: ", fr: "Résultats du vote : ", "pt-BR": "Resultados da Votação: ", "zh-CN": "投票结果：", "zh-TW": "投票結果：" },
+  votedForLine: { en: "{voter} voted for {target}. ", es: "{voter} votó por {target}. ", fr: "{voter} a voté pour {target}. ", "pt-BR": "{voter} votou em {target}. ", "zh-CN": "{voter} 投票给了 {target}。", "zh-TW": "{voter} 投票給了 {target}。" },
+  noOneVotedOut: { en: "No one was voted out today.", es: "Nadie fue eliminado por votación hoy.", fr: "Personne n'a été éliminé par vote aujourd'hui.", "pt-BR": "Ninguém foi eliminado pela votação hoje.", "zh-CN": "今天没有人被投票淘汰。", "zh-TW": "今天沒有人被投票淘汰。" },
+  mafiaEliminatedCiviliansWin: { en: "The Mafia has been eliminated! Civilians win!", es: "¡La mafia ha sido eliminada! ¡Ganan los civiles!", fr: "La Mafia a été éliminée ! Les civils gagnent !", "pt-BR": "A Máfia foi eliminada! Os civis vencem!", "zh-CN": "黑手党已被消灭！平民获胜！", "zh-TW": "黑手黨已被消滅！平民獲勝！" },
+  mafiaTookOverMafiaWins: { en: "The Mafia has taken over! Mafia wins!", es: "¡La mafia ha tomado el control! ¡Gana la mafia!", fr: "La Mafia a pris le contrôle ! La Mafia gagne !", "pt-BR": "A Máfia assumiu o controle! A Máfia vence!", "zh-CN": "黑手党已经控制局面！黑手党获胜！", "zh-TW": "黑手黨已經控制局面！黑手黨獲勝！" },
+  detectiveDiscoveredMafia: { en: "The detective discovered the Mafia! {name} was the killer. Civilians win!", es: "¡El detective descubrió a la mafia! {name} era el asesino. ¡Ganan los civiles!", fr: "Le détective a découvert la Mafia ! {name} était le tueur. Les civils gagnent !", "pt-BR": "O detetive descobriu a Máfia! {name} era o assassino. Os civis vencem!", "zh-CN": "侦探发现了黑手党！{name} 就是凶手。平民获胜！", "zh-TW": "偵探發現了黑手黨！{name} 就是兇手。平民獲勝！" },
+  mafiaFailedDoctorSaved: { en: "The mafia tried to kill someone, but the doctor saved them!", es: "La mafia intentó matar a alguien, ¡pero el médico lo salvó!", fr: "La Mafia a essayé de tuer quelqu'un, mais le médecin l'a sauvé !", "pt-BR": "A Máfia tentou matar alguém, mas o médico salvou a pessoa!", "zh-CN": "黑手党试图杀人，但医生救了他们！", "zh-TW": "黑手黨試圖殺人，但醫生救了他們！" },
+  nothingHappenedNight: { en: "Nothing happened during the night.", es: "No pasó nada durante la noche.", fr: "Il ne s'est rien passé pendant la nuit.", "pt-BR": "Nada aconteceu durante a noite.", "zh-CN": "夜晚什么都没发生。", "zh-TW": "夜晚什麼都沒發生。" },
+  nightHasEnded: { en: "The night has ended. ", es: "La noche ha terminado. ", fr: "La nuit est terminée. ", "pt-BR": "A noite terminou. ", "zh-CN": "夜晚已经结束。", "zh-TW": "夜晚已經結束。" },
+  bodyguardDied: { en: "{name} threw themselves in front of an attack protecting someone — and died a hero. ", es: "{name} se interpuso en un ataque para proteger a alguien y murió como un héroe. ", fr: "{name} s'est jeté devant une attaque pour protéger quelqu'un — et est mort en héros. ", "pt-BR": "{name} se jogou na frente de um ataque para proteger alguém — e morreu como herói. ", "zh-CN": "{name} 挺身挡下攻击保护了别人——英勇牺牲。", "zh-TW": "{name} 挺身擋下攻擊保護了別人——英勇犧牲。" },
+  attackerRetaliated: { en: "The attacker didn't survive the counterattack. ", es: "El atacante no sobrevivió al contraataque. ", fr: "L'attaquant n'a pas survécu à la contre-attaque. ", "pt-BR": "O atacante não sobreviveu ao contra-ataque. ", "zh-CN": "袭击者没能在反击中存活。", "zh-TW": "襲擊者沒能在反擊中存活。" },
+  vigilanteGuiltDied: { en: "{name} couldn't live with shooting an innocent person and died of guilt.", es: "{name} no pudo vivir con haber disparado a un inocente y murió de culpa.", fr: "{name} n'a pas pu vivre avec le fait d'avoir tué un innocent et est mort de culpabilité.", "pt-BR": "{name} não conseguiu viver com ter atirado em um inocente e morreu de culpa.", "zh-CN": "{name} 无法承受误杀无辜者的愧疚，最终自尽。", "zh-TW": "{name} 無法承受誤殺無辜者的愧疚，最終自盡。" },
+  jesterWinsTitle: { en: "The Jester Wins!", es: "¡El bufón gana!", fr: "Le Bouffon gagne !", "pt-BR": "O Bobo da Corte vence!", "zh-CN": "小丑获胜！", "zh-TW": "小丑獲勝！" },
+  jesterWinsBody: { en: "{name} wanted to be voted out, and it worked! The Jester wins on their own — the game continues for everyone else.", es: "¡{name} quería ser eliminado por votación, y funcionó! El bufón gana por su cuenta — el juego continúa para los demás.", fr: "{name} voulait être éliminé par vote, et ça a marché ! Le Bouffon gagne seul — la partie continue pour les autres.", "pt-BR": "{name} queria ser eliminado pela votação, e funcionou! O Bobo da Corte vence sozinho — o jogo continua para os demais.", "zh-CN": "{name} 想被投票淘汰，成功了！小丑单独获胜——游戏对其他人继续进行。", "zh-TW": "{name} 想被投票淘汰，成功了！小丑單獨獲勝——遊戲對其他人繼續進行。" },
+  mayorRevealedTitle: { en: "The Mayor Has Revealed!", es: "¡El alcalde se ha revelado!", fr: "Le Maire s'est révélé !", "pt-BR": "O Prefeito se revelou!", "zh-CN": "市长已现身！", "zh-TW": "市長已現身！" },
+  mayorRevealedBody: { en: "{name} publicly revealed as the Mayor! Their vote now counts double — but they can no longer be healed or protected.", es: "¡{name} se reveló públicamente como el alcalde! Su voto ahora cuenta doble, pero ya no puede ser curado ni protegido.", fr: "{name} s'est révélé publiquement comme le Maire ! Son vote compte désormais double — mais il ne peut plus être soigné ni protégé.", "pt-BR": "{name} se revelou publicamente como o Prefeito! Seu voto agora conta em dobro — mas ele não pode mais ser curado ou protegido.", "zh-CN": "{name} 公开揭示自己是市长！其投票现在算两票——但不能再被治疗或保护。", "zh-TW": "{name} 公開揭示自己是市長！其投票現在算兩票——但不能再被治療或保護。" },
+  cannotTargetRevealedMayor: { en: "The Mayor has revealed and can no longer be healed or protected.", es: "El alcalde se ha revelado y ya no puede ser curado ni protegido.", fr: "Le Maire s'est révélé et ne peut plus être soigné ni protégé.", "pt-BR": "O Prefeito se revelou e não pode mais ser curado ou protegido.", "zh-CN": "市长已现身，不能再被治疗或保护。", "zh-TW": "市長已現身，不能再被治療或保護。" },
+  noBulletsLeft: { en: "You're out of bullets.", es: "Te quedaste sin balas.", fr: "Vous n'avez plus de balles.", "pt-BR": "Você ficou sem balas.", "zh-CN": "您没有子弹了。", "zh-TW": "您沒有子彈了。" },
+  targetLockedTitle: { en: "Target Locked", es: "Objetivo bloqueado", fr: "Cible verrouillée", "pt-BR": "Alvo Bloqueado", "zh-CN": "目标已锁定", "zh-TW": "目標已鎖定" },
+  targetLockedBody: { en: "You have targeted {name} for elimination.", es: "Has marcado a {name} para la eliminación.", fr: "Vous avez ciblé {name} pour élimination.", "pt-BR": "Você marcou {name} para eliminação.", "zh-CN": "您已将 {name} 标记为消灭目标。", "zh-TW": "您已將 {name} 標記為消滅目標。" },
+  chatErrorTitle: { en: "Error", es: "Error", fr: "Erreur", "pt-BR": "Erro", "zh-CN": "错误", "zh-TW": "錯誤" },
+  mafiaCommandAcknowledged: { en: "🎯 The crew is now targeting {name}.", es: "🎯 El equipo ahora tiene como objetivo a {name}.", fr: "🎯 L'équipe cible maintenant {name}.", "pt-BR": "🎯 A equipe agora está mirando em {name}.", "zh-CN": "🎯 团队现在正以 {name} 为目标。", "zh-TW": "🎯 團隊現在正以 {name} 為目標。" },
+  mafiaAvoidAcknowledged: { en: "📝 Noted — the crew will leave {name} to you.", es: "📝 Anotado — el equipo te dejará a {name} a ti.", fr: "📝 Noté — l'équipe vous laissera {name}.", "pt-BR": "📝 Anotado — a equipe deixará {name} para você.", "zh-CN": "📝 已记下——团队会把 {name} 留给你处理。", "zh-TW": "📝 已記下——團隊會把 {name} 留給你處理。" },
+  mafiaCommandToastTitle: { en: "Target Set", es: "Objetivo establecido", fr: "Cible définie", "pt-BR": "Alvo Definido", "zh-CN": "目标已设定", "zh-TW": "目標已設定" },
+  mafiaAvoidToastTitle: { en: "Noted", es: "Anotado", fr: "Noté", "pt-BR": "Anotado", "zh-CN": "已记下", "zh-TW": "已記下" },
+  chatErrorBody: { en: "Failed to send message", es: "No se pudo enviar el mensaje", fr: "Échec de l'envoi du message", "pt-BR": "Falha ao enviar mensagem", "zh-CN": "消息发送失败", "zh-TW": "訊息傳送失敗" },
+  deadCantSpeakTitle: { en: "🪦 Silence from Beyond", es: "🪦 Silencio desde el más allá", fr: "🪦 Silence d'outre-tombe", "pt-BR": "🪦 Silêncio do Além", "zh-CN": "🪦 来自阴间的沉默", "zh-TW": "🪦 來自陰間的沉默" },
+  deadCantSpeakBody: { en: "The dead cannot speak and risk snitching...", es: "Los muertos no pueden hablar ni arriesgarse a delatar...", fr: "Les morts ne peuvent pas parler et risquer de moucharder...", "pt-BR": "Os mortos não podem falar e arriscar dedurar...", "zh-CN": "死者不能说话，以免泄露天机……", "zh-TW": "死者不能說話，以免洩露天機……" },
+  voteRegisteredTitle: { en: "Vote Registered", es: "Voto registrado", fr: "Vote enregistré", "pt-BR": "Voto Registrado", "zh-CN": "投票已记录", "zh-TW": "投票已記錄" },
+  voteRegisteredBody: { en: "Your vote has been recorded.", es: "Tu voto ha sido registrado.", fr: "Votre vote a été enregistré.", "pt-BR": "Seu voto foi registrado.", "zh-CN": "您的投票已被记录。", "zh-TW": "您的投票已被記錄。" },
+  protectionAppliedTitle: { en: "Protection Applied", es: "Protección aplicada", fr: "Protection appliquée", "pt-BR": "Proteção Aplicada", "zh-CN": "保护已生效", "zh-TW": "保護已生效" },
+  protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche.", fr: "Vous protégez {name} ce soir.", "pt-BR": "Você está protegendo {name} esta noite.", "zh-CN": "您今晚正在保护 {name}。", "zh-TW": "您今晚正在保護 {name}。" },
 };
+
+// Feature: full 6-language support for system chat messages (was en/es
+// only). SUPPORTED_LANGS/normalizeLang are the single source of truth for
+// "is this a language we actually have content for" — every other
+// `lang === "es" ? "es" : "en"` ternary in this file for BOT DIALOGUE
+// (not system messages) still needs the same widening, tracked separately
+// since bot dialogue is generated from word banks, not fixed strings, and
+// needs its own translation pass.
+const SUPPORTED_LANGS = ["en", "es", "fr", "pt-BR", "zh-CN", "zh-TW"] as const;
+function normalizeLang(lang: unknown): typeof SUPPORTED_LANGS[number] {
+  return (SUPPORTED_LANGS as readonly string[]).includes(lang as string) ? (lang as typeof SUPPORTED_LANGS[number]) : "en";
+}
 
 function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<string, string>): string {
   const entry = SYSTEM_MESSAGES[key];
-  let text = lang === "es" ? entry.es : entry.en;
+  let text = entry[normalizeLang(lang)];
   if (vars) {
     for (const [k, v] of Object.entries(vars)) text = text.split(`{${k}}`).join(v);
   }
@@ -442,7 +454,8 @@ function sysMsg(key: keyof typeof SYSTEM_MESSAGES, lang: string, vars?: Record<s
 // Matches common.systemName in en.json/es.json — the display name shown on
 // system chat messages (deaths, vote results, etc.), localized per room.
 function sysName(lang: string | undefined): string {
-  return lang === "es" ? "Sistema" : "System";
+  const names: Record<string, string> = { en: "System", es: "Sistema", fr: "Système", "pt-BR": "Sistema", "zh-CN": "系统", "zh-TW": "系統" };
+  return names[normalizeLang(lang)];
 }
 
 
@@ -1288,7 +1301,7 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
-  const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
+  const lang: string | undefined = normalizeLang((room.settings as any)?.language);
   const personality = getBotPersonality(room);
   const players = await storage.getPlayersInRoom(roomId);
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
@@ -1341,7 +1354,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
 
-  const lang: string | undefined = (room.settings as any)?.language === "es" ? "es" : "en";
+  const lang: string | undefined = normalizeLang((room.settings as any)?.language);
   const personality = getBotPersonality(room);
   const isSharp = (room.settings as any)?.botPersonality === 'sharp';
   const players = await storage.getPlayersInRoom(roomId);
@@ -2019,7 +2032,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
       });
       
       if (voteResults.length > 0 && (room.settings as any).showVoteResults === true) {
-        const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
+        const lang: string = normalizeLang((room.settings as any)?.language);
         let voteSummary = sysMsg("votingResultsHeader", lang);
         voteResults.forEach(res => { voteSummary += sysMsg("votedForLine", lang, { voter: res.voterName, target: res.targetName }); });
         await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: voteSummary });
@@ -2052,7 +2065,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
             // (see the player-list role masking below) for a hidden role.
             role: (room.settings as any)?.showRoleReveal !== false ? (victim.role || "civilian") : "unknown",
           };
-          const revealLang = (room.settings as any)?.language === "es" ? "es" : "en";
+          const revealLang = normalizeLang((room.settings as any)?.language);
           await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
@@ -2096,7 +2109,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
           }
         }
       } else {
-        const noVoteLang: string = (room.settings as any)?.language === "es" ? "es" : "en";
+        const noVoteLang: string = normalizeLang((room.settings as any)?.language);
         await storage.createMessage({ roomId, playerId: 0, playerName: sysName(noVoteLang), content: sysMsg("noOneVotedOut", noVoteLang) });
       }
       
@@ -2127,7 +2140,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
   const room = await storage.getRoom(roomId);
   if (!room) return;
 
-  const lang: string = (room.settings as any)?.language === "es" ? "es" : "en";
+  const lang: string = normalizeLang((room.settings as any)?.language);
   const players = await storage.getPlayersInRoom(roomId);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
 
@@ -3625,7 +3638,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
                      const targetPlayer = nonMafiaAlive.find((p: Player) => p.id === parsed.targetId);
                      if (targetPlayer) {
-                       const cmdLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                       const cmdLang = normalizeLang((room.settings as any)?.language);
                        await storage.createMessage({
                          roomId: myRoomId, playerId: 0, playerName: sysName(cmdLang),
                          content: sysMsg(parsed.kind === 'command' ? "mafiaCommandAcknowledged" : "mafiaAvoidAcknowledged", cmdLang, { name: targetPlayer.name }),
@@ -3651,7 +3664,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                  broadcastState(myRoomId);
                } catch (err) {
                  console.error("Error creating message", err);
-                 const chatLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                 const chatLang = normalizeLang((room.settings as any)?.language);
                  ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("chatErrorTitle", chatLang), body: sysMsg("chatErrorBody", chatLang) } }));
                }
              }
@@ -3907,7 +3920,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                gameActions.set(myRoomId, actions);
                bumpActivity(myRoomId, me.id, "votes");
                broadcastState(myRoomId);
-               const voteLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               const voteLang = normalizeLang((room.settings as any)?.language);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("voteRegisteredTitle", voteLang), body: sysMsg("voteRegisteredBody", voteLang) } }));
 
                // Bug fix: bots used to vote the instant ANY real player voted
@@ -3998,7 +4011,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                gameActions.set(myRoomId, actions);
 
                broadcastState(myRoomId);
-               const killLang = (room.settings as any)?.language === "es" ? "es" : "en";
+               const killLang = normalizeLang((room.settings as any)?.language);
                ws.send(JSON.stringify({ type: 'notification', payload: { title: sysMsg("targetLockedTitle", killLang), body: sysMsg("targetLockedBody", killLang, { name: target.name }) } }));
                
                if (haveAllRoleHoldersActed(players, 'mafia', actions.mafiaKills)) {
@@ -4014,7 +4027,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (room.phase === 'doctor' && me.role === 'doctor' && action.type === 'heal') {
              const target = players.find((p: Player) => p.id === action.targetId);
-             const healLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             const healLang = normalizeLang((room.settings as any)?.language);
              if (target?.isAlive && mayorRevealed.get(myRoomId)?.has(target.id)) {
                ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("cannotTargetRevealedMayor", healLang) } }));
                return;
@@ -4065,7 +4078,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                 ws.send(JSON.stringify({ type: 'check_result', payload: { isMafia, targetId: target.id } }));
                 if (isMafia) {
                   await storage.updateRoom(myRoomId, { status: 'ended' });
-                  const detectiveLang = (room.settings as any)?.language === "es" ? "es" : "en";
+                  const detectiveLang = normalizeLang((room.settings as any)?.language);
                   await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: sysName(detectiveLang), content: sysMsg("detectiveDiscoveredMafia", detectiveLang, { name: target.name }), isSpectator: false });
                   const instantWinHistory = gameHistory.get(myRoomId) || [];
                   instantWinHistory.push({ type: 'night', turn: room.turn, events: [{ type: 'detective_check', target: target.name, isMafia: true, detectiveId: me.id }] });
@@ -4087,7 +4100,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (room.phase === 'bodyguard' && me.role === 'bodyguard' && (action as any).type === 'bodyguard_protect') {
              const target = players.find((p: Player) => p.id === (action as any).targetId);
-             const bgLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             const bgLang = normalizeLang((room.settings as any)?.language);
              if (target?.id === me.id) return; // can't protect self
              if (target?.isAlive && mayorRevealed.get(myRoomId)?.has(target.id)) {
                ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("cannotTargetRevealedMayor", bgLang) } }));
@@ -4121,7 +4134,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
            if (room.phase === 'vigilante' && me.role === 'vigilante' && (action as any).type === 'vigilante_shoot') {
              const target = players.find((p: Player) => p.id === (action as any).targetId);
-             const vigiLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             const vigiLang = normalizeLang((room.settings as any)?.language);
              const bullets = vigilanteBullets.get(myRoomId)?.get(me.id) ?? 0;
              if (bullets <= 0) {
                ws.send(JSON.stringify({ type: WS_EVENTS.ERROR, payload: { message: sysMsg("noBulletsLeft", vigiLang) } }));
@@ -4169,7 +4182,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              const revealedSet = mayorRevealed.get(myRoomId)!;
              if (revealedSet.has(me.id)) return; // already revealed
              revealedSet.add(me.id);
-             const mayorLang = (room.settings as any)?.language === "es" ? "es" : "en";
+             const mayorLang = normalizeLang((room.settings as any)?.language);
              await storage.createMessage({ roomId: myRoomId, playerId: 0, playerName: sysName(mayorLang), content: sysMsg("mayorRevealedBody", mayorLang, { name: me.name }) });
              broadcastState(myRoomId);
              return;

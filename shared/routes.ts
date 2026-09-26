@@ -189,8 +189,12 @@ export const api = {
           // vote-out reveals, win announcements, notifications) are localized
           // server-side based on this — sent from the client's current i18n
           // language at room-creation time so bots/system text matches the
-          // language the room is actually being played in.
-          language: z.enum(['en', 'es']).optional(),
+          // language the room is actually being played in. Widened from
+          // en/es only to all 6 app locales; system messages (routes.ts
+          // SYSTEM_MESSAGES) support all 6 now, bot dialogue word banks
+          // still only have en/es content and fall back to en for the rest
+          // until that's translated too.
+          language: z.enum(['en', 'es', 'fr', 'pt-BR', 'zh-CN', 'zh-TW']).optional(),
         }),
       }),
       responses: {

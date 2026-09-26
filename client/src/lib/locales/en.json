@@ -14,7 +14,8 @@
     "connectionLostTitle": "Connection Lost",
     "connectionLostDescription": "Trying to reconnect...",
     "reconnectingTitle": "Reconnecting",
-    "reconnectingPlayAgainDescription": "Give it a moment, then tap Play Again again."
+    "reconnectingPlayAgainDescription": "Give it a moment, then tap Play Again again.",
+    "retry": "Try Again"
   },
   "login": {
     "subtitle": "Sign in to continue",
@@ -969,8 +970,8 @@
     "gameChatReadOnly": "Read-only — switch to Graveyard Chat to talk",
     "secret": "SECRET",
     "graveyardDiscordPrompt": "Bored waiting? Join the Discord to hang out and share feedback.",
-    "reactedBy_one": "Reacted by {{count}} player",
-    "reactedBy_other": "Reacted by {{count}} players",
+    "reactedBy_one": "{{count}} person reacted",
+    "reactedBy_other": "{{count}} people reacted",
     "deadCannotSpeak": "The dead cannot speak",
     "tacticalComms": "Tactical Comms",
     "someone": "someone",
@@ -1529,5 +1530,11 @@
     "disband": "Disband",
     "disbanded": "Crew disbanded",
     "actionFailed": "Something went wrong"
+  },
+  "pwa": {
+    "title": "Install Mafia Verse",
+    "body": "Add it to your home screen for a faster, full-screen experience.",
+    "installButton": "Install",
+    "dismissButton": "Not now"
   }
 }

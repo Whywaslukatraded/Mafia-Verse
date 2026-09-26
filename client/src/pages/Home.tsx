@@ -296,21 +296,36 @@ function GameHistoryPanel({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [recaps, setRecaps] = useState<RecapEntry[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [shareTarget, setShareTarget] = useState<RecapEntry | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await authFetchJson<{ recaps: RecapEntry[] }>("/api/recaps");
-        setRecaps(data.recaps);
-      } catch (e: any) {
-        toast({ title: t("history.loadError", "Couldn't load game history"), description: e.message, variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    })();
+  // Bug fix: on ANY fetch failure (a 401 while 2FA hadn't finished
+  // verifying yet was a real, observed case — /api/recaps requires a valid
+  // x-mfa-token, and this panel used to fetch immediately on mount with no
+  // check that the session/2FA state had actually settled) this used to
+  // leave `recaps` as its initial empty array, and the render below had no
+  // way to tell "the request failed" apart from "this account genuinely has
+  // zero finished games" — both looked exactly like "No finished games yet"
+  // with only an easy-to-miss toast as the only sign anything went wrong.
+  // loadFailed now renders a distinct message with a manual retry button.
+  const loadRecaps = useCallback(async () => {
+    setLoading(true);
+    setLoadFailed(false);
+    try {
+      const data = await authFetchJson<{ recaps: RecapEntry[] }>("/api/recaps");
+      setRecaps(data.recaps);
+    } catch (e: any) {
+      setLoadFailed(true);
+      toast({ title: t("history.loadError", "Couldn't load game history"), description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   }, [t, toast]);
+
+  useEffect(() => {
+    loadRecaps();
+  }, [loadRecaps]);
 
   const recapUrl = (recap: RecapEntry) => `${window.location.origin}${window.location.pathname}#/recap/${recap.shareId}`;
 
@@ -367,6 +382,13 @@ function GameHistoryPanel({ onClose }: { onClose: () => void }) {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
+        ) : loadFailed ? (
+          <div className="text-center space-y-3">
+            <p className="text-sm text-muted-foreground">{t("history.loadError", "Couldn't load game history")}</p>
+            <Button size="sm" variant="outline" onClick={loadRecaps} data-testid="button-retry-game-history">
+              {t("common.retry", "Try Again")}
+            </Button>
+          </div>
         ) : recaps.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">{t("history.empty", "No finished games yet — play a match to see it here.")}</p>
         ) : (
@@ -948,7 +970,13 @@ export default function Home() {
           doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
           bodyguardDuration: counts.bodyguardDuration, vigilanteDuration: counts.vigilanteDuration,
           roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
-          language: i18n.language?.startsWith("es") ? "es" : "en",
+          // Bug fix: this used to collapse every language except Spanish
+          // down to "en" — a French/Portuguese/Chinese player's bots and
+          // system messages (kill/vote reveals, etc.) always came out in
+          // English no matter what language the rest of the UI was in.
+          // Now forwards the real current i18n language; falls back to
+          // "en" only for a language the server doesn't have content for.
+          language: (["en", "es", "fr", "pt-BR", "zh-CN", "zh-TW"] as const).includes(i18n.language as any) ? i18n.language : "en",
           botPersonality,
         },
         supabaseUserId: user?.id,
