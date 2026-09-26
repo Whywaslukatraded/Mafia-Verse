@@ -2594,7 +2594,11 @@ async function broadcastState(roomId: number) {
       const roleSanitizedPlayers = players.map((p: Player) => {
          if (room.status === 'lobby' || room.status === 'ended') return p;
          if (me?.id === p.id) return p;
-         if (me && !me.isAlive) return p;
+         // Feature: no-spoiler spectator link. A no-spoiler spectator falls
+         // through to the same rules an ordinary alive Civilian gets below,
+         // instead of the full-visibility treatment every other dead
+         // player/spectator gets.
+         if (me && !me.isAlive && !(me.isSpectator && (me as any).spectatorNoSpoilers)) return p;
          // A dead player's role is only shown to the rest of the room if the host
          // has role-reveal-on-elimination turned on; otherwise it stays hidden
          // like any other living player's role would be.
@@ -3311,6 +3315,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         sessionId,
         supabaseUserId: verifiedSupabaseUserId,
         isSpectator,
+        spectatorNoSpoilers: isSpectator && (input as any).noSpoilers === true,
         isBot: false,
         isReady: false,
         wins: 0,
@@ -3467,7 +3472,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const roleSanitizedPlayers = players.map((p: Player) => {
         if (room.status === 'lobby' || room.status === 'ended') return p;
         if (me?.id === p.id) return p;
-        if (me && !me.isAlive) return p;
+        // Feature: no-spoiler spectator link — see the identical comment in
+        // broadcastState above for the full reasoning.
+        if (me && !me.isAlive && !(me.isSpectator && (me as any).spectatorNoSpoilers)) return p;
         if (!p.isAlive) {
           return (room.settings as any).showRoleReveal !== false ? p : { ...p, role: 'unknown' };
         }
@@ -4522,6 +4529,212 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) {
       console.error("GET /api/friends/invites error:", e);
       res.status(500).json({ message: "Failed to load invites." });
+    }
+  });
+
+  // Feature: Crews (team system). Design choices — see the comment above
+  // the `crews`/`crewMembers` tables in schema.ts for the full reasoning:
+  // one accepted crew per user at a time, any member can invite by
+  // username (no pre-existing friendship required, same as a friend
+  // request itself), only the founder can remove members or disband.
+  app.get("/api/crews", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+
+      const myMembership = await storage.getAcceptedCrewMembership(myId);
+      if (!myMembership) return res.json({ crew: null, members: [], isFounder: false });
+
+      const crew = await storage.getCrewById(myMembership.crewId);
+      if (!crew) return res.json({ crew: null, members: [], isFounder: false });
+
+      const memberRows = await storage.getCrewMembersForCrew(crew.id);
+      const users = await Promise.all(memberRows.map(m => storage.getUserBySupabaseId(m.supabaseUserId)));
+      const userById = new Map(memberRows.map((m, i) => [m.supabaseUserId, users[i]]));
+
+      const members = memberRows.map(m => {
+        const u = userById.get(m.supabaseUserId);
+        const lastSeenAt = u?.lastSeenAt ? new Date(u.lastSeenAt as any).getTime() : 0;
+        const isOnline = Date.now() - lastSeenAt < ONLINE_WINDOW_MS;
+        return { crewMemberId: m.id, supabaseUserId: m.supabaseUserId, name: u?.name || "Unknown", avatar: u?.avatar || "👤", role: m.role, isOnline };
+      });
+
+      res.json({ crew: { id: crew.id, name: crew.name, founderId: crew.founderId }, members, isFounder: myMembership.role === "founder" });
+    } catch (e) {
+      console.error("GET /api/crews error:", e);
+      res.status(500).json({ message: "Failed to load crew." });
+    }
+  });
+
+  app.get("/api/crews/invites", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+
+      const rows = await storage.getPendingCrewInvitesForUser(myId);
+      const crewsById = new Map<number, any>();
+      for (const r of rows) {
+        if (!crewsById.has(r.crewId)) crewsById.set(r.crewId, await storage.getCrewById(r.crewId));
+      }
+      res.json({
+        invites: rows.map(r => ({ crewMemberId: r.id, crewId: r.crewId, crewName: crewsById.get(r.crewId)?.name || "Unknown Crew" })),
+      });
+    } catch (e) {
+      console.error("GET /api/crews/invites error:", e);
+      res.status(500).json({ message: "Failed to load crew invites." });
+    }
+  });
+
+  app.post("/api/crews", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+      const { name } = req.body || {};
+      if (!name || typeof name !== "string" || !name.trim()) return res.status(400).json({ message: "Crew name required." });
+      if (name.trim().length > 30) return res.status(400).json({ message: "Crew name must be 30 characters or fewer." });
+
+      const existing = await storage.getAcceptedCrewMembership(myId);
+      if (existing) return res.status(400).json({ message: "Leave your current crew before creating a new one." });
+
+      const crew = await storage.createCrew(name.trim(), myId);
+      res.status(201).json({ crewId: crew.id });
+    } catch (e) {
+      console.error("POST /api/crews error:", e);
+      res.status(500).json({ message: "Failed to create crew." });
+    }
+  });
+
+  app.post("/api/crews/invite", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+      const { username } = req.body || {};
+      if (!username || typeof username !== "string") return res.status(400).json({ message: "Username required." });
+
+      const myMembership = await storage.getAcceptedCrewMembership(myId);
+      if (!myMembership) return res.status(403).json({ message: "You're not in a crew." });
+
+      const target = await storage.getUserByUsername(username);
+      if (!target || !target.supabaseUserId) return res.status(404).json({ message: "No account found with that username." });
+      if (target.supabaseUserId === myId) return res.status(400).json({ message: "You can't invite yourself." });
+
+      const targetAccepted = await storage.getAcceptedCrewMembership(target.supabaseUserId);
+      if (targetAccepted) return res.status(400).json({ message: "That player is already in a crew." });
+
+      const existingInvite = await storage.getCrewMembershipForPair(myMembership.crewId, target.supabaseUserId);
+      if (existingInvite) return res.status(400).json({ message: "An invite already exists for that player." });
+
+      const member = await storage.createCrewInvite(myMembership.crewId, target.supabaseUserId, myId);
+      res.status(201).json({ crewMemberId: member.id });
+    } catch (e) {
+      console.error("POST /api/crews/invite error:", e);
+      res.status(500).json({ message: "Failed to send crew invite." });
+    }
+  });
+
+  app.post("/api/crews/respond", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+      const { crewMemberId, accept } = req.body || {};
+      if (!crewMemberId) return res.status(400).json({ message: "crewMemberId required." });
+
+      const invite = await storage.getCrewMemberById(Number(crewMemberId));
+      if (!invite || invite.supabaseUserId !== myId || invite.status !== "pending") {
+        return res.status(404).json({ message: "Invite not found." });
+      }
+
+      if (accept) {
+        // Re-check at accept time, not just at invite time — the person
+        // may have joined a different crew in the meantime.
+        const alreadyInACrew = await storage.getAcceptedCrewMembership(myId);
+        if (alreadyInACrew) return res.status(400).json({ message: "You're already in a crew." });
+        await storage.updateCrewMemberStatus(invite.id, "accepted");
+      } else {
+        await storage.deleteCrewMember(invite.id);
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/crews/respond error:", e);
+      res.status(500).json({ message: "Failed to respond to crew invite." });
+    }
+  });
+
+  app.post("/api/crews/leave", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+
+      const myMembership = await storage.getAcceptedCrewMembership(myId);
+      if (!myMembership) return res.status(400).json({ message: "You're not in a crew." });
+
+      if (myMembership.role === "founder") {
+        const otherMembers = (await storage.getCrewMembersForCrew(myMembership.crewId)).filter(m => m.id !== myMembership.id);
+        if (otherMembers.length === 0) {
+          // Last person out — the crew has no one left, delete it entirely.
+          await storage.deleteCrew(myMembership.crewId);
+        } else {
+          // Promote whoever joined earliest so the crew isn't left without
+          // a founder. createdAt isn't guaranteed sorted from the query, so
+          // sort defensively here.
+          const nextFounder = otherMembers.sort((a, b) => (new Date(a.createdAt as any).getTime()) - (new Date(b.createdAt as any).getTime()))[0];
+          await storage.updateCrewMemberRole(nextFounder.id, "founder");
+          await storage.updateCrewFounder(myMembership.crewId, nextFounder.supabaseUserId);
+          await storage.deleteCrewMember(myMembership.id);
+        }
+      } else {
+        await storage.deleteCrewMember(myMembership.id);
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/crews/leave error:", e);
+      res.status(500).json({ message: "Failed to leave crew." });
+    }
+  });
+
+  app.post("/api/crews/remove", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+      const { supabaseUserId } = req.body || {};
+      if (!supabaseUserId) return res.status(400).json({ message: "supabaseUserId required." });
+
+      const myMembership = await storage.getAcceptedCrewMembership(myId);
+      if (!myMembership || myMembership.role !== "founder") return res.status(403).json({ message: "Only the founder can remove members." });
+      if (supabaseUserId === myId) return res.status(400).json({ message: "Use leave instead of removing yourself." });
+
+      const target = await storage.getCrewMembershipForPair(myMembership.crewId, supabaseUserId);
+      if (!target || target.status !== "accepted") return res.status(404).json({ message: "That person isn't in your crew." });
+
+      await storage.deleteCrewMember(target.id);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/crews/remove error:", e);
+      res.status(500).json({ message: "Failed to remove crew member." });
+    }
+  });
+
+  app.post("/api/crews/disband", async (req, res) => {
+    try {
+      const auth = await requireVerifiedUser(req);
+      if ("status" in auth) return res.status(auth.status).json({ message: auth.message });
+      const myId = auth.supabaseUserId;
+
+      const myMembership = await storage.getAcceptedCrewMembership(myId);
+      if (!myMembership || myMembership.role !== "founder") return res.status(403).json({ message: "Only the founder can disband the crew." });
+
+      await storage.deleteCrew(myMembership.crewId);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("POST /api/crews/disband error:", e);
+      res.status(500).json({ message: "Failed to disband crew." });
     }
   });
 

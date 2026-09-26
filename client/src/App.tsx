@@ -64,6 +64,7 @@ const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 const Room = lazy(() => import("@/pages/Room"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Friends = lazy(() => import("@/pages/Friends"));
+const Crew = lazy(() => import("@/pages/Crew"));
 const RecapView = lazy(() => import("@/pages/RecapView"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Cosmetics = lazy(() => import("@/pages/Cosmetics"));
@@ -100,6 +101,7 @@ function Router404() {
           <Route path="/room/:code" component={Room} />
           <Route path="/profile" component={Profile} />
           <Route path="/friends" component={Friends} />
+          <Route path="/crew" component={Crew} />
           <Route path="/recap/:shareId" component={RecapView} />
           <Route path="/settings" component={Settings} />
           <Route path="/cosmetics" component={Cosmetics} />

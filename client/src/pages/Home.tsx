@@ -527,6 +527,15 @@ export default function Home() {
   // Feature: deliberate "Join as Spectator" — lets someone watch a room on
   // purpose instead of only ever spectating by accident (joining late).
   const [joinAsSpectator, setJoinAsSpectator] = useState(false);
+  // Feature: no-spoiler spectator link. A room's share panel can copy a
+  // link shaped "?join=CODE&spectate=nospoiler" — when that's present we
+  // force spectator mode on (no point offering the checkbox, this link
+  // only ever means "watch, roles hidden") and remember it so handleJoin
+  // can pass noSpoilers: true through to the join call.
+  const [joinNoSpoilers] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("spectate") === "nospoiler";
+  });
 
   // Feature: public room browser + Quick Match.
   const [publicRooms, setPublicRooms] = useState<{
@@ -665,6 +674,9 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("join")) {
       setActiveTab("join");
+    }
+    if (params.get("spectate") === "nospoiler") {
+      setJoinAsSpectator(true);
     }
   }, []);
 
@@ -886,7 +898,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, asSpectator: joinAsSpectator, supabaseUserId: user?.id } as any);
+      const res = await joinRoom.mutateAsync({ name, avatar, code: joinCode, avatarConfig: config, asSpectator: joinAsSpectator, noSpoilers: joinNoSpoilers, supabaseUserId: user?.id } as any);
       // See the note in handleQuickMatch — a blocked localStorage on iOS
       // must not turn a successful join into a failure toast.
       try {
@@ -1247,15 +1259,19 @@ export default function Home() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setJoinAsSpectator(v => !v)}
+                    onClick={() => { if (!joinNoSpoilers) setJoinAsSpectator(v => !v); }}
+                    disabled={joinNoSpoilers}
                     className={cn(
                       "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
-                      joinAsSpectator ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                      joinAsSpectator ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted",
+                      joinNoSpoilers && "opacity-80 cursor-default"
                     )}
                     data-testid="checkbox-join-as-spectator"
                   >
                     <Tv className="w-4 h-4 shrink-0" />
-                    <span className="text-sm font-bold">{t("home.joinAsSpectator")}</span>
+                    <span className="text-sm font-bold">
+                      {joinNoSpoilers ? t("home.joinAsSpectatorNoSpoilers", "Spectating (no-spoiler link — roles hidden)") : t("home.joinAsSpectator")}
+                    </span>
                   </button>
                   <Button type="submit" className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
                     disabled={joinRoom.isPending || !joinCode || !name} data-testid="button-join-room">

@@ -293,7 +293,8 @@
     "rolesAssignedRandomly": "Assigned randomly to everyone when the game starts.",
     "needNameTitle": "Enter a name first",
     "quickMatchFailed": "Quick Match failed",
-    "spectateOnly": "Spectate Only"
+    "spectateOnly": "Spectate Only",
+    "joinAsSpectatorNoSpoilers": "Spectating (no-spoiler link — roles hidden)"
   },
   "room": {
     "linkCopied": "Link copied!",
@@ -524,7 +525,12 @@
     "mvpResult": "MVP: {{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "You voted for the mafia {{correct}} out of {{total}} times.",
-    "detectiveReport": "Detective's Report — {{name}}"
+    "detectiveReport": "Detective's Report — {{name}}",
+    "tapToRevealRole": "Tap to reveal",
+    "showMyRole": "Show my role",
+    "hideMyRole": "Hide my role (streamer mode)",
+    "noSpoilerLinkDescription": "Anyone using this link watches with roles hidden — safe for streaming.",
+    "copyNoSpoilerLink": "Copy No-Spoiler Spectator Link"
   },
   "settings": {
     "title": "Settings",
@@ -1499,5 +1505,29 @@
       "title": "Don't miss your turn",
       "body": "Turn this on to get notified when it's your turn, even if you've switched tabs."
     }
+  },
+  "crew": {
+    "title": "Crew",
+    "signInRequired": "Sign in to join or create a Crew.",
+    "loadError": "Couldn't load your crew",
+    "pendingInvites": "Crew Invites",
+    "createCrew": "Create a Crew",
+    "noCrewYet": "You're not in a crew yet. Start one, or accept an invite above.",
+    "crewNamePlaceholder": "Crew name",
+    "created": "Crew created",
+    "createFailed": "Couldn't create crew",
+    "yourCrew": "Your Crew",
+    "usernamePlaceholder": "Their account username (not their in-game name)",
+    "inviteSent": "Crew invite sent",
+    "inviteFailed": "Couldn't send invite",
+    "members": "Members",
+    "founder": "Founder",
+    "online": "Online",
+    "offline": "Offline",
+    "leave": "Leave Crew",
+    "left": "You left the crew",
+    "disband": "Disband",
+    "disbanded": "Crew disbanded",
+    "actionFailed": "Something went wrong"
   }
 }

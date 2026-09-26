@@ -430,7 +430,8 @@
     "rolesAssignedRandomly": "遊戲開始時隨機分配給所有人。",
     "needNameTitle": "請先輸入名稱",
     "quickMatchFailed": "快速匹配失敗",
-    "spectateOnly": "僅限觀看"
+    "spectateOnly": "僅限觀看",
+    "joinAsSpectatorNoSpoilers": "觀戰中（無雷連結——角色已隱藏）"
   },
   "store": {
     "title": "商店",
@@ -868,7 +869,12 @@
     "mvpResult": "MVP：{{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "您在 {{total}} 次中有 {{correct}} 次投票給了黑手黨。",
-    "detectiveReport": "偵探報告 — {{name}}"
+    "detectiveReport": "偵探報告 — {{name}}",
+    "tapToRevealRole": "點選查看",
+    "showMyRole": "顯示我的角色",
+    "hideMyRole": "隱藏我的角色（實況模式）",
+    "noSpoilerLinkDescription": "使用此連結觀看的人將看不到角色身分——適合實況使用。",
+    "copyNoSpoilerLink": "複製無雷觀眾連結"
   },
   "roleBadge": {
     "mafia": "黑手黨",
@@ -1499,5 +1505,29 @@
       "lc_title_overlord": "頭銜：霸主",
       "lc_title_immortal": "頭銜：不朽者"
     }
+  },
+  "crew": {
+    "title": "幫派",
+    "signInRequired": "登入以加入或建立幫派。",
+    "loadError": "無法載入您的幫派",
+    "pendingInvites": "幫派邀請",
+    "createCrew": "建立幫派",
+    "noCrewYet": "您尚未加入幫派。建立一個，或接受上方的邀請。",
+    "crewNamePlaceholder": "幫派名稱",
+    "created": "幫派已建立",
+    "createFailed": "無法建立幫派",
+    "yourCrew": "您的幫派",
+    "usernamePlaceholder": "對方的帳戶使用者名稱（不是遊戲內暱稱）",
+    "inviteSent": "幫派邀請已傳送",
+    "inviteFailed": "無法傳送邀請",
+    "members": "成員",
+    "founder": "創始人",
+    "online": "線上",
+    "offline": "離線",
+    "leave": "離開幫派",
+    "left": "您已離開幫派",
+    "disband": "解散",
+    "disbanded": "幫派已解散",
+    "actionFailed": "發生錯誤"
   }
 }

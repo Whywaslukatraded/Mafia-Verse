@@ -430,7 +430,8 @@
     "rolesAssignedRandomly": "游戏开始时随机分配给所有人。",
     "needNameTitle": "请先输入名称",
     "quickMatchFailed": "快速匹配失败",
-    "spectateOnly": "仅限观看"
+    "spectateOnly": "仅限观看",
+    "joinAsSpectatorNoSpoilers": "观战中（无剧透链接——角色已隐藏）"
   },
   "store": {
     "title": "商店",
@@ -868,7 +869,12 @@
     "mvpResult": "MVP：{{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "您在 {{total}} 次中有 {{correct}} 次投票给了黑手党。",
-    "detectiveReport": "侦探报告 — {{name}}"
+    "detectiveReport": "侦探报告 — {{name}}",
+    "tapToRevealRole": "点击查看",
+    "showMyRole": "显示我的角色",
+    "hideMyRole": "隐藏我的角色（主播模式）",
+    "noSpoilerLinkDescription": "使用此链接观看的人将看不到角色身份——适合直播使用。",
+    "copyNoSpoilerLink": "复制无剧透观众链接"
   },
   "roleBadge": {
     "mafia": "黑手党",
@@ -1499,5 +1505,29 @@
       "lc_title_overlord": "头衔：霸主",
       "lc_title_immortal": "头衔：不朽者"
     }
+  },
+  "crew": {
+    "title": "团伙",
+    "signInRequired": "登录以加入或创建团伙。",
+    "loadError": "无法加载您的团伙",
+    "pendingInvites": "团伙邀请",
+    "createCrew": "创建团伙",
+    "noCrewYet": "您还没有加入团伙。创建一个，或接受上方的邀请。",
+    "crewNamePlaceholder": "团伙名称",
+    "created": "团伙已创建",
+    "createFailed": "无法创建团伙",
+    "yourCrew": "您的团伙",
+    "usernamePlaceholder": "对方的账户用户名（不是游戏内昵称）",
+    "inviteSent": "团伙邀请已发送",
+    "inviteFailed": "无法发送邀请",
+    "members": "成员",
+    "founder": "创始人",
+    "online": "在线",
+    "offline": "离线",
+    "leave": "离开团伙",
+    "left": "您已离开团伙",
+    "disband": "解散",
+    "disbanded": "团伙已解散",
+    "actionFailed": "出了点问题"
   }
 }

@@ -168,6 +168,10 @@ export async function runMigrations(): Promise<void> {
           joined_at timestamp DEFAULT now()
         )
       `);
+      // Feature: no-spoiler spectator link (see schema.ts's comment on
+      // players.spectatorNoSpoilers for the full reasoning).
+      await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS spectator_no_spoilers boolean DEFAULT false`);
+
       await client.query(`
         CREATE TABLE IF NOT EXISTS rooms (
           id serial PRIMARY KEY,
@@ -258,6 +262,42 @@ export async function runMigrations(): Promise<void> {
         )
       `);
       await lockDownTableFromPublicApi(client, "processed_stripe_events");
+
+      // Feature: Crews (team system). Same shape/reasoning as friendships
+      // above — see schema.ts's comment on the crews/crewMembers tables for
+      // the full design (one accepted crew per user, invite-by-username,
+      // founder-only remove/disband). This was previously only created
+      // self-healingly on first request (storage.ts's ensureCrewsTable) —
+      // adding it here too means a brand-new deploy gets the table at boot
+      // like every other table, instead of on whichever request happens to
+      // hit it first.
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crews (
+          id serial PRIMARY KEY,
+          name text NOT NULL,
+          founder_id text NOT NULL,
+          created_at timestamp DEFAULT now()
+        )
+      `);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crew_members (
+          id serial PRIMARY KEY,
+          crew_id integer NOT NULL,
+          supabase_user_id text NOT NULL,
+          status text NOT NULL DEFAULT 'pending',
+          role text NOT NULL DEFAULT 'member',
+          invited_by text NOT NULL,
+          created_at timestamp DEFAULT now()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS crew_members_crew_idx ON crew_members (crew_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS crew_members_user_idx ON crew_members (supabase_user_id)`);
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crew_members_unique_pair_idx
+        ON crew_members (crew_id, supabase_user_id)
+      `);
+      await lockDownTableFromPublicApi(client, "crews");
+      await lockDownTableFromPublicApi(client, "crew_members");
 
       console.log("[DB] Migrations applied successfully");
     } finally {

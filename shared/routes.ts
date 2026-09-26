@@ -212,6 +212,11 @@ export const api = {
         // Feature: deliberate "Join as Spectator" — lets someone opt into
         // watching a room on purpose, not just by joining after it started.
         asSpectator: z.boolean().optional(),
+        // Feature: no-spoiler spectator link. Only meaningful alongside
+        // asSpectator: true — marks this spectator as someone who should
+        // NOT get full role visibility (for a streamer's audience), unlike
+        // a regular spectator who sees everything, same as a dead player.
+        noSpoilers: z.boolean().optional(),
       }),
       responses: {
         200: z.object({

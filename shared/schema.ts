@@ -115,6 +115,14 @@ export const players = pgTable("players", {
   sessionId: text("session_id").notNull(),
   supabaseUserId: text("supabase_user_id"),
   isSpectator: boolean("is_spectator").default(false),
+  // Feature: no-spoiler spectator link. Only meaningful when isSpectator is
+  // true — a regular spectator (existing behavior, unchanged) sees every
+  // role fully unredacted, same as a dead player. This flag marks a
+  // spectator who joined via the separate "no-spoiler" link instead, for a
+  // streamer's audience: that viewer gets treated like an ordinary alive
+  // Civilian in the role-redaction logic (routes.ts broadcastState), i.e.
+  // no special knowledge at all.
+  spectatorNoSpoilers: boolean("spectator_no_spoilers").default(false),
   isBot: boolean("is_bot").default(false),
   // Feature: Pre-game ready-up lobby. Only meaningful while room.status is
   // "lobby" — reset to false whenever a player disconnects during the lobby
@@ -195,6 +203,42 @@ export const friendships = pgTable("friendships", {
 });
 
 export type Friendship = typeof friendships.$inferSelect;
+
+// Feature: Crews (team system). Modeled directly on friendships above —
+// same self-healing table pattern in storage.ts, invite-by-username with
+// no pre-existing-friendship requirement (same as a friend request itself).
+// Design choices, flagged for Andy to override if not what he wants:
+// - A user can be an ACCEPTED member of only one crew at a time, enforced
+//   at the route level (not a DB constraint) — joining a second requires
+//   leaving the first. A pending (not-yet-accepted) invite doesn't count
+//   toward that, same as a pending friend request doesn't block others.
+// - Any accepted member (not just the founder) can invite by username —
+//   crews are meant to grow socially, same low friction as friend
+//   requests. Removing a member or disbanding the crew IS founder-only.
+// - If the founder leaves a crew that still has other members, the
+//   earliest-joined remaining member is promoted to founder rather than
+//   leaving the crew ownerless. If the founder leaves and no one else is
+//   left, the crew (and its one remaining row) is deleted outright.
+export const crews = pgTable("crews", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  founderId: text("founder_id").notNull(), // supabaseUserId
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Crew = typeof crews.$inferSelect;
+
+export const crewMembers = pgTable("crew_members", {
+  id: serial("id").primaryKey(),
+  crewId: integer("crew_id").notNull(),
+  supabaseUserId: text("supabase_user_id").notNull(),
+  status: text("status").notNull().default("pending"), // pending | accepted
+  role: text("role").notNull().default("member"), // founder | member
+  invitedBy: text("invited_by").notNull(), // supabaseUserId who sent the invite (self, for the founder's own row)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type CrewMember = typeof crewMembers.$inferSelect;
 
 // Feature: Game history + share. A permanent, standalone snapshot of one
 // finished match — written once by finalizeGameEnd() in routes.ts and never

@@ -293,7 +293,8 @@
     "rolesAssignedRandomly": "Attribués au hasard à tout le monde quand la partie commence.",
     "needNameTitle": "Entrez d'abord un nom",
     "quickMatchFailed": "La Partie rapide a échoué",
-    "spectateOnly": "Observateur uniquement"
+    "spectateOnly": "Observateur uniquement",
+    "joinAsSpectatorNoSpoilers": "En train de regarder (lien sans spoilers — rôles masqués)"
   },
   "room": {
     "linkCopied": "Lien copié !",
@@ -524,7 +525,12 @@
     "mvpResult": "MVP : {{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "Vous avez voté pour la mafia {{correct}} fois sur {{total}}.",
-    "detectiveReport": "Rapport du Détective — {{name}}"
+    "detectiveReport": "Rapport du Détective — {{name}}",
+    "tapToRevealRole": "Toucher pour révéler",
+    "showMyRole": "Afficher mon rôle",
+    "hideMyRole": "Masquer mon rôle (mode streamer)",
+    "noSpoilerLinkDescription": "Toute personne utilisant ce lien regarde avec les rôles masqués — sûr pour le streaming.",
+    "copyNoSpoilerLink": "Copier le Lien Spectateur Sans Spoilers"
   },
   "settings": {
     "title": "Paramètres",
@@ -1499,5 +1505,29 @@
       "lc_title_overlord": "Titre : Suzerain",
       "lc_title_immortal": "Titre : Immortel"
     }
+  },
+  "crew": {
+    "title": "Bande",
+    "signInRequired": "Connectez-vous pour rejoindre ou créer une Bande.",
+    "loadError": "Impossible de charger votre bande",
+    "pendingInvites": "Invitations de Bande",
+    "createCrew": "Créer une Bande",
+    "noCrewYet": "Vous n'êtes pas encore dans une bande. Créez-en une, ou acceptez une invitation ci-dessus.",
+    "crewNamePlaceholder": "Nom de la bande",
+    "created": "Bande créée",
+    "createFailed": "Impossible de créer la bande",
+    "yourCrew": "Votre Bande",
+    "usernamePlaceholder": "Le nom d'utilisateur de son compte (pas son nom en jeu)",
+    "inviteSent": "Invitation de bande envoyée",
+    "inviteFailed": "Impossible d'envoyer l'invitation",
+    "members": "Membres",
+    "founder": "Fondateur",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "leave": "Quitter la Bande",
+    "left": "Vous avez quitté la bande",
+    "disband": "Dissoudre",
+    "disbanded": "Bande dissoute",
+    "actionFailed": "Quelque chose s'est mal passé"
   }
 }

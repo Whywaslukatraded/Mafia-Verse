@@ -430,7 +430,8 @@
     "rolesAssignedRandomly": "Atribuídos aleatoriamente a todos quando a partida começa.",
     "needNameTitle": "Digite um nome primeiro",
     "quickMatchFailed": "Falha na Partida Rápida",
-    "spectateOnly": "Somente Espectador"
+    "spectateOnly": "Somente Espectador",
+    "joinAsSpectatorNoSpoilers": "Assistindo (link sem spoilers — papéis ocultos)"
   },
   "store": {
     "title": "Loja",
@@ -868,7 +869,12 @@
     "mvpResult": "MVP: {{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "Você votou na máfia {{correct}} de {{total}} vezes.",
-    "detectiveReport": "Relatório do Detetive — {{name}}"
+    "detectiveReport": "Relatório do Detetive — {{name}}",
+    "tapToRevealRole": "Toque para revelar",
+    "showMyRole": "Mostrar meu papel",
+    "hideMyRole": "Ocultar meu papel (modo streamer)",
+    "noSpoilerLinkDescription": "Quem usar este link assiste com os papéis ocultos — seguro para streaming.",
+    "copyNoSpoilerLink": "Copiar Link de Espectador Sem Spoilers"
   },
   "roleBadge": {
     "mafia": "Máfia",
@@ -1499,5 +1505,29 @@
       "lc_title_overlord": "Título: Soberano",
       "lc_title_immortal": "Título: Imortal"
     }
+  },
+  "crew": {
+    "title": "Gangue",
+    "signInRequired": "Entre para participar ou criar uma Gangue.",
+    "loadError": "Não foi possível carregar sua gangue",
+    "pendingInvites": "Convites de Gangue",
+    "createCrew": "Criar uma Gangue",
+    "noCrewYet": "Você ainda não está em uma gangue. Crie uma, ou aceite um convite acima.",
+    "crewNamePlaceholder": "Nome da gangue",
+    "created": "Gangue criada",
+    "createFailed": "Não foi possível criar a gangue",
+    "yourCrew": "Sua Gangue",
+    "usernamePlaceholder": "O nome de usuário da conta dele (não o nome no jogo)",
+    "inviteSent": "Convite de gangue enviado",
+    "inviteFailed": "Não foi possível enviar o convite",
+    "members": "Membros",
+    "founder": "Fundador",
+    "online": "Online",
+    "offline": "Offline",
+    "leave": "Sair da Gangue",
+    "left": "Você saiu da gangue",
+    "disband": "Dissolver",
+    "disbanded": "Gangue dissolvida",
+    "actionFailed": "Algo deu errado"
   }
 }

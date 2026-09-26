@@ -293,7 +293,8 @@
     "rolesAssignedRandomly": "Se asignan al azar a todos cuando empieza la partida.",
     "needNameTitle": "Ingresa un nombre primero",
     "quickMatchFailed": "Partida Rápida falló",
-    "spectateOnly": "Solo Espectador"
+    "spectateOnly": "Solo Espectador",
+    "joinAsSpectatorNoSpoilers": "Viendo (enlace sin spoilers — roles ocultos)"
   },
   "room": {
     "linkCopied": "¡Enlace copiado!",
@@ -524,7 +525,12 @@
     "mvpResult": "MVP: {{name}}",
     "mvpLabel": "MVP",
     "myVoteRecord": "Votaste por la mafia {{correct}} de {{total}} veces.",
-    "detectiveReport": "Informe del Detective — {{name}}"
+    "detectiveReport": "Informe del Detective — {{name}}",
+    "tapToRevealRole": "Toca para revelar",
+    "showMyRole": "Mostrar mi rol",
+    "hideMyRole": "Ocultar mi rol (modo streamer)",
+    "noSpoilerLinkDescription": "Cualquiera que use este enlace verá los roles ocultos — seguro para streaming.",
+    "copyNoSpoilerLink": "Copiar Enlace de Espectador Sin Spoilers"
   },
   "settings": {
     "title": "Ajustes",
@@ -1499,5 +1505,29 @@
       "title": "No te pierdas tu turno",
       "body": "Actívalo para recibir un aviso cuando sea tu turno, incluso si cambiaste de pestaña."
     }
+  },
+  "crew": {
+    "title": "Banda",
+    "signInRequired": "Inicia sesión para unirte o crear una Banda.",
+    "loadError": "No se pudo cargar tu banda",
+    "pendingInvites": "Invitaciones de Banda",
+    "createCrew": "Crear una Banda",
+    "noCrewYet": "Aún no estás en una banda. Crea una, o acepta una invitación arriba.",
+    "crewNamePlaceholder": "Nombre de la banda",
+    "created": "Banda creada",
+    "createFailed": "No se pudo crear la banda",
+    "yourCrew": "Tu Banda",
+    "usernamePlaceholder": "El nombre de usuario de su cuenta (no su nombre en el juego)",
+    "inviteSent": "Invitación de banda enviada",
+    "inviteFailed": "No se pudo enviar la invitación",
+    "members": "Miembros",
+    "founder": "Fundador",
+    "online": "En línea",
+    "offline": "Desconectado",
+    "leave": "Salir de la Banda",
+    "left": "Saliste de la banda",
+    "disband": "Disolver",
+    "disbanded": "Banda disuelta",
+    "actionFailed": "Algo salió mal"
   }
 }

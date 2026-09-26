@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { pool } from "./db";
 import { lockDownTableFromPublicApi } from "./db";
-import { users, rooms, players, messages, friendships, gameRecaps, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
+import { users, rooms, players, messages, friendships, gameRecaps, crews, crewMembers, type User, type Room, type Player, type CreateRoomRequest, type Message, type Friendship, type GameRecap, type Crew, type CrewMember, MAX_PLAYERS_PER_ROOM } from "@shared/schema";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import { randomBytes, randomUUID } from "crypto";
 
@@ -120,6 +120,59 @@ async function withGameRecapsTable<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+// Feature: Crews (team system). Same self-healing pattern as
+// ensureFriendshipsTable above. Both tables are created together since
+// every crew route touches both.
+let crewsTableEnsured = false;
+async function ensureCrewsTable(): Promise<void> {
+  if (crewsTableEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS crews (
+      id serial PRIMARY KEY,
+      name text NOT NULL,
+      founder_id text NOT NULL,
+      created_at timestamp DEFAULT now()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS crew_members (
+      id serial PRIMARY KEY,
+      crew_id integer NOT NULL,
+      supabase_user_id text NOT NULL,
+      status text NOT NULL DEFAULT 'pending',
+      role text NOT NULL DEFAULT 'member',
+      invited_by text NOT NULL,
+      created_at timestamp DEFAULT now()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS crew_members_crew_idx ON crew_members (crew_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS crew_members_user_idx ON crew_members (supabase_user_id)`);
+  // One row per (crew, user) pair — prevents a duplicate invite/membership
+  // row for the same person in the same crew (mirrors friendships_unique_pair_idx).
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS crew_members_unique_pair_idx
+    ON crew_members (crew_id, supabase_user_id)
+  `);
+  // Security fix (#3)-style lockdown — same reasoning as friendships/
+  // game_recaps above: without this, the published Supabase anon key could
+  // read every crew and its membership straight through the REST API.
+  await lockDownTableFromPublicApi(pool, "crews");
+  await lockDownTableFromPublicApi(pool, "crew_members");
+  crewsTableEnsured = true;
+}
+async function withCrewsTable<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    if (err?.code === "42P01") {
+      console.warn("[DB] crews/crew_members table missing — creating it now instead of failing this request");
+      await ensureCrewsTable();
+      return await fn();
+    }
+    throw err;
+  }
+}
+
 export interface IStorage {
   createUser(user: Omit<User, "id" | "createdAt">): Promise<User>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -166,6 +219,22 @@ export interface IStorage {
   deleteFriendship(id: number): Promise<void>;
   getFriendshipsForUser(supabaseUserId: string): Promise<Friendship[]>;
   getOpenPrivateRoomsInvitingUser(supabaseUserId: string): Promise<Room[]>;
+
+  // Feature: Crews (team system)
+  createCrew(name: string, founderId: string): Promise<Crew>;
+  getCrewById(id: number): Promise<Crew | undefined>;
+  updateCrewFounder(id: number, founderId: string): Promise<Crew>;
+  deleteCrew(id: number): Promise<void>;
+  createCrewInvite(crewId: number, supabaseUserId: string, invitedBy: string, role?: string, status?: string): Promise<CrewMember>;
+  getCrewMemberById(id: number): Promise<CrewMember | undefined>;
+  getCrewMembershipForPair(crewId: number, supabaseUserId: string): Promise<CrewMember | undefined>;
+  getAcceptedCrewMembership(supabaseUserId: string): Promise<CrewMember | undefined>;
+  getPendingCrewInvitesForUser(supabaseUserId: string): Promise<CrewMember[]>;
+  getCrewMembersForCrew(crewId: number): Promise<CrewMember[]>;
+  updateCrewMemberStatus(id: number, status: string): Promise<CrewMember>;
+  updateCrewMemberRole(id: number, role: string): Promise<CrewMember>;
+  deleteCrewMember(id: number): Promise<void>;
+  deleteCrewMembersByCrew(crewId: number): Promise<void>;
 
   // Feature: Game history + share
   createGameRecap(recap: Omit<GameRecap, "id" | "shareId" | "endedAt">): Promise<GameRecap>;
@@ -529,6 +598,121 @@ export class DatabaseStorage implements IStorage {
         sql`${rooms.settings} -> 'invitedSupabaseUserIds' @> ${JSON.stringify([supabaseUserId])}::jsonb`
       )
     );
+  }
+
+  // Feature: Crews (team system). Same self-healing wrapping as friendships.
+  async createCrew(name: string, founderId: string): Promise<Crew> {
+    return withCrewsTable(async () => {
+      const [crew] = await db.insert(crews).values({ name, founderId }).returning();
+      // The founder is always an accepted member of their own crew,
+      // "invited" by themselves — mirrors how a new row still needs an
+      // invitedBy value even though no actual invite happened.
+      await db.insert(crewMembers).values({
+        crewId: crew.id,
+        supabaseUserId: founderId,
+        status: "accepted",
+        role: "founder",
+        invitedBy: founderId,
+      });
+      return crew;
+    });
+  }
+
+  async getCrewById(id: number): Promise<Crew | undefined> {
+    return withCrewsTable(async () => {
+      const [crew] = await db.select().from(crews).where(eq(crews.id, id));
+      return crew;
+    });
+  }
+
+  async updateCrewFounder(id: number, founderId: string): Promise<Crew> {
+    return withCrewsTable(async () => {
+      const [crew] = await db.update(crews).set({ founderId }).where(eq(crews.id, id)).returning();
+      return crew;
+    });
+  }
+
+  async deleteCrew(id: number): Promise<void> {
+    return withCrewsTable(async () => {
+      await db.delete(crewMembers).where(eq(crewMembers.crewId, id));
+      await db.delete(crews).where(eq(crews.id, id));
+    });
+  }
+
+  async createCrewInvite(crewId: number, supabaseUserId: string, invitedBy: string, role: string = "member", status: string = "pending"): Promise<CrewMember> {
+    return withCrewsTable(async () => {
+      const [member] = await db.insert(crewMembers).values({ crewId, supabaseUserId, invitedBy, role, status }).returning();
+      return member;
+    });
+  }
+
+  async getCrewMemberById(id: number): Promise<CrewMember | undefined> {
+    return withCrewsTable(async () => {
+      const [member] = await db.select().from(crewMembers).where(eq(crewMembers.id, id));
+      return member;
+    });
+  }
+
+  async getCrewMembershipForPair(crewId: number, supabaseUserId: string): Promise<CrewMember | undefined> {
+    return withCrewsTable(async () => {
+      const [member] = await db.select().from(crewMembers).where(
+        and(eq(crewMembers.crewId, crewId), eq(crewMembers.supabaseUserId, supabaseUserId))
+      );
+      return member;
+    });
+  }
+
+  // The one crew this user is a currently-ACCEPTED member of, if any —
+  // used to enforce the "one crew at a time" rule and to show "your crew."
+  async getAcceptedCrewMembership(supabaseUserId: string): Promise<CrewMember | undefined> {
+    return withCrewsTable(async () => {
+      const [member] = await db.select().from(crewMembers).where(
+        and(eq(crewMembers.supabaseUserId, supabaseUserId), eq(crewMembers.status, "accepted"))
+      );
+      return member;
+    });
+  }
+
+  async getPendingCrewInvitesForUser(supabaseUserId: string): Promise<CrewMember[]> {
+    return withCrewsTable(async () => {
+      return await db.select().from(crewMembers).where(
+        and(eq(crewMembers.supabaseUserId, supabaseUserId), eq(crewMembers.status, "pending"))
+      );
+    });
+  }
+
+  async getCrewMembersForCrew(crewId: number): Promise<CrewMember[]> {
+    return withCrewsTable(async () => {
+      return await db.select().from(crewMembers).where(
+        and(eq(crewMembers.crewId, crewId), eq(crewMembers.status, "accepted"))
+      );
+    });
+  }
+
+  async updateCrewMemberStatus(id: number, status: string): Promise<CrewMember> {
+    return withCrewsTable(async () => {
+      const [member] = await db.update(crewMembers).set({ status }).where(eq(crewMembers.id, id)).returning();
+      return member;
+    });
+  }
+
+  async updateCrewMemberRole(id: number, role: string): Promise<CrewMember> {
+    return withCrewsTable(async () => {
+      const [member] = await db.update(crewMembers).set({ role }).where(eq(crewMembers.id, id)).returning();
+      return member;
+    });
+  }
+
+  async deleteCrewMember(id: number): Promise<void> {
+    return withCrewsTable(async () => {
+      await db.delete(crewMembers).where(eq(crewMembers.id, id));
+    });
+  }
+
+  async deleteCrewMembersByCrew(crewId: number): Promise<void> {
+    return withCrewsTable(async () => {
+      await db.delete(crewMembers).where(eq(crewMembers.crewId, crewId));
+    });
   }
 
   // Feature: Game history + share

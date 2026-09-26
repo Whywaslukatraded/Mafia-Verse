@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
+import { Share2, LogOut, Timer, Volume2, VolumeX, Settings2, Plus, Minus, History, Ghost, Shield, User, Heart, Skull, Eye, EyeOff, CheckCircle2, Flame, Sparkles, Users, RotateCcw, X, Copy, Check, Flag, ShieldCheck, Crosshair, Landmark, Drama, Search, Download, Smile, UserPlus } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useGameSocket } from "@/hooks/use-game";
@@ -96,6 +96,26 @@ export default function Room() {
   // Feature: role-reveal modal, shown briefly on night 1 (see the effect
   // below that flips this true then auto-hides it after 5s).
   const [showRoleReveal, setShowRoleReveal] = useState(false);
+
+  // Feature: hide-my-own-role (streamer mode). Pure client-side visual
+  // blur — the server is never told about this and `me.role` is used
+  // completely normally under the hood, so night-action prompts, the
+  // handbook, teammate recognition, etc. all keep working exactly as
+  // before. This only blurs the on-screen label/badge for the player who
+  // turned it on, so they can stream their own screen without accidentally
+  // revealing their role, while still being able to click the toggle to
+  // peek at any time. Persisted the same way mafia_theme_dark is.
+  const [hideOwnRole, setHideOwnRole] = useState(() => {
+    try { return localStorage.getItem("mafia_hide_own_role") === "1"; } catch { return false; }
+  });
+  const toggleHideOwnRole = () => {
+    setHideOwnRole((v) => {
+      const next = !v;
+      try { localStorage.setItem("mafia_hide_own_role", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
+
   const [pendingNightAction, setPendingNightAction] = useState<{ targetId: number; targetName: string; actionType: string } | null>(null);
   const pendingActionRef = useRef(pendingNightAction);
   useEffect(() => { pendingActionRef.current = pendingNightAction; }, [pendingNightAction]);
@@ -287,6 +307,20 @@ export default function Room() {
     setLinkCopied(true);
     toast({ title: t("room.linkCopied"), description: t("room.sendToFriends") });
     setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  // Feature: no-spoiler spectator link. Reuses the same "?join=CODE" pattern
+  // Friends.tsx's lobby-invite links already use — Home.tsx reads that
+  // param (and the added "spectate=nospoiler" one) via window.location.search,
+  // which is why this is built as a plain query string on the base URL
+  // rather than inside the "#/..." hash-router path.
+  const [noSpoilerLinkCopied, setNoSpoilerLinkCopied] = useState(false);
+  const copyNoSpoilerLink = () => {
+    const url = `${window.location.origin}/?join=${room.code}&spectate=nospoiler`;
+    navigator.clipboard.writeText(url);
+    setNoSpoilerLinkCopied(true);
+    toast({ title: t("room.linkCopied"), description: t("room.noSpoilerLinkDescription", "Anyone using this link watches with roles hidden — safe for streaming.") });
+    setTimeout(() => setNoSpoilerLinkCopied(false), 2000);
   };
 
   // Feature: Share room — Web Share API on supported devices (covers WhatsApp,
@@ -1394,16 +1428,21 @@ export default function Room() {
                 animate={{ scale: [1, 1.1, 1], rotateY: [0, 360] }}
                 transition={{ duration: 1.5 }}
               >
-                <RoleBadge role={me?.role} className="text-4xl px-12 py-6 border-2 shadow-[0_0_50px_rgba(var(--primary),0.5)]" />
+                <RoleBadge role={me?.role} className={cn("text-4xl px-12 py-6 border-2 shadow-[0_0_50px_rgba(var(--primary),0.5)]", hideOwnRole && "blur-md select-none")} />
               </motion.div>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="mt-8 text-xl font-serif text-muted-foreground max-w-xs mx-auto italic"
+                className={cn("mt-8 text-xl font-serif text-muted-foreground max-w-xs mx-auto italic", hideOwnRole && "blur-md select-none")}
               >
                 {t(`room.roleFlavor.${me?.role || "civilian"}`, t("room.roleFlavor.civilian"))}
               </motion.p>
+              {hideOwnRole && (
+                <button onClick={toggleHideOwnRole} className="mt-4 text-xs text-muted-foreground/70 underline underline-offset-2">
+                  {t("room.tapToRevealRole", "Tap to reveal")}
+                </button>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -1452,6 +1491,16 @@ export default function Room() {
               >
                 {linkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 {linkCopied ? t("common.copied") : t("room.copyLink")}
+              </Button>
+
+              <Button
+                onClick={copyNoSpoilerLink}
+                variant="outline"
+                className="w-full gap-2 mt-2"
+                data-testid="button-copy-no-spoiler-link"
+              >
+                {noSpoilerLinkCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <EyeOff className="w-4 h-4" />}
+                {noSpoilerLinkCopied ? t("common.copied") : t("room.copyNoSpoilerLink", "Copy No-Spoiler Spectator Link")}
               </Button>
             </motion.div>
           </motion.div>
@@ -1857,8 +1906,8 @@ export default function Room() {
 
                 {me?.role && me?.isAlive && room?.status !== "ended" && ROLE_GOAL_STYLE[me.role] && (
                   <div className={cn("mb-3 p-3 rounded-xl border flex items-center gap-3", ROLE_GOAL_STYLE[me.role].box)}>
-                    <span className="text-2xl">{ROLE_GOAL_STYLE[me.role].icon}</span>
-                    <div>
+                    <span className={cn("text-2xl", hideOwnRole && "blur-md select-none")}>{ROLE_GOAL_STYLE[me.role].icon}</span>
+                    <div className={cn(hideOwnRole && "blur-md select-none")}>
                       <p className={cn("text-sm font-black uppercase tracking-wide", ROLE_GOAL_STYLE[me.role].text)}>
                         {t(`room.roleGoals.${me.role}.title`)}
                       </p>
@@ -2050,7 +2099,15 @@ export default function Room() {
                     >
                       <div className="flex items-center gap-4">
                         <div className="text-sm text-muted-foreground hidden sm:block">{t("room.yourRole")}</div>
-                        <RoleBadge role={me.role} className="text-lg px-4 py-1.5" />
+                        <RoleBadge role={me.role} className={cn("text-lg px-4 py-1.5", hideOwnRole && "blur-md select-none")} />
+                        <button
+                          onClick={toggleHideOwnRole}
+                          className="text-muted-foreground hover:text-foreground"
+                          title={hideOwnRole ? t("room.showMyRole", "Show my role") : t("room.hideMyRole", "Hide my role (streamer mode)")}
+                          data-testid="button-toggle-hide-own-role"
+                        >
+                          {hideOwnRole ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                       <div className="text-sm font-medium text-right">
                         {isSpectator && <span className="text-blue-400">{t("room.spectating")}</span>}
