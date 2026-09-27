@@ -354,6 +354,36 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
     return `${victimName} ${verb}. Era ${article} ${name}.`;
   }
 
+  if (lang === "fr") {
+    // All role names here happen to be masculine nouns, so a single
+    // le/un article works without needing per-word gender tracking.
+    const frRole: Record<string, string> = { mafia: "mafieux", detective: "détective", doctor: "médecin", civilian: "civil", bodyguard: "garde du corps", vigilante: "justicier", mayor: "maire", jester: "bouffon" };
+    const name = frRole[role] || role;
+    const article = isUnique ? "le" : "un";
+    const verb = action === "killed" ? "a été tué" : "a été éliminé par vote";
+    return `${victimName} ${verb}. C'était ${article} ${name}.`;
+  }
+
+  if (lang === "pt-BR") {
+    const ptRole: Record<string, string> = { mafia: "mafioso", detective: "detetive", doctor: "médico", civilian: "civil", bodyguard: "guarda-costas", vigilante: "vigilante", mayor: "prefeito", jester: "bobo da corte" };
+    const name = ptRole[role] || role;
+    const article = isUnique ? "o" : "um";
+    const verb = action === "killed" ? "foi morto" : "foi eliminado pela votação";
+    return `${victimName} ${verb}. Era ${article} ${name}.`;
+  }
+
+  if (lang === "zh-CN" || lang === "zh-TW") {
+    const isTW = lang === "zh-TW";
+    const zhRole: Record<string, string> = isTW
+      ? { mafia: "黑手黨", detective: "偵探", doctor: "醫生", civilian: "平民", bodyguard: "保鏢", vigilante: "義警", mayor: "市長", jester: "小丑" }
+      : { mafia: "黑手党", detective: "侦探", doctor: "医生", civilian: "平民", bodyguard: "保镖", vigilante: "义警", mayor: "市长", jester: "小丑" };
+    const name = zhRole[role] || role;
+    const verb = isTW
+      ? (action === "killed" ? "被殺害了" : "被投票淘汰了")
+      : (action === "killed" ? "被杀害了" : "被投票淘汰了");
+    return `${victimName}${verb}。${isTW ? "身分是" : "身份是"}${name}。`;
+  }
+
   const enRole: Record<string, string> = { mafia: "mafia", detective: "detective", doctor: "doctor", civilian: "civilian", bodyguard: "bodyguard", vigilante: "vigilante", mayor: "mayor", jester: "jester" };
   const name = enRole[role] || role;
   const article = isUnique ? "the" : (/^[aeiou]/i.test(name) ? "an" : "a");
@@ -430,13 +460,11 @@ const SYSTEM_MESSAGES: Record<string, { en: string; es: string; fr: string; "pt-
   protectionAppliedBody: { en: "You are protecting {name} tonight.", es: "Estás protegiendo a {name} esta noche.", fr: "Vous protégez {name} ce soir.", "pt-BR": "Você está protegendo {name} esta noite.", "zh-CN": "您今晚正在保护 {name}。", "zh-TW": "您今晚正在保護 {name}。" },
 };
 
-// Feature: full 6-language support for system chat messages (was en/es
-// only). SUPPORTED_LANGS/normalizeLang are the single source of truth for
-// "is this a language we actually have content for" — every other
-// `lang === "es" ? "es" : "en"` ternary in this file for BOT DIALOGUE
-// (not system messages) still needs the same widening, tracked separately
-// since bot dialogue is generated from word banks, not fixed strings, and
-// needs its own translation pass.
+// SUPPORTED_LANGS/normalizeLang are the single source of truth for "is this
+// a language we actually have content for" — used by SYSTEM_MESSAGES,
+// buildRoleRevealSentence, and every bot-dialogue pool (DEATH_STORIES,
+// BOT_MESSAGES, GRAVEYARD_BOT_LINES, ECHO_PREFIXES, and the keyword-
+// detection banks in classifyMessage) below.
 const SUPPORTED_LANGS = ["en", "es", "fr", "pt-BR", "zh-CN", "zh-TW"] as const;
 function normalizeLang(lang: unknown): typeof SUPPORTED_LANGS[number] {
   return (SUPPORTED_LANGS as readonly string[]).includes(lang as string) ? (lang as typeof SUPPORTED_LANGS[number]) : "en";
@@ -565,8 +593,221 @@ const DEATH_STORIES_ES = [
   "{name} pensó que podía perderse entre la multitud. La familia lo encontró de todas formas."
 ];
 
+const DEATH_STORIES_FR = [
+  "On a retrouvé {name} flottant dans le port, avec des chaussures en béton qui n'étaient clairement pas à la mode.",
+  "{name} a répondu à un coup à la porte et n'est jamais revenu finir son dîner.",
+  "Une berline noire s'est arrêtée à côté de la voiture de {name}, et une seule est repartie.",
+  "{name} a été surpris en train de détourner de l'argent des comptes de la famille — le métier de comptable est dangereux.",
+  "Quelqu'un a laissé un message pour {name} dans un poisson enveloppé de journal. Ce n'était pas bon signe.",
+  "{name} a eu une réunion de trop dans des ruelles sombres et n'est pas ressorti de la dernière.",
+  "La dernière chose qu'on a entendue de {name} fut un coup de feu résonnant dans le quartier des entrepôts.",
+  "{name} a essayé de doubler la mauvaise équipe et a payé le plus vieux tribut de la famille.",
+  "Une seule rose a été laissée là où {name} avait l'habitude de s'asseoir. Personne n'a demandé qui l'avait envoyée.",
+  "{name} a été vu pour la dernière fois montant dans une voiture qui n'était pas la sienne, et jamais revu depuis.",
+  "Les quais étaient silencieux cette nuit-là — assez silencieux pour cacher ce qui est arrivé à {name}.",
+  "{name} a parlé au mauvais journaliste, et la famille ne tolère pas les langues qui fourchent.",
+  "Quelqu'un a saboté les freins de {name} sur la vieille route du pont.",
+  "On a retrouvé {name} affalé dans un box au fond, son café déjà froid à côté de lui.",
+  "L'exécuteur de la famille a rendu visite à {name}, et un seul des deux est ressorti de la pièce.",
+  "{name} a essayé de quitter la ville avec l'argent de la famille. La famille a une longue mémoire.",
+  "Une seule balle, une rue silencieuse, et {name} n'est jamais rentré chez lui.",
+  "{name} a été vu se disputant avec un inconnu en long manteau. Aucun des deux n'a été revu — sauf un.",
+  "Le coffre était vide, tout comme la chaise où {name} avait l'habitude de s'asseoir.",
+  "{name} a passé un appel qui aurait dû rester privé. Quelqu'un écoutait.",
+  "Une voiture sans plaques a tourné au ralenti devant l'appartement de {name} toute la nuit. Au matin, elle avait disparu — {name} aussi.",
+  "On a retrouvé {name} dans le coffre de sa propre voiture, garée exactement là où il l'avait laissée.",
+  "Quelqu'un a mis quelque chose dans la boisson de {name} au bar clandestin. Ce n'était pas un compliment.",
+  "{name} devait de l'argent aux mauvaises personnes, et les taux d'intérêt sont mortels dans cette ville.",
+  "Le dernier texto de {name} disait juste 'retrouve-moi sur la jetée.' Il n'a jamais eu l'occasion d'en envoyer un autre.",
+  "{name} a été surpris en train de porter un micro. Le tailleur n'a jamais fini le costume.",
+  "Une seule bougie brûlait à la fenêtre de {name} cette nuit-là. À l'aube, elle s'était éteinte pour de bon.",
+  "{name} a essayé de quitter les affaires de la famille. Personne ne part.",
+  "Le barman jure que {name} est sorti par la porte de derrière. Personne ne l'a vue utilisée depuis.",
+  "On a retrouvé {name} entouré d'un jeu de cartes éparpillées — quelqu'un a couché sa main pour de bon.",
+  "Un mot dans la poche de {name} disait simplement : 'Tu en savais trop.'",
+  "{name} a rencontré une famille rivale pour négocier la paix. Ça n'a pas tenu.",
+  "Quelqu'un a truqué l'ascenseur de {name} pour qu'il s'arrête entre deux étages — définitivement.",
+  "{name} était le seul à savoir où étaient enterrés les corps. Maintenant il en fait partie.",
+  "Le tailleur de la famille a pris les mesures de {name} pour un costume qu'il ne porterait jamais.",
+  "{name} a parié contre la maison une fois de trop, et la maison encaisse toujours.",
+  "Une seule série d'empreintes s'éloignait de l'endroit où {name} a été vu pour la dernière fois. Une seule.",
+  "{name} a été pris la main dans le sac en train de détourner la caisse, et la famille ne donne pas de deuxième chance.",
+  "La dernière chose que {name} a entendue fut une portière de voiture claquer derrière lui.",
+  "{name} a essayé de bluffer pour sortir d'une dette qu'il ne pouvait pas payer.",
+  "Quelqu'un a laissé la montre de {name} sur le bureau du patron. {name} ne la portait plus.",
+  "{name} a disparu quelque part entre le club et le parking.",
+  "Un seul coup de feu a résonné près de la vieille distillerie, et {name} n'a plus jamais appelé chez lui.",
+  "{name} a fait confiance au mauvais lieutenant, et les lieutenants parlent quand le prix est bon.",
+  "La famille a découvert que {name} jouait sur les deux tableaux.",
+  "La chaise de {name} à la table de poker est restée vide pour le reste de la soirée — définitivement.",
+  "Quelqu'un a laissé la lumière du porche éteinte pour {name}. Il n'a jamais fini de monter les marches.",
+  "{name} a fait un marché de trop avec une équipe rivale, et la famille ne pardonne pas ça.",
+  "Un téléphone a sonné trois fois dans un bureau vide — juste après que {name} ait arrêté de répondre.",
+  "{name} pensait pouvoir disparaître dans la foule. La famille l'a retrouvé quand même.",
+];
+
+const DEATH_STORIES_PT_BR = [
+  "Encontraram {name} boiando no porto, usando sapatos de cimento que definitivamente não estavam na moda.",
+  "{name} atendeu uma batida na porta e nunca mais voltou para terminar o jantar.",
+  "Um sedã preto parou ao lado do carro de {name}, e só um saiu dirigindo.",
+  "{name} foi pego desviando dinheiro dos livros da família — o trabalho de contador é perigoso.",
+  "Alguém deixou uma mensagem para {name} dentro de um peixe embrulhado em jornal. Não era um bom sinal.",
+  "{name} teve reuniões demais em becos escuros e não saiu andando da última.",
+  "A última coisa que se ouviu de {name} foi um tiro ecoando pelo distrito dos armazéns.",
+  "{name} tentou trair a equipe errada e pagou o pedágio mais antigo da família.",
+  "Uma única rosa foi deixada onde {name} costumava se sentar. Ninguém perguntou quem a mandou.",
+  "{name} foi visto pela última vez entrando em um carro que não era dele, e nunca mais foi visto.",
+  "As docas estavam quietas naquela noite — quietas o suficiente para esconder o que aconteceu com {name}.",
+  "{name} falou com o repórter errado, e a família não tolera bocas soltas.",
+  "Alguém mexeu nos freios de {name} na velha estrada da ponte.",
+  "Encontraram {name} desmaiado em uma cabine no fundo, o café já frio ao lado.",
+  "O executor da família fez uma visita a {name}, e só um dos dois saiu da sala.",
+  "{name} tentou fugir da cidade com o dinheiro da família. A família tem memória longa.",
+  "Uma única bala, uma rua silenciosa, e {name} nunca chegou em casa.",
+  "{name} foi visto discutindo com um estranho de casaco longo. Nenhum dos dois foi visto de novo — exceto um.",
+  "O cofre estava vazio, assim como a cadeira onde {name} costumava se sentar.",
+  "{name} fez uma ligação que deveria ter ficado privada. Alguém estava ouvindo.",
+  "Um carro sem placas ficou parado em frente ao prédio de {name} a noite toda. De manhã, tinha sumido — e {name} também.",
+  "Encontraram {name} no porta-malas do próprio carro, estacionado exatamente onde ele o tinha deixado.",
+  "Alguém colocou algo na bebida de {name} no bar clandestino. Não era um elogio.",
+  "{name} devia dinheiro às pessoas erradas, e as taxas de juros nesta cidade são letais.",
+  "A última mensagem de {name} só dizia 'me encontre no píer.' Ele nunca chegou a mandar outra.",
+  "{name} foi pego usando um microfone escondido. O alfaiate nunca terminou o serviço.",
+  "Uma única vela queimou na janela de {name} naquela noite. Ao amanhecer, tinha se apagado para sempre.",
+  "{name} tentou se afastar do negócio da família. Ninguém se afasta.",
+  "O barman jura que {name} saiu pela porta dos fundos. Ninguém a viu usada desde então.",
+  "Encontraram {name} com um baralho espalhado ao redor — alguém desistiu da mão dele permanentemente.",
+  "Um bilhete no bolso do casaco de {name} dizia simplesmente: 'Você sabia demais.'",
+  "{name} se encontrou com uma família rival para negociar a paz. Não deu certo.",
+  "Alguém sabotou o elevador de {name} para parar entre andares — permanentemente.",
+  "{name} era o único que sabia onde os corpos estavam enterrados. Agora é um deles.",
+  "O alfaiate da família tirou as medidas de {name} para um terno que ele nunca usaria.",
+  "{name} apostou contra a casa uma vez a mais, e a casa sempre cobra.",
+  "Um único rastro de pegadas se afastava de onde {name} foi visto pela última vez. Só um rastro.",
+  "{name} foi pego com a mão na massa desviando o caixa, e a família não dá segundas chances.",
+  "A última coisa que {name} ouviu foi a porta de um carro batendo atrás dele.",
+  "{name} tentou blefar para escapar de uma dívida que não podia pagar.",
+  "Alguém deixou o relógio de {name} na mesa do chefe. {name} não estava mais usando.",
+  "{name} desapareceu em algum lugar entre o clube e o estacionamento.",
+  "Um único tiro ecoou perto da velha destilaria, e {name} nunca mais ligou para casa.",
+  "{name} confiou no tenente errado, e tenentes falam quando o preço é bom.",
+  "A família descobriu que {name} trabalhava para os dois lados.",
+  "A cadeira de {name} na mesa de pôquer ficou vazia pelo resto da noite — permanentemente.",
+  "Alguém deixou a luz da varanda apagada para {name}. Ele nunca chegou a subir os degraus.",
+  "{name} fez um acordo a mais com uma equipe rival, e a família não perdoa isso.",
+  "Um telefone tocou três vezes em um escritório vazio — logo depois que {name} parou de atender.",
+  "{name} achou que podia desaparecer na multidão. A família o encontrou mesmo assim.",
+];
+
+const DEATH_STORIES_ZH_CN = [
+  "有人发现 {name} 漂浮在港口，脚上穿着一双绝对不时髦的水泥鞋。",
+  "{name} 应了一声敲门，就再也没回来吃完晚饭。",
+  "一辆黑色轿车停在 {name} 的车旁，最后只开走了一辆。",
+  "{name} 被抓到在家族账本上做假账——会计这行挺危险的。",
+  "有人给 {name} 留了一条藏在报纸包着的鱼里的口信。这不是什么好兆头。",
+  "{name} 在黑暗小巷里开了太多次会，最后一次没能走出来。",
+  "最后一次听到 {name} 的消息，是仓库区传来的一声枪响。",
+  "{name} 想背叛错误的团伙，付出了家族最古老的代价。",
+  "有人在 {name} 常坐的位置留下一朵玫瑰。没人问是谁送的。",
+  "有人最后一次看到 {name} 上了一辆不是他自己的车，之后再也没出现过。",
+  "那天晚上码头很安静——安静得足以掩盖 {name} 遭遇的事。",
+  "{name} 跟不该说话的记者说了话，家族容不下大嘴巴。",
+  "有人在老桥路上动了 {name} 车子的刹车。",
+  "有人发现 {name} 瘫倒在后排卡座里，旁边的咖啡已经凉了。",
+  "家族的打手拜访了 {name}，最后只有一个人走出了那间屋子。",
+  "{name} 想带着家族的钱跑路。家族的记性很长。",
+  "一声枪响，一条安静的街道，{name} 再也没能回家。",
+  "有人看到 {name} 和一个穿长大衣的陌生人争执。两人都再没出现过——除了一个。",
+  "保险箱空了，{name} 常坐的椅子也空了。",
+  "{name} 打了一个本该保密的电话。有人在监听。",
+  "一辆没牌照的车在 {name} 的公寓外停了一整夜。天亮时，车不见了——{name} 也不见了。",
+  "有人发现 {name} 在自己车的后备箱里，车就停在他停车的地方。",
+  "有人在地下酒吧给 {name} 的酒里下了点东西。那可不是什么好意。",
+  "{name} 欠了不该欠的人钱，这镇上的利息可是要命的。",
+  "{name} 最后一条短信只写着'在码头见我'。他再也没机会发下一条了。",
+  "{name} 被抓到身上戴着窃听器。裁缝再也没能做完那套西装。",
+  "那天晚上 {name} 窗前点着一支蜡烛。天亮时，它永远熄灭了。",
+  "{name} 想退出家族生意。没有人能真正退出。",
+  "酒保发誓说 {name} 从后门出去了。从那以后再没人见谁用过那扇门。",
+  "有人发现 {name} 周围散落着一副扑克牌——有人替他永远弃了牌。",
+  "{name} 外套口袋里的一张字条只写着：'你知道得太多了。'",
+  "{name} 和一个敌对家族见面商谈和平。没能谈成。",
+  "有人动了手脚，让 {name} 的电梯永远停在楼层之间。",
+  "{name} 是唯一知道尸体埋在哪里的人。现在他也成了其中之一。",
+  "家族的裁缝给 {name} 量了尺寸，做一套他永远穿不上的西装。",
+  "{name} 跟庄家对赌了太多次，而庄家永远赢钱。",
+  "从 {name} 最后出现的地方，只延伸出一串脚印。只有一串。",
+  "{name} 被当场抓到在挪用公款，家族不给第二次机会。",
+  "{name} 听到的最后一声，是身后车门砰地关上。",
+  "{name} 想虚张声势，逃脱一笔还不起的债。",
+  "有人把 {name} 的手表放在了老大的桌上。{name} 已经不戴了。",
+  "{name} 在夜店和停车场之间的某处消失了。",
+  "旧酒厂附近响起一声枪响，{name} 再也没有打电话回家。",
+  "{name} 信错了副手，而副手在价钱合适时什么都会说。",
+  "家族发现 {name} 在脚踏两条船。",
+  "{name} 在扑克桌上的位子，剩下的整晚都空着——永远地空着。",
+  "有人为 {name} 关掉了门廊的灯。他再也没能走上那几级台阶。",
+  "{name} 和敌对团伙多做了一笔交易，家族对此绝不原谅。",
+  "一部电话在空荡的办公室里响了三次——就在 {name} 不再接听之后。",
+  "{name} 以为自己能消失在人群中。家族还是找到了他。",
+];
+
+const DEATH_STORIES_ZH_TW = [
+  "有人發現 {name} 漂浮在港口，腳上穿著一雙絕對不時髦的水泥鞋。",
+  "{name} 應了一聲敲門，就再也沒回來吃完晚飯。",
+  "一輛黑色轎車停在 {name} 的車旁，最後只開走了一輛。",
+  "{name} 被抓到在家族帳本上做假帳——會計這行挺危險的。",
+  "有人給 {name} 留了一條藏在報紙包著的魚裡的口信。這不是什麼好兆頭。",
+  "{name} 在黑暗小巷裡開了太多次會，最後一次沒能走出來。",
+  "最後一次聽到 {name} 的消息，是倉庫區傳來的一聲槍響。",
+  "{name} 想背叛錯誤的團夥，付出了家族最古老的代價。",
+  "有人在 {name} 常坐的位置留下一朵玫瑰。沒人問是誰送的。",
+  "有人最後一次看到 {name} 上了一輛不是他自己的車，之後再也沒出現過。",
+  "那天晚上碼頭很安靜——安靜得足以掩蓋 {name} 遭遇的事。",
+  "{name} 跟不該說話的記者說了話，家族容不下大嘴巴。",
+  "有人在老橋路上動了 {name} 車子的煞車。",
+  "有人發現 {name} 癱倒在後排卡座裡，旁邊的咖啡已經涼了。",
+  "家族的打手拜訪了 {name}，最後只有一個人走出了那間屋子。",
+  "{name} 想帶著家族的錢跑路。家族的記性很長。",
+  "一聲槍響，一條安靜的街道，{name} 再也沒能回家。",
+  "有人看到 {name} 和一個穿長大衣的陌生人爭執。兩人都再沒出現過——除了一個。",
+  "保險箱空了，{name} 常坐的椅子也空了。",
+  "{name} 打了一個本該保密的電話。有人在監聽。",
+  "一輛沒牌照的車在 {name} 的公寓外停了一整夜。天亮時，車不見了——{name} 也不見了。",
+  "有人發現 {name} 在自己車的後車廂裡，車就停在他停車的地方。",
+  "有人在地下酒吧給 {name} 的酒裡下了點東西。那可不是什麼好意。",
+  "{name} 欠了不該欠的人錢，這鎮上的利息可是要命的。",
+  "{name} 最後一條簡訊只寫著「在碼頭見我」。他再也沒機會發下一條了。",
+  "{name} 被抓到身上戴著竊聽器。裁縫再也沒能做完那套西裝。",
+  "那天晚上 {name} 窗前點著一支蠟燭。天亮時，它永遠熄滅了。",
+  "{name} 想退出家族生意。沒有人能真正退出。",
+  "酒保發誓說 {name} 從後門出去了。從那以後再沒人見誰用過那扇門。",
+  "有人發現 {name} 周圍散落著一副撲克牌——有人替他永遠棄了牌。",
+  "{name} 外套口袋裡的一張字條只寫著：「你知道得太多了。」",
+  "{name} 和一個敵對家族見面商談和平。沒能談成。",
+  "有人動了手腳，讓 {name} 的電梯永遠停在樓層之間。",
+  "{name} 是唯一知道屍體埋在哪裡的人。現在他也成了其中之一。",
+  "家族的裁縫給 {name} 量了尺寸，做一套他永遠穿不上的西裝。",
+  "{name} 跟莊家對賭了太多次，而莊家永遠贏錢。",
+  "從 {name} 最後出現的地方，只延伸出一串腳印。只有一串。",
+  "{name} 被當場抓到在挪用公款，家族不給第二次機會。",
+  "{name} 聽到的最後一聲，是身後車門砰地關上。",
+  "{name} 想虛張聲勢，逃脫一筆還不起的債。",
+  "有人把 {name} 的手錶放在了老大的桌上。{name} 已經不戴了。",
+  "{name} 在夜店和停車場之間的某處消失了。",
+  "舊酒廠附近響起一聲槍響，{name} 再也沒有打電話回家。",
+  "{name} 信錯了副手，而副手在價錢合適時什麼都會說。",
+  "家族發現 {name} 在腳踏兩條船。",
+  "{name} 在撲克桌上的位子，剩下的整晚都空著——永遠地空著。",
+  "有人為 {name} 關掉了門廊的燈。他再也沒能走上那幾級台階。",
+  "{name} 和敵對團夥多做了一筆交易，家族對此絕不原諒。",
+  "一部電話在空蕩的辦公室裡響了三次——就在 {name} 不再接聽之後。",
+  "{name} 以為自己能消失在人群中。家族還是找到了他。",
+];
+
 function getRandomDeathStory(name: string, lang: string = "en") {
-  const pool = lang === "es" ? DEATH_STORIES_ES : DEATH_STORIES;
+  const DEATH_STORY_POOLS: Record<string, string[]> = { en: DEATH_STORIES, es: DEATH_STORIES_ES, fr: DEATH_STORIES_FR, "pt-BR": DEATH_STORIES_PT_BR, "zh-CN": DEATH_STORIES_ZH_CN, "zh-TW": DEATH_STORIES_ZH_TW };
+  const pool = DEATH_STORY_POOLS[normalizeLang(lang)];
   const story = pool[Math.floor(Math.random() * pool.length)];
   return story.replace("{name}", name);
 }
@@ -829,6 +1070,91 @@ const ECHO_PREFIXES_ES = [
   'Un momento — "{snippet}" es algo arriesgado de decir ahora mismo.',
   '¿Entonces tu idea es "{snippet}"? Está bien.',
 ];
+
+const ECHO_PREFIXES_FR = [
+  "\"{snippet}\" ? Intéressant comme point de vue.",
+  "Tu as dit \"{snippet}\" — noté.",
+  "Attends, \"{snippet}\" ? Décortiquons ça.",
+  "Minute — \"{snippet}\" c'est osé à dire là maintenant.",
+  "Donc ton avis c'est \"{snippet}\" ? Ok.",
+];
+
+const ECHO_PREFIXES_PT_BR = [
+  "\"{snippet}\"? Interessante.",
+  "Você disse \"{snippet}\" — anotado.",
+  "Espera, \"{snippet}\"? Vamos analisar isso.",
+  "Calma — \"{snippet}\" é uma coisa ousada de dizer agora.",
+  "Então sua opinião é \"{snippet}\"? Ok.",
+];
+
+const ECHO_PREFIXES_ZH_CN = [
+  "\"{snippet}\"？有意思的看法。",
+  "你说了\"{snippet}\"——记下了。",
+  "等等，\"{snippet}\"？我们来分析一下。",
+  "等等——现在说\"{snippet}\"有点大胆啊。",
+  "所以你的看法是\"{snippet}\"？好吧。",
+];
+
+const ECHO_PREFIXES_ZH_TW = [
+  "\"{snippet}\"？有意思的看法。",
+  "你說了\"{snippet}\"——記下了。",
+  "等等，\"{snippet}\"？我們來分析一下。",
+  "等等——現在說\"{snippet}\"有點大膽啊。",
+  "所以你的看法是\"{snippet}\"？好吧。",
+];
+
+const GRAVEYARD_BOT_LINES_FR = [
+  "bon, ça a été rapide 💀",
+  "RIP moi, gg",
+  "qui m'a eu ??",
+  "c'est ennuyeux, je vois tous les rôles maintenant 👀",
+  "j'arrive pas à croire que je suis mort à la nuit 1",
+  "au moins le pop-corn est bon ici en bas",
+  "quelqu'un d'autre s'ennuie ici en bas ?",
+  "ooh ce vote va être corsé",
+  "j'aimerais pouvoir tous vous dire qui est la mafia",
+  "j'écris depuis l'au-delà",
+];
+
+const GRAVEYARD_BOT_LINES_PT_BR = [
+  "bom, isso foi rápido 💀",
+  "RIP eu, gg",
+  "quem me pegou??",
+  "que tédio, agora vejo todos os papéis 👀",
+  "não acredito que morri na noite 1",
+  "pelo menos a pipoca aqui é boa",
+  "mais alguém entediado aqui embaixo?",
+  "ooh essa votação vai ficar quente",
+  "queria poder contar pra vocês quem é a máfia",
+  "digitando lá do além",
+];
+
+const GRAVEYARD_BOT_LINES_ZH_CN = [
+  "好吧，这也太快了 💀",
+  "安息吧我，gg",
+  "谁干掉我的??",
+  "好无聊，现在我能看到所有人的角色了 👀",
+  "真不敢相信我第一晚就死了",
+  "至少这里的爆米花还不错",
+  "还有别人在这下面觉得无聊吗？",
+  "哦这次投票要精彩了",
+  "真希望能告诉你们谁是黑手党",
+  "从阴间打字中",
+];
+
+const GRAVEYARD_BOT_LINES_ZH_TW = [
+  "好吧，這也太快了 💀",
+  "安息吧我，gg",
+  "誰幹掉我的??",
+  "好無聊，現在我能看到所有人的角色了 👀",
+  "真不敢相信我第一晚就死了",
+  "至少這裡的爆米花還不錯",
+  "還有別人在這下面覺得無聊嗎？",
+  "哦這次投票要精彩了",
+  "真希望能告訴你們誰是黑手黨",
+  "從陰間打字中",
+];
+
 
 function pickUnique(arr: string[], botId: number): string {
   if (arr.length <= 1) return arr[0] || "";
@@ -1096,12 +1422,466 @@ const BOT_MESSAGES_ES = {
   ],
 };
 
+const BOT_MESSAGES_FR = {
+  general: [
+    "J'ai observé tout le monde hier soir. L'histoire de quelqu'un ne colle pas.",
+    "J'ai joué assez de manches pour savoir quand quelqu'un fait semblant d'être calme.",
+    "Pourquoi la salle est si silencieuse ? Les coupables restent silencieux.",
+    "Appelez-moi paranoïaque, mais je vérifie toujours les alibis deux fois.",
+    "Si je meurs cette nuit, vérifiez la personne qui vient de changer de sujet.",
+    "J'ai pris des notes. Trois personnes ont changé leur histoire.",
+    "Le silence en dit plus long que n'importe quelle accusation en ce moment.",
+    "Quelqu'un ici est bien trop doué pour esquiver. C'est un signal d'alarme.",
+    "Je regarde à quelle vitesse les gens tapent quand ils sont acculés.",
+    "La manche dernière, j'ai fait confiance à la mauvaise personne. Plus jamais.",
+  ],
+  accusation: [
+    "J'ai observé {name} attentivement. Son temps de réaction était suspect.",
+    "{name} ne parle que quand la pression est sur quelqu'un d'autre. Détournement classique.",
+    "Quelqu'un a remarqué que {name} ne vote jamais en premier ? Il attend toujours de voir d'où vient le vent.",
+    "{name} a dit être civil mais sa logique ressemble à de la mafia qui couvre ses traces.",
+    "J'ai posé une question directe à {name} et il a répondu par une autre question. Louche.",
+    "{name} est passé du silence à l'extrême défensive en deux messages. Surcompensation ?",
+    "Si vous éliminez {name} et qu'il est civil, j'assume la responsabilité. Mais je ne pense pas.",
+    "{name} n'arrête pas de dire 'faites-moi confiance' — ceux qui exigent la confiance ne la méritent généralement pas.",
+    "J'ai déjà joué contre {name}. Il utilise les mêmes excuses à chaque fois qu'il est mafia.",
+    "{name} s'est contredit entre le premier tour et maintenant. Ça se voit.",
+  ],
+  defense: [
+    "J'ai été complètement transparent depuis le premier tour. Vérifiez mes messages.",
+    "Pourquoi je risquerais autant d'attention si j'étais mafia ? Réfléchissez-y.",
+    "J'ai voté pour éliminer un bot la manche dernière. Pourquoi la mafia gaspillerait un vote sur un bot ?",
+    "Mon histoire n'a pas changé une seule fois. Est-ce que l'accusateur peut en dire autant ?",
+    "Si j'étais mafia, je serais beaucoup plus silencieux. Je discute parce que je suis innocent et frustré.",
+    "Regardez qui profite si vous m'éliminez. Voilà la vraie mafia.",
+    "J'ai littéralement suggéré une stratégie qui a nui à la mafia la manche dernière. Utilisez votre cerveau.",
+    "Éliminez-moi et vous perdrez un civil. Alors la mafia gagne plus vite.",
+    "J'ai essayé de coordonner toute l'équipe. Est-ce que ça ressemble à un comportement de mafia ?",
+    "La personne qui m'accuse n'a offert aucune preuve. Juste des impressions.",
+  ],
+  agreement: [
+    "Bonne lecture. Je pensais la même chose sans pouvoir l'exprimer.",
+    "Cette analyse est béton. Je m'aligne là-dessus.",
+    "Tu viens de relier des points que j'avais manqués. Bon travail de détective.",
+    "Je suis convaincu. Votons et passons au tour suivant.",
+    "Enfin quelqu'un qui parle avec logique au lieu de panique.",
+    "Ton raisonnement tient la route. J'ajuste ma théorie en conséquence.",
+  ],
+  suspicion: [
+    "Cette discussion semble fabriquée. Comme si elle était orchestrée.",
+    "Deux personnes poussent le même récit sous des angles différents. Coordonné ?",
+    "La mafia lit sûrement ce chat. Surveillez qui reste invisible.",
+    "Je n'aime pas la vitesse à laquelle la conversation s'est éloignée des résultats de la nuit.",
+    "Quelqu'un ici nous manipule comme il veut. Il faut se réveiller.",
+    "Le joueur le plus silencieux est souvent le plus dangereux. Souvenez-vous-en.",
+    "Chaque manche où la mafia survit, elle devient plus audacieuse. Il faut agir maintenant.",
+    "J'ai déjà vu ce schéma — fausse confiance, redirection, élimination d'un civil.",
+  ],
+  response: [
+    "Angle intéressant, mais tu oublies la chronologie de la phase nocturne.",
+    "Ça aurait du sens s'il restait plus de joueurs vivants. Là, c'est trop risqué.",
+    "Je vois ton point mais les données ne soutiennent pas cette conclusion.",
+    "Tu as peut-être raison, mais peux-tu expliquer pourquoi le médecin ne l'a pas soigné ?",
+    "C'est une interprétation. En voici une autre : et si la mafia voulait qu'on pense ça ?",
+    "Ta théorie repose sur trop de suppositions. Tenons-nous-en à ce qu'on sait.",
+    "Je respecte ton avis mais j'observe d'autres signaux.",
+    "Argument convaincant, mais je me suis déjà fait avoir par une logique similaire. Prudence, oui.",
+    "Tu m'as presque eu, mais {name} a en fait un alibi solide depuis le premier tour.",
+    "Crédit partiel — ta première moitié est juste, la seconde a besoin de plus de preuves.",
+  ],
+  nightMafia: [
+    "Qui élimine-t-on ? Le bruyant ou l'intelligent ?",
+    "Frappons le joueur qui pose trop de questions. Il est dangereux.",
+    "Si on élimine {name}, les civils perdent leur meilleur analyste.",
+    "Partageons le vote si nécessaire, mais ne laissons pas de preuves.",
+    "Le médecin surveille peut-être. Choisissons quelqu'un d'inattendu.",
+  ],
+  nightDoctor: [
+    "J'ai un pressentiment pour ce soir. Quelqu'un aura besoin de ce sauvetage.",
+    "Qui a été le plus utile ? C'est celui-là que la mafia veut mort.",
+    "Mon instinct dit de protéger la voix la plus forte — elle rend la mafia nerveuse.",
+  ],
+  nightDetective: [
+    "Il est temps d'obtenir des infos. Je vais vérifier le joueur qui a été trop lisse.",
+    "Qui se cache à la vue de tous ? Découvrons-le.",
+    "Les plus silencieux méritent toujours d'être enquêtés en premier.",
+  ],
+  calledOut: [
+    "Moi ? Je n'ai dit que la vérité depuis le début de la partie. Vérifiez les journaux.",
+    "Waouh, d'accord. Me pointer du doigt ne change rien — je n'ai jamais été suspect.",
+    "Vous pouvez m'accuser autant que vous voulez, ça ne tiendra pas. Je joue juste logiquement.",
+    "Honnêtement je suis la personne la moins suspecte ici. Regardez qui est vraiment silencieux.",
+    "Marrant comme dès que quelqu'un est acculé, il s'en prend à moi.",
+    "Allez-y, éliminez-moi. Quand je serai innocent, vous le regretterez.",
+  ],
+  roleClaim: [
+    "N'importe qui peut écrire 'je suis le détective.' Où sont tes preuves ?",
+    "Revendiquer un rôle si tôt est soit courageux soit imprudent. On verra bien.",
+    "Si c'est vrai, pourquoi attendre maintenant pour le dire ?",
+    "Timing intéressant pour cette affirmation. Qu'est-ce qui t'a poussé à parler maintenant ?",
+    "J'y croirai quand les résultats le confirmeront, pas avant.",
+  ],
+  deathTalk: [
+    "Cette mort change tout. On doit repenser à qui on fait confiance maintenant.",
+    "RIP. Ne gâchons pas ça. Qu'a-t-il dit juste avant de mourir ?",
+    "Quelqu'un a profité de cette mort. Vers qui ça pointe ?",
+    "C'est une grosse perte pour la ville s'il disait la vérité.",
+    "Pratique qu'il soit mort juste après avoir parlé, non ?",
+  ],
+  greeting: [
+    "Salut. Réglons ça ensemble.",
+    "Bon, tout le monde est prêt ? Au travail.",
+    "Bonjour. Qui a des théories ?",
+  ],
+};
+
+const BOT_MESSAGES_PT_BR = {
+  general: [
+    "Observei todo mundo ontem à noite. A história de alguém não bate.",
+    "Já joguei rodadas suficientes para saber quando alguém finge calma.",
+    "Por que a sala está tão quieta? Gente culpada fica quieta.",
+    "Pode me chamar de paranoico, mas sempre verifico os álibis duas vezes.",
+    "Se eu morrer esta noite, verifiquem quem acabou de mudar de assunto.",
+    "Estive anotando. Três pessoas mudaram de história.",
+    "O silêncio agora fala mais alto que qualquer acusação.",
+    "Alguém aqui é bom demais em desviar. Isso é sinal de alerta.",
+    "Estou observando a velocidade com que as pessoas digitam quando encurraladas.",
+    "Na rodada passada confiei na pessoa errada. Nunca mais.",
+  ],
+  accusation: [
+    "Observei {name} com cuidado. O tempo de reação foi suspeito.",
+    "{name} só fala quando a pressão está em outra pessoa. Desvio clássico.",
+    "Alguém notou que {name} nunca vota primeiro? Sempre espera ver de onde vem o vento.",
+    "{name} disse que era civil, mas a lógica soa como máfia cobrindo rastros.",
+    "Fiz uma pergunta direta a {name} e ele respondeu com outra pergunta. Suspeito.",
+    "{name} foi de calado a extremamente defensivo em duas mensagens. Supercompensando?",
+    "Se eliminarem {name} e ele for civil, assumo a culpa. Mas não acho que seja.",
+    "{name} vive dizendo 'confiem em mim' — quem exige confiança geralmente não a merece.",
+    "Já joguei contra {name} antes. Usa as mesmas desculpas toda vez que é máfia.",
+    "{name} se contradisse entre a primeira rodada e agora. Na cara.",
+  ],
+  defense: [
+    "Tenho sido totalmente transparente desde a primeira rodada. Vejam minhas mensagens.",
+    "Por que eu arriscaria tanta atenção se fosse máfia? Pensem nisso.",
+    "Votei para eliminar um bot na rodada passada. Por que a máfia desperdiçaria um voto num bot?",
+    "Minha história não mudou nem uma vez. O acusador pode dizer o mesmo?",
+    "Se eu fosse máfia, estaria bem mais quieto. Estou discutindo porque sou inocente e frustrado.",
+    "Vejam quem se beneficia se me eliminarem. Essa é a verdadeira máfia.",
+    "Literalmente sugeri uma estratégia que prejudicou a máfia na rodada passada. Usem a cabeça.",
+    "Eliminem-me e vão perder um civil. Aí a máfia vence mais rápido.",
+    "Tenho tentado coordenar toda a equipe. Isso parece comportamento de máfia?",
+    "A pessoa que me acusa não apresentou nenhuma prova. Só achismo.",
+  ],
+  agreement: [
+    "Boa leitura. Eu pensava o mesmo, mas não conseguia explicar.",
+    "Essa análise é sólida. Estou fechando com essa ideia.",
+    "Você acabou de conectar pontos que eu não vi. Bom trabalho de detetive.",
+    "Estou convencido. Vamos votar e ir para a próxima rodada.",
+    "Finalmente alguém falando com lógica em vez de pânico.",
+    "Seu raciocínio faz sentido. Vou ajustar minha teoria.",
+  ],
+  suspicion: [
+    "Algo parece forjado nessa discussão. Como se estivesse sendo conduzida.",
+    "Duas pessoas estão empurrando a mesma narrativa de ângulos diferentes. Coordenado?",
+    "A máfia com certeza está lendo esse chat. Fiquem de olho em quem fica invisível.",
+    "Não gostei da rapidez com que a conversa saiu dos resultados da noite.",
+    "Alguém aqui está nos manipulando à vontade. Precisamos acordar.",
+    "O jogador mais quieto costuma ser o mais perigoso. Lembrem-se disso.",
+    "A cada rodada que a máfia sobrevive, ela fica mais ousada. Precisamos agir agora.",
+    "Já vi esse padrão antes — confiança falsa, redirecionar, eliminar um civil.",
+  ],
+  response: [
+    "Ângulo interessante, mas você está esquecendo a linha do tempo da fase noturna.",
+    "Isso faria sentido se tivéssemos mais jogadores vivos. Agora é arriscado demais.",
+    "Entendo seu ponto, mas os dados não sustentam essa conclusão.",
+    "Pode ser que você tenha razão, mas pode explicar por que o médico não o curou?",
+    "Essa é uma interpretação. Aqui vai outra: e se a máfia quisesse que pensássemos isso?",
+    "Sua teoria depende de suposições demais. Vamos ficar com o que sabemos.",
+    "Respeito sua visão, mas tenho observado outros sinais.",
+    "Argumento convincente, mas já me enganaram com lógica parecida antes. Cautela, sim.",
+    "Quase me convenceu, mas {name} tem um álibi sólido desde a primeira rodada.",
+    "Crédito parcial — a primeira metade está certa, a segunda precisa de mais provas.",
+  ],
+  nightMafia: [
+    "Quem a gente elimina? O escandaloso ou o inteligente?",
+    "Vamos pegar quem está fazendo perguntas demais. É perigoso.",
+    "Se eliminarmos {name}, os civis perdem o melhor analista deles.",
+    "Dividam o voto se precisar, mas não deixem evidências.",
+    "O médico pode estar vigiando. Escolham alguém inesperado.",
+  ],
+  nightDoctor: [
+    "Tenho um pressentimento sobre hoje à noite. Alguém vai precisar dessa cura.",
+    "Quem tem sido mais útil? É essa pessoa que a máfia quer morta.",
+    "Meu instinto diz para proteger a voz mais forte — está deixando a máfia nervosa.",
+  ],
+  nightDetective: [
+    "Hora de conseguir informação. Vou investigar quem tem sido convincente demais.",
+    "Quem está se escondendo à vista de todos? Vamos descobrir.",
+    "Os mais quietos sempre valem a pena investigar primeiro.",
+  ],
+  calledOut: [
+    "Eu? Só disse a verdade o jogo inteiro. Vejam o histórico.",
+    "Uau, tudo bem. Apontar pra mim não muda nada — nunca fui suspeito.",
+    "Podem me acusar à vontade, não vai colar. Só estou jogando com lógica.",
+    "Honestamente sou o menos suspeito aqui. Vejam quem está realmente calado.",
+    "Engraçado como, assim que alguém se sente encurralado, vem em cima de mim.",
+    "Vai lá, me eliminem. Quando eu for inocente, vocês vão se arrepender.",
+  ],
+  roleClaim: [
+    "Qualquer um pode digitar 'sou o detetive.' Cadê a prova?",
+    "Reivindicar um papel tão cedo é corajoso ou imprudente. Vamos ver qual.",
+    "Se isso é verdade, por que esperar até agora para dizer?",
+    "Timing interessante pra essa afirmação. O que te fez falar agora?",
+    "Vou acreditar quando os resultados confirmarem, não antes.",
+  ],
+  deathTalk: [
+    "Essa morte muda tudo. Precisamos repensar em quem confiar agora.",
+    "Descanse em paz. Não vamos desperdiçar isso. O que ele disse antes de morrer?",
+    "Alguém se beneficiou dessa morte. Pra quem isso aponta?",
+    "É uma grande perda pra cidade se ele estava falando a verdade.",
+    "Que conveniente ele morrer logo depois de falar, não acham?",
+  ],
+  greeting: [
+    "Oi. Vamos resolver isso juntos.",
+    "Beleza, todo mundo pronto? Vamos ao trabalho.",
+    "Bom dia. Quem tem teorias?",
+  ],
+};
+
+const BOT_MESSAGES_ZH_CN = {
+  general: [
+    "我昨晚观察了每个人。有人的说法对不上。",
+    "我玩过的场次够多了，能看出谁在假装冷静。",
+    "为什么房间这么安静？有罪的人才会保持沉默。",
+    "说我多疑也好，我总是把不在场证明核实两遍。",
+    "如果我今晚死了，去查一下刚才转移话题的那个人。",
+    "我一直在做笔记。有三个人改变了说法。",
+    "现在的沉默比任何指控都更能说明问题。",
+    "这里有人太擅长回避问题了。这是个危险信号。",
+    "我在观察大家被逼问时打字的速度。",
+    "上一轮我信错了人。再也不会了。",
+  ],
+  accusation: [
+    "我仔细观察了 {name}。他的反应时间很可疑。",
+    "{name} 只有在压力转到别人身上时才开口。典型的转移视线。",
+    "有人注意到 {name} 从不第一个投票吗？他总是等着看风向。",
+    "{name} 说自己是平民，但他的逻辑听起来像黑手党在掩盖行踪。",
+    "我直接问了 {name} 一个问题，他却用另一个问题回答我。可疑。",
+    "{name} 在两条消息内从沉默变得极度防备。是过度补偿吗？",
+    "如果你们淘汰 {name} 而他是平民，我来负责。但我不这么认为。",
+    "{name} 一直说'相信我'——要求别人信任的人通常不值得信任。",
+    "我以前和 {name} 交过手。他每次是黑手党时都用同样的借口。",
+    "{name} 从第一轮到现在自相矛盾。明显破绽。",
+  ],
+  defense: [
+    "从第一轮开始我一直很坦诚。看看我的发言记录。",
+    "如果我是黑手党，我为什么要冒险引起这么多注意？想想看。",
+    "上一轮我投票淘汰了一个机器人。黑手党为什么要在机器人身上浪费一票？",
+    "我的说法从没变过。指控我的人能这么说吗？",
+    "如果我是黑手党，我会安静得多。我争辩是因为我无辜又沮丧。",
+    "看看谁能从淘汰我中获利。那才是真正的黑手党。",
+    "我上一轮明明提出了一个伤害黑手党的策略。动动脑子。",
+    "淘汰我，你们就会失去一个平民。那样黑手党会更快获胜。",
+    "我一直在努力协调整个团队。这像是黑手党的行为吗？",
+    "指控我的人一个证据都没提供。全是感觉。",
+  ],
+  agreement: [
+    "说得好。我也是这么想的，只是说不出来。",
+    "这个分析很扎实。我支持这个观点。",
+    "你把我漏掉的线索连起来了。侦探式的好功夫。",
+    "我信了。我们投票然后进入下一轮吧。",
+    "终于有人用逻辑说话而不是恐慌了。",
+    "你的推理站得住脚。我会相应调整我的判断。",
+  ],
+  suspicion: [
+    "这场讨论感觉像是被人为操纵的。像是有人在引导。",
+    "有两个人从不同角度在推同一个说法。是配合好的吗？",
+    "黑手党肯定在看这个聊天。留意谁一直不出声。",
+    "我不喜欢话题这么快就偏离了夜晚的结果。",
+    "这里有人在随意操纵我们。我们得清醒过来。",
+    "最安静的玩家往往最危险。记住这一点。",
+    "黑手党每活过一轮就会变得更大胆。我们现在就得行动。",
+    "这种套路我见过——假装自信、转移话题、淘汰一个平民。",
+  ],
+  response: [
+    "角度有意思，但你漏掉了夜晚阶段的时间线。",
+    "如果还有更多玩家活着，这说得通。但现在风险太大了。",
+    "我明白你的意思，但数据不支持这个结论。",
+    "你可能是对的，但你能解释一下医生为什么没救他吗？",
+    "那是一种解读。这是另一种：如果黑手党就是想让我们这么想呢？",
+    "你的理论建立在太多假设上。我们还是坚持已知的事实吧。",
+    "我尊重这个看法，但我一直在关注其他迹象。",
+    "论点很有说服力，但我以前被类似的逻辑坑过。谨慎一点没错。",
+    "你差点说服我了，但 {name} 从第一轮起就有一个可靠的不在场证明。",
+    "部分认可——你说的前半段对，后半段还需要更多证据。",
+  ],
+  nightMafia: [
+    "我们淘汰谁？话多的那个还是聪明的那个？",
+    "干掉那个问题太多的玩家。他很危险。",
+    "如果我们淘汰 {name}，平民会失去他们最强的分析者。",
+    "必要的话就分散票数，但别留下证据。",
+    "医生可能在盯着。选一个出乎意料的人。",
+  ],
+  nightDoctor: [
+    "我对今晚有种预感。有人会需要这次救援。",
+    "谁最有帮助？那就是黑手党想除掉的人。",
+    "我的直觉说要保护声音最大的那个人——他让黑手党很紧张。",
+  ],
+  nightDetective: [
+    "该去查点情报了。我要调查那个表现得太顺滑的玩家。",
+    "谁在光天化日下藏着？我们来查清楚。",
+    "最安静的人总是最值得先调查的。",
+  ],
+  calledOut: [
+    "我？我这整场游戏都只说实话。查查记录吧。",
+    "哇，好吧。指着我并不能改变什么——我从没可疑过。",
+    "你们随便指控我，站不住脚的。我只是在用逻辑玩游戏。",
+    "老实说我是这里最不可疑的人。看看谁才是真的沉默。",
+    "有意思，一旦有人被逼急了，就转而攻击我。",
+    "来吧，淘汰我。等发现我是无辜的，你们会后悔的。",
+  ],
+  roleClaim: [
+    "谁都能打字说'我是侦探。'证据在哪？",
+    "这么早就声称身份，要么是勇敢要么是鲁莽。我们等着看是哪种。",
+    "如果这是真的，为什么等到现在才说？",
+    "这个时间点声称身份很有意思。是什么让你现在才开口？",
+    "等结果证实了我才会相信，之前不会。",
+  ],
+  deathTalk: [
+    "这次死亡改变了一切。我们现在得重新考虑该信任谁。",
+    "安息吧。别浪费这个信息。他死前说了什么？",
+    "有人从这次死亡中获益了。指向谁？",
+    "如果他说的是实话，这对镇上来说是个大损失。",
+    "他刚说完话就死了，真是巧啊，你们不觉得吗？",
+  ],
+  greeting: [
+    "嘿。我们一起来搞清楚这件事吧。",
+    "好了，大家都准备好了吗？开始干活吧。",
+    "早上好。谁有理论？",
+  ],
+};
+
+const BOT_MESSAGES_ZH_TW = {
+  general: [
+    "我昨晚觀察了每個人。有人的說法對不上。",
+    "我玩過的場次夠多了，能看出誰在假裝冷靜。",
+    "為什麼房間這麼安靜？有罪的人才會保持沉默。",
+    "說我多疑也好，我總是把不在場證明核實兩遍。",
+    "如果我今晚死了，去查一下剛才轉移話題的那個人。",
+    "我一直在做筆記。有三個人改變了說法。",
+    "現在的沉默比任何指控都更能說明問題。",
+    "這裡有人太擅長迴避問題了。這是個危險訊號。",
+    "我在觀察大家被逼問時打字的速度。",
+    "上一輪我信錯了人。再也不會了。",
+  ],
+  accusation: [
+    "我仔細觀察了 {name}。他的反應時間很可疑。",
+    "{name} 只有在壓力轉到別人身上時才開口。典型的轉移視線。",
+    "有人注意到 {name} 從不第一個投票嗎？他總是等著看風向。",
+    "{name} 說自己是平民，但他的邏輯聽起來像黑手黨在掩蓋行蹤。",
+    "我直接問了 {name} 一個問題，他卻用另一個問題回答我。可疑。",
+    "{name} 在兩條訊息內從沉默變得極度防備。是過度補償嗎？",
+    "如果你們淘汰 {name} 而他是平民，我來負責。但我不這麼認為。",
+    "{name} 一直說「相信我」——要求別人信任的人通常不值得信任。",
+    "我以前和 {name} 交過手。他每次是黑手黨時都用同樣的藉口。",
+    "{name} 從第一輪到現在自相矛盾。明顯破綻。",
+  ],
+  defense: [
+    "從第一輪開始我一直很坦誠。看看我的發言紀錄。",
+    "如果我是黑手黨，我為什麼要冒險引起這麼多注意？想想看。",
+    "上一輪我投票淘汰了一個機器人。黑手黨為什麼要在機器人身上浪費一票？",
+    "我的說法從沒變過。指控我的人能這麼說嗎？",
+    "如果我是黑手黨，我會安靜得多。我爭辯是因為我無辜又沮喪。",
+    "看看誰能從淘汰我中獲利。那才是真正的黑手黨。",
+    "我上一輪明明提出了一個傷害黑手黨的策略。動動腦子。",
+    "淘汰我，你們就會失去一個平民。那樣黑手黨會更快獲勝。",
+    "我一直在努力協調整個團隊。這像是黑手黨的行為嗎？",
+    "指控我的人一個證據都沒提供。全是感覺。",
+  ],
+  agreement: [
+    "說得好。我也是這麼想的，只是說不出來。",
+    "這個分析很扎實。我支持這個觀點。",
+    "你把我漏掉的線索連起來了。偵探式的好功夫。",
+    "我信了。我們投票然後進入下一輪吧。",
+    "終於有人用邏輯說話而不是恐慌了。",
+    "你的推理站得住腳。我會相應調整我的判斷。",
+  ],
+  suspicion: [
+    "這場討論感覺像是被人為操縱的。像是有人在引導。",
+    "有兩個人從不同角度在推同一個說法。是配合好的嗎？",
+    "黑手黨肯定在看這個聊天。留意誰一直不出聲。",
+    "我不喜歡話題這麼快就偏離了夜晚的結果。",
+    "這裡有人在隨意操縱我們。我們得清醒過來。",
+    "最安靜的玩家往往最危險。記住這一點。",
+    "黑手黨每活過一輪就會變得更大膽。我們現在就得行動。",
+    "這種套路我見過——假裝自信、轉移話題、淘汰一個平民。",
+  ],
+  response: [
+    "角度有意思，但你漏掉了夜晚階段的時間線。",
+    "如果還有更多玩家活著，這說得通。但現在風險太大了。",
+    "我明白你的意思，但數據不支持這個結論。",
+    "你可能是對的，但你能解釋一下醫生為什麼沒救他嗎？",
+    "那是一種解讀。這是另一種：如果黑手黨就是想讓我們這麼想呢？",
+    "你的理論建立在太多假設上。我們還是堅持已知的事實吧。",
+    "我尊重這個看法，但我一直在關注其他跡象。",
+    "論點很有說服力，但我以前被類似的邏輯坑過。謹慎一點沒錯。",
+    "你差點說服我了，但 {name} 從第一輪起就有一個可靠的不在場證明。",
+    "部分認可——你說的前半段對，後半段還需要更多證據。",
+  ],
+  nightMafia: [
+    "我們淘汰誰？話多的那個還是聰明的那個？",
+    "幹掉那個問題太多的玩家。他很危險。",
+    "如果我們淘汰 {name}，平民會失去他們最強的分析者。",
+    "必要的話就分散票數，但別留下證據。",
+    "醫生可能在盯著。選一個出乎意料的人。",
+  ],
+  nightDoctor: [
+    "我對今晚有種預感。有人會需要這次救援。",
+    "誰最有幫助？那就是黑手黨想除掉的人。",
+    "我的直覺說要保護聲音最大的那個人——他讓黑手黨很緊張。",
+  ],
+  nightDetective: [
+    "該去查點情報了。我要調查那個表現得太順滑的玩家。",
+    "誰在光天化日下藏著？我們來查清楚。",
+    "最安靜的人總是最值得先調查的。",
+  ],
+  calledOut: [
+    "我？我這整場遊戲都只說實話。查查紀錄吧。",
+    "哇，好吧。指著我並不能改變什麼——我從沒可疑過。",
+    "你們隨便指控我，站不住腳的。我只是在用邏輯玩遊戲。",
+    "老實說我是這裡最不可疑的人。看看誰才是真的沉默。",
+    "有意思，一旦有人被逼急了，就轉而攻擊我。",
+    "來吧，淘汰我。等發現我是無辜的，你們會後悔的。",
+  ],
+  roleClaim: [
+    "誰都能打字說「我是偵探。」證據在哪？",
+    "這麼早就聲稱身份，要麼是勇敢要麼是魯莽。我們等著看是哪種。",
+    "如果這是真的，為什麼等到現在才說？",
+    "這個時間點聲稱身份很有意思。是什麼讓你現在才開口？",
+    "等結果證實了我才會相信，之前不會。",
+  ],
+  deathTalk: [
+    "這次死亡改變了一切。我們現在得重新考慮該信任誰。",
+    "安息吧。別浪費這個資訊。他死前說了什麼？",
+    "有人從這次死亡中獲益了。指向誰？",
+    "如果他說的是實話，這對鎮上來說是個大損失。",
+    "他剛說完話就死了，真是巧啊，你們不覺得嗎？",
+  ],
+  greeting: [
+    "嘿。我們一起來搞清楚這件事吧。",
+    "好了，大家都準備好了嗎？開始幹活吧。",
+    "早安。誰有理論？",
+  ],
+};
+
 function getBotMessages(lang: string | undefined) {
-  return lang === "es" ? BOT_MESSAGES_ES : BOT_MESSAGES_EN;
+  const BOT_MESSAGE_POOLS: Record<string, typeof BOT_MESSAGES_EN> = { en: BOT_MESSAGES_EN, es: BOT_MESSAGES_ES, fr: BOT_MESSAGES_FR, "pt-BR": BOT_MESSAGES_PT_BR, "zh-CN": BOT_MESSAGES_ZH_CN, "zh-TW": BOT_MESSAGES_ZH_TW };
+  return BOT_MESSAGE_POOLS[normalizeLang(lang)];
 }
 
 function getEchoPrefixes(lang: string | undefined) {
-  return lang === "es" ? ECHO_PREFIXES_ES : ECHO_PREFIXES_EN;
+  const ECHO_PREFIX_POOLS: Record<string, string[]> = { en: ECHO_PREFIXES_EN, es: ECHO_PREFIXES_ES, fr: ECHO_PREFIXES_FR, "pt-BR": ECHO_PREFIXES_PT_BR, "zh-CN": ECHO_PREFIXES_ZH_CN, "zh-TW": ECHO_PREFIXES_ZH_TW };
+  return ECHO_PREFIX_POOLS[normalizeLang(lang)];
 }
 
 // Recognizes two simple patterns in mafia-chat messages:
@@ -1143,35 +1923,77 @@ function parseMafiaChatCommand(content: string, candidates: Player[]): { kind: '
 function classifyMessage(msgLower: string, players: Player[], bot: Player, alivePlayers: Player[], lang: string | undefined, personality: typeof BOT_PERSONALITY_DEFAULTS = BOT_PERSONALITY_DEFAULTS) {
   const mentionedPlayer = players.find((p: Player) => p.name && msgLower.includes(p.name.toLowerCase()) && p.id !== bot.id && p.isAlive);
 
-  const roleWords = lang === "es"
-    ? ["soy el detective", "soy detective", "soy la doctora", "soy el doctor", "soy doctor", "digo que soy detective", "digo que soy doctor"]
-    : ["i'm the detective", "i am the detective", "i'm the doctor", "i am the doctor", "i'm detective", "i'm doctor", "claim detective", "claim doctor", "i am detective", "i am doctor"];
+  const ROLE_WORDS: Record<string, string[]> = {
+    en: ["i'm the detective", "i am the detective", "i'm the doctor", "i am the doctor", "i'm detective", "i'm doctor", "claim detective", "claim doctor", "i am detective", "i am doctor"],
+    es: ["soy el detective", "soy detective", "soy la doctora", "soy el doctor", "soy doctor", "digo que soy detective", "digo que soy doctor"],
+    fr: ["je suis le détective", "je suis détective", "je suis la doctoresse", "je suis le docteur", "je suis médecin", "je prétends être détective", "je prétends être médecin"],
+    "pt-BR": ["sou o detetive", "sou detetive", "sou a médica", "sou o médico", "sou médico", "afirmo ser detetive", "afirmo ser médico"],
+    "zh-CN": ["我是侦探", "我是医生", "我是医师", "我声称是侦探", "我声称是医生"],
+    "zh-TW": ["我是偵探", "我是醫生", "我是醫師", "我聲稱是偵探", "我聲稱是醫生"],
+  };
+  const roleWords = ROLE_WORDS[normalizeLang(lang)];
   if (roleWords.some(w => msgLower.includes(w))) {
     return { category: "roleClaim" as const, targetName: undefined };
   }
 
-  const deathWords = lang === "es"
-    ? ["murió", "muerto", "muerta", "mataron anoche", "quién murió", "quien murio", "qepd", "descanse en paz", "eliminado", "eliminada"]
-    : ["died", "dead", "killed last night", "who died", "rip", "eliminated"];
+  const DEATH_WORDS: Record<string, string[]> = {
+    en: ["died", "dead", "killed last night", "who died", "rip", "eliminated"],
+    es: ["murió", "muerto", "muerta", "mataron anoche", "quién murió", "quien murio", "qepd", "descanse en paz", "eliminado", "eliminada"],
+    fr: ["mort", "morte", "tué", "tuée", "qui est mort", "rip", "éliminé", "éliminée"],
+    "pt-BR": ["morreu", "morto", "morta", "mataram ontem à noite", "quem morreu", "descanse em paz", "eliminado", "eliminada"],
+    "zh-CN": ["死了", "死亡", "昨晚被杀", "谁死了", "安息", "被淘汰"],
+    "zh-TW": ["死了", "死亡", "昨晚被殺", "誰死了", "安息", "被淘汰"],
+  };
+  const deathWords = DEATH_WORDS[normalizeLang(lang)];
   if (deathWords.some(w => msgLower.includes(w))) {
     return { category: "deathTalk" as const, targetName: undefined };
   }
 
-  const accusationWords = lang === "es"
-    ? ["mafia", "sospechoso", "sospechosa", "vota", "votar", "matar", "culpable", "mintiendo", "miente"]
-    : ["mafia", "sus", "vote", "kill", "suspicious", "guilty", "lying"];
-  const defenseWords = lang === "es"
-    ? ["inocente", "no fui yo", "confía en mí", "confia en mi", "yo no", "lo juro"]
-    : ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"];
-  const agreementWords = lang === "es"
-    ? ["de acuerdo", "sí", "si", "tienes razón", "tienes razon", "exacto", "verdad", "igual"]
-    : ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"];
-  const greetingWords = lang === "es"
-    ? ["hola", "buenos días", "buenos dias", "buen día", "buen dia"]
-    : ["hey", "hi ", "hello", "morning", "good morning", "gm"];
-  const negations = lang === "es"
-    ? ["no ", "nunca ", "jamás ", "jamas "]
-    : ["don't ", "dont ", "not ", "n't ", "no "];
+  const ACCUSATION_WORDS: Record<string, string[]> = {
+    en: ["mafia", "sus", "vote", "kill", "suspicious", "guilty", "lying"],
+    es: ["mafia", "sospechoso", "sospechosa", "vota", "votar", "matar", "culpable", "mintiendo", "miente"],
+    fr: ["mafia", "suspect", "suspecte", "vote", "voter", "tuer", "coupable", "mensonge", "menteur", "menteuse"],
+    "pt-BR": ["máfia", "suspeito", "suspeita", "vote", "votar", "matar", "culpado", "mentindo", "mente"],
+    "zh-CN": ["黑手党", "可疑", "投票", "杀", "有罪", "撒谎", "说谎"],
+    "zh-TW": ["黑手黨", "可疑", "投票", "殺", "有罪", "撒謊", "說謊"],
+  };
+  const accusationWords = ACCUSATION_WORDS[normalizeLang(lang)];
+  const DEFENSE_WORDS: Record<string, string[]> = {
+    en: ["innocent", "not me", "trust me", "i'm not", "im not", "i swear"],
+    es: ["inocente", "no fui yo", "confía en mí", "confia en mi", "yo no", "lo juro"],
+    fr: ["innocent", "innocente", "pas moi", "fais-moi confiance", "je ne suis pas", "je le jure"],
+    "pt-BR": ["inocente", "não fui eu", "confie em mim", "eu não", "eu juro"],
+    "zh-CN": ["无辜", "不是我", "相信我", "我发誓"],
+    "zh-TW": ["無辜", "不是我", "相信我", "我發誓"],
+  };
+  const defenseWords = DEFENSE_WORDS[normalizeLang(lang)];
+  const AGREEMENT_WORDS: Record<string, string[]> = {
+    en: ["agree", "yes", "you're right", "youre right", "exactly", "true", "same"],
+    es: ["de acuerdo", "sí", "si", "tienes razón", "tienes razon", "exacto", "verdad", "igual"],
+    fr: ["d'accord", "oui", "tu as raison", "exactement", "vrai", "pareil"],
+    "pt-BR": ["concordo", "sim", "você tem razão", "exato", "verdade", "igual"],
+    "zh-CN": ["同意", "是的", "你说得对", "没错", "对", "一样"],
+    "zh-TW": ["同意", "是的", "你說得對", "沒錯", "對", "一樣"],
+  };
+  const agreementWords = AGREEMENT_WORDS[normalizeLang(lang)];
+  const GREETING_WORDS: Record<string, string[]> = {
+    en: ["hey", "hi ", "hello", "morning", "good morning", "gm"],
+    es: ["hola", "buenos días", "buenos dias", "buen día", "buen dia"],
+    fr: ["salut", "bonjour", "coucou", "bonsoir"],
+    "pt-BR": ["oi", "olá", "bom dia", "boa noite"],
+    "zh-CN": ["你好", "早上好", "大家好", "早安"],
+    "zh-TW": ["你好", "早上好", "大家好", "早安"],
+  };
+  const greetingWords = GREETING_WORDS[normalizeLang(lang)];
+  const NEGATIONS: Record<string, string[]> = {
+    en: ["don't ", "dont ", "not ", "n't ", "no "],
+    es: ["no ", "nunca ", "jamás ", "jamas "],
+    fr: ["ne pas ", "pas ", "non ", "jamais "],
+    "pt-BR": ["não ", "nunca "],
+    "zh-CN": ["不", "没", "别"],
+    "zh-TW": ["不", "沒", "別"],
+  };
+  const negations = NEGATIONS[normalizeLang(lang)];
   // "I don't agree" or "not true" should never be read as agreement
   const isNegated = (word: string) => negations.some(n => msgLower.includes(n + word) || msgLower.includes(n.trim() + " " + word));
 
@@ -1219,7 +2041,7 @@ function buildBotReply(category: keyof typeof BOT_MESSAGES_EN, targetName: strin
   // player instead of ever showing the literal "{name}" placeholder.
   const name = targetName || (fallbackPlayers.length > 0
     ? fallbackPlayers[Math.floor(Math.random() * fallbackPlayers.length)].name
-    : (lang === "es" ? "alguien" : "someone"));
+    : (({ en: "someone", es: "alguien", fr: "quelqu'un", "pt-BR": "alguém", "zh-CN": "某人", "zh-TW": "某人" } as Record<string, string>)[normalizeLang(lang)]));
   return line.replace("{name}", name);
 }
 
@@ -1314,9 +2136,15 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   const calledBot = bots.find((b: Player) => b.name && msgLower.includes(b.name.toLowerCase().split("_")[0].toLowerCase()));
   // A direct question also deserves a guaranteed response — catch both "?" and
   // question-word phrasing without punctuation, like "who is it" or "whats going on".
-  const questionWords = lang === "es"
-    ? ["quién ", "quien ", "qué ", "que ", "por qué", "por que", "cómo ", "como ", "cuál ", "cual ", "es él", "es ella", "eres tú", "eres tu", "tú crees", "tu crees"]
-    : ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"];
+  const QUESTION_WORDS: Record<string, string[]> = {
+    en: ["who ", "who's", "whos ", "what ", "what's", "whats ", "why ", "why's", "how ", "which ", "is it", "are you", "do you", "did you"],
+    es: ["quién ", "quien ", "qué ", "que ", "por qué", "por que", "cómo ", "como ", "cuál ", "cual ", "es él", "es ella", "eres tú", "eres tu", "tú crees", "tu crees"],
+    fr: ["qui ", "qui est-ce", "quoi ", "que ", "pourquoi", "comment ", "lequel ", "es-tu", "penses-tu", "crois-tu"],
+    "pt-BR": ["quem ", "o que ", "por que", "como ", "qual ", "é ele", "é ela", "você é", "você acha"],
+    "zh-CN": ["谁", "什么", "为什么", "怎么", "哪个", "是不是", "你是", "你觉得"],
+    "zh-TW": ["誰", "什麼", "為什麼", "怎麼", "哪個", "是不是", "你是", "你覺得"],
+  };
+  const questionWords = QUESTION_WORDS[normalizeLang(lang)];
   const isDirectQuestion = msgLower.includes("?") || msgLower.includes("¿") || questionWords.some(w => msgLower.includes(w));
 
   // Original threshold was a flat 0.8 (20% chance of staying quiet). More
@@ -1477,7 +2305,8 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const deadBots = players.filter((p: Player) => p.isBot && !p.isAlive);
   for (const bot of deadBots) {
     if (Math.random() > 0.75) {
-      const lines = lang === "es" ? GRAVEYARD_BOT_LINES_ES : GRAVEYARD_BOT_LINES_EN;
+      const GRAVEYARD_POOLS: Record<string, string[]> = { en: GRAVEYARD_BOT_LINES_EN, es: GRAVEYARD_BOT_LINES_ES, fr: GRAVEYARD_BOT_LINES_FR, "pt-BR": GRAVEYARD_BOT_LINES_PT_BR, "zh-CN": GRAVEYARD_BOT_LINES_ZH_CN, "zh-TW": GRAVEYARD_BOT_LINES_ZH_TW };
+      const lines = GRAVEYARD_POOLS[normalizeLang(lang)];
       const content = lines[Math.floor(Math.random() * lines.length)];
       await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content, isSpectator: true } as any);
     }

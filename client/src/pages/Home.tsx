@@ -653,13 +653,13 @@ export default function Home() {
       setQuickMatching(false);
     }
   };
-  const handleJoinPublicRoom = async (code: string) => {
+  const handleJoinPublicRoom = async (code: string, asSpectator: boolean) => {
     if (!name) {
       toast({ title: t("home.needNameTitle", "Enter a name first"), variant: "destructive" });
       return;
     }
     try {
-      const res = await joinRoom.mutateAsync({ name, avatar, code, avatarConfig: config, asSpectator: false, supabaseUserId: user?.id } as any);
+      const res = await joinRoom.mutateAsync({ name, avatar, code, avatarConfig: config, asSpectator, supabaseUserId: user?.id } as any);
       // See the note in handleQuickMatch — a blocked localStorage on iOS
       // must not turn a successful join into a failure toast.
       try {
@@ -1122,7 +1122,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 4x2 Navigation Grid */}
+                {/* Navigation Grid (4 columns; 3 full rows + Crew on its own row) */}
                 <div className="pt-4 border-t border-white/5 flex flex-col gap-2 w-full">
                   {/* Row 1 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
@@ -1202,6 +1202,15 @@ export default function Home() {
                       data-testid="button-game-history-nav">
                       <History className="w-5 h-5 text-indigo-400 flex-shrink-0" />
                       <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("history.title", "Game History")}</span>
+                    </button>
+                  </div>
+                  {/* Row 4 */}
+                  <div className="grid grid-cols-4 gap-2 w-full">
+                    <button onClick={() => setLocation("/crew")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="button-crew-nav">
+                      <Shield className="w-5 h-5 text-violet-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("crew.title", "Crew")}</span>
                     </button>
                   </div>
                 </div>
@@ -1386,7 +1395,7 @@ export default function Home() {
                                 </div>
                               )}
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(r.code)} disabled={!name} data-testid={`button-join-public-${r.code}`}>
+                            <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(r.code, r.status !== "lobby")} disabled={!name} data-testid={`button-join-public-${r.code}`}>
                               {r.status === "lobby" ? t("home.join", "Join") : t("home.watch", "Watch")}
                             </Button>
                           </div>
