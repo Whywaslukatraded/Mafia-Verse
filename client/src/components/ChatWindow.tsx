@@ -16,15 +16,22 @@ interface ChatWindowProps {
     messages: Message[];
     onSendMessage: (content: string, channel?: "game" | "mafia") => void;
     currentPlayerId?: number;
+    // True spectator: joined the room as a spectator (studying-strategy
+    // viewer who knows every role, or a no-spoiler streamer viewer). Sees
+    // main chat only, read-only — never graveyard, never mafia.
     isSpectator?: boolean;
+    // Real player who died in the game (isAlive: false, was never a
+    // spectator). Keeps the existing graveyard-chat privileges: read-only
+    // main chat plus their own private graveyard channel they can post to.
+    isEliminated?: boolean;
     players?: any[];
     notify?: (title: string, options?: NotificationOptions) => void;
     mafiaChatAvailable?: boolean;
     // Feature: graveyard chat opens to everyone once the game is over —
-    // room.status === 'ended' on the Room.tsx side. Kept as its own prop
-    // rather than folding into isSpectator so "can view the graveyard" and
-    // "was actually in the graveyard" stay distinguishable below (a
-    // survivor can look, but never gets to post into it).
+    // room.status === 'ended' on the Room.tsx side. Kept as its own prop so
+    // "can view the graveyard" and "was actually in the graveyard" stay
+    // distinguishable below (a survivor, or a spectator, can look, but
+    // never gets to post into it).
     gameEnded?: boolean;
     // Feature: synced chat message reactions. Server-owned state (see
     // messageReactionsByRoom in routes.ts) — messageId -> emote -> array of
@@ -35,7 +42,7 @@ interface ChatWindowProps {
     onToggleReaction?: (messageId: number, emote: string) => void;
 }
 
-export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, players = [], notify, mafiaChatAvailable, gameEnded, reactions = {}, onToggleReaction }: ChatWindowProps) {
+export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectator, isEliminated, players = [], notify, mafiaChatAvailable, gameEnded, reactions = {}, onToggleReaction }: ChatWindowProps) {
     const { t } = useTranslation();
     // Quick chat templates live in translation files so the messages sent match
     // whichever language the sender has selected.
@@ -53,9 +60,10 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastSentRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
-    // isSpectator here means "in the graveyard" (dead OR joined as a true
-    // spectator) — Room.tsx passes true for both. They see the living
+    // isEliminated means "a real player who died" — they see the living
     // chat read-only plus their own private graveyard chat they can post to.
+    // isSpectator (true spectator, studying-strategy or no-spoiler streamer
+    // viewer) gets NEITHER graveyard nor mafia access — main chat only.
     // mafiaChatAvailable means "alive mafia, with at least one living
     // teammate" — Room.tsx only sets this true under those conditions, so a
     // lone mafia never sees a self-only channel that would out their role.
@@ -64,13 +72,14 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     const gameMessages = useMemo(() => messages.filter(msg => !msg.isSpectator && !(msg as any).isMafiaChat), [messages]);
     const graveyardMessages = useMemo(() => messages.filter(msg => msg.isSpectator), [messages]);
     const mafiaMessages = useMemo(() => messages.filter(msg => (msg as any).isMafiaChat), [messages]);
-    // Can VIEW the graveyard tab: actual spectators/eliminated players any
-    // time, or anyone at all once the game has ended. Only real spectators
-    // can POST into it — checked separately below wherever posting is
-    // gated, so a survivor looking back after the game can read it but
-    // never write into what was, at the time, a conversation they weren't
-    // part of.
-    const canViewGraveyard = !!isSpectator || !!gameEnded;
+    // Can VIEW the graveyard tab: real eliminated players any time, or
+    // anyone at all once the game has ended (no more strategic advantage to
+    // hiding it). True spectators never get this, live or dead-tab-wise —
+    // they only ever see main chat. Only real eliminated players can POST
+    // into it — checked separately below wherever posting is gated, so a
+    // survivor looking back after the game can read it but never write into
+    // what was, at the time, a conversation they weren't part of.
+    const canViewGraveyard = !!isEliminated || !!gameEnded;
     const filteredMessages = useMemo(() => (
         mafiaChatAvailable && activeTab === "mafia"
             ? mafiaMessages
@@ -133,7 +142,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         onSendMessage(trimmed, channel);
         setInput("");
         
-        if (isSpectator) {
+        if (isEliminated) {
             const newCount = messageCount + 1;
             setMessageCount(newCount);
             if (newCount === 50) {
@@ -161,17 +170,18 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
         onSendMessage(msg, channel);
     };
 
-    // Posting is blocked on the game tab for actual spectators (read-only,
-    // pre-existing rule), and on the graveyard tab for anyone who ISN'T an
-    // actual spectator — a survivor can look back at graveyard chat once
+    // Posting is blocked on the game tab for true spectators (read-only,
+    // pre-existing rule — they have no other tab to reach), and on the
+    // graveyard tab for anyone who ISN'T a real eliminated player — a
+    // survivor (or a spectator) can look back at graveyard chat once
     // gameEnded, but never gets to post into a conversation they weren't
     // part of at the time.
-    const canPostHere = !((isSpectator && activeTab === "game") || (activeTab === "graveyard" && !isSpectator));
+    const canPostHere = !((isSpectator && activeTab === "game") || (activeTab === "graveyard" && !isEliminated));
 
     return (
         <div className="flex flex-col h-[400px] border rounded-lg bg-card overflow-hidden">
             <div className="border-b bg-muted/50">
-                {isSpectator ? (
+                {isEliminated ? (
                     <div className="flex">
                         <button
                             type="button"
@@ -256,7 +266,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </div>
             <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 <div className="space-y-4">
-                    {isSpectator && activeTab === "graveyard" && (
+                    {isEliminated && activeTab === "graveyard" && (
                         <a
                             href="https://discord.gg/9fRxpUyjD4"
                             target="_blank"

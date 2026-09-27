@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame, History, Check, Share2 } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame, History, Check, Share2, Info, HelpCircle } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
@@ -1212,18 +1212,30 @@ export default function Home() {
                       <Shield className="w-5 h-5 text-violet-400 flex-shrink-0" />
                       <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("crew.title", "Crew")}</span>
                     </button>
+                    <button onClick={() => setLocation("/about")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="button-about-nav">
+                      <Info className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.aboutLink")}</span>
+                    </button>
+                    <button onClick={() => setLocation("/faq")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="button-faq-nav">
+                      <HelpCircle className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.faqLink")}</span>
+                    </button>
+                    <a
+                      href="https://discord.gg/9fRxpUyjD4"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="link-discord-nav"
+                    >
+                      <Users className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.joinDiscord")}</span>
+                    </a>
                   </div>
                 </div>
-
-                <a
-                  href="https://discord.gg/9fRxpUyjD4"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl cursor-pointer"
-                >
-                  <Users className="w-4 h-4 text-indigo-400" />
-                  <span className="text-sm font-bold text-indigo-400">{t("home.joinDiscord")}</span>
-                </a>
 
                 <div className="pt-2 flex items-center justify-center gap-4">
                   <button

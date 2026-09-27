@@ -3467,10 +3467,13 @@ async function broadcastState(roomId: number) {
       const revealedMayorIds = Array.from(mayorRevealed.get(roomId) || []);
       const myBullets = me?.role === 'vigilante' ? (vigilanteBullets.get(roomId)?.get(me.id) ?? 0) : undefined;
 
-      // Graveyard chat: messages tagged isSpectator (sent by dead players and
-      // regular spectators — anyone with isAlive: false) are only visible to
-      // other dead players/spectators while the match is still live. Once
-      // room.status is 'ended', it opens up to everyone — same principle as
+      // Graveyard chat: messages tagged isSpectator (sent by dead real
+      // players AND by joined-as-spectator viewers alike, since both have
+      // isAlive: false) are only visible, while the match is still live, to
+      // real dead players — never to a spectator of either kind (a plain
+      // strategy-studying spectator, or a no-spoiler streamer viewer), who
+      // were never part of that conversation. Once room.status is 'ended',
+      // it opens up to everyone, spectators included — same principle as
       // Final Roles Revealed showing everyone's role regardless of who
       // survived, since there's no more strategic advantage to hiding it
       // after the game is actually over.
@@ -3480,7 +3483,7 @@ async function broadcastState(roomId: number) {
       // it was a means to an end during play, not something meant to be a
       // post-game reveal the way the graveyard's conversation is.
       const visibleMessages = messages.filter((m: Message) => {
-        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive);
+        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive && !me.isSpectator);
         if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
         return true;
       });
@@ -4327,11 +4330,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // reasoning — same sessionId/supabaseUserId leak existed here too.
       const sanitizedPlayers = redactPrivateFields(roleSanitizedPlayers, me?.id);
 
-      // Graveyard chat: same rule as broadcastState above — visible to dead
-      // players/spectators during play, and to everyone once room.status is
-      // 'ended'. Mafia chat never reopens post-game.
+      // Graveyard chat: same rule as broadcastState above — visible during
+      // play only to real dead players (never to a spectator of either
+      // kind), and to everyone once room.status is 'ended'. Mafia chat
+      // never reopens post-game.
       const visibleMessages = messages.filter((m: Message) => {
-        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive);
+        if ((m as any).isSpectator) return room.status === 'ended' || (!!me && !me.isAlive && !me.isSpectator);
         if ((m as any).isMafiaChat) return !!me && me.isAlive && me.role === 'mafia';
         return true;
       });

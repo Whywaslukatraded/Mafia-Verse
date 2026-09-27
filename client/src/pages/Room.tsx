@@ -2274,7 +2274,8 @@ export default function Room() {
               onSendMessage={(content, channel) => sendAction({ type: "chat", content, channel } as any)}
               notify={notify}
               currentPlayerId={me?.id || 0}
-              isSpectator={(isSpectator ?? false) || !(me?.isAlive ?? true)}
+              isSpectator={isSpectator ?? false}
+              isEliminated={!(isSpectator ?? false) && !(me?.isAlive ?? true)}
               players={players}
               mafiaChatAvailable={gameState?.mafiaChatAvailable ?? false}
               gameEnded={room.status === "ended"}
