@@ -206,6 +206,7 @@
     "systemCore": "System Core: 2,900+ Source Lines",
     "aboutLink": "About",
     "faqLink": "FAQ",
+    "blueprintLink": "Blueprint",
     "achievementsLabel": "Achievements",
     "achievements": {
       "first_win": {
@@ -594,6 +595,22 @@
         "description": "Feedback from real players shapes new roles, settings, and features."
       }
     }
+  },
+  "blueprint": {
+    "title": "Blueprint",
+    "tagline": "Behind the Curtain",
+    "description": "Every screen, roll and reveal in Mafia Verse is hand-written, one file at a time. Here's what's actually under the hood.",
+    "totalLines": "Total Core Lines",
+    "sourceLines": "Raw Code Logic",
+    "fileCount": "Active Script Files",
+    "languageCount": "Languages & Formats",
+    "breakdownLabel": "Language Breakdown",
+    "filesShort": "files",
+    "linesShort": "lines",
+    "ecosystemLabel": "Ecosystem Footprint",
+    "totalFiles": "Total Project Files",
+    "totalEcoLines": "Total Ecosystem Lines",
+    "ecosystemNote": "Even efficient code leans on a multi-million-line ecosystem of dependencies to keep the game running under the hood."
   },
   "faq": {
     "title": "F.A.Q.",

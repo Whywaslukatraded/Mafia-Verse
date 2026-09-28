@@ -79,6 +79,22 @@
       }
     }
   },
+  "blueprint": {
+    "title": "Projeto",
+    "tagline": "Nos Bastidores",
+    "description": "Cada tela, sorteio e revelação em Mafia Verse é escrito à mão, arquivo por arquivo. Aqui está o que realmente existe por baixo do capô.",
+    "totalLines": "Total de Linhas de Código",
+    "sourceLines": "Lógica de Código Bruta",
+    "fileCount": "Arquivos de Script Ativos",
+    "languageCount": "Linguagens e Formatos",
+    "breakdownLabel": "Detalhamento por Linguagem",
+    "filesShort": "arquivos",
+    "linesShort": "linhas",
+    "ecosystemLabel": "Pegada do Ecossistema",
+    "totalFiles": "Total de Arquivos do Projeto",
+    "totalEcoLines": "Total de Linhas do Ecossistema",
+    "ecosystemNote": "Mesmo sendo eficiente, o código depende de um ecossistema de milhões de linhas de dependências para manter o jogo funcionando por trás dos panos."
+  },
   "faq": {
     "title": "Perguntas Frequentes",
     "subtitle": "Perguntas vindas da rua",
@@ -343,6 +359,7 @@
     "systemCore": "Núcleo do Sistema: mais de 2.900 linhas de código",
     "aboutLink": "Sobre",
     "faqLink": "Perguntas Frequentes",
+    "blueprintLink": "Projeto",
     "achievementsLabel": "Conquistas",
     "achievements": {
       "first_win": {

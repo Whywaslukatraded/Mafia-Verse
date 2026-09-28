@@ -79,6 +79,22 @@
       }
     }
   },
+  "blueprint": {
+    "title": "蓝图",
+    "tagline": "幕后花絮",
+    "description": "Mafia Verse 中的每一个画面、判定和揭示都是逐个文件手写而成。这里展示的是幕后的真实情况。",
+    "totalLines": "核心代码总行数",
+    "sourceLines": "纯代码逻辑",
+    "fileCount": "活跃脚本文件",
+    "languageCount": "语言与格式",
+    "breakdownLabel": "语言分布",
+    "filesShort": "个文件",
+    "linesShort": "行",
+    "ecosystemLabel": "生态系统足迹",
+    "totalFiles": "项目文件总数",
+    "totalEcoLines": "生态系统总行数",
+    "ecosystemNote": "尽管代码本身很精简，但它依赖一个数百万行代码的依赖生态系统才能让游戏在幕后正常运行。"
+  },
   "faq": {
     "title": "常见问题",
     "subtitle": "来自街头的疑问",
@@ -343,6 +359,7 @@
     "systemCore": "系统核心：超过 2,900 行源代码",
     "aboutLink": "关于",
     "faqLink": "常见问题",
+    "blueprintLink": "蓝图",
     "achievementsLabel": "成就",
     "achievements": {
       "first_win": {

@@ -72,6 +72,7 @@ const Store = lazy(() => import("@/pages/Store"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 const About = lazy(() => import("@/pages/About"));
 const FAQ = lazy(() => import("@/pages/FAQ"));
+const Blueprint = lazy(() => import("@/pages/Blueprint"));
 
 function Router404() {
   // Check if we are running inside an itch.io nested preview sandbox or subfolder
@@ -109,6 +110,7 @@ function Router404() {
           <Route path="/leaderboard" component={Leaderboard} />
           <Route path="/about" component={About} />
           <Route path="/faq" component={FAQ} />
+          <Route path="/blueprint" component={Blueprint} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>
@@ -123,7 +125,7 @@ function Router404() {
 // static info pages).
 const TWO_FA_EXEMPT_PREFIXES = [
   "/", "/login", "/signup", "/2fa-setup", "/2fa-verify", "/reset-password",
-  "/auth/callback", "/room/", "/recap/", "/about", "/faq", "/leaderboard",
+  "/auth/callback", "/room/", "/recap/", "/about", "/faq", "/leaderboard", "/blueprint",
 ];
 function isTwoFaExemptPath(hashPath: string): boolean {
   const path = hashPath.replace(/^#/, "") || "/";

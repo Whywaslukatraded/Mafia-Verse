@@ -206,6 +206,7 @@
     "systemCore": "Noyau système : 2 900+ lignes de code source",
     "aboutLink": "À propos",
     "faqLink": "FAQ",
+    "blueprintLink": "Plan",
     "achievementsLabel": "Succès",
     "achievements": {
       "first_win": {
@@ -594,6 +595,22 @@
         "description": "Les retours des vrais joueurs façonnent les nouveaux rôles, paramètres et fonctionnalités."
       }
     }
+  },
+  "blueprint": {
+    "title": "Plan",
+    "tagline": "Dans les Coulisses",
+    "description": "Chaque écran, tirage et révélation dans Mafia Verse est écrit à la main, fichier par fichier. Voici ce qu'il y a vraiment sous le capot.",
+    "totalLines": "Lignes de Code Totales",
+    "sourceLines": "Logique de Code Brute",
+    "fileCount": "Fichiers de Script Actifs",
+    "languageCount": "Langages et Formats",
+    "breakdownLabel": "Répartition par Langage",
+    "filesShort": "fichiers",
+    "linesShort": "lignes",
+    "ecosystemLabel": "Empreinte de l'Écosystème",
+    "totalFiles": "Fichiers Totaux du Projet",
+    "totalEcoLines": "Lignes Totales de l'Écosystème",
+    "ecosystemNote": "Même si le code est efficace, il s'appuie sur un écosystème de plusieurs millions de lignes de dépendances pour faire fonctionner le jeu en arrière-plan."
   },
   "faq": {
     "title": "F.A.Q.",

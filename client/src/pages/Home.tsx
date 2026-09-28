@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame, History, Check, Share2, MessageCircleQuestion, Code2 } from "lucide-react";
+import { Search, Shield, Heart, User, Timer, Plus, Minus, Skull, Smile, Trophy, Settings, Sparkles, Gift, Tv, Users, Coins, Star, Copy, CircleCheck as CheckCircle2, X, UserPlus, Loader2, ShieldCheck, Crosshair, Landmark, Drama, Medal, BookOpen, Flame, History, Check, Share2, MessageCircleQuestion, FileCode2 } from "lucide-react";
 import { ROLE_PRESETS, type RolePreset } from "@/lib/rolePresets";
 import { useTranslation } from "react-i18next";
 import { useCreateRoom, useJoinRoom } from "@/hooks/use-game";
@@ -1224,11 +1224,12 @@ export default function Home() {
                       <MessageCircleQuestion className="w-5 h-5 text-orange-400 flex-shrink-0" />
                       <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.faqLink")}</span>
                     </button>
-                    <div className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 min-w-0"
-                      data-testid="tile-source-stats">
-                      <Code2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.systemCore")}</span>
-                    </div>
+                    <button onClick={() => setLocation("/blueprint")}
+                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      data-testid="tile-blueprint-nav">
+                      <FileCode2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.blueprintLink", "Blueprint")}</span>
+                    </button>
                   </div>
                 </div>
 

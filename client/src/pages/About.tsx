@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Search, Users, Bot, MessagesSquare, ArrowLeft } from "lucide-react";
+import { Fingerprint, Users, Bot, MessagesSquare, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export default function About() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-4 bg-card border-2 border-border rounded-full shadow-xl mb-6 ring-4 ring-primary/10 relative group overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-transparent to-transparent opacity-50" />
-            <Search className="w-10 h-10 text-primary relative z-10" strokeWidth={2.5} />
+            <Fingerprint className="w-10 h-10 text-primary relative z-10" strokeWidth={2.5} />
           </div>
           <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50 mb-2 drop-shadow-sm font-serif uppercase tracking-tighter">
             {t("about.title")}
