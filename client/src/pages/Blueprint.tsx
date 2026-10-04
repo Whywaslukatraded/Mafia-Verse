@@ -1,9 +1,37 @@
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
-import { FileCode2, Users, Layers, GitBranch, ArrowLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FileCode2, Users, Layers, GitBranch, ArrowLeft, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+// Drumroll-style count-up. Mounts at 0 and animates to the real value
+// whenever `play` is true — since the row it lives in only exists in the
+// DOM while its section is expanded (AnimatePresence unmounts it on
+// collapse), every re-open is a fresh mount, so it replays from 0 each time
+// a section is opened rather than only animating once ever.
+function AnimatedNumber({ value, play }: { value: string; play: boolean }) {
+  const target = useMemo(() => parseInt(value.replace(/,/g, ""), 10) || 0, [value]);
+  const [display, setDisplay] = useState(play ? 0 : target);
+
+  useEffect(() => {
+    if (!play) return;
+    let raf: number;
+    const duration = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setDisplay(Math.round(target * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [play, target]);
+
+  return <>{display.toLocaleString()}</>;
+}
 
 // NOTE: these numbers are a hand-updated snapshot from a PowerShell
 // line-count pass, not computed live in the app. Re-run the script
@@ -38,6 +66,8 @@ const ECOSYSTEM_STATS = {
 export default function Blueprint() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showEcosystem, setShowEcosystem] = useState(false);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -101,50 +131,114 @@ export default function Blueprint() {
               </div>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center gap-2 px-1">
-                <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                  {t("blueprint.breakdownLabel", "Language Breakdown")}
-                </span>
-              </div>
-              {LANGUAGE_BREAKDOWN.map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between gap-3 p-2.5 bg-muted/50 rounded-lg border border-border"
-                >
-                  <span className="text-xs font-bold text-foreground/90 truncate">{row.label}</span>
-                  <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
-                    {row.files} {t("blueprint.filesShort", "files")} · {row.lines} {t("blueprint.linesShort", "lines")}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBreakdown((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-1 py-1 cursor-pointer"
+                data-testid="button-toggle-breakdown"
+              >
+                <span className="flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                    {t("blueprint.breakdownLabel", "Language Breakdown")}
                   </span>
-                </div>
-              ))}
+                </span>
+                <motion.span animate={{ rotate: showBreakdown ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                </motion.span>
+              </button>
+              <AnimatePresence initial={false}>
+                {showBreakdown && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-2 pt-2">
+                      {LANGUAGE_BREAKDOWN.map((row, i) => (
+                        <motion.div
+                          key={row.label}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.25, delay: i * 0.05 }}
+                          className="flex items-center justify-between gap-3 p-2.5 bg-muted/50 rounded-lg border border-border"
+                        >
+                          <span className="text-xs font-bold text-foreground/90 truncate">{row.label}</span>
+                          <span className="text-xs font-mono text-muted-foreground flex-shrink-0">
+                            <AnimatedNumber value={row.files} play={showBreakdown} /> {t("blueprint.filesShort", "files")} ·{" "}
+                            <AnimatedNumber value={row.lines} play={showBreakdown} /> {t("blueprint.linesShort", "lines")}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <details className="pt-2 group">
-              <summary className="flex items-center gap-2 px-1 cursor-pointer list-none">
-                <GitBranch className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                  {t("blueprint.ecosystemLabel", "Ecosystem Footprint")}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowEcosystem((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-1 py-1 cursor-pointer"
+                data-testid="button-toggle-ecosystem"
+              >
+                <span className="flex items-center gap-2">
+                  <GitBranch className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                    {t("blueprint.ecosystemLabel", "Ecosystem Footprint")}
+                  </span>
                 </span>
-              </summary>
-              <div className="space-y-2 pt-2">
-                <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border">
-                  <span className="text-xs font-bold text-foreground/90">{t("blueprint.totalFiles", "Total Project Files")}</span>
-                  <span className="text-xs font-mono text-muted-foreground">{ECOSYSTEM_STATS.totalFiles}</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border">
-                  <span className="text-xs font-bold text-foreground/90">{t("blueprint.totalEcoLines", "Total Ecosystem Lines")}</span>
-                  <span className="text-xs font-mono text-muted-foreground">{ECOSYSTEM_STATS.totalLines}</span>
-                </div>
-                <p className="text-xs text-foreground/70 leading-relaxed pt-1">
-                  {t(
-                    "blueprint.ecosystemNote",
-                    "Even efficient code leans on a multi-million-line ecosystem of dependencies to keep the game running under the hood."
-                  )}
-                </p>
-              </div>
-            </details>
+                <motion.span animate={{ rotate: showEcosystem ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                </motion.span>
+              </button>
+              <AnimatePresence initial={false}>
+                {showEcosystem && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-2 pt-2">
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border"
+                      >
+                        <span className="text-xs font-bold text-foreground/90">{t("blueprint.totalFiles", "Total Project Files")}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          <AnimatedNumber value={ECOSYSTEM_STATS.totalFiles} play={showEcosystem} />
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.25, delay: 0.05 }}
+                        className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border"
+                      >
+                        <span className="text-xs font-bold text-foreground/90">{t("blueprint.totalEcoLines", "Total Ecosystem Lines")}</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          <AnimatedNumber value={ECOSYSTEM_STATS.totalLines} play={showEcosystem} />
+                        </span>
+                      </motion.div>
+                      <p className="text-xs text-foreground/70 leading-relaxed pt-1">
+                        {t(
+                          "blueprint.ecosystemNote",
+                          "Even efficient code leans on a multi-million-line ecosystem of dependencies to keep the game running under the hood."
+                        )}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </CardContent>
         </Card>
 
