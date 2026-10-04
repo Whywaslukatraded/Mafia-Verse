@@ -13,6 +13,8 @@ const STALE_LOBBY_MAX_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
 // Hard backstop on how many rooms the public browser/Quick Match ever pull
 // in one query, regardless of how many exist in total.
 const OPEN_PUBLIC_ROOMS_LIMIT = 50;
+// Max spectate-only (already started) rooms shown alongside joinable lobbies.
+const OPEN_PUBLIC_IN_PROGRESS_LIMIT = 5;
 // Hard cap on how much message history getMessagesByRoom ever returns for
 // a single room, regardless of how many were actually sent.
 const MAX_MESSAGES_PER_ROOM = 300;
@@ -436,9 +438,18 @@ export class DatabaseStorage implements IStorage {
 
     // Lobby rooms only count as "open" while there's still a free seat;
     // in-progress rooms are always listed since spectating has no seat cap.
-    return rowsResult
+    const all = rowsResult
       .map(({ room, playerCount }) => ({ room, playerCount: Number(playerCount) }))
       .filter(({ room, playerCount }) => room.status !== "lobby" || playerCount < MAX_PLAYERS_PER_ROOM);
+
+    // Joinable lobbies always come first, and in-progress (spectate-only)
+    // rooms are capped. Previously every non-ended room shared the same
+    // newest-first list with no cap on in-progress ones, so abandoned
+    // mid-game rooms (which never reach 'ended') piled up and crowded the
+    // list down to nothing but "Spectate Only" entries.
+    const lobbies = all.filter(({ room }) => room.status === "lobby");
+    const inProgress = all.filter(({ room }) => room.status !== "lobby").slice(0, OPEN_PUBLIC_IN_PROGRESS_LIMIT);
+    return [...lobbies, ...inProgress];
   }
 
   // Oldest eligible lobby first (by id, which is insertion order) — keeps
