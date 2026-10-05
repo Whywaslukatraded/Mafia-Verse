@@ -4240,13 +4240,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const verifiedSupabaseUserId = await getVerifiedSupabaseUserId(req);
 
       let room = await storage.findQuickMatchRoom();
-      // Quick Match must only ever seat someone as a real player. A room
-      // that already started (or went private) would turn the joiner into a
-      // spectator below, so anything that isn't an open public lobby is
-      // treated as "no match found" and a fresh lobby is created instead.
-      if (room && (room.status !== "lobby" || (room.settings as any)?.isPrivate)) {
-        room = undefined as any;
-      }
       let isHost = false;
       if (!room) {
         room = await storage.createRoom({
@@ -4275,11 +4268,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         avatar,
         avatarConfig,
         role: null,
-        isAlive: true,
+        isAlive: room.status === "lobby",
         isHost: isHost || existingPlayers.length === 0,
         sessionId,
         supabaseUserId: verifiedSupabaseUserId,
-        isSpectator: false,
+        isSpectator: room.status !== "lobby",
         isBot: false,
         isReady: false,
         wins: 0,
