@@ -207,6 +207,11 @@
     "aboutLink": "À propos",
     "faqLink": "FAQ",
     "blueprintLink": "Plan",
+    "roomVisibility": "Visibilité de la salle",
+    "publicRoom": "Publique",
+    "privateRoom": "Privée",
+    "publicRoomDescription": "Apparaît dans Partie rapide et Trouver une partie, tout le monde peut rejoindre.",
+    "privateRoomDescription": "Masquée de Partie rapide. Seules les personnes ayant le code de la salle peuvent rejoindre.",
     "achievementsLabel": "Succès",
     "achievements": {
       "first_win": {

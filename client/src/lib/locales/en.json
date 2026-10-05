@@ -207,6 +207,11 @@
     "aboutLink": "About",
     "faqLink": "FAQ",
     "blueprintLink": "Blueprint",
+    "roomVisibility": "Room Visibility",
+    "publicRoom": "Public",
+    "privateRoom": "Private",
+    "publicRoomDescription": "Shows up in Quick Match and Find a Game so anyone can join.",
+    "privateRoomDescription": "Hidden from Quick Match. Only people with the room code can join.",
     "achievementsLabel": "Achievements",
     "achievements": {
       "first_win": {

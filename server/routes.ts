@@ -3524,6 +3524,125 @@ async function broadcastState(roomId: number) {
   });
 }
 
+// Feature: seeded bot games. Keeps ~25 bot-only rooms in the public browser /
+// Quick Match so it never looks empty: a mix of already-started bot games
+// (spectate only) and open lobbies (bots seated, one seat left for a human).
+// Role mixes vary per room (1-2 mafia, 2-4 special roles, always at least
+// 1 mafia and 1 civilian) so the browser's role preview differs per game.
+const SEED_ROOM_TARGET = 25;
+const SEED_CHECK_INTERVAL_MS = 3 * 60 * 1000;
+// 10 spectate-only + 15 playable, shuffled fresh on every cold start so the
+// order in the list differs each time.
+function buildSeedPattern(): Array<"spectate" | "real"> {
+  const kinds: Array<"spectate" | "real"> = [
+    ...Array(10).fill("spectate"), ...Array(15).fill("real"),
+  ];
+  for (let i = kinds.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
+  }
+  return kinds;
+}
+const SEED_SPECIAL_POOL = ["detective", "doctor", "bodyguard", "vigilante", "mayor", "jester"] as const;
+
+// Plain, familiar compositions mixed in alongside the randomized ones.
+const SEED_CLASSIC_MIXES: Array<Record<string, number>> = [
+  { mafiaCount: 1, doctorCount: 1, detectiveCount: 1, civilianCount: 3 },
+  { mafiaCount: 1, doctorCount: 1, detectiveCount: 1, civilianCount: 4 },
+  { mafiaCount: 2, doctorCount: 1, detectiveCount: 1, civilianCount: 2 },
+  { mafiaCount: 2, doctorCount: 1, detectiveCount: 1, civilianCount: 3 },
+  { mafiaCount: 2, doctorCount: 1, detectiveCount: 1, civilianCount: 4 },
+];
+
+function generateSeedRoleMix(): Record<string, number> {
+  if (Math.random() < 0.4) {
+    const classic = SEED_CLASSIC_MIXES[Math.floor(Math.random() * SEED_CLASSIC_MIXES.length)];
+    return {
+      mafiaCount: 0, civilianCount: 0, detectiveCount: 0, doctorCount: 0,
+      bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
+      ...classic,
+    };
+  }
+  const total = 6 + Math.floor(Math.random() * 3); // 6-8 players
+  const mafiaCount = total >= 7 && Math.random() < 0.6 ? 2 : 1;
+  const numSpecials = Math.min(2 + Math.floor(Math.random() * 3), total - mafiaCount - 1); // 2-4
+  const pool = [...SEED_SPECIAL_POOL];
+  const chosen: string[] = [];
+  // Lean on the "fun" roles so rooms visibly differ from each other.
+  const featured = ["bodyguard", "vigilante", "mayor", "jester"];
+  const first = featured[Math.floor(Math.random() * featured.length)];
+  chosen.push(first);
+  pool.splice(pool.indexOf(first as any), 1);
+  while (chosen.length < numSpecials && pool.length > 0) {
+    chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  const counts: Record<string, number> = {
+    mafiaCount,
+    civilianCount: Math.max(1, total - mafiaCount - chosen.length),
+    detectiveCount: 0, doctorCount: 0, bodyguardCount: 0, vigilanteCount: 0, mayorCount: 0, jesterCount: 0,
+  };
+  for (const role of chosen) counts[`${role}Count`] = 1;
+  return counts;
+}
+
+async function createSeedRoom(kind: "spectate" | "real", wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  const mix = generateSeedRoleMix();
+  const total = Object.values(mix).reduce((a, b) => a + b, 0);
+  const room = await storage.createRoom({
+    ...mix,
+    phaseDuration: 30, discussionDuration: 30, mafiaDuration: 15, doctorDuration: 15, detectiveDuration: 15,
+    bodyguardDuration: 15, vigilanteDuration: 15,
+    isPrivate: false,
+    seeded: true,
+  } as any);
+  // Real-game lobbies leave exactly one seat open for the joining human.
+  const botCount = kind === "real" ? total - 1 : total;
+  for (let i = 0; i < botCount; i++) {
+    await storage.createPlayer({
+      roomId: room.id,
+      name: BOT_NAMES[i % BOT_NAMES.length] + "_" + Math.floor(Math.random() * 1000),
+      avatar: BOT_AVATARS[Math.floor(Math.random() * BOT_AVATARS.length)],
+      avatarConfig: {},
+      role: null,
+      isAlive: true,
+      isHost: false,
+      sessionId: "bot-" + randomUUID(),
+      isSpectator: false,
+      isBot: true,
+      wins: 0,
+      gamesPlayed: 0,
+      achievements: [],
+      gameHistory: [],
+    });
+  }
+  if (kind === "spectate") {
+    await beginGame(room.id, wss, storage, roomClients, clients, gameActions);
+  }
+}
+
+let seedingInProgress = false;
+async function topUpSeedRooms(wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+  if (seedingInProgress) return;
+  seedingInProgress = true;
+  try {
+    const open = await storage.getOpenPublicRooms();
+    const seededOpen = open.filter(({ room }: any) => (room.settings as any)?.seeded === true);
+    const missing = SEED_ROOM_TARGET - seededOpen.length;
+    if (missing <= 0) return;
+    // First fill after a cold start uses a shuffled mix; later top-ups pick
+    // a random kind so the order keeps varying.
+    const pattern = seededOpen.length === 0 ? buildSeedPattern() : null;
+    for (let i = 0; i < missing; i++) {
+      const kind = pattern ? pattern[i % pattern.length] : (Math.random() < 0.4 ? "spectate" : "real");
+      await createSeedRoom(kind, wss, storage, roomClients, clients, gameActions);
+    }
+  } catch (err) {
+    console.error("topUpSeedRooms error:", err);
+  } finally {
+    seedingInProgress = false;
+  }
+}
+
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Keep-alive: free-tier hosts (Render, Railway, etc.) spin the server down
   // after a period of no incoming traffic. This route gives something to
@@ -4352,6 +4471,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  // Keep the public browser / Quick Match stocked with bot games (set
+  // DISABLE_SEED_ROOMS=1 to turn this off).
+  if (process.env.DISABLE_SEED_ROOMS !== "1") {
+    setTimeout(() => { void topUpSeedRooms(wss, storage, roomClients, clients, gameActions); }, 5000);
+    setInterval(() => { void topUpSeedRooms(wss, storage, roomClients, clients, gameActions); }, SEED_CHECK_INTERVAL_MS);
+  }
 
   wss.on('connection', (ws) => {
     let mySessionId: string | null = null;

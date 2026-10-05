@@ -207,6 +207,11 @@
     "aboutLink": "Acerca de",
     "faqLink": "Preguntas",
     "blueprintLink": "Plano",
+    "roomVisibility": "Visibilidad de la sala",
+    "publicRoom": "Pública",
+    "privateRoom": "Privada",
+    "publicRoomDescription": "Aparece en Partida rápida y Buscar partida para que cualquiera pueda unirse.",
+    "privateRoomDescription": "Oculta de Partida rápida. Solo pueden unirse quienes tengan el código de la sala.",
     "achievementsLabel": "Logros",
     "achievements": {
       "first_win": {

@@ -360,6 +360,11 @@
     "aboutLink": "关于",
     "faqLink": "常见问题",
     "blueprintLink": "蓝图",
+    "roomVisibility": "房间可见性",
+    "publicRoom": "公开",
+    "privateRoom": "私密",
+    "publicRoomDescription": "会出现在快速匹配和查找游戏中，任何人都可以加入。",
+    "privateRoomDescription": "不会出现在快速匹配中，只有拥有房间代码的人才能加入。",
     "achievementsLabel": "成就",
     "achievements": {
       "first_win": {

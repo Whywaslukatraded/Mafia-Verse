@@ -360,6 +360,11 @@
     "aboutLink": "Sobre",
     "faqLink": "Perguntas Frequentes",
     "blueprintLink": "Projeto",
+    "roomVisibility": "Visibilidade da sala",
+    "publicRoom": "Pública",
+    "privateRoom": "Privada",
+    "publicRoomDescription": "Aparece em Partida rápida e Encontrar jogo para qualquer pessoa entrar.",
+    "privateRoomDescription": "Oculta da Partida rápida. Só entra quem tiver o código da sala.",
     "achievementsLabel": "Conquistas",
     "achievements": {
       "first_win": {
