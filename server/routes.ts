@@ -4055,6 +4055,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
       const room = await storage.createRoom({
         ...input.settings,
+        // Public/Private choice from the Create tab. An unlisted room is still
+        // joinable by code, it just never appears in the public browser or
+        // Quick Match.
+        unlisted: (req.body as any)?.settings?.unlisted === true,
         // Hard floors — belt-and-suspenders alongside the zod .min() checks
         // above, in case this endpoint is ever hit directly (bypassing the
         // validated client). Matches the same 10s discussion / 5s
@@ -4631,6 +4635,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
                // (managed only via POST /api/rooms/:code/invite) so this
                // can't be used to clear out already-sent invites.
                isPrivate: incoming.isPrivate ?? current.isPrivate ?? false,
+               // Keep the Public/Private (unlisted) choice when settings are edited.
+               unlisted: current.unlisted === true,
              };
              await storage.updateRoom(myRoomId, { settings: newSettings } as any);
              broadcastState(myRoomId);

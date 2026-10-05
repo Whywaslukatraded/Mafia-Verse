@@ -428,6 +428,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           sql`(${rooms.settings}->>'isPrivate') IS DISTINCT FROM 'true'`,
+          sql`(${rooms.settings}->>'unlisted') IS DISTINCT FROM 'true'`,
           sql`${rooms.status} != 'ended'`,
           or(sql`${rooms.status} != 'lobby'`, sql`${rooms.lastUpdated} > ${staleCutoff}`),
         ),

@@ -788,6 +788,9 @@ export default function Home() {
   }, []);
 
   const [roomName, setRoomName] = useState("");
+  // Public rooms are listed in the Find a Game browser / Quick Match; private
+  // (unlisted) rooms are only joinable with the room code.
+  const [isPublicRoom, setIsPublicRoom] = useState(true);
   const [showVoteResults, setShowVoteResultsState] = useState(() => {
     try {
       const saved = localStorage.getItem("mafia_last_room_settings");
@@ -969,7 +972,7 @@ export default function Home() {
           phaseDuration: counts.phaseDuration, discussionDuration: counts.discussionDuration, mafiaDuration: counts.mafiaDuration,
           doctorDuration: counts.doctorDuration, detectiveDuration: counts.detectiveDuration,
           bodyguardDuration: counts.bodyguardDuration, vigilanteDuration: counts.vigilanteDuration,
-          roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal,
+          roomName: roomName.trim() || undefined, showVoteResults, showRoleReveal, unlisted: !isPublicRoom,
           // Bug fix: this used to collapse every language except Spanish
           // down to "en" — a French/Portuguese/Chinese player's bots and
           // system messages (kill/vote reveals, etc.) always came out in
@@ -1517,6 +1520,35 @@ export default function Home() {
                       {t(`home.botPersonality.${botPersonality || "default"}Description`)}
                     </p>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.roomVisibility", "Room Visibility")}</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPublicRoom(true)}
+                      className={cn("text-xs font-bold uppercase tracking-wider px-3 py-3 rounded-lg border transition-all",
+                        isPublicRoom ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                      data-testid="button-create-public"
+                    >
+                      {t("home.publicRoom", "Public")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPublicRoom(false)}
+                      className={cn("text-xs font-bold uppercase tracking-wider px-3 py-3 rounded-lg border transition-all",
+                        !isPublicRoom ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted")}
+                      data-testid="button-create-private"
+                    >
+                      {t("home.privateRoom", "Private")}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                    {isPublicRoom
+                      ? t("home.publicRoomDescription", "Shows up in Quick Match and Find a Game so anyone can join.")
+                      : t("home.privateRoomDescription", "Hidden from Quick Match. Only people with the room code can join.")}
+                  </p>
                 </div>
 
                 <Button onClick={handleCreate} className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-xl"
