@@ -286,6 +286,13 @@ export default function Room() {
   // Feature 6: Count watchers (spectators + dead players)
   const watcherCount = players.filter(p => p.isSpectator || !p.isAlive).length;
 
+  // Bug fix: deliberate spectators (and late joiners) are stored as players
+  // with isAlive: false, so the player grid drew each of them as an
+  // "ELIMINATED" card — including you, the moment you pressed Spectate.
+  // Spectators are watchers, not players: keep them out of the grid. Truly
+  // eliminated players (isSpectator false) still show, with their role.
+  const gridPlayers = players.filter(p => !p.isSpectator);
+
   // Background style based on phase
   const getBackgroundStyle = () => {
     if (!room) return "";
@@ -1137,7 +1144,7 @@ export default function Room() {
 
       const digit = parseInt(e.key, 10);
       if (!Number.isInteger(digit) || digit < 1 || digit > 9) return;
-      const targetPlayer = players[digit - 1];
+      const targetPlayer = gridPlayers[digit - 1];
       if (!targetPlayer) return;
       const buttonState = getPlayerButtonState(targetPlayer.id);
       if (!buttonState) return;
@@ -1965,7 +1972,7 @@ export default function Room() {
                 )}
 
                 <div data-tutorial="player-grid" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
-                  {players.map((p) => {
+                  {gridPlayers.map((p) => {
                     const buttonState = getPlayerButtonState(p.id);
                     const canReportAfk = room?.status === "day" && me?.isAlive && p.id !== me?.id && p.isAlive && !isSpectator;
                     return (

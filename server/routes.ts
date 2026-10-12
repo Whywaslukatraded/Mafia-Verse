@@ -3620,11 +3620,35 @@ async function createSeedRoom(kind: "spectate" | "real", wss: WebSocketServer, s
   }
 }
 
+// Bug fix: a started game's clock lives only in memory (phaseTimers). Every
+// deploy/restart wipes those, but the seeded room stays in the database as
+// "night"/"day" forever — frozen on Night 1 with no timer, no chat and no
+// bot actions — and it still counted toward the 25-room target, so it was
+// never replaced. On the first top-up after boot every started seeded room
+// is orphaned by definition, so end them all; after that, end any started
+// seeded room that hasn't changed phase in 5 minutes (a live bot game
+// changes phase every ~40s at most).
+const SEED_STALE_GAME_MS = 5 * 60 * 1000;
+let seedBootCleanupDone = false;
+async function endOrphanedSeedRooms(storage: any, onlyIfStaleMs: number | null) {
+  const open = await storage.getOpenPublicRooms();
+  for (const { room } of open) {
+    if ((room.settings as any)?.seeded !== true || room.status === "lobby") continue;
+    const ageMs = Date.now() - new Date(room.lastUpdated as any).getTime();
+    if (onlyIfStaleMs !== null && ageMs < onlyIfStaleMs) continue;
+    await storage.updateRoom(room.id, { status: "ended" });
+    const t = phaseTimers.get(room.id);
+    if (t) { clearTimeout(t); phaseTimers.delete(room.id); }
+  }
+}
+
 let seedingInProgress = false;
 async function topUpSeedRooms(wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   if (seedingInProgress) return;
   seedingInProgress = true;
   try {
+    await endOrphanedSeedRooms(storage, seedBootCleanupDone ? SEED_STALE_GAME_MS : null);
+    seedBootCleanupDone = true;
     const open = await storage.getOpenPublicRooms();
     const seededOpen = open.filter(({ room }: any) => (room.settings as any)?.seeded === true);
     const missing = SEED_ROOM_TARGET - seededOpen.length;
