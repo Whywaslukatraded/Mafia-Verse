@@ -3494,7 +3494,7 @@ async function broadcastState(roomId: number) {
       // Feature: skip-discussion tally, shown alongside the button so
       // everyone can see how close the room is to the >50% threshold.
       const discussionSkipTally = (room.status === 'day' && room.phase === 'discussion')
-        ? { count: actions?.skipDiscussion?.size ?? 0, total: players.filter((p: Player) => p.isAlive).length }
+        ? { count: players.filter((p: Player) => p.isAlive && actions?.skipDiscussion?.has(p.id)).length, total: players.filter((p: Player) => p.isAlive).length }
         : null;
 
       // Lets mafia teammates see "who's locked in" during the mafia phase
@@ -4935,12 +4935,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              if (!me.isAlive) return;
              actions.skipDiscussion = actions.skipDiscussion || new Set<string>();
              actions.skipDiscussion.add(me.id);
+             // Bots follow a human's skip: once a real player votes to skip,
+             // every living bot votes to skip too (they never vote on their
+             // own, so without this a lone human could never reach a majority
+             // in a mostly-bot room).
+             if (!me.isBot) {
+               for (const bot of players) {
+                 if (bot.isBot && bot.isAlive) actions.skipDiscussion.add(bot.id);
+               }
+             }
              gameActions.set(myRoomId, actions);
              broadcastState(myRoomId);
 
              const alivePlayers = players.filter((p: Player) => p.isAlive);
-             const skipCount = actions.skipDiscussion.size;
-             if (alivePlayers.length > 0 && skipCount / alivePlayers.length > 0.5) {
+             // Only count votes from players who are still alive (a player
+             // who voted and then died shouldn't count toward the majority).
+             const skipCount = alivePlayers.filter((p: Player) => actions.skipDiscussion.has(p.id)).length;
+             // Strict majority: 3 of 6 is not enough, 4 of 7 is.
+             if (alivePlayers.length > 0 && skipCount > alivePlayers.length / 2) {
                if (phaseTimers.has(myRoomId)) {
                  clearTimeout(phaseTimers.get(myRoomId));
                  phaseTimers.delete(myRoomId);
