@@ -306,7 +306,7 @@
       "typeLabel": "Type de salon",
       "rolesLabel": "Rôles optionnels",
       "typeAny": "Tous",
-      "typeReal": "Vraie partie",
+      "typeReal": "Jouer",
       "typeSpectate": "Observer",
       "clear": "Effacer les filtres",
       "hint": "Affiche les salons qui contiennent tous les rôles que vous choisissez.",

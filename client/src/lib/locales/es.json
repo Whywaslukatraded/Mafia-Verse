@@ -306,7 +306,7 @@
       "typeLabel": "Tipo de sala",
       "rolesLabel": "Roles opcionales",
       "typeAny": "Cualquiera",
-      "typeReal": "Partida real",
+      "typeReal": "Jugar",
       "typeSpectate": "Espectar",
       "clear": "Borrar filtros",
       "hint": "Muestra las salas que incluyen todos los roles que elijas.",

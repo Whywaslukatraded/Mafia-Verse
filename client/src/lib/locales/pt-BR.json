@@ -459,7 +459,7 @@
       "typeLabel": "Tipo de sala",
       "rolesLabel": "Papéis opcionais",
       "typeAny": "Qualquer",
-      "typeReal": "Jogo real",
+      "typeReal": "Jogar",
       "typeSpectate": "Assistir",
       "clear": "Limpar filtros",
       "hint": "Mostra as salas que incluem todos os papéis que você escolher.",

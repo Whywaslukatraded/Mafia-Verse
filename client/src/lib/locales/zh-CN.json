@@ -459,7 +459,7 @@
       "typeLabel": "房间类型",
       "rolesLabel": "可选角色",
       "typeAny": "全部",
-      "typeReal": "真实对局",
+      "typeReal": "游玩",
       "typeSpectate": "观战",
       "clear": "清除筛选",
       "hint": "只显示包含你所选全部角色的房间。",

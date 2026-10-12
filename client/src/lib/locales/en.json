@@ -306,7 +306,7 @@
       "typeLabel": "Room type",
       "rolesLabel": "Optional roles",
       "typeAny": "Any",
-      "typeReal": "Real game",
+      "typeReal": "Play",
       "typeSpectate": "Spectate",
       "clear": "Clear filters",
       "hint": "Shows rooms that include every role you pick.",

@@ -459,7 +459,7 @@
       "typeLabel": "房間類型",
       "rolesLabel": "可選角色",
       "typeAny": "全部",
-      "typeReal": "真實對局",
+      "typeReal": "遊玩",
       "typeSpectate": "觀戰",
       "clear": "清除篩選",
       "hint": "只顯示包含你所選全部角色的房間。",

@@ -661,7 +661,7 @@ export default function Home() {
       return;
     }
     // Filtered Quick Match: pick from rooms that really match. (Plain Quick
-    // Match, and "Real game" with no roles picked, still use the server path
+    // Match, and "Play" with no roles picked, still use the server path
     // below, which can also create a room when none are open.)
     if (roomTypeFilter === "spectate" || roleFilters.length > 0) {
       setQuickMatching(true);
@@ -1415,7 +1415,7 @@ export default function Home() {
                       <div className="grid grid-cols-3 gap-2">
                         {([
                           { id: "any", label: t("home.filters.typeAny", "Any") },
-                          { id: "real", label: t("home.filters.typeReal", "Real game") },
+                          { id: "real", label: t("home.filters.typeReal", "Play") },
                           { id: "spectate", label: t("home.filters.typeSpectate", "Spectate") },
                         ] as Array<{ id: RoomTypeFilter; label: string }>).map((opt) => (
                           <button
@@ -1468,6 +1468,11 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                  {/* Fixed-height results box: switching filters swaps a long room list for a
+                      short "sorry" panel (or back). Without a stable height the whole page
+                      shrinks/grows each time and the scroll position jumps (the "shaking").
+                      The list scrolls inside the box instead. */}
+                  <div className="h-80 overflow-y-auto overscroll-contain pr-1" data-testid="quick-match-results">
                   {loadingPublicRooms ? (
                     <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
                   ) : filtersActive && matchingRooms.length === 0 ? (
@@ -1537,7 +1542,7 @@ export default function Home() {
                                   </button>
                                   <div
                                     className={cn(
-                                      "absolute z-50 left-0 bottom-full mb-1 w-56 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg p-2 text-xs space-y-1.5",
+                                      "absolute z-50 left-0 top-full mt-1 w-56 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg p-2 text-xs space-y-1.5",
                                       openRoleTooltipCode === r.code ? "block" : "hidden group-hover:block"
                                     )}
                                   >
@@ -1585,6 +1590,7 @@ export default function Home() {
                     </div>
 
                   )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
