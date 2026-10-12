@@ -45,6 +45,57 @@ const ACHIEVEMENTS = [
   { id: 'fashionista', icon: '👗' },
 ];
 
+// ---- Quick Match filters: types + pure helpers --------------------------
+// Optional roles are the ones a room may or may not have. Mafia and
+// Civilian are in every room, so they are deliberately NOT filter options.
+type PublicRoomRoles = {
+  mafia: number; detective: number; doctor: number; bodyguard: number;
+  vigilante: number; mayor: number; jester: number; civilian: number;
+};
+type PublicRoom = {
+  code: string;
+  roomName: string | null;
+  status: string;
+  playerCount: number;
+  maxPlayers: number;
+  roles?: PublicRoomRoles;
+};
+type RoomTypeFilter = "any" | "real" | "spectate";
+type OptionalRole = "detective" | "doctor" | "bodyguard" | "vigilante" | "mayor" | "jester";
+const FILTER_ROLES: OptionalRole[] = ["detective", "doctor", "bodyguard", "vigilante", "mayor", "jester"];
+const ROOM_ROLE_ORDER: Array<keyof PublicRoomRoles> = ["mafia", "detective", "doctor", "bodyguard", "vigilante", "mayor", "jester", "civilian"];
+
+// "real" = a joinable lobby; "spectate" = an already-started, watch-only game.
+function roomMatchesType(r: PublicRoom, type: RoomTypeFilter): boolean {
+  if (type === "any") return true;
+  return type === "real" ? r.status === "lobby" : r.status !== "lobby";
+}
+// A room matches only if it contains EVERY role the player picked.
+function roomHasRoles(r: PublicRoom, wanted: OptionalRole[]): boolean {
+  if (wanted.length === 0) return true;
+  if (!r.roles) return false;
+  const roles = r.roles;
+  return wanted.every((role) => roles[role] > 0);
+}
+// Used only when nothing matches exactly. The room type stays a hard
+// requirement; the roles are relaxed. Fewest missing wanted roles wins, then
+// fewest unrequested extra roles (so "2 doctors" beats a room stuffed with
+// everything), then playable lobbies over spectate-only. Ties keep list order.
+function findClosestRoom(rooms: PublicRoom[], type: RoomTypeFilter, wanted: OptionalRole[]): { room: PublicRoom; missing: OptionalRole[] } | null {
+  let best: { room: PublicRoom; missing: OptionalRole[] } | null = null;
+  let bestKey: number[] = [];
+  for (const room of rooms) {
+    if (!roomMatchesType(room, type) || !room.roles) continue;
+    const roles = room.roles;
+    const missing = wanted.filter((role) => !(roles[role] > 0));
+    const extras = FILTER_ROLES.filter((role) => roles[role] > 0 && !wanted.includes(role)).length;
+    const key = [missing.length, extras, room.status === "lobby" ? 0 : 1];
+    const better = !best || key[0] < bestKey[0] || (key[0] === bestKey[0] && (key[1] < bestKey[1] || (key[1] === bestKey[1] && key[2] < bestKey[2])));
+    if (better) { best = { room, missing }; bestKey = key; }
+  }
+  return best;
+}
+
 function ReferralModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
@@ -560,27 +611,36 @@ export default function Home() {
   });
 
   // Feature: public room browser + Quick Match.
-  const [publicRooms, setPublicRooms] = useState<{
-    code: string;
-    roomName: string | null;
-    status: string;
-    playerCount: number;
-    maxPlayers: number;
-    roles?: { mafia: number; detective: number; doctor: number; bodyguard: number; vigilante: number; mayor: number; jester: number; civilian: number };
-  }[]>([]);
+  const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
   const [loadingPublicRooms, setLoadingPublicRooms] = useState(true);
   const [quickMatching, setQuickMatching] = useState(false);
   // Tap-to-toggle fallback for the role-breakdown tooltip, since touch
   // devices don't have a real :hover state. Only one open at a time.
   const [openRoleTooltipCode, setOpenRoleTooltipCode] = useState<string | null>(null);
-  const loadPublicRooms = async () => {
+  // Quick Match filters: room type + optional roles (a room must have all picked roles).
+  const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("any");
+  const [roleFilters, setRoleFilters] = useState<OptionalRole[]>([]);
+  const filtersActive = roomTypeFilter !== "any" || roleFilters.length > 0;
+  const matchingRooms = publicRooms.filter((r) => roomMatchesType(r, roomTypeFilter) && roomHasRoles(r, roleFilters));
+  const closestRoom = filtersActive && matchingRooms.length === 0
+    ? findClosestRoom(publicRooms, roomTypeFilter, roleFilters)
+    : null;
+  const toggleRoleFilter = (role: OptionalRole) =>
+    setRoleFilters((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+  const clearFilters = () => { setRoomTypeFilter("any"); setRoleFilters([]); };
+  // Returns the fresh list (or null if the refresh failed) so Quick Match
+  // can filter current data instead of whatever was loaded on page open.
+  const loadPublicRooms = async (): Promise<PublicRoom[] | null> => {
     try {
       const res = await fetch("/api/rooms/public");
       const data = await res.json();
-      setPublicRooms(data.rooms || []);
+      const list: PublicRoom[] = data.rooms || [];
+      setPublicRooms(list);
+      return list;
     } catch {
       // Non-critical — the list just stays empty/stale rather than
       // surfacing a toast for what's essentially a background refresh.
+      return null;
     } finally {
       setLoadingPublicRooms(false);
     }
@@ -598,6 +658,29 @@ export default function Home() {
   const handleQuickMatch = async () => {
     if (!name) {
       toast({ title: t("home.needNameTitle", "Enter a name first"), variant: "destructive" });
+      return;
+    }
+    // Filtered Quick Match: pick from rooms that really match. (Plain Quick
+    // Match, and "Real game" with no roles picked, still use the server path
+    // below, which can also create a room when none are open.)
+    if (roomTypeFilter === "spectate" || roleFilters.length > 0) {
+      setQuickMatching(true);
+      try {
+        const fresh = await loadPublicRooms();
+        const pool = (fresh ?? publicRooms).filter((r) => roomMatchesType(r, roomTypeFilter) && roomHasRoles(r, roleFilters));
+        if (pool.length === 0) {
+          toast({ title: t("home.filters.noMatch", "Sorry, no games have that.") });
+          return;
+        }
+        // Prefer playable lobbies; fall back to watch-only games. Random pick
+        // so everyone isn't funneled into the same room.
+        const lobbies = pool.filter((r) => r.status === "lobby");
+        const choices = lobbies.length > 0 ? lobbies : pool;
+        const pick = choices[Math.floor(Math.random() * choices.length)];
+        await handleJoinPublicRoom(pick.code, pick.status !== "lobby");
+      } finally {
+        setQuickMatching(false);
+      }
       return;
     }
     setQuickMatching(true);
@@ -1326,13 +1409,110 @@ export default function Home() {
                       {quickMatching ? t("home.matching", "Matching...") : t("home.quickMatch", "Quick Match")}
                     </Button>
                   </div>
+                  <div className="space-y-2" data-testid="quick-match-filters">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("home.filters.typeLabel", "Room type")}</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { id: "any", label: t("home.filters.typeAny", "Any") },
+                          { id: "real", label: t("home.filters.typeReal", "Real game") },
+                          { id: "spectate", label: t("home.filters.typeSpectate", "Spectate") },
+                        ] as Array<{ id: RoomTypeFilter; label: string }>).map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            aria-pressed={roomTypeFilter === opt.id}
+                            onClick={() => setRoomTypeFilter(opt.id)}
+                            className={cn(
+                              "px-2 py-2 rounded-lg border text-xs font-bold transition-colors",
+                              roomTypeFilter === opt.id ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                            )}
+                            data-testid={`button-filter-type-${opt.id}`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("home.filters.rolesLabel", "Optional roles")}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {FILTER_ROLES.map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            aria-pressed={roleFilters.includes(role)}
+                            onClick={() => toggleRoleFilter(role)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full border text-xs font-bold transition-colors",
+                              roleFilters.includes(role) ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted/50 border-border text-muted-foreground hover:bg-muted"
+                            )}
+                            data-testid={`button-filter-role-${role}`}
+                          >
+                            {t(`handbook.roles.${role}.title`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] text-muted-foreground">{t("home.filters.hint", "Shows rooms that include every role you pick.")}</p>
+                      {filtersActive && (
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="text-[11px] font-bold text-primary hover:underline flex-shrink-0"
+                          data-testid="button-filter-clear"
+                        >
+                          {t("home.filters.clear", "Clear filters")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {loadingPublicRooms ? (
                     <p className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</p>
+                  ) : filtersActive && matchingRooms.length === 0 ? (
+                    <div className="rounded-xl border border-border bg-muted/50 p-3 space-y-3" data-testid="quick-match-no-results">
+                      <p className="text-sm font-bold text-foreground">{t("home.filters.noMatch", "Sorry, no games have that.")}</p>
+                      {closestRoom ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">{t("home.filters.suggestionIntro", "Here's the closest room we have:")}</p>
+                          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/40 p-3" data-testid="quick-match-suggestion">
+                            <div className="min-w-0">
+                              <div className="text-sm font-bold text-foreground truncate">{closestRoom.room.roomName || closestRoom.room.code}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {closestRoom.room.status === "lobby" ? t("home.inLobby", "In lobby") : t("home.spectateOnly", "Spectate Only")}
+                                {" · "}{closestRoom.room.playerCount}/{closestRoom.room.maxPlayers}
+                              </div>
+                              {closestRoom.room.roles && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {ROOM_ROLE_ORDER.filter((role) => closestRoom.room.roles![role] > 0)
+                                    .map((role) => `${t(`handbook.roles.${role}.title`)} ×${closestRoom.room.roles![role]}`)
+                                    .join(t("home.filters.listSeparator", ", "))}
+                                </div>
+                              )}
+                              {closestRoom.missing.length > 0 && (
+                                <div className="text-xs text-muted-foreground/80 mt-0.5">
+                                  {t("home.filters.suggestionMissing", {
+                                    roles: closestRoom.missing.map((role) => t(`handbook.roles.${role}.title`)).join(t("home.filters.listSeparator", ", ")),
+                                    defaultValue: "Doesn't include: {{roles}}",
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => handleJoinPublicRoom(closestRoom.room.code, closestRoom.room.status !== "lobby")} disabled={!name} data-testid="button-join-suggested-room">
+                              {closestRoom.room.status === "lobby" ? t("home.join", "Join") : t("home.watch", "Watch")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">{t("home.filters.noRoomsOfType", "No rooms of that type are open right now.")}</p>
+                      )}
+                    </div>
                   ) : publicRooms.length === 0 ? (
                     <p className="text-sm text-muted-foreground italic">{t("home.noOpenRooms", "No open public rooms right now — try Quick Match to start one.")}</p>
                   ) : (
                     <div className="space-y-2">
-                      {publicRooms.map((r) => {
+                      {matchingRooms.map((r) => {
                         const roles = r.roles;
                         const roleOrder: Array<keyof NonNullable<typeof roles>> = ["mafia", "detective", "doctor", "bodyguard", "vigilante", "mayor", "jester", "civilian"];
                         return (

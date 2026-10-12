@@ -454,7 +454,21 @@
     "needNameTitle": "Digite um nome primeiro",
     "quickMatchFailed": "Falha na Partida Rápida",
     "spectateOnly": "Somente Espectador",
-    "joinAsSpectatorNoSpoilers": "Assistindo (link sem spoilers — papéis ocultos)"
+    "joinAsSpectatorNoSpoilers": "Assistindo (link sem spoilers — papéis ocultos)",
+    "filters": {
+      "typeLabel": "Tipo de sala",
+      "rolesLabel": "Papéis opcionais",
+      "typeAny": "Qualquer",
+      "typeReal": "Jogo real",
+      "typeSpectate": "Assistir",
+      "clear": "Limpar filtros",
+      "hint": "Mostra as salas que incluem todos os papéis que você escolher.",
+      "noMatch": "Desculpe, nenhum jogo tem isso.",
+      "noRoomsOfType": "Não há salas abertas desse tipo no momento.",
+      "suggestionIntro": "Esta é a sala mais parecida que temos:",
+      "suggestionMissing": "Não inclui: {{roles}}",
+      "listSeparator": ", "
+    }
   },
   "store": {
     "title": "Loja",

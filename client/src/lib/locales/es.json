@@ -301,7 +301,21 @@
     "needNameTitle": "Ingresa un nombre primero",
     "quickMatchFailed": "Partida Rápida falló",
     "spectateOnly": "Solo Espectador",
-    "joinAsSpectatorNoSpoilers": "Viendo (enlace sin spoilers — roles ocultos)"
+    "joinAsSpectatorNoSpoilers": "Viendo (enlace sin spoilers — roles ocultos)",
+    "filters": {
+      "typeLabel": "Tipo de sala",
+      "rolesLabel": "Roles opcionales",
+      "typeAny": "Cualquiera",
+      "typeReal": "Partida real",
+      "typeSpectate": "Espectar",
+      "clear": "Borrar filtros",
+      "hint": "Muestra las salas que incluyen todos los roles que elijas.",
+      "noMatch": "Lo sentimos, no hay partidas con eso.",
+      "noRoomsOfType": "Ahora mismo no hay salas abiertas de ese tipo.",
+      "suggestionIntro": "Esta es la sala más parecida que tenemos:",
+      "suggestionMissing": "No incluye: {{roles}}",
+      "listSeparator": ", "
+    }
   },
   "room": {
     "linkCopied": "¡Enlace copiado!",

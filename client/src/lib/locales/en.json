@@ -301,7 +301,21 @@
     "needNameTitle": "Enter a name first",
     "quickMatchFailed": "Quick Match failed",
     "spectateOnly": "Spectate Only",
-    "joinAsSpectatorNoSpoilers": "Spectating (no-spoiler link — roles hidden)"
+    "joinAsSpectatorNoSpoilers": "Spectating (no-spoiler link — roles hidden)",
+    "filters": {
+      "typeLabel": "Room type",
+      "rolesLabel": "Optional roles",
+      "typeAny": "Any",
+      "typeReal": "Real game",
+      "typeSpectate": "Spectate",
+      "clear": "Clear filters",
+      "hint": "Shows rooms that include every role you pick.",
+      "noMatch": "Sorry, no games have that.",
+      "noRoomsOfType": "No rooms of that type are open right now.",
+      "suggestionIntro": "Here's the closest room we have:",
+      "suggestionMissing": "Doesn't include: {{roles}}",
+      "listSeparator": ", "
+    }
   },
   "room": {
     "linkCopied": "Link copied!",

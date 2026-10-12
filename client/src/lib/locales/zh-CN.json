@@ -454,7 +454,21 @@
     "needNameTitle": "请先输入名称",
     "quickMatchFailed": "快速匹配失败",
     "spectateOnly": "仅限观看",
-    "joinAsSpectatorNoSpoilers": "观战中（无剧透链接——角色已隐藏）"
+    "joinAsSpectatorNoSpoilers": "观战中（无剧透链接——角色已隐藏）",
+    "filters": {
+      "typeLabel": "房间类型",
+      "rolesLabel": "可选角色",
+      "typeAny": "全部",
+      "typeReal": "真实对局",
+      "typeSpectate": "观战",
+      "clear": "清除筛选",
+      "hint": "只显示包含你所选全部角色的房间。",
+      "noMatch": "抱歉，没有符合条件的游戏。",
+      "noRoomsOfType": "目前没有该类型的开放房间。",
+      "suggestionIntro": "这是最接近的房间：",
+      "suggestionMissing": "不包含：{{roles}}",
+      "listSeparator": "、"
+    }
   },
   "store": {
     "title": "商店",

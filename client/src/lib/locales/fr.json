@@ -301,7 +301,21 @@
     "needNameTitle": "Entrez d'abord un nom",
     "quickMatchFailed": "La Partie rapide a échoué",
     "spectateOnly": "Observateur uniquement",
-    "joinAsSpectatorNoSpoilers": "En train de regarder (lien sans spoilers — rôles masqués)"
+    "joinAsSpectatorNoSpoilers": "En train de regarder (lien sans spoilers — rôles masqués)",
+    "filters": {
+      "typeLabel": "Type de salon",
+      "rolesLabel": "Rôles optionnels",
+      "typeAny": "Tous",
+      "typeReal": "Vraie partie",
+      "typeSpectate": "Observer",
+      "clear": "Effacer les filtres",
+      "hint": "Affiche les salons qui contiennent tous les rôles que vous choisissez.",
+      "noMatch": "Désolé, aucune partie ne correspond.",
+      "noRoomsOfType": "Aucun salon de ce type n'est ouvert pour le moment.",
+      "suggestionIntro": "Voici le salon le plus proche :",
+      "suggestionMissing": "Ne contient pas : {{roles}}",
+      "listSeparator": ", "
+    }
   },
   "room": {
     "linkCopied": "Lien copié !",
