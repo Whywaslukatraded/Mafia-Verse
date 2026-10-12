@@ -72,7 +72,11 @@ export function PlayerCard({
         !player.isAlive && "bg-muted border-muted-foreground/20 grayscale opacity-70",
         player.isAlive && !cosmetic && "bg-card/50 backdrop-blur-sm border-border shadow-lg",
         player.isAlive && cosmetic && `${cosmetic.bg} backdrop-blur-sm ${cosmetic.border} ${cosmetic.glow}`,
-        isMe && !cosmetic && "border-primary/50 ring-1 ring-primary/20"
+        isMe && !cosmetic && "border-primary/50 ring-1 ring-primary/20",
+        // Bug fix: the action button is pinned to the bottom edge and used to
+        // sit on top of the role label (e.g. "Crowd Favorite" over "CIVILIAN").
+        // Reserve room for it so the name and role stay readable above it.
+        canInteract && player.isAlive && "pb-8 sm:pb-9"
       )}
     >
       {/* Remove Bot Button */}
@@ -167,7 +171,7 @@ export function PlayerCard({
             e.stopPropagation();
             if (onInteract) onInteract();
           }}
-          className="absolute inset-x-0 bottom-0 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
+          className="absolute inset-x-0 bottom-0 h-auto min-h-[28px] px-1 py-1 text-[9px] sm:text-[10px] leading-tight text-center whitespace-normal font-bold uppercase tracking-wide opacity-100 transition-opacity flex items-center justify-center rounded-none z-20"
         >
           {interactionLabel}
         </Button>

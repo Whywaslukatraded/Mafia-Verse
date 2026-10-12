@@ -177,6 +177,9 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
     // gameEnded, but never gets to post into a conversation they weren't
     // part of at the time.
     const canPostHere = !((isSpectator && activeTab === "game") || (activeTab === "graveyard" && !isEliminated));
+    // True spectators have no graveyard chat, so the old "switch to Graveyard
+    // Chat to talk" hint sent them looking for a tab that doesn't exist.
+    const readOnlyText = isSpectator ? t("chat.spectatorReadOnly", "Spectating — chat is read-only") : t("chat.gameChatReadOnly");
 
     return (
         <div className="flex flex-col h-[400px] border rounded-lg bg-card overflow-hidden">
@@ -365,7 +368,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
             </ScrollArea>
       <div className="p-3 border-t bg-muted/30 flex flex-col gap-2">
         {!canPostHere && (
-            <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">{t("chat.gameChatReadOnly")}</p>
+            <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">{readOnlyText}</p>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Popover open={presetPopoverOpen} onOpenChange={(open) => { setPresetPopoverOpen(open); if (!open) setPendingPresetMsg(null); }}>
@@ -438,7 +441,7 @@ export function ChatWindow({ messages, onSendMessage, currentPlayerId, isSpectat
                 mafiaChatAvailable && activeTab === "mafia"
                     ? t("chat.mafiaTypeAMessage")
                     : !canPostHere
-                        ? t("chat.gameChatReadOnly")
+                        ? readOnlyText
                         : (!currentPlayerId ? t("chat.deadPlayersCannotSpeak") : t("chat.typeAMessage"))
             }
             className="bg-background h-10"

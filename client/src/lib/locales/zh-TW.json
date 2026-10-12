@@ -467,7 +467,8 @@
       "noRoomsOfType": "目前沒有該類型的開放房間。",
       "suggestionIntro": "這是最接近的房間：",
       "suggestionMissing": "不包含：{{roles}}",
-      "listSeparator": "、"
+      "listSeparator": "、",
+      "alwaysIncluded": "每個房間都一定有黑手黨和平民，所以你只需選擇額外的角色。"
     }
   },
   "store": {
@@ -1013,7 +1014,8 @@
     "someone": "某人",
     "deadPlayersCannotSpeak": "已死亡玩家無法發言...",
     "typeAMessage": "輸入訊息...",
-    "selectTarget": "選擇目標"
+    "selectTarget": "選擇目標",
+    "spectatorReadOnly": "觀戰中 — 聊天僅可檢視"
   },
   "howToPlay": {
     "title": "遊戲玩法",

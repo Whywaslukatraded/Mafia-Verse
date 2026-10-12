@@ -314,7 +314,8 @@
       "noRoomsOfType": "Aucun salon de ce type n'est ouvert pour le moment.",
       "suggestionIntro": "Voici le salon le plus proche :",
       "suggestionMissing": "Ne contient pas : {{roles}}",
-      "listSeparator": ", "
+      "listSeparator": ", ",
+      "alwaysIncluded": "Chaque salon a toujours une Mafia et un Civil, vous ne choisissez donc que les rôles supplémentaires."
     }
   },
   "room": {
@@ -1013,7 +1014,8 @@
     "someone": "quelqu'un",
     "deadPlayersCannotSpeak": "Les joueurs éliminés ne peuvent pas parler...",
     "typeAMessage": "Écrivez un message...",
-    "selectTarget": "Choisissez une cible"
+    "selectTarget": "Choisissez une cible",
+    "spectatorReadOnly": "Observation — chat en lecture seule"
   },
   "howToPlay": {
     "title": "Comment jouer",

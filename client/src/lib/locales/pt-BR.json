@@ -467,7 +467,8 @@
       "noRoomsOfType": "Não há salas abertas desse tipo no momento.",
       "suggestionIntro": "Esta é a sala mais parecida que temos:",
       "suggestionMissing": "Não inclui: {{roles}}",
-      "listSeparator": ", "
+      "listSeparator": ", ",
+      "alwaysIncluded": "Toda sala sempre tem Máfia e Civil, então você só escolhe os papéis extras."
     }
   },
   "store": {
@@ -1013,7 +1014,8 @@
     "someone": "alguém",
     "deadPlayersCannotSpeak": "Jogadores mortos não podem falar...",
     "typeAMessage": "Digite uma mensagem...",
-    "selectTarget": "Escolha um alvo"
+    "selectTarget": "Escolha um alvo",
+    "spectatorReadOnly": "Assistindo: chat somente leitura"
   },
   "howToPlay": {
     "title": "Como Jogar",

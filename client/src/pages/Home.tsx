@@ -1436,6 +1436,7 @@ export default function Home() {
                     </div>
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("home.filters.rolesLabel", "Optional roles")}</span>
+                      <p className="text-[11px] text-muted-foreground" data-testid="text-filter-always-included">{t("home.filters.alwaysIncluded", "Every room always has a Mafia and a Civilian, so you only pick the extra roles.")}</p>
                       <div className="flex flex-wrap gap-2">
                         {FILTER_ROLES.map((role) => (
                           <button

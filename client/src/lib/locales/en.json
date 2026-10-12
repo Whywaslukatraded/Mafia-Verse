@@ -314,7 +314,8 @@
       "noRoomsOfType": "No rooms of that type are open right now.",
       "suggestionIntro": "Here's the closest room we have:",
       "suggestionMissing": "Doesn't include: {{roles}}",
-      "listSeparator": ", "
+      "listSeparator": ", ",
+      "alwaysIncluded": "Every room always has a Mafia and a Civilian, so you only pick the extra roles."
     }
   },
   "room": {
@@ -1013,7 +1014,8 @@
     "someone": "someone",
     "deadPlayersCannotSpeak": "Dead players cannot speak...",
     "typeAMessage": "Type a message...",
-    "selectTarget": "Choose a target"
+    "selectTarget": "Choose a target",
+    "spectatorReadOnly": "Spectating — chat is read-only"
   },
   "howToPlay": {
     "title": "How to Play",
