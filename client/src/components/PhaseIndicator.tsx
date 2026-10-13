@@ -90,7 +90,9 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
             <div className="px-3 py-1 rounded-full bg-background/50 backdrop-blur border text-xs font-semibold uppercase tracking-wider">
               {phaseLabel}
             </div>
-            {timeRemaining !== undefined && timeRemaining > 0 && (
+            {/* Bug fix: this used to hide the timer the moment it reached 0, so a phase that ran past
+                its time (or never advanced) looked like "no timer at all". Keep showing it at 0s. */}
+            {timeRemaining !== undefined && (
               <motion.div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 backdrop-blur"
                 animate={{

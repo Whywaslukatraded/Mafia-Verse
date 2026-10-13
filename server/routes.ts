@@ -2363,6 +2363,7 @@ async function scheduleFastVoteResolution(roomId: number, wss: WebSocketServer, 
   }, 2000);
 }
 
+const BOT_NIGHT_MIN_DELAY_MS = 4000;
 async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const snapshotRoom = await storage.getRoom(roomId);
   if (!snapshotRoom || snapshotRoom.status === 'ended' || snapshotRoom.status === 'lobby') return;
@@ -2417,8 +2418,19 @@ async function scheduleBotQuickActions(roomId: number, wss: WebSocketServer, sto
   // under server load showed up as incomplete vote tallies (fewer voters
   // than actually should have voted). Scale the buffer with the phase
   // length instead of using a fixed amount.
-  const maxDelay = Math.max(1000, phaseDurationMs - Math.max(2500, phaseDurationMs * 0.25));
-  const delay = 1000 + Math.random() * (maxDelay - 1000);
+  //
+  // Bug fix: bots used to act as little as 1s after this function ran — but
+  // after a vote-out (or the first night's role reveal) the phase's visible
+  // clock doesn't start until the 5s elimination overlay clears
+  // (lastUpdated is pushed into the future). So a bot-only Mafia phase could
+  // finish "a second later", the instant the overlay closed, with no timer
+  // ever shown. The delay now starts counting from when the clock really
+  // starts, and night actions wait at least ~4s (or 40% of a very short
+  // phase) so the countdown is always visible before anything happens.
+  const clockStartsInMs = Math.max(0, (snapshotRoom.lastUpdated ? new Date(snapshotRoom.lastUpdated as any).getTime() : 0) - Date.now());
+  const minDelayMs = statusAtSchedule === 'night' ? Math.min(BOT_NIGHT_MIN_DELAY_MS, phaseDurationMs * 0.4) : 1000;
+  const maxDelay = Math.max(minDelayMs + 1000, phaseDurationMs - Math.max(2500, phaseDurationMs * 0.25));
+  const delay = clockStartsInMs + minDelayMs + Math.random() * (maxDelay - minDelayMs);
   setTimeout(async () => {
     const room = await storage.getRoom(roomId);
     // Bail out if the phase already moved on for any other reason (a human
