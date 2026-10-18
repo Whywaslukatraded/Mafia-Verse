@@ -912,7 +912,14 @@
     "showMyRole": "顯示我的角色",
     "hideMyRole": "隱藏我的角色（實況模式）",
     "noSpoilerLinkDescription": "使用此連結觀看的人將看不到角色身分——適合實況使用。",
-    "copyNoSpoilerLink": "複製無雷觀眾連結"
+    "copyNoSpoilerLink": "複製無雷觀眾連結",
+    "spectatorIntro": {
+      "eyebrow": "觀戰模式",
+      "title": "你正在觀看這場遊戲",
+      "tip1": "這段介紹結束後，你將看到所有人的角色。",
+      "tip2": "每個夜晚，黑手黨、醫生和偵探會依次行動。",
+      "tip3": "留意聊天：指控和辯解會暴露誰在虛張聲勢。"
+    }
   },
   "roleBadge": {
     "mafia": "黑手黨",

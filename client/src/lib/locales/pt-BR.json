@@ -912,7 +912,14 @@
     "showMyRole": "Mostrar meu papel",
     "hideMyRole": "Ocultar meu papel (modo streamer)",
     "noSpoilerLinkDescription": "Quem usar este link assiste com os papéis ocultos — seguro para streaming.",
-    "copyNoSpoilerLink": "Copiar Link de Espectador Sem Spoilers"
+    "copyNoSpoilerLink": "Copiar Link de Espectador Sem Spoilers",
+    "spectatorIntro": {
+      "eyebrow": "Modo espectador",
+      "title": "Você está assistindo à partida",
+      "tip1": "Os papéis de todos serão revelados para você quando esta introdução terminar.",
+      "tip2": "A cada noite, a Máfia, o Médico e o Detetive agem em sequência.",
+      "tip3": "Fique de olho no chat: acusações e defesas mostram quem está blefando."
+    }
   },
   "roleBadge": {
     "mafia": "Máfia",

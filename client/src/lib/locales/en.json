@@ -552,7 +552,14 @@
     "showMyRole": "Show my role",
     "hideMyRole": "Hide my role (streamer mode)",
     "noSpoilerLinkDescription": "Anyone using this link watches with roles hidden — safe for streaming.",
-    "copyNoSpoilerLink": "Copy No-Spoiler Spectator Link"
+    "copyNoSpoilerLink": "Copy No-Spoiler Spectator Link",
+    "spectatorIntro": {
+      "eyebrow": "Spectator Mode",
+      "title": "You're watching the game",
+      "tip1": "Everyone's roles are revealed to you once this intro ends.",
+      "tip2": "Each night, the Mafia, Doctor and Detective act in turn.",
+      "tip3": "Watch the chat — accusations and defenses show who's bluffing."
+    }
   },
   "settings": {
     "title": "Settings",

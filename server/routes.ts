@@ -3529,6 +3529,11 @@ async function broadcastState(roomId: number) {
           mafiaTeammatesActedIds,
           discussionSkipTally,
           lobbyCountdownEndsAt: room.status === 'lobby' ? (readyDeadlines.get(roomId) ?? null) : null,
+          // True while turn 1's real clock is still being held for real
+          // players to finish their role reveal / tutorial (see
+          // turnOneReadyGates). Clients show the full, frozen duration
+          // instead of counting down to 0 while the server isn't counting.
+          turnOneGateActive: turnOneReadyGates.has(roomId),
           messageReactions: messageReactionsByRoom.get(roomId) || {},
         }
       }));
@@ -5210,7 +5215,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
              // zero effect on the actual game, so it doesn't touch `actions`
              // (the real vote/kill/heal/etc. tallies) at all.
              const target = players.find((p: Player) => p.id === (action as any).targetId);
-             if (myRoomId && me && !me.isAlive && room.status !== 'lobby' && room.status !== 'ended' && target && target.id !== me.id) {
+             // Crowd Favorite is only part of the seeded bot showcase rooms —
+             // never real games (Quick Match / Join a Game rooms).
+             if ((room.settings as any)?.seeded === true && myRoomId && me && !me.isAlive && room.status !== 'lobby' && room.status !== 'ended' && target && target.id !== me.id) {
                if (!crowdFavoriteVotes.has(myRoomId)) crowdFavoriteVotes.set(myRoomId, new Map());
                crowdFavoriteVotes.get(myRoomId)!.set(me.id, target.id);
                broadcastState(myRoomId);

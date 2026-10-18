@@ -552,7 +552,14 @@
     "showMyRole": "Afficher mon rôle",
     "hideMyRole": "Masquer mon rôle (mode streamer)",
     "noSpoilerLinkDescription": "Toute personne utilisant ce lien regarde avec les rôles masqués — sûr pour le streaming.",
-    "copyNoSpoilerLink": "Copier le Lien Spectateur Sans Spoilers"
+    "copyNoSpoilerLink": "Copier le Lien Spectateur Sans Spoilers",
+    "spectatorIntro": {
+      "eyebrow": "Mode spectateur",
+      "title": "Vous regardez la partie",
+      "tip1": "Les rôles de tous les joueurs vous seront révélés à la fin de cette intro.",
+      "tip2": "Chaque nuit, la Mafia, le Médecin et le Détective agissent à tour de rôle.",
+      "tip3": "Suivez le chat : accusations et défenses montrent qui bluffe."
+    }
   },
   "settings": {
     "title": "Paramètres",

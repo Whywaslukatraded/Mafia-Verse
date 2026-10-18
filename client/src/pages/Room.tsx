@@ -96,6 +96,11 @@ export default function Room() {
   // Feature: role-reveal modal, shown briefly on night 1 (see the effect
   // below that flips this true then auto-hides it after 5s).
   const [showRoleReveal, setShowRoleReveal] = useState(false);
+  // Spectator-only intro shown at game start instead of the role reveal.
+  // No skip button on purpose: a spectator has nothing to act on, and the
+  // server's turn-1 clock waits out the same ~5s window either way.
+  const [showSpectatorIntro, setShowSpectatorIntro] = useState(false);
+  const spectatorIntroShownRef = useRef(false);
 
   // Feature: hide-my-own-role (streamer mode). Pure client-side visual
   // blur — the server is never told about this and `me.role` is used
@@ -699,12 +704,38 @@ export default function Room() {
   // the showRoleReveal setting only controls whether OTHER players' roles
   // are shown when they're eliminated, not your own reveal)
   useEffect(() => {
-    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role) {
+    if (room?.status === "night" && room?.turn === 1 && !hasRevealed && me?.role && !me?.isSpectator) {
       setShowRoleReveal(true);
       setHasRevealed(true);
       setTimeout(() => setShowRoleReveal(false), 5000);
     }
-  }, [room?.status, room?.turn, me?.role, hasRevealed]);
+  }, [room?.status, room?.turn, me?.role, me?.isSpectator, hasRevealed]);
+
+  // Spectator intro: same length (5s, matching ROLE_REVEAL_MS in routes.ts) as
+  // the players' role reveal, with strategy tips instead of a role. Everyone's
+  // roles stay hidden behind it and appear when it closes.
+  //  - Bot-only showcase rooms (seeded, Quick Match Spectate): plays every
+  //    time you arrive, whatever phase the game is in. The game keeps running
+  //    underneath, so you land in it ~5s later.
+  //  - Real games: only plays if you're there as the game starts. Joining a
+  //    game that's already mid-phase skips it, since real people are playing
+  //    and the game doesn't pause for you.
+  // The close timeout is deliberately not cleaned up on re-render: the room
+  // state updates when the clock starts, which must not cancel it.
+  useEffect(() => {
+    if (room?.status === "lobby") { spectatorIntroShownRef.current = false; return; }
+    if (!room || !me?.isSpectator || room.status === "ended") return;
+    if (spectatorIntroShownRef.current) return;
+    const isSeededRoom = (room.settings as any)?.seeded === true;
+    if (!isSeededRoom && (room.status !== "night" || room.turn !== 1)) return;
+    spectatorIntroShownRef.current = true;
+    if (!isSeededRoom) {
+      const startedAt = room.lastUpdated ? new Date(room.lastUpdated as any).getTime() : 0;
+      if (Date.now() > startedAt + 3000) return;
+    }
+    setShowSpectatorIntro(true);
+    setTimeout(() => setShowSpectatorIntro(false), 5000);
+  }, [room?.status, room?.turn, room?.lastUpdated, me?.isSpectator, (room?.settings as any)?.seeded]);
 
   // Reset night action state when phase changes
   useEffect(() => {
@@ -752,10 +783,20 @@ export default function Room() {
 
     const duration = getDuration();
 
+    // Bug fix: turn 1's real clock is held by the server until real players
+    // finish their role reveal / tutorial (up to 45s). The countdown used to
+    // run anyway, hit 0 and flash there until the server finally started
+    // counting. While the hold is active, show the full duration, frozen.
+    const turnOneGateActive = !!(gameState as any)?.turnOneGateActive;
+
     // While the first-time tutorial overlay is open, freeze the display at
     // the full duration and don't start the interval at all — remember
     // that it was showing so the block below knows to start fresh once it
     // closes, rather than treating the time spent reading it as elapsed.
+    if (turnOneGateActive) {
+      setTimeRemaining(duration);
+      return;
+    }
     if (showTutorial) {
       tutorialWasShowingRef.current = true;
       setTimeRemaining(duration);
@@ -825,7 +866,7 @@ export default function Room() {
 
     return () => clearInterval(interval);
   }, [
-    room?.status, room?.phase, room?.lastUpdated, showTutorial,
+    room?.status, room?.phase, room?.lastUpdated, showTutorial, (gameState as any)?.turnOneGateActive,
     room?.settings?.bodyguardDuration, room?.settings?.mafiaDuration,
     room?.settings?.vigilanteDuration, room?.settings?.doctorDuration,
     room?.settings?.detectiveDuration, room?.settings?.phaseDuration,
@@ -1045,7 +1086,9 @@ export default function Room() {
     // late-joining spectator) never has a real vote/kill/heal/etc. to cast
     // anyway — `!me.isAlive` already covers both cases (late joiners are
     // created with isAlive: false server-side).
-    if (me && !me.isAlive && room?.status !== "lobby" && room?.status !== "ended") {
+    // Only in the seeded bot showcase rooms — real games (Quick Match / Join
+    // a Game) don't have Crowd Favorite at all, for spectators or the dead.
+    if ((room?.settings as any)?.seeded === true && me && !me.isAlive && room?.status !== "lobby" && room?.status !== "ended") {
       if (targetId === me.id) return null; // can't vote for yourself
       const target = players.find(p => p.id === targetId);
       if (!target?.isAlive) return null; // only living players are worth rooting for
@@ -1416,6 +1459,45 @@ export default function Room() {
                 </motion.p>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Spectator intro — no skip button; roles stay hidden until it closes */}
+      <AnimatePresence>
+        {showSpectatorIntro && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background px-6"
+            data-testid="spectator-intro"
+          >
+            <div className="text-center max-w-md">
+              <div className="mb-4 text-sm font-bold uppercase tracking-[0.4em] text-muted-foreground/60">{t("room.spectatorIntro.eyebrow", "Spectator Mode")}</div>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <Eye className="w-14 h-14 text-primary" />
+                <h2 className="text-3xl font-black font-serif uppercase tracking-tight">{t("room.spectatorIntro.title", "You're watching the game")}</h2>
+              </motion.div>
+              <div className="mt-8 space-y-3">
+                {(["tip1", "tip2", "tip3"] as const).map((tip, i) => (
+                  <motion.p
+                    key={tip}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 + i * 1.2, duration: 0.5 }}
+                    className="text-base font-serif italic text-muted-foreground"
+                  >
+                    {t(`room.spectatorIntro.${tip}`)}
+                  </motion.p>
+                ))}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

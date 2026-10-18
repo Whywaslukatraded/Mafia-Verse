@@ -96,11 +96,11 @@ export function PhaseIndicator({ status, phase, turn, timeRemaining }: PhaseIndi
               <motion.div
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 backdrop-blur"
                 animate={{
-                  scale: timeRemaining <= 5 ? [1, 1.05, 1] : 1,
+                  scale: timeRemaining > 0 && timeRemaining <= 5 ? [1, 1.05, 1] : 1,
                 }}
                 transition={{
                   duration: 0.6,
-                  repeat: timeRemaining <= 5 ? Infinity : 0,
+                  repeat: timeRemaining > 0 && timeRemaining <= 5 ? Infinity : 0,
                 }}
               >
                 <Clock className={cn(
