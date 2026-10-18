@@ -56,6 +56,7 @@ type PublicRoom = {
   code: string;
   roomName: string | null;
   status: string;
+  freshStart?: boolean; // bot-only game that hasn't started yet: you'd watch from the first phase
   playerCount: number;
   maxPlayers: number;
   roles?: PublicRoomRoles;
@@ -675,7 +676,10 @@ export default function Home() {
         // Prefer playable lobbies; fall back to watch-only games. Random pick
         // so everyone isn't funneled into the same room.
         const lobbies = pool.filter((r) => r.status === "lobby");
-        const choices = lobbies.length > 0 ? lobbies : pool;
+        // Watching: prefer bot games that haven't started yet, so you see the
+        // game from the first phase instead of landing mid-game or at the end.
+        const fresh = pool.filter((r) => r.freshStart);
+        const choices = lobbies.length > 0 ? lobbies : (fresh.length > 0 ? fresh : pool);
         const pick = choices[Math.floor(Math.random() * choices.length)];
         await handleJoinPublicRoom(pick.code, pick.status !== "lobby");
       } finally {

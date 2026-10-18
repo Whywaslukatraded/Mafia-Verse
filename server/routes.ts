@@ -813,6 +813,16 @@ function getRandomDeathStory(name: string, lang: string = "en") {
 }
 
 const phaseTimers = new Map<number, NodeJS.Timeout>();
+// Bot-only showcase games (Quick Match Spectate) are created fully set up
+// but WITHOUT a running clock, and wait here until the first spectator
+// connects. Otherwise they ran their whole game in the background and a
+// spectator arrived to a game that was already in discussion or about to end.
+// Once someone connects, the clock starts after the spectator intro (about
+// 5s, SEED_INTRO_MS) so the intro never eats into the first role's time.
+// In-memory on purpose: a restart wipes every clock anyway, and the boot
+// cleanup ends those rooms (see endOrphanedRooms).
+const seedHeldRooms = new Set<number>();
+const SEED_INTRO_MS = 5500; // spectator intro is 5s in Room.tsx, plus a little slack
 // Bug fix: the first-time tutorial overlay (client-side) only ever froze
 // the CLIENT's displayed countdown — the real server-side phase deadline
 // kept advancing underneath it regardless, so a brand-new player could
@@ -926,7 +936,7 @@ async function fillWithBots(roomId: number, storage: any): Promise<{ added: numb
 // WS_EVENTS.START_GAME handler so both a host-initiated start and an
 // automatic ready-up/grace-period start (see tryStartGame below) share the
 // exact same role-assignment + first-night setup path.
-async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
+async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>, holdClock: boolean = false) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status !== 'lobby') return;
 
@@ -968,7 +978,11 @@ async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roo
   // countdown/bot-action clock until they're done with both.
   const realActiveIds = new Set(firstNightPlayers.filter((p: Player) => !p.isBot && !p.isSpectator).map((p: Player) => p.id));
   if (realActiveIds.size === 0) {
-    setTimeout(() => { void beginTurnOnePhaseClock(roomId, wss, storage, roomClients, clients, gameActions, firstPhase); }, revealDelayMs);
+    // holdClock: a bot-only showcase game waits for its first spectator
+    // (see seedHeldRooms) instead of starting its clock on its own.
+    if (!holdClock) {
+      setTimeout(() => { void beginTurnOnePhaseClock(roomId, wss, storage, roomClients, clients, gameActions, firstPhase); }, revealDelayMs);
+    }
   } else {
     const gate: { pending: Set<number>; resolved: boolean; resolve: () => void } = {
       pending: realActiveIds,
@@ -3633,7 +3647,8 @@ async function createSeedRoom(kind: "spectate" | "real", wss: WebSocketServer, s
     });
   }
   if (kind === "spectate") {
-    await beginGame(room.id, wss, storage, roomClients, clients, gameActions);
+    seedHeldRooms.add(room.id);
+    await beginGame(room.id, wss, storage, roomClients, clients, gameActions, true);
   }
 }
 
@@ -3660,6 +3675,7 @@ async function endOrphanedRooms(storage: any, atBoot: boolean): Promise<number> 
     let endedThisPass = 0;
     for (const { room } of open) {
       if (room.status === "lobby") continue;
+      if (seedHeldRooms.has(room.id)) continue; // waiting for its first spectator, not stuck
       if (!atBoot) {
         const seeded = (room.settings as any)?.seeded === true;
         const ageMs = Date.now() - new Date(room.lastUpdated as any).getTime();
@@ -3689,9 +3705,9 @@ async function topUpSeedRooms(wss: WebSocketServer, storage: any, roomClients: M
     // Quick Match Spectate needs live bot-only games. After the cleanup above
     // there may be none (the lobbies alone can already meet the room target),
     // so top up the live ones first, independent of the total.
-    const seededLive = seededOpen.filter(({ room }: any) => room.status !== "lobby").length;
+    const seededFresh = seededOpen.filter(({ room }: any) => room.status !== "lobby" && seedHeldRooms.has(room.id)).length;
     let created = 0;
-    for (let i = seededLive; i < SEED_SPECTATE_MIN; i++) {
+    for (let i = seededFresh; i < SEED_SPECTATE_MIN; i++) {
       await createSeedRoom("spectate", wss, storage, roomClients, clients, gameActions);
       created++;
     }
@@ -4386,6 +4402,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             // only ever needs to draw that binary distinction (joinable vs.
             // spectate-only), not the underlying day/night/voting phase.
             status: room.status === "lobby" ? "lobby" : "in-progress",
+            // True for a bot-only game still waiting for its first spectator:
+            // joining it means watching from the very first phase.
+            freshStart: seedHeldRooms.has(room.id),
             playerCount,
             maxPlayers: MAX_PLAYERS_PER_ROOM,
             // Feature: role composition preview. Lets the room browser show
@@ -4565,6 +4584,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           clients.set(sessionId, ws);
           if (!roomClients.has(room.id)) roomClients.set(room.id, new Set());
           roomClients.get(room.id)!.add(sessionId);
+          // First spectator in a held bot-only game: start its clock once the
+          // spectator intro has finished. lastUpdated is pushed into the
+          // future first so the very first state they receive already shows
+          // the full, un-started first phase.
+          if (player.isSpectator && seedHeldRooms.has(room.id)) {
+            seedHeldRooms.delete(room.id);
+            const heldRoomId = room.id;
+            const heldFirstPhase = room.phase as string;
+            await storage.updateRoom(heldRoomId, { lastUpdated: new Date(Date.now() + SEED_INTRO_MS) });
+            setTimeout(() => { void beginTurnOnePhaseClock(heldRoomId, wss, storage, roomClients, clients, gameActions, heldFirstPhase); }, SEED_INTRO_MS);
+            // Replace the consumed game with a fresh one for the next spectator.
+            setTimeout(() => { void topUpSeedRooms(wss, storage, roomClients, clients, gameActions); }, 1500);
+          }
           broadcastState(room.id);
         }
 
