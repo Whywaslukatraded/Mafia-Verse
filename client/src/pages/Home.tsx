@@ -646,8 +646,14 @@ export default function Home() {
       setLoadingPublicRooms(false);
     }
   };
+  // Bug fix: the room list was only fetched once, when the page opened. If
+  // that happened while the server was still starting up (right after a
+  // deploy, before it had created its bot games), the list stayed empty
+  // until a manual refresh. Re-fetch every 15s while the tab is visible.
   useEffect(() => {
     loadPublicRooms();
+    const id = setInterval(() => { if (!document.hidden) void loadPublicRooms(); }, 15000);
+    return () => clearInterval(id);
   }, []);
   // Close the tapped-open role tooltip when tapping anywhere else.
   useEffect(() => {

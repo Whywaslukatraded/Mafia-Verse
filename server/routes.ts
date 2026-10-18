@@ -3716,6 +3716,9 @@ async function topUpSeedRooms(wss: WebSocketServer, storage: any, roomClients: M
     for (let i = 0; i < missing; i++) {
       await createSeedRoom("real", wss, storage, roomClients, clients, gameActions);
     }
+    if (created > 0 || missing > 0) {
+      console.log(`[Seed] Created ${created} waiting bot game(s) and ${Math.max(0, missing)} lobby room(s)`);
+    }
   } catch (err) {
     console.error("topUpSeedRooms error:", err);
   } finally {
