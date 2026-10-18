@@ -3638,25 +3638,43 @@ async function createSeedRoom(kind: "spectate" | "real", wss: WebSocketServer, s
 }
 
 // Bug fix: a started game's clock lives only in memory (phaseTimers). Every
-// deploy/restart wipes those, but the seeded room stays in the database as
-// "night"/"day" forever — frozen on Night 1 with no timer, no chat and no
-// bot actions — and it still counted toward the 25-room target, so it was
-// never replaced. On the first top-up after boot every started seeded room
-// is orphaned by definition, so end them all; after that, end any started
-// seeded room that hasn't changed phase in 5 minutes (a live bot game
-// changes phase every ~40s at most).
+// deploy/restart wipes those, but the room stays in the database as
+// "night"/"day" forever — frozen with a 0s timer, no chat and no bot actions.
+// Render's logs showed exactly this after a deploy: ~18 in-progress rooms
+// listed and not one phase change logged. These were mostly old games made
+// while testing (not seeded ones), so the cleanup has to cover EVERY
+// in-progress public room, not just seeded ones.
+//  - At boot no game has a clock yet, so every in-progress room is orphaned:
+//    end them all (repeated passes, since the room list is capped per call).
+//  - After that, end any in-progress room whose phase hasn't changed in a
+//    long time (a live game changes phase at least every few minutes).
+// Ended rooms drop out of the Quick Match / Join lists on their own.
 const SEED_STALE_GAME_MS = 5 * 60 * 1000;
+const REAL_STALE_GAME_MS = 10 * 60 * 1000;
+const SEED_SPECTATE_MIN = 10; // live bot-only games always kept running for Quick Match Spectate
 let seedBootCleanupDone = false;
-async function endOrphanedSeedRooms(storage: any, onlyIfStaleMs: number | null) {
-  const open = await storage.getOpenPublicRooms();
-  for (const { room } of open) {
-    if ((room.settings as any)?.seeded !== true || room.status === "lobby") continue;
-    const ageMs = Date.now() - new Date(room.lastUpdated as any).getTime();
-    if (onlyIfStaleMs !== null && ageMs < onlyIfStaleMs) continue;
-    await storage.updateRoom(room.id, { status: "ended" });
-    const t = phaseTimers.get(room.id);
-    if (t) { clearTimeout(t); phaseTimers.delete(room.id); }
+async function endOrphanedRooms(storage: any, atBoot: boolean): Promise<number> {
+  let total = 0;
+  for (let pass = 0; pass < (atBoot ? 10 : 1); pass++) {
+    const open = await storage.getOpenPublicRooms();
+    let endedThisPass = 0;
+    for (const { room } of open) {
+      if (room.status === "lobby") continue;
+      if (!atBoot) {
+        const seeded = (room.settings as any)?.seeded === true;
+        const ageMs = Date.now() - new Date(room.lastUpdated as any).getTime();
+        if (ageMs < (seeded ? SEED_STALE_GAME_MS : REAL_STALE_GAME_MS)) continue;
+      }
+      await storage.updateRoom(room.id, { status: "ended" });
+      const t = phaseTimers.get(room.id);
+      if (t) { clearTimeout(t); phaseTimers.delete(room.id); }
+      endedThisPass++;
+    }
+    total += endedThisPass;
+    if (endedThisPass === 0) break;
   }
+  if (total > 0) console.log(`[Seed] Ended ${total} orphaned in-progress room(s)${atBoot ? " at boot" : ""}`);
+  return total;
 }
 
 let seedingInProgress = false;
@@ -3664,18 +3682,23 @@ async function topUpSeedRooms(wss: WebSocketServer, storage: any, roomClients: M
   if (seedingInProgress) return;
   seedingInProgress = true;
   try {
-    await endOrphanedSeedRooms(storage, seedBootCleanupDone ? SEED_STALE_GAME_MS : null);
+    await endOrphanedRooms(storage, !seedBootCleanupDone);
     seedBootCleanupDone = true;
     const open = await storage.getOpenPublicRooms();
     const seededOpen = open.filter(({ room }: any) => (room.settings as any)?.seeded === true);
-    const missing = SEED_ROOM_TARGET - seededOpen.length;
-    if (missing <= 0) return;
-    // First fill after a cold start uses a shuffled mix; later top-ups pick
-    // a random kind so the order keeps varying.
-    const pattern = seededOpen.length === 0 ? buildSeedPattern() : null;
+    // Quick Match Spectate needs live bot-only games. After the cleanup above
+    // there may be none (the lobbies alone can already meet the room target),
+    // so top up the live ones first, independent of the total.
+    const seededLive = seededOpen.filter(({ room }: any) => room.status !== "lobby").length;
+    let created = 0;
+    for (let i = seededLive; i < SEED_SPECTATE_MIN; i++) {
+      await createSeedRoom("spectate", wss, storage, roomClients, clients, gameActions);
+      created++;
+    }
+    // Then fill up to the overall target with open lobbies.
+    const missing = SEED_ROOM_TARGET - (seededOpen.length + created);
     for (let i = 0; i < missing; i++) {
-      const kind = pattern ? pattern[i % pattern.length] : (Math.random() < 0.4 ? "spectate" : "real");
-      await createSeedRoom(kind, wss, storage, roomClients, clients, gameActions);
+      await createSeedRoom("real", wss, storage, roomClients, clients, gameActions);
     }
   } catch (err) {
     console.error("topUpSeedRooms error:", err);
