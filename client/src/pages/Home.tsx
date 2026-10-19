@@ -684,8 +684,8 @@ export default function Home() {
         const lobbies = pool.filter((r) => r.status === "lobby");
         // Watching: prefer bot games that haven't started yet, so you see the
         // game from the first phase instead of landing mid-game or at the end.
-        const fresh = pool.filter((r) => r.freshStart);
-        const choices = lobbies.length > 0 ? lobbies : (fresh.length > 0 ? fresh : pool);
+        const freshRooms = pool.filter((r) => r.freshStart);
+        const choices = lobbies.length > 0 ? lobbies : (freshRooms.length > 0 ? freshRooms : pool);
         const pick = choices[Math.floor(Math.random() * choices.length)];
         await handleJoinPublicRoom(pick.code, pick.status !== "lobby");
       } finally {
