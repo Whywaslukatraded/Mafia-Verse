@@ -18,12 +18,13 @@ export default defineConfig({
     // touch Tailwind at all (see the accompanying postcss.config.js
     // change, which now only runs autoprefixer).
     tailwindcss(),
+    // Replit-only dev banner. (The cartographer plugin that used to load
+    // alongside it was removed: it ships with no license, which security
+    // scanners flag as a critical "proprietary" dependency, and it only ever
+    // ran inside Replit — never in the Render build.)
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
           await import("@replit/vite-plugin-dev-banner").then((m) =>
             m.devBanner(),
           ),
