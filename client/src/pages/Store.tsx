@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { redirectToCheckout } from "@/lib/safeRedirect";
 
 const CREDIT_PACKS = [
   { credits: 100, price: 99, label: "$0.99" },
@@ -167,7 +168,8 @@ export default function Store() {
         body: JSON.stringify(body),
       });
       const responseData = await res.json();
-      if (res.ok && responseData.url) { window.location.href = responseData.url; return; }
+      // Only follows the redirect if the URL is a real Stripe Checkout page.
+      if (res.ok && redirectToCheckout(responseData.url)) return;
       // Real purchases only ever complete through the actual Stripe redirect
       // above — never fall back to granting credits/passes locally, that
       // would let anyone get premium items for free just by blocking this request.

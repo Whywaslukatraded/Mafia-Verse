@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getStripeSync, verifyStripeWebhookEvent } from "./stripeClient";
+import { verifyStripeWebhookEvent } from "./stripeClient";
 import { pool } from "./db";
 
 export class WebhookHandlers {
@@ -13,14 +13,15 @@ export class WebhookHandlers {
       );
     }
 
-    // Security fix (#5 / #7): this used to hand the raw payload straight to
-    // stripe-replit-sync and stop — nothing in this app ever wrote to
-    // account_syndicate_pass, so the client had no server-authoritative
-    // record to check and the Syndicate Pass toggle lived only in
-    // localStorage. Verifying the event independently here (rather than
-    // reaching into stripe-replit-sync's own synced tables, whose schema
-    // this app doesn't own) means this app-specific grant logic only ever
-    // runs against a cryptographically verified Stripe event.
+    // Security fix (#5 / #7): this used to hand the raw payload straight to a
+    // Stripe-to-database sync library and stop — nothing in this app ever
+    // wrote to account_syndicate_pass, so the client had no
+    // server-authoritative record to check and the Syndicate Pass toggle
+    // lived only in localStorage. Verifying the event here means the grant
+    // logic below only ever runs against a cryptographically verified Stripe
+    // event. (That sync library, stripe-replit-sync, was removed: nothing in
+    // the app read the tables it filled, and if it failed AFTER a grant it
+    // made the webhook answer 400 for an already-applied payment.)
     try {
       const event = await verifyStripeWebhookEvent(payload, signature);
       await WebhookHandlers.handleAppSpecificEvent(event);
@@ -33,9 +34,6 @@ export class WebhookHandlers {
       console.error("Webhook app-specific handling error:", err.message);
       throw err;
     }
-
-    const sync = await getStripeSync();
-    await sync.processWebhook(payload, signature);
   }
 
   private static async handleAppSpecificEvent(event: Stripe.Event): Promise<void> {
@@ -53,8 +51,8 @@ export class WebhookHandlers {
     // Security fix (#2): this used to grant credits/Syndicate Pass with no
     // record of which Stripe event had already been handled — a retried
     // delivery of the same verified event (Stripe retries on any non-2xx
-    // response, e.g. if the later stripeSync.processWebhook() call below
-    // failed) re-ran the grant again, additively, on every retry. Recording
+    // response, e.g. a network error or a crash right after the grant was
+    // applied) re-ran the grant again, additively, on every retry. Recording
     // the event id first, in the SAME transaction as the grant, makes a
     // retry a no-op: ON CONFLICT DO NOTHING means a second attempt inserts
     // nothing and rowCount is 0, so the grant below is skipped entirely

@@ -4,6 +4,7 @@ import { Heart, Zap, Star, X, CheckCircle2, DollarSign, Coffee, Crown } from "lu
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { redirectToCheckout } from "@/lib/safeRedirect";
 
 const TIP_TIERS_META = [
   { amount: 499, label: "$4.99", icon: Coffee, key: "buyCoffee", hearts: 2 },
@@ -40,8 +41,9 @@ export function TipJar({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ amount }),
       });
       const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
+      // Only follows the redirect if the URL is a real Stripe Checkout page.
+      if (res.ok && redirectToCheckout(data.url)) {
+        // navigating to Stripe
       } else {
         setThanks(true);
         setTimeout(() => setThanks(false), 3000);

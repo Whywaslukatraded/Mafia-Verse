@@ -4,6 +4,7 @@ import { Coins, CreditCard, X, CheckCircle2, Zap, AlertCircle } from "lucide-rea
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { getSupabase, isSupabaseReady } from "@/lib/supabase";
+import { redirectToCheckout } from "@/lib/safeRedirect";
 
 const PACKS_META = [
   { credits: 100, price: 99, label: "$0.99", popular: false },
@@ -42,8 +43,9 @@ export function CreditPacks({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ credits: pack.credits }),
       });
       const responseData = await res.json();
-      if (res.ok && responseData.url) {
-        window.location.href = responseData.url;
+      // Only follows the redirect if the URL is a real Stripe Checkout page.
+      if (res.ok && redirectToCheckout(responseData.url)) {
+        // navigating to Stripe
       } else {
         // Real purchases only ever complete through the actual Stripe
         // redirect above — never fall back to granting credits locally,
