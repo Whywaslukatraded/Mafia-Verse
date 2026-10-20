@@ -16,14 +16,13 @@ export async function setupVite(server: Server, app: Express) {
   // This path only runs outside production, but if NODE_ENV were ever
   // misconfigured in a real deployment, this would have been the exposed
   // surface. Now: fs restrictions are preserved by spreading viteConfig.server
-  // first, and allowedHosts is only opened up on Replit (where REPL_ID is set
-  // and requests come through Replit's proxy on an unpredictable subdomain);
-  // everywhere else it's left at Vite's safe default (same-origin only).
+  // first, and allowedHosts is left at Vite's safe default (same-origin only).
+  // (It used to be opened up when running inside Replit; the app no longer
+  // runs there, and that branch did nothing anywhere else.)
   const serverOptions = {
     ...viteConfig.server,
     middlewareMode: true,
     hmr: { server, path: "/vite-hmr" },
-    ...(process.env.REPL_ID !== undefined ? { allowedHosts: true as const } : {}),
   };
 
   const vite = await createViteServer({
