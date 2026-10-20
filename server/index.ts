@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import helmet from "helmet";
 import { testConnection, runMigrations } from "./db";
 
 const app = express();
@@ -55,11 +56,31 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 // Security fix (#10): the app previously shipped with no security headers at
-// all (X-Powered-By left on, no CSP/frame protection/HSTS/etc). Hand-rolled
-// here instead of adding the `helmet` dependency, per the "don't add
-// dependencies unless necessary" instruction — this app's needs are simple
-// enough not to need it.
+// all (X-Powered-By left on, no CSP/frame protection/HSTS/etc).
+//
+// Helmet (already a dependency) now supplies the standard set. Four things
+// are deliberately told NOT to change behaviour:
+//  - CSP and HSTS are turned off in Helmet because the hand-written
+//    middleware right below sets them, tuned to this app (Google Fonts,
+//    Supabase, the background texture host, HSTS only over HTTPS).
+//  - Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy are off:
+//    Helmet's defaults (same-origin) could break popup-based sign-in or
+//    other sites embedding our images/share links, and nothing here needs
+//    them.
+//  - Referrer-Policy and X-Frame-Options are set to the same values as the
+//    middleware below (Helmet's defaults differ), so nothing flips between
+//    the two.
 app.disable("x-powered-by");
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    strictTransportSecurity: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    xFrameOptions: { action: "deny" },
+  }),
+);
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
