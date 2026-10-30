@@ -219,7 +219,8 @@
     "enterEmailCodeLabel": "Digite o código de 6 dígitos que enviamos por e-mail",
     "resendCode": "Reenviar código",
     "checkYourEmail": "Verifique seu e-mail para o código",
-    "codeSentCheckInbox": "Um código foi enviado para o seu e-mail."
+    "codeSentCheckInbox": "Um código foi enviado para o seu e-mail.",
+    "checkAllMail": "Não encontrou o e-mail? Verifique todas as suas pastas (Spam, Promoções, Atualizações e Todos os e-mails) para uma mensagem do Mafia Verse."
   },
   "leaderboard": {
     "title": "Salão da Infâmia",

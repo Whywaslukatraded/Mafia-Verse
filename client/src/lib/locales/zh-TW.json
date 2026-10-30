@@ -219,7 +219,8 @@
     "enterEmailCodeLabel": "請輸入我們傳送至您郵箱的 6 位驗證碼",
     "resendCode": "重新傳送驗證碼",
     "checkYourEmail": "請檢視您的郵箱獲取驗證碼",
-    "codeSentCheckInbox": "驗證碼已傳送至您的郵箱。"
+    "codeSentCheckInbox": "驗證碼已傳送至您的郵箱。",
+    "checkAllMail": "沒有收到郵件？請檢查所有郵件資料夾（垃圾郵件、促銷、更新和所有郵件），尋找來自 Mafia Verse 的郵件。"
   },
   "leaderboard": {
     "title": "惡名殿堂",

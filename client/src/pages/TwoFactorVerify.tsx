@@ -153,9 +153,17 @@ export default function TwoFactorVerify() {
 
         <div className="w-full bg-card border border-border rounded-xl p-6 space-y-4">
           {method === "email" && (
-            <p className="text-xs text-muted-foreground text-center">
-              {sendingCode ? t("twoFactor.sendingCode") : codeSent ? t("twoFactor.codeSentCheckInbox") : ""}
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground text-center">
+                {sendingCode ? t("twoFactor.sendingCode") : codeSent ? t("twoFactor.codeSentCheckInbox") : ""}
+              </p>
+              <p className="text-xs text-muted-foreground text-center" data-testid="text-check-all-mail">
+                {t(
+                  "twoFactor.checkAllMail",
+                  "Don't see the email? Check all your mail folders (Spam, Promotions, Updates, and All Mail) for a message from Mafia Verse."
+                )}
+              </p>
+            </div>
           )}
           <div className="space-y-2">
             <Label htmlFor="code">{t("twoFactor.sixDigitCode")}</Label>

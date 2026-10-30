@@ -115,7 +115,8 @@
     "enterEmailCodeLabel": "Enter the 6-digit code we emailed you",
     "resendCode": "Resend Code",
     "checkYourEmail": "Check your email for a code",
-    "codeSentCheckInbox": "A code has been sent to your email."
+    "codeSentCheckInbox": "A code has been sent to your email.",
+    "checkAllMail": "Don't see the email? Check all your mail folders (Spam, Promotions, Updates, and All Mail) for a message from Mafia Verse."
   },
   "home": {
     "joinAsSpectator": "Join as Spectator (just watch)",

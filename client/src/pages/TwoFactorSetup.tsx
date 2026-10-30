@@ -306,6 +306,14 @@ export default function TwoFactorSetup() {
                 data-testid="input-2fa-code"
               />
             </div>
+            {method === "email" && (
+              <p className="text-xs text-muted-foreground text-center" data-testid="text-check-all-mail">
+                {t(
+                  "twoFactor.checkAllMail",
+                  "Don't see the email? Check all your mail folders (Spam, Promotions, Updates, and All Mail) for a message from Mafia Verse."
+                )}
+              </p>
+            )}
             <Button
               className="w-full"
               onClick={verifyCode}
