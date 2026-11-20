@@ -259,7 +259,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
               </p>
 
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.referral.yourInviteLink")}</Label>
+                <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.referral.yourInviteLink")}</Label>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm font-mono text-foreground truncate">
                     {link}
@@ -296,7 +296,7 @@ function ReferralModal({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="border-t border-border pt-4 space-y-2">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.referral.gotACode")}</Label>
+                <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.referral.gotACode")}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     value={redeemCode}
@@ -618,6 +618,17 @@ export default function Home() {
   // Tap-to-toggle fallback for the role-breakdown tooltip, since touch
   // devices don't have a real :hover state. Only one open at a time.
   const [openRoleTooltipCode, setOpenRoleTooltipCode] = useState<string | null>(null);
+  // Tap-to-show for achievement descriptions (hover doesn't exist on touch screens).
+  const [openAchievementId, setOpenAchievementId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openAchievementId) return;
+    const close = (e: Event) => {
+      const el = e.target as HTMLElement | null;
+      if (!el?.closest?.("[data-achievement]")) setOpenAchievementId(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [openAchievementId]);
   // Quick Match filters: room type + optional roles (a room must have all picked roles).
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("any");
   const [roleFilters, setRoleFilters] = useState<OptionalRole[]>([]);
@@ -1108,7 +1119,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-dvh flex items-center justify-center p-3 sm:p-4 relative overflow-x-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none bg-background">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]" />
@@ -1153,7 +1164,7 @@ export default function Home() {
 
                 <div className="flex-1 space-y-4">
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.accessory")}</Label>
+                    <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.accessory")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {ACCESSORIES.map(a => (
                         <button key={a} onClick={() => setConfig({ ...config, accessory: a })}
@@ -1165,7 +1176,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.clothing")}</Label>
+                    <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.clothing")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {CLOTHING.map(c => (
                         <button key={c} onClick={() => setConfig({ ...config, clothing: c })}
@@ -1177,7 +1188,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.background")}</Label>
+                    <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.background")}</Label>
                     <div className="flex flex-wrap gap-1">
                       {BGS.map((bg, i) => (
                         <button key={bg} onClick={() => setConfig({ ...config, bg })}
@@ -1223,108 +1234,108 @@ export default function Home() {
                   {/* Row 1 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
                     <button onClick={() => setLocation("/profile")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Trophy className="w-4 h-4 text-yellow-500" />
                       <span className="text-2xl font-black font-mono">{stats.wins ?? 0}</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.wins")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.wins")}</span>
                     </button>
                     <button onClick={() => setLocation("/store")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Coins className="w-4 h-4 text-purple-500" />
                       <span className="text-lg font-black font-mono">🛒</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.store")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.store")}</span>
                     </button>
                     <button onClick={() => setLocation("/cosmetics")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Sparkles className="w-4 h-4 text-yellow-400" />
                       <span className="text-lg font-black font-mono">✨</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.shop")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.shop")}</span>
                     </button>
                     <button onClick={() => setShowDailyRewards(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer relative">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer relative">
                       <Gift className="w-4 h-4 text-amber-500" />
                       <span className="text-lg font-black font-mono">🎁</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.daily")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.daily")}</span>
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                     </button>
                   </div>
                   {/* Row 2 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
                     <button onClick={() => setShowAdRewards(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Tv className="w-4 h-4 text-blue-500" />
                       <span className="text-lg font-black font-mono">📺</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.free")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.free")}</span>
                     </button>
                     <button onClick={() => setShowRating(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Star className="w-4 h-4 text-yellow-500" />
                       <span className="text-lg font-black font-mono">⭐</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.rate")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.rate")}</span>
                     </button>
                     <button onClick={() => setShowReferral(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Users className="w-4 h-4 text-emerald-500" />
                       <span className="text-lg font-black font-mono">👥</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.refer")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.refer")}</span>
                     </button>
                     <button onClick={() => setLocation("/settings")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center gap-1 hover:bg-muted cursor-pointer">
                       <Settings className="w-4 h-4 text-gray-400" />
                       <span className="text-lg font-black font-mono">⚙️</span>
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.settings")}</span>
+                      <span className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.settings")}</span>
                     </button>
                   </div>
                   {/* Row 3 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
                     <button onClick={() => setLocation("/leaderboard")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer">
                       <Medal className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.leaderboard")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("home.leaderboard")}</span>
                     </button>
                     <button onClick={() => setLocation("/friends")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="button-friends-nav">
                       <UserPlus className="w-5 h-5 text-pink-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("friends.title", "Friends")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("friends.title", "Friends")}</span>
                     </button>
                     <button onClick={() => setShowHowToPlay(true)}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0">
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer">
                       <BookOpen className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.howToPlay")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("home.howToPlay")}</span>
                     </button>
                     <button onClick={() => isSignedIn ? setShowGameHistory(true) : setLocation("/login")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="button-game-history-nav">
                       <History className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("history.title", "Game History")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("history.title", "Game History")}</span>
                     </button>
                   </div>
                   {/* Row 4 */}
                   <div className="grid grid-cols-4 gap-2 w-full">
                     <button onClick={() => setLocation("/crew")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="button-crew-nav">
                       <Shield className="w-5 h-5 text-violet-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("crew.title", "Crew")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("crew.title", "Crew")}</span>
                     </button>
                     <button onClick={() => setLocation("/about")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="button-about-nav">
                       <Landmark className="w-5 h-5 text-cyan-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.aboutLink")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("home.aboutLink")}</span>
                     </button>
                     <button onClick={() => setLocation("/faq")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="button-faq-nav">
                       <MessageCircleQuestion className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.faqLink")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("home.faqLink")}</span>
                     </button>
                     <button onClick={() => setLocation("/blueprint")}
-                      className="p-3 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer min-w-0"
+                      className="p-2 sm:p-3 min-w-0 bg-muted/50 rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 hover:bg-muted cursor-pointer"
                       data-testid="tile-blueprint-nav">
                       <FileCode2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center">{t("home.blueprintLink", "Blueprint")}</span>
+                      <span className="text-[10px] leading-tight uppercase tracking-wide text-muted-foreground font-bold text-center max-w-full break-words">{t("home.blueprintLink", "Blueprint")}</span>
                     </button>
                   </div>
                 </div>
@@ -1341,17 +1352,22 @@ export default function Home() {
 
                 {stats.achievements?.length > 0 && (
                   <div className="w-full space-y-2">
-                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{t("home.achievementsLabel")}</Label>
+                    <Label className="text-[10px] uppercase tracking-wide max-w-full break-words text-muted-foreground font-bold">{t("home.achievementsLabel")}</Label>
                     <div className="flex flex-wrap gap-2">
                       {stats.achievements.map((id: string) => {
                         const ach = ACHIEVEMENTS.find(a => a.id === id);
                         if (!ach) return null;
                         return (
-                          <div key={id} className="group relative">
-                            <div className="w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-xl cursor-help hover:scale-110 transition-transform">
+                          <div key={id} className="group relative" data-achievement>
+                            <button
+                              type="button"
+                              onClick={() => setOpenAchievementId(openAchievementId === id ? null : id)}
+                              aria-label={t(`home.achievements.${ach.id}.name`)}
+                              className="w-10 h-10 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-xl cursor-help hover:scale-110 transition-transform"
+                            >
                               {ach.icon}
-                            </div>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-popover border border-border rounded-lg text-[10px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            </button>
+                            <div className={cn("absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-popover border border-border rounded-lg text-[10px] transition-opacity pointer-events-none z-50", openAchievementId === id ? "opacity-100" : "opacity-0 group-hover:opacity-100")}>
                               <p className="font-bold text-yellow-500 uppercase">{t(`home.achievements.${ach.id}.name`)}</p>
                               <p className="text-muted-foreground">{t(`home.achievements.${ach.id}.description`)}</p>
                             </div>
@@ -1690,7 +1706,7 @@ export default function Home() {
                   </p>
                   <div className="px-2 space-y-2 pt-1">
                     <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.botPersonality.label")}</span>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-2 min-[420px]:grid-cols-4 gap-1.5">
                       <button
                         type="button"
                         onClick={() => updateBotPersonality(undefined)}

@@ -2192,6 +2192,28 @@ async function respondToHumanChat(roomId: number, humanMessage: string, storage:
   }
 }
 
+// Bug fix: handleBotActions used to post every bot's chat line in one tight
+// loop the instant a phase ended, so the chat was already full of bot messages
+// the moment the next phase started. This delivers a bot line later instead,
+// staggered per bot, and drops it if the room has gone back to the lobby or
+// ended in the meantime. (Delay is on top of the ~5s elimination/role overlay.)
+const BOT_CHAT_BASE_DELAY_MS = 4000;
+const BOT_CHAT_STAGGER_MS = 2200;
+const BOT_CHAT_JITTER_MS = 2500;
+function postBotMessageLater(roomId: number, storage: any, bot: Player, content: string, slot: number, extra: Record<string, any> = {}) {
+  const delay = BOT_CHAT_BASE_DELAY_MS + slot * BOT_CHAT_STAGGER_MS + Math.random() * BOT_CHAT_JITTER_MS;
+  setTimeout(async () => {
+    try {
+      const r = await storage.getRoom(roomId);
+      if (!r || r.status === 'lobby' || r.status === 'ended') return;
+      await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content, ...extra } as any);
+      broadcastState(roomId);
+    } catch (err) {
+      console.error(`[Room ${roomId}] delayed bot message failed:`, err);
+    }
+  }, delay);
+}
+
 async function handleBotActions(roomId: number, wss: WebSocketServer, storage: any, roomClients: Map<number, Set<string>>, clients: Map<string, WebSocket>, gameActions: Map<number, any>) {
   const room = await storage.getRoom(roomId);
   if (!room || room.status === 'lobby' || room.status === 'ended') return;
@@ -2203,6 +2225,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
   const bots = players.filter((p: Player) => p.isBot && p.isAlive);
   const actions = gameActions.get(roomId) || { votes: new Map(), mafiaKills: new Map(), doctorSaves: new Map(), detectiveChecks: new Map(), guards: new Map(), shots: new Map() };
 
+  let botChatSlot = 0;
   for (const bot of bots) {
     const alivePlayers = players.filter((p: Player) => p.isAlive && p.id !== bot.id);
     if (alivePlayers.length === 0) continue;
@@ -2309,7 +2332,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
         }
       }
       if (content) {
-        await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content });
+        postBotMessageLater(roomId, storage, bot, content, botChatSlot++);
       }
     }
   }
@@ -2322,7 +2345,7 @@ async function handleBotActions(roomId: number, wss: WebSocketServer, storage: a
       const GRAVEYARD_POOLS: Record<string, string[]> = { en: GRAVEYARD_BOT_LINES_EN, es: GRAVEYARD_BOT_LINES_ES, fr: GRAVEYARD_BOT_LINES_FR, "pt-BR": GRAVEYARD_BOT_LINES_PT_BR, "zh-CN": GRAVEYARD_BOT_LINES_ZH_CN, "zh-TW": GRAVEYARD_BOT_LINES_ZH_TW };
       const lines = GRAVEYARD_POOLS[normalizeLang(lang)];
       const content = lines[Math.floor(Math.random() * lines.length)];
-      await storage.createMessage({ roomId, playerId: bot.id, playerName: bot.name, content, isSpectator: true } as any);
+      postBotMessageLater(roomId, storage, bot, content, botChatSlot++, { isSpectator: true });
     }
   }
 

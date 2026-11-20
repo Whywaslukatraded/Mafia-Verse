@@ -93,6 +93,7 @@ export default function Room() {
 
 
   const [hasRevealed, setHasRevealed] = useState(false);
+  const tutorialReadySentRef = useRef(false);
   // Feature: role-reveal modal, shown briefly on night 1 (see the effect
   // below that flips this true then auto-hides it after 5s).
   const [showRoleReveal, setShowRoleReveal] = useState(false);
@@ -700,6 +701,17 @@ export default function Room() {
     }
   }, [room?.status, hasRevealed]);
 
+  // Bug fix: tutorialReadySentRef (declared further down) stayed `true` after
+  // the first game, so on Play Again this client never told the server it was
+  // ready — and the server then held the turn-1 clock for the full 45s max
+  // wait with the timer frozen. Reset it whenever the room is back in the
+  // lobby so every new game sends its own tutorial_ready.
+  useEffect(() => {
+    if (room?.status === "lobby") {
+      tutorialReadySentRef.current = false;
+    }
+  }, [room?.status]);
+
   // Role reveal on first night (always shows the player their OWN role —
   // the showRoleReveal setting only controls whether OTHER players' roles
   // are shown when they're eliminated, not your own reveal)
@@ -1026,7 +1038,6 @@ export default function Room() {
   // someone spent reading it, so a brand-new player could finish the
   // walkthrough to find the game had already moved past night 1's mafia
   // (and possibly later) phases without them ever seeing it.
-  const tutorialReadySentRef = useRef(false);
   useEffect(() => {
     if (!room || isSpectator) return;
     if (room.status === "lobby" || room.status === "ended") return;
@@ -1226,7 +1237,7 @@ export default function Room() {
 
 
   return (
-    <div className={cn("min-h-screen pb-24 relative overflow-hidden transition-colors duration-1000", getBackgroundStyle())}>
+    <div className={cn("min-h-dvh pb-24 relative overflow-x-hidden transition-colors duration-1000", getBackgroundStyle())}>
       {/* Animated Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
@@ -1517,7 +1528,7 @@ export default function Room() {
                 animate={{ scale: [1, 1.1, 1], rotateY: [0, 360] }}
                 transition={{ duration: 1.5 }}
               >
-                <RoleBadge role={me?.role} className={cn("text-4xl px-12 py-6 border-2 shadow-[0_0_50px_rgba(var(--primary),0.5)]", hideOwnRole && "blur-md select-none")} />
+                <RoleBadge role={me?.role} className={cn("text-3xl sm:text-4xl px-6 sm:px-12 py-6 border-2 shadow-[0_0_50px_rgba(var(--primary),0.5)]", hideOwnRole && "blur-md select-none")} />
               </motion.div>
               <motion.p
                 initial={{ opacity: 0 }}
@@ -1654,7 +1665,7 @@ export default function Room() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border/50">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 min-h-16 py-2 flex flex-wrap items-center justify-between gap-y-2">
           <div className="flex items-center gap-3 min-w-0">
             <div className="min-w-0">
               {/* Feature 9: Room name */}
@@ -1676,7 +1687,7 @@ export default function Room() {
               </div>
             )}
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>
@@ -1685,12 +1696,12 @@ export default function Room() {
             </div>
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
               <Share2 className="w-3 h-3" />
-              {t("room.share")}
+              <span className="hidden sm:inline">{t("room.share")}</span>
             </Button>
             {isHost && room?.status === "lobby" && (
               <Button variant="outline" size="sm" onClick={openInvitePanel} className="gap-2" data-testid="button-invite-friends">
                 <UserPlus className="w-3.5 h-3.5" />
-                {t("room.inviteFriends", "Invite Friends")}
+                <span className="hidden sm:inline">{t("room.inviteFriends", "Invite Friends")}</span>
               </Button>
             )}
             {isHost && room?.status === "lobby" && (
@@ -1942,7 +1953,7 @@ export default function Room() {
 
                       <div className="space-y-2 pt-2 border-t border-border">
                         <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("home.botPersonality.label")}</span>
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-2 min-[420px]:grid-cols-4 gap-1.5">
                           <button
                             type="button"
                             onClick={() => setSettingsDraft(prev => ({ ...prev, botPersonality: undefined }))}
