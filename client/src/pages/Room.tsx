@@ -918,8 +918,13 @@ export default function Room() {
       const wasAlive = prevPlayersRef.current[p.id];
       if (wasAlive && !p.isAlive && !shownEliminationsRef.current.has(p.id)) {
         shownEliminationsRef.current.add(p.id);
+        // Use the story the server already picked (same one it posted in the
+        // chat) so the overlay and chat always match; fall back to a local
+        // random one only if the server didn't send one for this death
+        // (e.g. bodyguard/guilt deaths, which have no story line in chat).
+        const serverStory = (gameState as any)?.deathStories?.[p.id] as string | undefined;
         const story = DEATH_STORIES[Math.floor(Math.random() * DEATH_STORIES.length)];
-        const deathStory = story.replace("{name}", p.name);
+        const deathStory = serverStory ?? story.replace("{name}", p.name);
 
         toast({
           title: t("room.playerEliminated", { name: p.name }),
@@ -1394,22 +1399,22 @@ export default function Room() {
                       {generatingShareCard ? t("room.generatingImage") : t("room.shareResult")}
                     </Button>
 
-                    <div className="bg-muted/50 border border-border rounded-lg p-6 mb-6">
+                    <div className="bg-muted/50 border border-border rounded-lg p-3 sm:p-6 mb-6">
                       <h3 className="text-foreground font-black mb-4 uppercase tracking-wider text-sm">{t("room.finalRolesRevealed")}</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         {finalRoles.map((p) => (
-                          <div key={p.id} className={`relative flex items-center gap-2 p-2 rounded-lg ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                          <div key={p.id} className={`relative flex items-center gap-1.5 sm:gap-2 p-2 rounded-lg min-w-0 ${p.isAlive ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
                             {latestGameEnd.mvp?.id === p.id && (
                               <span className="absolute -top-2 -left-2 text-base" title={t("room.mvpLabel", "MVP")}>🏆</span>
                             )}
-                            <span className="text-2xl">{p.avatar || "👤"}</span>
-                            <div className="text-left flex-1">
-                              <div className="text-foreground font-bold text-sm">{p.name}</div>
+                            <span className="text-2xl shrink-0">{p.avatar || "👤"}</span>
+                            <div className="text-left flex-1 min-w-0">
+                              <div className="text-foreground font-bold text-xs sm:text-sm leading-tight break-all">{p.name}</div>
                               <div className={`text-xs font-bold uppercase tracking-wider ${p.role === "mafia" ? "text-red-400" : p.role === "detective" ? "text-blue-400" : p.role === "doctor" ? "text-yellow-400" : "text-muted-foreground"}`}>
                                 {t(`roleBadge.${p.role || "civilian"}`)}
                               </div>
                             </div>
-                            {!p.isAlive && <span className="text-red-500 font-black">✕</span>}
+                            {!p.isAlive && <span className="text-red-500 font-black shrink-0">✕</span>}
                           </div>
                         ))}
                       </div>
@@ -1687,7 +1692,7 @@ export default function Room() {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 max-w-full min-w-0">
             <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} aria-label={soundEnabled ? t("room.muteSound") : t("room.unmuteSound")}>
               {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
             </Button>

@@ -342,7 +342,7 @@ function assignRoles(players: Player[], settings: any) {
 // article/language. "the" (definite) only when this game has exactly one
 // player with that role; otherwise "a"/"an" (indefinite), since e.g. "the
 // civilian" is wrong when several players are civilians.
-function buildRoleRevealSentence(victimName: string, role: string, allPlayers: Player[], lang: string, action: "voted" | "killed" = "voted"): string {
+function buildRoleRevealSentence(victimName: string, role: string, allPlayers: Player[], lang: string, action: "voted" | "killed" = "voted", showRole: boolean = true): string {
   const roleCount = allPlayers.filter(p => p.role === role).length;
   const isUnique = roleCount <= 1;
 
@@ -351,6 +351,7 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
     const name = esRole[role] || role;
     const article = isUnique ? "el" : "un";
     const verb = action === "killed" ? "fue asesinado" : "fue eliminado por votación";
+    if (!showRole) return `${victimName} ${verb}.`;
     return `${victimName} ${verb}. Era ${article} ${name}.`;
   }
 
@@ -361,6 +362,7 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
     const name = frRole[role] || role;
     const article = isUnique ? "le" : "un";
     const verb = action === "killed" ? "a été tué" : "a été éliminé par vote";
+    if (!showRole) return `${victimName} ${verb}.`;
     return `${victimName} ${verb}. C'était ${article} ${name}.`;
   }
 
@@ -369,6 +371,7 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
     const name = ptRole[role] || role;
     const article = isUnique ? "o" : "um";
     const verb = action === "killed" ? "foi morto" : "foi eliminado pela votação";
+    if (!showRole) return `${victimName} ${verb}.`;
     return `${victimName} ${verb}. Era ${article} ${name}.`;
   }
 
@@ -381,6 +384,7 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
     const verb = isTW
       ? (action === "killed" ? "被殺害了" : "被投票淘汰了")
       : (action === "killed" ? "被杀害了" : "被投票淘汰了");
+    if (!showRole) return `${victimName}${verb}。`;
     return `${victimName}${verb}。${isTW ? "身分是" : "身份是"}${name}。`;
   }
 
@@ -388,6 +392,7 @@ function buildRoleRevealSentence(victimName: string, role: string, allPlayers: P
   const name = enRole[role] || role;
   const article = isUnique ? "the" : (/^[aeiou]/i.test(name) ? "an" : "a");
   const verb = action === "killed" ? "was killed" : "was voted out";
+  if (!showRole) return `${victimName} ${verb}.`;
   return `${victimName} ${verb}. They were ${article} ${name}.`;
 }
 
@@ -805,11 +810,93 @@ const DEATH_STORIES_ZH_TW = [
   "{name} 以為自己能消失在人群中。家族還是找到了他。",
 ];
 
+// Short "doctor saved someone" stories, appended to the doctor-saved chat line.
+// Deliberately anonymous (no player name): the existing message never says who
+// was targeted or saved, and naming them would leak that.
+const SAVE_STORIES: Record<string, string[]> = {
+  en: [
+    "The doctor arrived just as the final shot rang out and patched the wound before the street went quiet.",
+    "A trench-coated gunman slipped away into the dark while the doctor kept a steady hand on the pulse.",
+    "The target woke up in the clinic with a headache, a bandage, and a very confusing story.",
+    "The poison was in the glass, but the antidote was already in the doctor's bag.",
+    "The doctor spotted the black sedan idling outside and kept watch all night.",
+    "Stitches, strong coffee and a lot of luck. The night shift paid off.",
+    "The doctor's house call was perfectly timed, and the hitman went home empty-handed.",
+    "A bullet was fired, a miracle was performed, and nobody will be sleeping soundly tonight.",
+  ],
+  es: [
+    "El médico llegó justo cuando sonó el último disparo y cerró la herida antes de que la calle quedara en silencio.",
+    "Un pistolero con gabardina se esfumó en la oscuridad mientras el médico mantenía firme el pulso.",
+    "La víctima despertó en la clínica con dolor de cabeza, un vendaje y una historia muy confusa.",
+    "El veneno estaba en la copa, pero el antídoto ya estaba en el maletín del médico.",
+    "El médico vio el sedán negro estacionado afuera y montó guardia toda la noche.",
+    "Puntos de sutura, café fuerte y muchísima suerte: el turno de noche valió la pena.",
+    "La visita a domicilio del médico fue perfectamente puntual y el sicario se fue con las manos vacías.",
+    "Se disparó una bala, se obró un milagro y esta noche nadie dormirá tranquilo.",
+  ],
+  fr: [
+    "Le médecin est arrivé juste au moment du dernier coup de feu et a refermé la blessure avant que la rue ne retombe dans le silence.",
+    "Un tireur en trench-coat s'est évanoui dans l'obscurité pendant que le médecin gardait la main ferme sur le pouls.",
+    "La cible s'est réveillée à la clinique avec un mal de tête, un pansement et une histoire bien confuse.",
+    "Le poison était dans le verre, mais l'antidote était déjà dans la sacoche du médecin.",
+    "Le médecin a repéré la berline noire garée dehors et a monté la garde toute la nuit.",
+    "Des points de suture, du café fort et beaucoup de chance : la garde de nuit a payé.",
+    "La visite à domicile du médecin tombait parfaitement bien, et le tueur est reparti bredouille.",
+    "Une balle a été tirée, un miracle a eu lieu, et personne ne dormira tranquille ce soir.",
+  ],
+  "pt-BR": [
+    "O médico chegou assim que o último tiro soou e fechou o ferimento antes de a rua voltar ao silêncio.",
+    "Um atirador de sobretudo sumiu na escuridão enquanto o médico mantinha a mão firme no pulso.",
+    "O alvo acordou na clínica com dor de cabeça, um curativo e uma história muito confusa.",
+    "O veneno estava no copo, mas o antídoto já estava na maleta do médico.",
+    "O médico viu o sedã preto parado lá fora e ficou de vigia a noite inteira.",
+    "Pontos, café forte e muita sorte: o plantão da noite valeu a pena.",
+    "A visita do médico foi perfeitamente cronometrada, e o assassino foi embora de mãos vazias.",
+    "Uma bala foi disparada, um milagre foi realizado e ninguém vai dormir tranquilo esta noite.",
+  ],
+  "zh-CN": [
+    "最后一声枪响时医生刚好赶到，在街道恢复寂静之前就处理好了伤口。",
+    "一个穿风衣的枪手消失在黑暗中，而医生始终稳稳地按着脉搏。",
+    "目标在诊所里醒来，头疼、缠着绷带，还带着一段云里雾里的经历。",
+    "毒药就在杯子里，但解药早已放在医生的药箱中。",
+    "医生发现了停在外面的黑色轿车，守了整整一夜。",
+    "缝合、浓咖啡，再加上好运气——这个夜班没有白熬。",
+    "医生的出诊时间分秒不差，杀手只能空手而归。",
+    "子弹射出，奇迹发生，今晚没有人能安心入睡。",
+  ],
+  "zh-TW": [
+    "最後一聲槍響時醫生剛好趕到，在街道恢復寂靜之前就處理好了傷口。",
+    "一個穿風衣的槍手消失在黑暗中，而醫生始終穩穩地按著脈搏。",
+    "目標在診所裡醒來，頭痛、纏著繃帶，還帶著一段雲裡霧裡的經歷。",
+    "毒藥就在杯子裡，但解藥早已放在醫生的藥箱中。",
+    "醫生發現了停在外面的黑色轎車，守了整整一夜。",
+    "縫合、濃咖啡，再加上好運氣——這個夜班沒有白熬。",
+    "醫生的出診時間分秒不差，殺手只能空手而歸。",
+    "子彈射出，奇蹟發生，今晚沒有人能安心入睡。",
+  ],
+};
+function doctorSavedMessage(lang: string): string {
+  const l = normalizeLang(lang);
+  const pool = SAVE_STORIES[l] || SAVE_STORIES.en;
+  const story = pool[Math.floor(Math.random() * pool.length)];
+  const sep = l === "zh-CN" || l === "zh-TW" ? "" : " ";
+  return `${sysMsg("mafiaFailedDoctorSaved", l)}${sep}${story}${sep}`;
+}
+
 function getRandomDeathStory(name: string, lang: string = "en") {
   const DEATH_STORY_POOLS: Record<string, string[]> = { en: DEATH_STORIES, es: DEATH_STORIES_ES, fr: DEATH_STORIES_FR, "pt-BR": DEATH_STORIES_PT_BR, "zh-CN": DEATH_STORIES_ZH_CN, "zh-TW": DEATH_STORIES_ZH_TW };
   const pool = DEATH_STORY_POOLS[normalizeLang(lang)];
   const story = pool[Math.floor(Math.random() * pool.length)];
   return story.replace("{name}", name);
+}
+
+// Death stories are picked once on the server and sent to every client, so the
+// chat line and the elimination overlay always tell the same story. Cleared
+// at the start of each game (see beginGame).
+const deathStoriesByRoom = new Map<number, Map<number, string>>();
+function recordDeathStory(roomId: number, playerId: number, story: string) {
+  if (!deathStoriesByRoom.has(roomId)) deathStoriesByRoom.set(roomId, new Map());
+  deathStoriesByRoom.get(roomId)!.set(playerId, story);
 }
 
 const phaseTimers = new Map<number, NodeJS.Timeout>();
@@ -963,6 +1050,7 @@ async function beginGame(roomId: number, wss: WebSocketServer, storage: any, roo
     shots: new Map()
   });
   gameHistory.set(roomId, []);
+  deathStoriesByRoom.set(roomId, new Map());
   const bulletsMap = new Map<number, number>();
   for (const p of firstNightPlayers) {
     if (p.role === 'vigilante') bulletsMap.set(p.id, 2);
@@ -2944,7 +3032,8 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
             role: (room.settings as any)?.showRoleReveal !== false ? (victim.role || "civilian") : "unknown",
           };
           const revealLang = normalizeLang((room.settings as any)?.language);
-          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(revealLang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, revealLang, "voted", (room.settings as any)?.showRoleReveal !== false) });
+          recordDeathStory(roomId, victim.id, getRandomDeathStory(victim.name, revealLang));
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
           if (victim.role === 'jester') {
@@ -3000,6 +3089,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
       const nextPhase = getFirstNightPhase(nextPlayers);
       await storage.updateRoom(roomId, { status: 'night', phase: nextPhase, turn: (room.turn || 0) + 1, lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
+      actions.skipDiscussion?.clear(); // fresh skip tally every round
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
@@ -3076,7 +3166,8 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
             // (see the player-list role masking below) for a hidden role.
             role: (room.settings as any)?.showRoleReveal !== false ? (victim.role || "civilian") : "unknown",
           };
-          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted") });
+          await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "voted", (room.settings as any)?.showRoleReveal !== false) });
+          recordDeathStory(roomId, victim.id, getRandomDeathStory(victim.name, lang));
           revealDelayMs = ELIMINATION_REVEAL_MS; // overlay always shows for 5s regardless of showRoleReveal — that setting only hides the role text inside it
 
           if (victim.role === 'jester') {
@@ -3124,6 +3215,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
       actions.votes.clear();
+      actions.skipDiscussion?.clear(); // fresh skip tally every round
       actions.guards.clear();
       actions.shots.clear();
       gameActions.set(roomId, actions);
@@ -3235,12 +3327,16 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
             if (attackers.length > 1 && !healedIds.has(targetId)) {
               deadTonight.add(targetId);
               anyoneDied = true;
-              nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
+              {
+          const killStory = getRandomDeathStory(victim.name, lang);
+          recordDeathStory(roomId, victim.id, killStory);
+          nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed", (room.settings as any)?.showRoleReveal !== false)} ${killStory}`;
+        }
               nightData.events.push({ type: 'combined_kill', target: victim.name, role: victim.role });
               const secondAttacker = attackers[1];
               if (secondAttacker.type === 'vigilante' && victim.role !== 'mafia') newGuiltVigilanteId = secondAttacker.id || null;
             } else if (attackers.length > 1 && healedIds.has(targetId)) {
-              nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
+              nightSummary += doctorSavedMessage(lang);
               nightData.events.push({ type: 'attempt', target: victim.name, saved: true });
             }
             continue;
@@ -3249,7 +3345,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
 
         // No living Bodyguard covering this target — does the Doctor's heal cover them?
         if (healedIds.has(targetId)) {
-          nightSummary += sysMsg("mafiaFailedDoctorSaved", lang);
+          nightSummary += doctorSavedMessage(lang);
           nightData.events.push({ type: 'attempt', target: victim.name, saved: true });
           continue;
         }
@@ -3257,7 +3353,11 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
         // No protection at all — the target dies.
         deadTonight.add(targetId);
         anyoneDied = true;
-        nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed")} ${getRandomDeathStory(victim.name, lang)}`;
+        {
+          const killStory = getRandomDeathStory(victim.name, lang);
+          recordDeathStory(roomId, victim.id, killStory);
+          nightSummary += `${buildRoleRevealSentence(victim.name, victim.role || "civilian", players, lang, "killed", (room.settings as any)?.showRoleReveal !== false)} ${killStory}`;
+        }
         nightData.events.push({ type: 'kill', target: victim.name, role: victim.role });
 
         // Guilt: any Vigilante who shot this target dies of guilt if the target wasn't Mafia.
@@ -3303,6 +3403,7 @@ async function advancePhaseInner(roomId: number, wss: WebSocketServer, storage: 
       await storage.createMessage({ roomId, playerId: 0, playerName: sysName(lang), content: nightSummary });
       await storage.updateRoom(roomId, { status: 'day', phase: 'discussion', lastUpdated: new Date(Date.now() + revealDelayMs) });
       actions.votes.clear();
+      actions.skipDiscussion?.clear(); // fresh skip tally every round
       actions.mafiaKills.clear();
       actions.doctorSaves.clear();
       actions.detectiveChecks.clear();
@@ -3565,6 +3666,7 @@ async function broadcastState(roomId: number) {
           mafiaChatAvailable,
           mafiaTeammatesActedIds,
           discussionSkipTally,
+          deathStories: Object.fromEntries(deathStoriesByRoom.get(roomId) ?? []),
           lobbyCountdownEndsAt: room.status === 'lobby' ? (readyDeadlines.get(roomId) ?? null) : null,
           // True while turn 1's real clock is still being held for real
           // players to finish their role reveal / tutorial (see

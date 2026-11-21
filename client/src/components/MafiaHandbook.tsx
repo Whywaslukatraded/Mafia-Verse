@@ -28,9 +28,11 @@ export function MafiaHandbook() {
           variant="outline"
           size="sm"
           className="gap-2 bg-muted/50 border-border hover:bg-muted transition-all hover:scale-105 group"
+          aria-label={t("handbook.title")}
         >
           <BookOpen className="w-4 h-4 text-blue-400 group-hover:rotate-12 transition-transform" />
-          <span>{t("handbook.title")}</span>
+          {/* Icon-only on narrow phones so the room header buttons fit on one row */}
+          <span className="hidden min-[420px]:inline">{t("handbook.title")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl bg-background border-border text-foreground shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
